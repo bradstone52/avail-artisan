@@ -557,11 +557,125 @@ Deno.serve(async (req) => {
       );
     }
 
+    // If no issue_listings found, fall back to fetching listings directly based on issue criteria
     if (!fetchedIssueListings || fetchedIssueListings.length === 0) {
+      console.log("No issue_listings found, falling back to listings table");
+      
+      // Fetch listings that meet the issue criteria
+      const { data: fallbackListings, error: fallbackError } = await supabaseClient
+        .from("listings")
+        .select("*")
+        .eq("user_id", user.id)
+        .eq("status", "Active")
+        .eq("include_in_issue", true)
+        .gte("size_sf", (issue as Issue).size_threshold)
+        .order("size_sf", { ascending: false });
+
+      if (fallbackError || !fallbackListings || fallbackListings.length === 0) {
+        return new Response(
+          JSON.stringify({ error: "No listings found for this issue" }),
+          {
+            status: 400,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          }
+        );
+      }
+
+      console.log(`Found ${fallbackListings.length} listings via fallback`);
+
+      // Create issue_listings from fallback data
+      const fallbackIssueListings = fallbackListings.map((listing: Listing, index: number) => ({
+        issue_id: issue_id,
+        listing_id: listing.id,
+        change_status: "new",
+        executive_note: null,
+        sort_order: index,
+      }));
+
+      // Save them to issue_listings for future use
+      await supabaseClient.from("issue_listings").insert(fallbackIssueListings);
+
+      // Transform to expected format
+      const transformedFallback: IssueListing[] = fallbackListings.map((listing: Listing, index: number) => ({
+        id: `fallback-${index}`,
+        listing_id: listing.id,
+        change_status: "new" as string | null,
+        executive_note: null,
+        sort_order: index,
+        listings: listing,
+      }));
+
+      // Generate HTML for PDF
+      const htmlContent = generatePdfHtml(issue as Issue, transformedFallback);
+
+      // Convert HTML to real PDF using DocRaptor
+      const pdfBytes = await convertHtmlToPdf(htmlContent);
+
+      // Generate filename
+      const dateStr = format(new Date(), "yyyy_MM");
+      const filename = `distribution_snapshot_${dateStr}_${issue_id.slice(0, 8)}.pdf`;
+
+      // Upload PDF to storage
+      const { error: uploadError } = await supabaseClient.storage
+        .from("issue-pdfs")
+        .upload(filename, pdfBytes, {
+          contentType: "application/pdf",
+          upsert: true,
+        });
+
+      if (uploadError) {
+        console.error("Upload error:", uploadError);
+        return new Response(JSON.stringify({ error: "Failed to upload PDF" }), {
+          status: 500,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      // Get public URL
+      const {
+        data: { publicUrl },
+      } = supabaseClient.storage.from("issue-pdfs").getPublicUrl(filename);
+
+      // Generate share token if not exists
+      const shareToken = (issue as Issue).pdf_share_token || generateShareToken();
+
+      // Update issue with PDF info
+      const { error: updateError } = await supabaseClient
+        .from("issues")
+        .update({
+          pdf_url: publicUrl,
+          pdf_filename: filename,
+          pdf_filesize: pdfBytes.length,
+          pdf_generated_at: new Date().toISOString(),
+          pdf_share_token: shareToken,
+          total_listings: transformedFallback.length,
+          new_count: transformedFallback.filter((l) => l.change_status === "new").length,
+          changed_count: transformedFallback.filter((l) => l.change_status === "changed").length,
+        })
+        .eq("id", issue_id);
+
+      if (updateError) {
+        console.error("Update error:", updateError);
+        return new Response(
+          JSON.stringify({ error: "Failed to update issue record" }),
+          {
+            status: 500,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          }
+        );
+      }
+
+      console.log(`PDF generated successfully: ${publicUrl}`);
+
       return new Response(
-        JSON.stringify({ error: "No listings found for this issue" }),
+        JSON.stringify({
+          success: true,
+          pdf_url: publicUrl,
+          pdf_filename: filename,
+          pdf_filesize: pdfBytes.length,
+          pdf_share_token: shareToken,
+        }),
         {
-          status: 400,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         }
       );
