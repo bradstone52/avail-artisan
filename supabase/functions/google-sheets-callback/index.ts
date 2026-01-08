@@ -1,6 +1,12 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
+const htmlHeaders = {
+  'Content-Type': 'text/html',
+  'Cross-Origin-Opener-Policy': 'unsafe-none',
+  'Cross-Origin-Embedder-Policy': 'unsafe-none',
+};
+
 serve(async (req) => {
   try {
     const url = new URL(req.url);
@@ -13,14 +19,14 @@ serve(async (req) => {
     if (error) {
       console.error('OAuth error:', error);
       return new Response(getErrorHtml('OAuth authorization was denied'), {
-        headers: { 'Content-Type': 'text/html' },
+        headers: htmlHeaders,
       });
     }
 
     if (!code || !state) {
       console.error('Missing code or state');
       return new Response(getErrorHtml('Missing authorization code'), {
-        headers: { 'Content-Type': 'text/html' },
+        headers: htmlHeaders,
       });
     }
 
@@ -33,7 +39,7 @@ serve(async (req) => {
     } catch (e) {
       console.error('Failed to decode state:', e);
       return new Response(getErrorHtml('Invalid state parameter'), {
-        headers: { 'Content-Type': 'text/html' },
+        headers: htmlHeaders,
       });
     }
 
@@ -60,7 +66,7 @@ serve(async (req) => {
     if (tokenData.error) {
       console.error('Token exchange error:', tokenData);
       return new Response(getErrorHtml(`Token exchange failed: ${tokenData.error_description || tokenData.error}`), {
-        headers: { 'Content-Type': 'text/html' },
+        headers: htmlHeaders,
       });
     }
 
@@ -88,7 +94,7 @@ serve(async (req) => {
     if (upsertError) {
       console.error('Failed to store tokens:', upsertError);
       return new Response(getErrorHtml('Failed to store authorization'), {
-        headers: { 'Content-Type': 'text/html' },
+        headers: htmlHeaders,
       });
     }
 
@@ -96,13 +102,13 @@ serve(async (req) => {
 
     // Return success HTML that closes the popup
     return new Response(getSuccessHtml(), {
-      headers: { 'Content-Type': 'text/html' },
+      headers: htmlHeaders,
     });
   } catch (error: unknown) {
     console.error('Error in google-sheets-callback:', error);
     const message = error instanceof Error ? error.message : 'Unknown error';
     return new Response(getErrorHtml(message), {
-      headers: { 'Content-Type': 'text/html' },
+      headers: htmlHeaders,
     });
   }
 });
