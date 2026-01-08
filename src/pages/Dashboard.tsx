@@ -24,7 +24,9 @@ export default function Dashboard() {
     listings, 
     loading: sheetLoading, 
     isSyncing,
+    hasOAuthToken,
     connectSheet, 
+    connectOAuth,
     disconnectSheet, 
     syncListings 
   } = useSheetConnection();
@@ -177,7 +179,9 @@ export default function Dashboard() {
               onConnect={connectSheet}
               onSync={syncListings}
               onDisconnect={disconnectSheet}
+              onConnectOAuth={connectOAuth}
               isSyncing={isSyncing}
+              hasOAuthToken={hasOAuthToken}
             />
 
             {/* Quick Actions */}

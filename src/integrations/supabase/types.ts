@@ -14,6 +14,39 @@ export type Database = {
   }
   public: {
     Tables: {
+      google_oauth_tokens: {
+        Row: {
+          access_token: string
+          created_at: string
+          expires_at: string | null
+          id: string
+          refresh_token: string | null
+          scope: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          access_token: string
+          created_at?: string
+          expires_at?: string | null
+          id?: string
+          refresh_token?: string | null
+          scope?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          access_token?: string
+          created_at?: string
+          expires_at?: string | null
+          id?: string
+          refresh_token?: string | null
+          scope?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       issue_listings: {
         Row: {
           change_status: string | null
@@ -270,6 +303,7 @@ export type Database = {
         Row: {
           connection_type: string
           created_at: string
+          google_sheet_id: string | null
           id: string
           last_synced_at: string | null
           sheet_name: string
@@ -281,6 +315,7 @@ export type Database = {
         Insert: {
           connection_type?: string
           created_at?: string
+          google_sheet_id?: string | null
           id?: string
           last_synced_at?: string | null
           sheet_name: string
@@ -292,6 +327,7 @@ export type Database = {
         Update: {
           connection_type?: string
           created_at?: string
+          google_sheet_id?: string | null
           id?: string
           last_synced_at?: string | null
           sheet_name?: string
