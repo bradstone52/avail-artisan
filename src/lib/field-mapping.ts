@@ -165,6 +165,13 @@ export function mapRowToListing(
   // Compute display_address
   listing.display_address = computeDisplayAddress(row, headers);
 
+  // Ensure required database columns have defaults (NOT NULL constraints)
+  if (!listing.address) listing.address = '';
+  if (!listing.city) listing.city = '';
+  if (!listing.submarket) listing.submarket = '';
+  if (!listing.status) listing.status = 'Active';
+  if (!listing.size_sf) listing.size_sf = 0;
+
   return { listing, missingHeaders };
 }
 
