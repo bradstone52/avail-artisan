@@ -140,17 +140,8 @@ export function useSheetConnection() {
       if (error) throw error;
 
       if (data?.authUrl) {
-        // Open OAuth popup
-        const width = 500;
-        const height = 600;
-        const left = window.screenX + (window.outerWidth - width) / 2;
-        const top = window.screenY + (window.outerHeight - height) / 2;
-        
-        window.open(
-          data.authUrl,
-          'google-oauth',
-          `width=${width},height=${height},left=${left},top=${top}`
-        );
+        // Redirect in the same tab (avoids Firefox COOP popup restrictions)
+        window.location.assign(data.authUrl);
       }
     } catch (error) {
       console.error('OAuth error:', error);
