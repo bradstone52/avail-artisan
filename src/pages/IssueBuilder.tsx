@@ -221,6 +221,10 @@ export default function IssueBuilder() {
               issue={createdIssue}
               settings={settings}
               listingsCount={selectedIds.length}
+              listings={listings}
+              selectedIds={selectedIds}
+              executiveNotes={executiveNotes}
+              changeStatus={changeStatus}
             />
           )}
         </div>

@@ -45,6 +45,11 @@ export interface Issue {
   primary_contact_email: string | null;
   primary_contact_phone: string | null;
   pdf_url: string | null;
+  pdf_filename: string | null;
+  pdf_filesize: number | null;
+  pdf_generated_at: string | null;
+  pdf_share_enabled: boolean;
+  pdf_share_token: string | null;
   is_public: boolean;
   total_listings: number;
   new_count: number;
