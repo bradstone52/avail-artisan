@@ -224,6 +224,7 @@ export type Database = {
           voltage: string | null
           warehouse_sf: number | null
           yard: string | null
+          yard_area: string | null
           zoning: string | null
         }
         Insert: {
@@ -273,6 +274,7 @@ export type Database = {
           voltage?: string | null
           warehouse_sf?: number | null
           yard?: string | null
+          yard_area?: string | null
           zoning?: string | null
         }
         Update: {
@@ -322,6 +324,7 @@ export type Database = {
           voltage?: string | null
           warehouse_sf?: number | null
           yard?: string | null
+          yard_area?: string | null
           zoning?: string | null
         }
         Relationships: []
