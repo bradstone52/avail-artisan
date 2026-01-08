@@ -28,7 +28,7 @@ export default function Dashboard() {
     disconnectSheet, 
     syncListings 
   } = useSheetConnection();
-  const { issues, loading: issuesLoading } = useIssues();
+  const { issues, loading: issuesLoading, refreshIssues } = useIssues();
 
   const activeListings = listings.filter(l => l.status === 'Active');
   const includedListings = listings.filter(l => l.include_in_issue && l.status === 'Active');
@@ -160,9 +160,7 @@ export default function Dashboard() {
                     <IssueCard 
                       key={issue.id} 
                       issue={issue}
-                      onView={() => toast.info('PDF preview coming soon')}
-                      onDownload={() => toast.info('Download coming soon')}
-                      onShare={() => toast.info('Share coming soon')}
+                      onRefresh={refreshIssues}
                     />
                   ))}
                 </div>
