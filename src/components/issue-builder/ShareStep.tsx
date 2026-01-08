@@ -131,11 +131,10 @@ Information believed reliable but not guaranteed.`;
 
   const handleDownload = () => {
     if (currentIssue?.pdf_url) {
-      // Open in new tab for download/print
       const link = document.createElement('a');
       link.href = currentIssue.pdf_url;
       link.target = '_blank';
-      link.download = currentIssue.pdf_filename || 'distribution_snapshot.html';
+      link.download = currentIssue.pdf_filename || 'distribution_snapshot.pdf';
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
