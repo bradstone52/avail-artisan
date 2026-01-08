@@ -69,6 +69,11 @@ export type Database = {
           logo_url: string | null
           market: string
           new_count: number
+          pdf_filename: string | null
+          pdf_filesize: number | null
+          pdf_generated_at: string | null
+          pdf_share_enabled: boolean
+          pdf_share_token: string | null
           pdf_url: string | null
           primary_contact_email: string | null
           primary_contact_name: string | null
@@ -91,6 +96,11 @@ export type Database = {
           logo_url?: string | null
           market?: string
           new_count?: number
+          pdf_filename?: string | null
+          pdf_filesize?: number | null
+          pdf_generated_at?: string | null
+          pdf_share_enabled?: boolean
+          pdf_share_token?: string | null
           pdf_url?: string | null
           primary_contact_email?: string | null
           primary_contact_name?: string | null
@@ -113,6 +123,11 @@ export type Database = {
           logo_url?: string | null
           market?: string
           new_count?: number
+          pdf_filename?: string | null
+          pdf_filesize?: number | null
+          pdf_generated_at?: string | null
+          pdf_share_enabled?: boolean
+          pdf_share_token?: string | null
           pdf_url?: string | null
           primary_contact_email?: string | null
           primary_contact_name?: string | null
