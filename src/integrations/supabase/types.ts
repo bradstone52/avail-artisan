@@ -1,0 +1,427 @@
+export type Json =
+  | string
+  | number
+  | boolean
+  | null
+  | { [key: string]: Json | undefined }
+  | Json[]
+
+export type Database = {
+  // Allows to automatically instantiate createClient with right options
+  // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
+  __InternalSupabase: {
+    PostgrestVersion: "14.1"
+  }
+  public: {
+    Tables: {
+      issue_listings: {
+        Row: {
+          change_status: string | null
+          created_at: string
+          executive_note: string | null
+          id: string
+          issue_id: string
+          listing_id: string
+          sort_order: number
+        }
+        Insert: {
+          change_status?: string | null
+          created_at?: string
+          executive_note?: string | null
+          id?: string
+          issue_id: string
+          listing_id: string
+          sort_order?: number
+        }
+        Update: {
+          change_status?: string | null
+          created_at?: string
+          executive_note?: string | null
+          id?: string
+          issue_id?: string
+          listing_id?: string
+          sort_order?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "issue_listings_issue_id_fkey"
+            columns: ["issue_id"]
+            isOneToOne: false
+            referencedRelation: "issues"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "issue_listings_listing_id_fkey"
+            columns: ["listing_id"]
+            isOneToOne: false
+            referencedRelation: "listings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      issues: {
+        Row: {
+          brokerage_name: string | null
+          changed_count: number
+          created_at: string
+          id: string
+          is_public: boolean
+          logo_url: string | null
+          market: string
+          new_count: number
+          pdf_url: string | null
+          primary_contact_email: string | null
+          primary_contact_name: string | null
+          primary_contact_phone: string | null
+          published_at: string | null
+          removed_count: number
+          size_threshold: number
+          sort_order: string
+          title: string
+          total_listings: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          brokerage_name?: string | null
+          changed_count?: number
+          created_at?: string
+          id?: string
+          is_public?: boolean
+          logo_url?: string | null
+          market?: string
+          new_count?: number
+          pdf_url?: string | null
+          primary_contact_email?: string | null
+          primary_contact_name?: string | null
+          primary_contact_phone?: string | null
+          published_at?: string | null
+          removed_count?: number
+          size_threshold?: number
+          sort_order?: string
+          title: string
+          total_listings?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          brokerage_name?: string | null
+          changed_count?: number
+          created_at?: string
+          id?: string
+          is_public?: boolean
+          logo_url?: string | null
+          market?: string
+          new_count?: number
+          pdf_url?: string | null
+          primary_contact_email?: string | null
+          primary_contact_name?: string | null
+          primary_contact_phone?: string | null
+          published_at?: string | null
+          removed_count?: number
+          size_threshold?: number
+          sort_order?: string
+          title?: string
+          total_listings?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      listings: {
+        Row: {
+          address: string
+          asking_rate_psf: string | null
+          availability_date: string | null
+          broker_source: string | null
+          city: string
+          clear_height_ft: number | null
+          created_at: string
+          cross_dock: string | null
+          dock_doors: number | null
+          drive_in_doors: number | null
+          id: string
+          include_in_issue: boolean
+          internal_note: string | null
+          landlord: string | null
+          last_verified_date: string | null
+          link: string | null
+          listing_id: string
+          notes_public: string | null
+          office_percent: string | null
+          photo_url: string | null
+          power_amps: string | null
+          property_name: string | null
+          size_sf: number
+          sprinkler: string | null
+          status: string
+          submarket: string
+          trailer_parking: string | null
+          updated_at: string
+          user_id: string
+          yard: string | null
+        }
+        Insert: {
+          address: string
+          asking_rate_psf?: string | null
+          availability_date?: string | null
+          broker_source?: string | null
+          city: string
+          clear_height_ft?: number | null
+          created_at?: string
+          cross_dock?: string | null
+          dock_doors?: number | null
+          drive_in_doors?: number | null
+          id?: string
+          include_in_issue?: boolean
+          internal_note?: string | null
+          landlord?: string | null
+          last_verified_date?: string | null
+          link?: string | null
+          listing_id: string
+          notes_public?: string | null
+          office_percent?: string | null
+          photo_url?: string | null
+          power_amps?: string | null
+          property_name?: string | null
+          size_sf: number
+          sprinkler?: string | null
+          status?: string
+          submarket: string
+          trailer_parking?: string | null
+          updated_at?: string
+          user_id: string
+          yard?: string | null
+        }
+        Update: {
+          address?: string
+          asking_rate_psf?: string | null
+          availability_date?: string | null
+          broker_source?: string | null
+          city?: string
+          clear_height_ft?: number | null
+          created_at?: string
+          cross_dock?: string | null
+          dock_doors?: number | null
+          drive_in_doors?: number | null
+          id?: string
+          include_in_issue?: boolean
+          internal_note?: string | null
+          landlord?: string | null
+          last_verified_date?: string | null
+          link?: string | null
+          listing_id?: string
+          notes_public?: string | null
+          office_percent?: string | null
+          photo_url?: string | null
+          power_amps?: string | null
+          property_name?: string | null
+          size_sf?: number
+          sprinkler?: string | null
+          status?: string
+          submarket?: string
+          trailer_parking?: string | null
+          updated_at?: string
+          user_id?: string
+          yard?: string | null
+        }
+        Relationships: []
+      }
+      profiles: {
+        Row: {
+          created_at: string
+          email: string | null
+          full_name: string | null
+          id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          email?: string | null
+          full_name?: string | null
+          id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          email?: string | null
+          full_name?: string | null
+          id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      sheet_connections: {
+        Row: {
+          connection_type: string
+          created_at: string
+          id: string
+          last_synced_at: string | null
+          sheet_name: string
+          sheet_url: string
+          tab_name: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          connection_type?: string
+          created_at?: string
+          id?: string
+          last_synced_at?: string | null
+          sheet_name: string
+          sheet_url: string
+          tab_name?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          connection_type?: string
+          created_at?: string
+          id?: string
+          last_synced_at?: string | null
+          sheet_name?: string
+          sheet_url?: string
+          tab_name?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+    }
+    Views: {
+      [_ in never]: never
+    }
+    Functions: {
+      [_ in never]: never
+    }
+    Enums: {
+      [_ in never]: never
+    }
+    CompositeTypes: {
+      [_ in never]: never
+    }
+  }
+}
+
+type DatabaseWithoutInternals = Omit<Database, "__InternalSupabase">
+
+type DefaultSchema = DatabaseWithoutInternals[Extract<keyof Database, "public">]
+
+export type Tables<
+  DefaultSchemaTableNameOrOptions extends
+    | keyof (DefaultSchema["Tables"] & DefaultSchema["Views"])
+    | { schema: keyof DatabaseWithoutInternals },
+  TableName extends DefaultSchemaTableNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
+        DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])
+    : never = never,
+> = DefaultSchemaTableNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
+      DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])[TableName] extends {
+      Row: infer R
+    }
+    ? R
+    : never
+  : DefaultSchemaTableNameOrOptions extends keyof (DefaultSchema["Tables"] &
+        DefaultSchema["Views"])
+    ? (DefaultSchema["Tables"] &
+        DefaultSchema["Views"])[DefaultSchemaTableNameOrOptions] extends {
+        Row: infer R
+      }
+      ? R
+      : never
+    : never
+
+export type TablesInsert<
+  DefaultSchemaTableNameOrOptions extends
+    | keyof DefaultSchema["Tables"]
+    | { schema: keyof DatabaseWithoutInternals },
+  TableName extends DefaultSchemaTableNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
+    : never = never,
+> = DefaultSchemaTableNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
+      Insert: infer I
+    }
+    ? I
+    : never
+  : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema["Tables"]
+    ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
+        Insert: infer I
+      }
+      ? I
+      : never
+    : never
+
+export type TablesUpdate<
+  DefaultSchemaTableNameOrOptions extends
+    | keyof DefaultSchema["Tables"]
+    | { schema: keyof DatabaseWithoutInternals },
+  TableName extends DefaultSchemaTableNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
+    : never = never,
+> = DefaultSchemaTableNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
+      Update: infer U
+    }
+    ? U
+    : never
+  : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema["Tables"]
+    ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
+        Update: infer U
+      }
+      ? U
+      : never
+    : never
+
+export type Enums<
+  DefaultSchemaEnumNameOrOptions extends
+    | keyof DefaultSchema["Enums"]
+    | { schema: keyof DatabaseWithoutInternals },
+  EnumName extends DefaultSchemaEnumNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"]
+    : never = never,
+> = DefaultSchemaEnumNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"][EnumName]
+  : DefaultSchemaEnumNameOrOptions extends keyof DefaultSchema["Enums"]
+    ? DefaultSchema["Enums"][DefaultSchemaEnumNameOrOptions]
+    : never
+
+export type CompositeTypes<
+  PublicCompositeTypeNameOrOptions extends
+    | keyof DefaultSchema["CompositeTypes"]
+    | { schema: keyof DatabaseWithoutInternals },
+  CompositeTypeName extends PublicCompositeTypeNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"]
+    : never = never,
+> = PublicCompositeTypeNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"][CompositeTypeName]
+  : PublicCompositeTypeNameOrOptions extends keyof DefaultSchema["CompositeTypes"]
+    ? DefaultSchema["CompositeTypes"][PublicCompositeTypeNameOrOptions]
+    : never
+
+export const Constants = {
+  public: {
+    Enums: {},
+  },
+} as const
