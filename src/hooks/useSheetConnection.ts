@@ -6,11 +6,12 @@ import { parseCSV, validateHeaders, parseListingRow } from '@/lib/sheet-parser';
 import { toast } from 'sonner';
 
 export function useSheetConnection() {
-  const { user } = useAuth();
+  const { user, session } = useAuth();
   const [connection, setConnection] = useState<SheetConnection | null>(null);
   const [listings, setListings] = useState<Listing[]>([]);
   const [loading, setLoading] = useState(true);
   const [isSyncing, setIsSyncing] = useState(false);
+  const [hasOAuthToken, setHasOAuthToken] = useState(false);
 
   const fetchConnection = useCallback(async () => {
     if (!user) return;
@@ -48,12 +49,46 @@ export function useSheetConnection() {
     setListings(data as Listing[]);
   }, [user]);
 
+  const checkOAuthToken = useCallback(async () => {
+    if (!user) return;
+
+    const { data } = await supabase
+      .from('google_oauth_tokens')
+      .select('id')
+      .eq('user_id', user.id)
+      .single();
+
+    setHasOAuthToken(!!data);
+  }, [user]);
+
   useEffect(() => {
     fetchConnection();
     fetchListings();
-  }, [fetchConnection, fetchListings]);
+    checkOAuthToken();
+  }, [fetchConnection, fetchListings, checkOAuthToken]);
 
-  const connectSheet = async (url: string, name: string, tabName: string) => {
+  // Listen for OAuth success messages from popup
+  useEffect(() => {
+    const handleMessage = (event: MessageEvent) => {
+      if (event.data?.type === 'google-oauth-success') {
+        setHasOAuthToken(true);
+        toast.success('Google account connected! Now select your sheet.');
+      } else if (event.data?.type === 'google-oauth-error') {
+        toast.error(event.data.error || 'OAuth failed');
+      }
+    };
+
+    window.addEventListener('message', handleMessage);
+    return () => window.removeEventListener('message', handleMessage);
+  }, []);
+
+  const connectSheet = async (
+    url: string, 
+    name: string, 
+    tabName: string, 
+    connectionType: 'csv' | 'oauth' = 'csv',
+    googleSheetId?: string
+  ) => {
     if (!user) throw new Error('Not authenticated');
 
     // Delete existing connection
@@ -70,7 +105,8 @@ export function useSheetConnection() {
         sheet_url: url,
         sheet_name: name,
         tab_name: tabName,
-        connection_type: 'csv',
+        connection_type: connectionType,
+        google_sheet_id: googleSheetId || null,
       })
       .select()
       .single();
@@ -78,6 +114,40 @@ export function useSheetConnection() {
     if (error) throw error;
 
     setConnection(data as SheetConnection);
+  };
+
+  const connectOAuth = async () => {
+    if (!session?.access_token) {
+      toast.error('Not authenticated');
+      return;
+    }
+
+    try {
+      const { data, error } = await supabase.functions.invoke('google-sheets-auth', {
+        headers: {
+          Authorization: `Bearer ${session.access_token}`,
+        },
+      });
+
+      if (error) throw error;
+
+      if (data?.authUrl) {
+        // Open OAuth popup
+        const width = 500;
+        const height = 600;
+        const left = window.screenX + (window.outerWidth - width) / 2;
+        const top = window.screenY + (window.outerHeight - height) / 2;
+        
+        window.open(
+          data.authUrl,
+          'google-oauth',
+          `width=${width},height=${height},left=${left},top=${top}`
+        );
+      }
+    } catch (error) {
+      console.error('OAuth error:', error);
+      toast.error('Failed to start Google authorization');
+    }
   };
 
   const disconnectSheet = async () => {
@@ -108,13 +178,37 @@ export function useSheetConnection() {
     setIsSyncing(true);
 
     try {
-      // Fetch CSV from the published URL
-      const response = await fetch(connection.sheet_url);
-      if (!response.ok) {
-        throw new Error('Failed to fetch sheet data. Make sure the sheet is published.');
+      let csvText: string;
+
+      if (connection.connection_type === 'oauth') {
+        // Use OAuth sync edge function
+        if (!session?.access_token) {
+          throw new Error('Not authenticated');
+        }
+
+        const { data, error } = await supabase.functions.invoke('google-sheets-sync', {
+          headers: {
+            Authorization: `Bearer ${session.access_token}`,
+          },
+          body: {
+            spreadsheetId: (connection as SheetConnection & { google_sheet_id?: string }).google_sheet_id,
+            sheetName: connection.tab_name,
+          },
+        });
+
+        if (error) throw error;
+        if (data?.error) throw new Error(data.error);
+
+        csvText = data.data;
+      } else {
+        // Fetch CSV from the published URL
+        const response = await fetch(connection.sheet_url);
+        if (!response.ok) {
+          throw new Error('Failed to fetch sheet data. Make sure the sheet is published.');
+        }
+        csvText = await response.text();
       }
 
-      const csvText = await response.text();
       const rows = parseCSV(csvText);
 
       if (rows.length < 2) {
@@ -138,7 +232,7 @@ export function useSheetConnection() {
         if (parsed.isValid && parsed.data.listing_id) {
           parsedListings.push({
             ...parsed.data,
-            id: '', // Will be set by DB
+            id: '',
             user_id: user.id,
             created_at: new Date().toISOString(),
             updated_at: new Date().toISOString(),
@@ -222,7 +316,9 @@ export function useSheetConnection() {
     listings,
     loading,
     isSyncing,
+    hasOAuthToken,
     connectSheet,
+    connectOAuth,
     disconnectSheet,
     syncListings,
     refreshListings: fetchListings,

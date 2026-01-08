@@ -1,4 +1,13 @@
 project_id = "vouzfwrumlhmtmgglsti"
 
+[functions.google-sheets-auth]
+verify_jwt = false
+
+[functions.google-sheets-callback]
+verify_jwt = false
+
+[functions.google-sheets-sync]
+verify_jwt = false
+
 [functions.generate-pdf]
 verify_jwt = false

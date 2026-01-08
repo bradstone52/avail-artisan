@@ -1,10 +1,11 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { formatDistanceToNow } from 'date-fns';
-import { FileSpreadsheet, RefreshCw, Link2, Unlink, CheckCircle2, AlertCircle } from 'lucide-react';
+import { FileSpreadsheet, RefreshCw, Link2, Unlink, CheckCircle2, Shield } from 'lucide-react';
 import { SheetConnection } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
   Dialog,
   DialogContent,
@@ -17,10 +18,12 @@ import { toast } from 'sonner';
 
 interface SheetConnectionCardProps {
   connection: SheetConnection | null;
-  onConnect: (url: string, name: string, tabName: string) => Promise<void>;
+  onConnect: (url: string, name: string, tabName: string, connectionType?: 'csv' | 'oauth', googleSheetId?: string) => Promise<void>;
   onSync: () => Promise<void>;
   onDisconnect: () => Promise<void>;
+  onConnectOAuth: () => Promise<void>;
   isSyncing: boolean;
+  hasOAuthToken: boolean;
 }
 
 export function SheetConnectionCard({
@@ -28,13 +31,21 @@ export function SheetConnectionCard({
   onConnect,
   onSync,
   onDisconnect,
+  onConnectOAuth,
   isSyncing,
+  hasOAuthToken,
 }: SheetConnectionCardProps) {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [sheetUrl, setSheetUrl] = useState('');
   const [sheetName, setSheetName] = useState('');
   const [tabName, setTabName] = useState('Sheet1');
   const [isConnecting, setIsConnecting] = useState(false);
+  const [connectionTab, setConnectionTab] = useState<'oauth' | 'csv'>('oauth');
+  
+  // OAuth-specific fields
+  const [oauthSheetUrl, setOauthSheetUrl] = useState('');
+  const [oauthSheetName, setOauthSheetName] = useState('');
+  const [oauthTabName, setOauthTabName] = useState('Sheet1');
 
   const handleConnect = async () => {
     if (!sheetUrl.trim() || !sheetName.trim()) {
@@ -44,7 +55,7 @@ export function SheetConnectionCard({
 
     setIsConnecting(true);
     try {
-      await onConnect(sheetUrl.trim(), sheetName.trim(), tabName.trim() || 'Sheet1');
+      await onConnect(sheetUrl.trim(), sheetName.trim(), tabName.trim() || 'Sheet1', 'csv');
       setDialogOpen(false);
       setSheetUrl('');
       setSheetName('');
@@ -57,6 +68,53 @@ export function SheetConnectionCard({
     }
   };
 
+  const handleOAuthConnect = async () => {
+    if (!hasOAuthToken) {
+      // Start OAuth flow
+      setIsConnecting(true);
+      try {
+        await onConnectOAuth();
+      } catch (error) {
+        toast.error('Failed to start OAuth flow');
+      } finally {
+        setIsConnecting(false);
+      }
+      return;
+    }
+
+    // User already has OAuth token, connect the sheet
+    if (!oauthSheetUrl.trim() || !oauthSheetName.trim()) {
+      toast.error('Please fill in all required fields');
+      return;
+    }
+
+    // Extract spreadsheet ID from URL
+    const sheetId = extractSpreadsheetId(oauthSheetUrl);
+    if (!sheetId) {
+      toast.error('Invalid Google Sheets URL');
+      return;
+    }
+
+    setIsConnecting(true);
+    try {
+      await onConnect(oauthSheetUrl.trim(), oauthSheetName.trim(), oauthTabName.trim() || 'Sheet1', 'oauth', sheetId);
+      setDialogOpen(false);
+      setOauthSheetUrl('');
+      setOauthSheetName('');
+      setOauthTabName('Sheet1');
+      toast.success('Sheet connected via OAuth!');
+    } catch (error) {
+      toast.error('Failed to connect sheet');
+    } finally {
+      setIsConnecting(false);
+    }
+  };
+
+  const extractSpreadsheetId = (url: string): string | null => {
+    const match = url.match(/\/spreadsheets\/d\/([a-zA-Z0-9-_]+)/);
+    return match ? match[1] : null;
+  };
+
   if (!connection) {
     return (
       <div className="bg-card border border-dashed border-border rounded-xl p-6 animate-fade-in">
@@ -66,7 +124,7 @@ export function SheetConnectionCard({
           </div>
           <h3 className="font-display font-semibold text-lg mb-1">Connect Your Data</h3>
           <p className="text-sm text-muted-foreground mb-4 max-w-sm">
-            Link a Google Sheet to import your distribution listings. The sheet must follow the required format.
+            Link a Google Sheet to import your distribution listings.
           </p>
 
           <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
@@ -76,59 +134,148 @@ export function SheetConnectionCard({
                 Connect Google Sheet
               </Button>
             </DialogTrigger>
-            <DialogContent>
+            <DialogContent className="max-w-md">
               <DialogHeader>
                 <DialogTitle>Connect Google Sheet</DialogTitle>
                 <DialogDescription>
-                  Enter the URL of your published Google Sheet. Make sure the sheet is published to the web as CSV.
+                  Choose how to connect your Google Sheet
                 </DialogDescription>
               </DialogHeader>
-              <div className="space-y-4 mt-4">
-                <div className="space-y-2">
-                  <Label htmlFor="sheet-name">Sheet Name *</Label>
-                  <Input
-                    id="sheet-name"
-                    placeholder="Distribution Listings 2025"
-                    value={sheetName}
-                    onChange={(e) => setSheetName(e.target.value)}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="sheet-url">Published CSV URL *</Label>
-                  <Input
-                    id="sheet-url"
-                    placeholder="https://docs.google.com/spreadsheets/d/.../pub?output=csv"
-                    value={sheetUrl}
-                    onChange={(e) => setSheetUrl(e.target.value)}
-                  />
-                  <p className="text-xs text-muted-foreground">
-                    In Google Sheets: File → Share → Publish to web → Select CSV
-                  </p>
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="tab-name">Tab Name</Label>
-                  <Input
-                    id="tab-name"
-                    placeholder="Sheet1"
-                    value={tabName}
-                    onChange={(e) => setTabName(e.target.value)}
-                  />
-                </div>
-                <Button 
-                  onClick={handleConnect} 
-                  className="w-full"
-                  disabled={isConnecting}
-                >
-                  {isConnecting ? (
-                    <>
-                      <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
-                      Connecting...
-                    </>
+              
+              <Tabs value={connectionTab} onValueChange={(v) => setConnectionTab(v as 'oauth' | 'csv')} className="mt-4">
+                <TabsList className="grid w-full grid-cols-2">
+                  <TabsTrigger value="oauth" className="flex items-center gap-1">
+                    <Shield className="w-3 h-3" />
+                    OAuth (Secure)
+                  </TabsTrigger>
+                  <TabsTrigger value="csv">CSV URL</TabsTrigger>
+                </TabsList>
+                
+                <TabsContent value="oauth" className="space-y-4 mt-4">
+                  {!hasOAuthToken ? (
+                    <div className="text-center py-4">
+                      <p className="text-sm text-muted-foreground mb-4">
+                        Connect securely with your Google account. Your sheet doesn't need to be publicly published.
+                      </p>
+                      <Button 
+                        onClick={handleOAuthConnect}
+                        disabled={isConnecting}
+                        className="w-full"
+                      >
+                        {isConnecting ? (
+                          <>
+                            <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+                            Connecting...
+                          </>
+                        ) : (
+                          <>
+                            <Shield className="w-4 h-4 mr-2" />
+                            Connect with Google
+                          </>
+                        )}
+                      </Button>
+                    </div>
                   ) : (
-                    'Connect Sheet'
+                    <>
+                      <div className="flex items-center gap-2 text-sm text-success mb-2">
+                        <CheckCircle2 className="w-4 h-4" />
+                        Google account connected
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="oauth-sheet-name">Sheet Name *</Label>
+                        <Input
+                          id="oauth-sheet-name"
+                          placeholder="Distribution Listings 2025"
+                          value={oauthSheetName}
+                          onChange={(e) => setOauthSheetName(e.target.value)}
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="oauth-sheet-url">Google Sheets URL *</Label>
+                        <Input
+                          id="oauth-sheet-url"
+                          placeholder="https://docs.google.com/spreadsheets/d/..."
+                          value={oauthSheetUrl}
+                          onChange={(e) => setOauthSheetUrl(e.target.value)}
+                        />
+                        <p className="text-xs text-muted-foreground">
+                          Paste the full URL of your Google Sheet
+                        </p>
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="oauth-tab-name">Tab Name</Label>
+                        <Input
+                          id="oauth-tab-name"
+                          placeholder="Sheet1"
+                          value={oauthTabName}
+                          onChange={(e) => setOauthTabName(e.target.value)}
+                        />
+                      </div>
+                      <Button 
+                        onClick={handleOAuthConnect} 
+                        className="w-full"
+                        disabled={isConnecting}
+                      >
+                        {isConnecting ? (
+                          <>
+                            <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+                            Connecting...
+                          </>
+                        ) : (
+                          'Connect Sheet'
+                        )}
+                      </Button>
+                    </>
                   )}
-                </Button>
-              </div>
+                </TabsContent>
+                
+                <TabsContent value="csv" className="space-y-4 mt-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="sheet-name">Sheet Name *</Label>
+                    <Input
+                      id="sheet-name"
+                      placeholder="Distribution Listings 2025"
+                      value={sheetName}
+                      onChange={(e) => setSheetName(e.target.value)}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="sheet-url">Published CSV URL *</Label>
+                    <Input
+                      id="sheet-url"
+                      placeholder="https://docs.google.com/spreadsheets/d/.../pub?output=csv"
+                      value={sheetUrl}
+                      onChange={(e) => setSheetUrl(e.target.value)}
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      In Google Sheets: File → Share → Publish to web → Select CSV
+                    </p>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="tab-name">Tab Name</Label>
+                    <Input
+                      id="tab-name"
+                      placeholder="Sheet1"
+                      value={tabName}
+                      onChange={(e) => setTabName(e.target.value)}
+                    />
+                  </div>
+                  <Button 
+                    onClick={handleConnect} 
+                    className="w-full"
+                    disabled={isConnecting}
+                  >
+                    {isConnecting ? (
+                      <>
+                        <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+                        Connecting...
+                      </>
+                    ) : (
+                      'Connect Sheet'
+                    )}
+                  </Button>
+                </TabsContent>
+              </Tabs>
             </DialogContent>
           </Dialog>
         </div>
@@ -146,8 +293,13 @@ export function SheetConnectionCard({
           <div className="flex items-start justify-between gap-2">
             <div>
               <h4 className="font-medium text-sm">{connection.sheet_name}</h4>
-              <p className="text-xs text-muted-foreground mt-0.5">
+              <p className="text-xs text-muted-foreground mt-0.5 flex items-center gap-1">
                 Tab: {connection.tab_name}
+                {connection.connection_type === 'oauth' && (
+                  <span className="inline-flex items-center gap-0.5 text-success">
+                    <Shield className="w-3 h-3" /> OAuth
+                  </span>
+                )}
               </p>
             </div>
             <Button
