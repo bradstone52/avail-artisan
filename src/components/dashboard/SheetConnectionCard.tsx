@@ -19,7 +19,7 @@ import { toast } from 'sonner';
 interface SheetConnectionCardProps {
   connection: SheetConnection | null;
   onConnect: (url: string, name: string, tabName: string, connectionType?: 'csv' | 'oauth', googleSheetId?: string) => Promise<void>;
-  onSync: () => Promise<void>;
+  onSync: () => Promise<unknown>;
   onDisconnect: () => Promise<void>;
   onConnectOAuth: () => Promise<void>;
   isSyncing: boolean;

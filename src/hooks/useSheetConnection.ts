@@ -5,6 +5,13 @@ import { SheetConnection, Listing } from '@/lib/types';
 import { parseCSV, validateHeaders, parseListingRow } from '@/lib/sheet-parser';
 import { toast } from 'sonner';
 
+export interface SyncReport {
+  created_count: number;
+  updated_count: number;
+  skipped_count: number;
+  skipped_rows: Array<{ row: number; reason: string }>;
+}
+
 export function useSheetConnection() {
   const { user, session } = useAuth();
   const [connection, setConnection] = useState<SheetConnection | null>(null);
@@ -12,6 +19,7 @@ export function useSheetConnection() {
   const [loading, setLoading] = useState(true);
   const [isSyncing, setIsSyncing] = useState(false);
   const [hasOAuthToken, setHasOAuthToken] = useState(false);
+  const [lastSyncReport, setLastSyncReport] = useState<SyncReport | null>(null);
 
   const fetchConnection = useCallback(async () => {
     if (!user) return;
@@ -169,19 +177,27 @@ export function useSheetConnection() {
     toast.success('Sheet disconnected');
   };
 
-  const syncListings = async () => {
+  const syncListings = async (): Promise<SyncReport | null> => {
     if (!user || !connection) {
       toast.error('No sheet connected');
-      return;
+      return null;
     }
 
     setIsSyncing(true);
+    setLastSyncReport(null);
+
+    const syncReport: SyncReport = {
+      created_count: 0,
+      updated_count: 0,
+      skipped_count: 0,
+      skipped_rows: [],
+    };
 
     try {
       let csvText: string;
 
       if (connection.connection_type === 'oauth') {
-        // Use OAuth sync edge function
+        // Use OAuth sync edge function with headerRow = 2
         if (!session?.access_token) {
           throw new Error('Not authenticated');
         }
@@ -193,6 +209,7 @@ export function useSheetConnection() {
           body: {
             spreadsheetId: (connection as SheetConnection & { google_sheet_id?: string }).google_sheet_id,
             sheetName: connection.tab_name,
+            headerRow: 2, // Headers are on row 2
           },
         });
 
@@ -222,71 +239,146 @@ export function useSheetConnection() {
         throw new Error(`Missing required columns: ${missing.join(', ')}`);
       }
 
-      // Parse all data rows
-      const parsedListings: Listing[] = [];
-      const errors: string[] = [];
+      // Get existing listings to determine create vs update
+      const { data: existingListings } = await supabase
+        .from('listings')
+        .select('listing_id')
+        .eq('user_id', user.id);
+
+      const existingListingIds = new Set(
+        (existingListings || []).map(l => l.listing_id)
+      );
+
+      // Parse all data rows - ListingID is REQUIRED
+      const listingsToUpsert: Array<{
+        user_id: string;
+        listing_id: string;
+        property_name: string | null;
+        address: string;
+        city: string;
+        submarket: string;
+        size_sf: number;
+        clear_height_ft: number | null;
+        dock_doors: number;
+        drive_in_doors: number;
+        yard: string;
+        availability_date: string | null;
+        asking_rate_psf: string | null;
+        status: string;
+        include_in_issue: boolean;
+        landlord: string | null;
+        broker_source: string | null;
+        notes_public: string | null;
+        internal_note: string | null;
+        link: string | null;
+        photo_url: string | null;
+        last_verified_date: string | null;
+        power_amps: string | null;
+        sprinkler: string | null;
+        office_percent: string | null;
+        cross_dock: string;
+        trailer_parking: string;
+      }> = [];
+
+      const seenListingIds = new Set<string>();
 
       for (let i = 1; i < rows.length; i++) {
-        const parsed = parseListingRow(rows[i], headers, i + 1);
+        const sheetRowNumber = i + 2; // +2 because: +1 for 0-indexed, +1 because header is row 2
+        const parsed = parseListingRow(rows[i], headers, sheetRowNumber);
         
-        if (parsed.isValid && parsed.data.listing_id) {
-          parsedListings.push({
-            ...parsed.data,
-            id: '',
-            user_id: user.id,
-            created_at: new Date().toISOString(),
-            updated_at: new Date().toISOString(),
-          } as Listing);
-        } else {
-          parsed.errors.forEach(err => {
-            errors.push(`Row ${err.row}: ${err.message}`);
+        // Check if ListingID is present and not blank
+        const listingId = parsed.data.listing_id?.trim();
+        
+        if (!listingId) {
+          syncReport.skipped_count++;
+          syncReport.skipped_rows.push({
+            row: sheetRowNumber,
+            reason: 'ListingID is missing or blank',
           });
+          continue;
         }
+
+        // Check for duplicate ListingID in this sync batch
+        if (seenListingIds.has(listingId)) {
+          syncReport.skipped_count++;
+          syncReport.skipped_rows.push({
+            row: sheetRowNumber,
+            reason: `Duplicate ListingID "${listingId}" (already seen in this sync)`,
+          });
+          continue;
+        }
+
+        seenListingIds.add(listingId);
+
+        // Check if other required fields are valid
+        if (!parsed.isValid) {
+          const errorMessages = parsed.errors
+            .filter(e => e.field !== 'ListingID')
+            .map(e => e.message)
+            .join('; ');
+          
+          if (errorMessages) {
+            syncReport.skipped_count++;
+            syncReport.skipped_rows.push({
+              row: sheetRowNumber,
+              reason: errorMessages,
+            });
+            continue;
+          }
+        }
+
+        // Track if this is a create or update
+        if (existingListingIds.has(listingId)) {
+          syncReport.updated_count++;
+        } else {
+          syncReport.created_count++;
+        }
+
+        listingsToUpsert.push({
+          user_id: user.id,
+          listing_id: listingId,
+          property_name: parsed.data.property_name || null,
+          address: parsed.data.address || '',
+          city: parsed.data.city || '',
+          submarket: parsed.data.submarket || '',
+          size_sf: parsed.data.size_sf || 0,
+          clear_height_ft: parsed.data.clear_height_ft || null,
+          dock_doors: parsed.data.dock_doors || 0,
+          drive_in_doors: parsed.data.drive_in_doors || 0,
+          yard: parsed.data.yard || 'Unknown',
+          availability_date: parsed.data.availability_date || null,
+          asking_rate_psf: parsed.data.asking_rate_psf || null,
+          status: parsed.data.status || 'Active',
+          include_in_issue: parsed.data.include_in_issue ?? true,
+          landlord: parsed.data.landlord || null,
+          broker_source: parsed.data.broker_source || null,
+          notes_public: parsed.data.notes_public || null,
+          internal_note: parsed.data.internal_note || null,
+          link: parsed.data.link || null,
+          photo_url: parsed.data.photo_url || null,
+          last_verified_date: parsed.data.last_verified_date || null,
+          power_amps: parsed.data.power_amps || null,
+          sprinkler: parsed.data.sprinkler || null,
+          office_percent: parsed.data.office_percent || null,
+          cross_dock: parsed.data.cross_dock || 'Unknown',
+          trailer_parking: parsed.data.trailer_parking || 'Unknown',
+        });
       }
 
-      if (parsedListings.length === 0) {
+      if (listingsToUpsert.length === 0) {
+        setLastSyncReport(syncReport);
         throw new Error('No valid listings found in the sheet');
       }
 
-      // Delete existing listings and insert new ones
-      await supabase
+      // UPSERT: Use onConflict to update existing records by listing_id
+      const { error: upsertError } = await supabase
         .from('listings')
-        .delete()
-        .eq('user_id', user.id);
+        .upsert(listingsToUpsert, {
+          onConflict: 'user_id,listing_id',
+          ignoreDuplicates: false,
+        });
 
-      const { error: insertError } = await supabase
-        .from('listings')
-        .insert(parsedListings.map(l => ({
-          user_id: user.id,
-          listing_id: l.listing_id,
-          property_name: l.property_name,
-          address: l.address,
-          city: l.city,
-          submarket: l.submarket,
-          size_sf: l.size_sf,
-          clear_height_ft: l.clear_height_ft,
-          dock_doors: l.dock_doors,
-          drive_in_doors: l.drive_in_doors,
-          yard: l.yard,
-          availability_date: l.availability_date,
-          asking_rate_psf: l.asking_rate_psf,
-          status: l.status,
-          include_in_issue: l.include_in_issue,
-          landlord: l.landlord,
-          broker_source: l.broker_source,
-          notes_public: l.notes_public,
-          internal_note: l.internal_note,
-          link: l.link,
-          photo_url: l.photo_url,
-          last_verified_date: l.last_verified_date,
-          power_amps: l.power_amps,
-          sprinkler: l.sprinkler,
-          office_percent: l.office_percent,
-          cross_dock: l.cross_dock,
-          trailer_parking: l.trailer_parking,
-        })));
-
-      if (insertError) throw insertError;
+      if (upsertError) throw upsertError;
 
       // Update sync timestamp
       await supabase
@@ -298,14 +390,27 @@ export function useSheetConnection() {
       await fetchConnection();
       await fetchListings();
 
-      if (errors.length > 0) {
-        toast.warning(`Synced ${parsedListings.length} listings with ${errors.length} errors`);
+      setLastSyncReport(syncReport);
+
+      // Show sync report toast
+      const reportMessage = [
+        `Created: ${syncReport.created_count}`,
+        `Updated: ${syncReport.updated_count}`,
+        syncReport.skipped_count > 0 ? `Skipped: ${syncReport.skipped_count}` : null,
+      ].filter(Boolean).join(' | ');
+
+      if (syncReport.skipped_count > 0) {
+        toast.warning(`Sync Complete - ${reportMessage}`);
+        console.log('Skipped rows:', syncReport.skipped_rows);
       } else {
-        toast.success(`Successfully synced ${parsedListings.length} listings`);
+        toast.success(`Sync Complete - ${reportMessage}`);
       }
+
+      return syncReport;
     } catch (error) {
       console.error('Sync error:', error);
       toast.error(error instanceof Error ? error.message : 'Failed to sync listings');
+      return null;
     } finally {
       setIsSyncing(false);
     }
@@ -317,6 +422,7 @@ export function useSheetConnection() {
     loading,
     isSyncing,
     hasOAuthToken,
+    lastSyncReport,
     connectSheet,
     connectOAuth,
     disconnectSheet,

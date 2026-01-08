@@ -37,9 +37,9 @@ serve(async (req) => {
     }
 
     const userId = claimsData.claims.sub;
-    const { spreadsheetId, sheetName } = await req.json();
+    const { spreadsheetId, sheetName, headerRow = 1 } = await req.json();
 
-    console.log('Syncing sheet for user:', userId, 'spreadsheet:', spreadsheetId);
+    console.log('Syncing sheet for user:', userId, 'spreadsheet:', spreadsheetId, 'headerRow:', headerRow);
 
     // Get OAuth tokens using service role
     const supabaseAdmin = createClient(
@@ -108,17 +108,34 @@ serve(async (req) => {
     }
 
     const sheetsData = await sheetsResponse.json();
-    const rows = sheetsData.values || [];
+    const allRows = sheetsData.values || [];
 
-    console.log('Fetched', rows.length, 'rows from spreadsheet');
+    console.log('Fetched', allRows.length, 'rows from spreadsheet');
+
+    // Skip rows before header row (headerRow is 1-indexed)
+    // If headerRow = 2, skip row 0 (first row) and start from row 1 (second row)
+    const dataStartIndex = headerRow - 1;
+    const rows = allRows.slice(dataStartIndex);
+
+    console.log('After skipping to header row', headerRow, ', processing', rows.length, 'rows');
 
     // Convert to CSV-like format for consistency with existing parser
-    const csvData = rows.map((row: string[]) => row.join(',')).join('\n');
+    // Escape commas in cell values by quoting them
+    const csvData = rows.map((row: string[]) => 
+      row.map((cell: string) => {
+        const str = String(cell || '');
+        if (str.includes(',') || str.includes('"') || str.includes('\n')) {
+          return `"${str.replace(/"/g, '""')}"`;
+        }
+        return str;
+      }).join(',')
+    ).join('\n');
 
     return new Response(JSON.stringify({ 
       success: true, 
       data: csvData,
-      rowCount: rows.length 
+      rowCount: rows.length,
+      headerRow: headerRow
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
