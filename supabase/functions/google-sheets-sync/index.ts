@@ -89,7 +89,8 @@ serve(async (req) => {
     }
 
     // Fetch spreadsheet data
-    const range = sheetName ? `${sheetName}!A:Z` : 'A:Z';
+    // NOTE: Use a wide range so we don't miss columns beyond Z (e.g., AA, AB...) like ListingID.
+    const range = sheetName ? `${sheetName}!A:ZZ` : 'A:ZZ';
     const sheetsUrl = `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${encodeURIComponent(range)}`;
     
     console.log('Fetching from Google Sheets API:', sheetsUrl);
