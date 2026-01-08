@@ -51,9 +51,11 @@ serve(async (req) => {
     }
 
     const redirectUri = `${Deno.env.get('SUPABASE_URL')}/functions/v1/google-sheets-callback`;
-    
-    // Include user_id in state so we can identify them in callback
-    const state = btoa(JSON.stringify({ userId, timestamp: Date.now() }));
+
+    const { returnTo } = await req.json().catch(() => ({ returnTo: null }));
+
+    // Include user_id (and return URL) in state so we can identify them in callback
+    const state = btoa(JSON.stringify({ userId, timestamp: Date.now(), returnTo }));
 
     const scope = encodeURIComponent('https://www.googleapis.com/auth/spreadsheets.readonly');
     

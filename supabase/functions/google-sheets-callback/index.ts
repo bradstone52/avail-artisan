@@ -18,27 +18,29 @@ serve(async (req) => {
 
     if (error) {
       console.error('OAuth error:', error);
-      return new Response(getErrorHtml('OAuth authorization was denied'), {
+      return new Response(getErrorHtml('OAuth authorization was denied', null), {
         headers: htmlHeaders,
       });
     }
 
     if (!code || !state) {
       console.error('Missing code or state');
-      return new Response(getErrorHtml('Missing authorization code'), {
+      return new Response(getErrorHtml('Missing authorization code', null), {
         headers: htmlHeaders,
       });
     }
 
-    // Decode state to get user ID
+    // Decode state to get user ID + return URL
     let userId: string;
+    let returnTo: string | null = null;
     try {
       const stateData = JSON.parse(atob(state));
       userId = stateData.userId;
-      console.log('Decoded user ID from state:', userId);
+      returnTo = typeof stateData.returnTo === 'string' ? stateData.returnTo : null;
+      console.log('Decoded user ID from state:', userId, 'returnTo:', returnTo);
     } catch (e) {
       console.error('Failed to decode state:', e);
-      return new Response(getErrorHtml('Invalid state parameter'), {
+      return new Response(getErrorHtml('Invalid state parameter', null), {
         headers: htmlHeaders,
       });
     }
@@ -65,7 +67,7 @@ serve(async (req) => {
     
     if (tokenData.error) {
       console.error('Token exchange error:', tokenData);
-      return new Response(getErrorHtml(`Token exchange failed: ${tokenData.error_description || tokenData.error}`), {
+      return new Response(getErrorHtml(`Token exchange failed: ${tokenData.error_description || tokenData.error}`, returnTo), {
         headers: htmlHeaders,
       });
     }
@@ -93,32 +95,38 @@ serve(async (req) => {
 
     if (upsertError) {
       console.error('Failed to store tokens:', upsertError);
-      return new Response(getErrorHtml('Failed to store authorization'), {
+      return new Response(getErrorHtml('Failed to store authorization', returnTo), {
         headers: htmlHeaders,
       });
     }
 
     console.log('Tokens stored successfully for user:', userId);
 
-    // Return success HTML that closes the popup
-    return new Response(getSuccessHtml(), {
+    // Return success HTML that redirects back
+    return new Response(getSuccessHtml(returnTo), {
       headers: htmlHeaders,
     });
   } catch (error: unknown) {
     console.error('Error in google-sheets-callback:', error);
     const message = error instanceof Error ? error.message : 'Unknown error';
-    return new Response(getErrorHtml(message), {
+    return new Response(getErrorHtml(message, null), {
       headers: htmlHeaders,
     });
   }
 });
 
-function getSuccessHtml(): string {
+function getSuccessHtml(returnTo: string | null): string {
+  const safeReturnTo = returnTo && returnTo.startsWith('http') ? returnTo : null;
+  const target = safeReturnTo
+    ? `${safeReturnTo}${safeReturnTo.includes('?') ? '&' : '?'}google_oauth=success`
+    : null;
+
   return `
 <!DOCTYPE html>
 <html>
 <head>
   <title>Authorization Successful</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
   <style>
     body { font-family: system-ui, sans-serif; display: flex; align-items: center; justify-content: center; min-height: 100vh; margin: 0; background: #f8fafc; }
     .container { text-align: center; padding: 2rem; }
@@ -130,33 +138,38 @@ function getSuccessHtml(): string {
 <body>
   <div class="container">
     <div class="icon">✓</div>
-    <h1>Connected!</h1>
-    <p>Google Sheets authorization successful. This window will close automatically.</p>
+    <h1>Connected</h1>
+    <p>Returning to the app…</p>
   </div>
   <script>
-    setTimeout(() => {
-      if (window.opener) {
-        window.opener.postMessage({ type: 'google-oauth-success' }, '*');
-      }
-      window.close();
-    }, 1500);
+    const target = ${JSON.stringify(target)};
+    if (target) {
+      window.location.replace(target);
+    }
   </script>
 </body>
 </html>`;
 }
 
-function getErrorHtml(message: string): string {
+function getErrorHtml(message: string, returnTo: string | null): string {
+  const safeReturnTo = returnTo && returnTo.startsWith('http') ? returnTo : null;
+  const target = safeReturnTo
+    ? `${safeReturnTo}${safeReturnTo.includes('?') ? '&' : '?'}google_oauth=error&message=${encodeURIComponent(message)}`
+    : null;
+
   return `
 <!DOCTYPE html>
 <html>
 <head>
   <title>Authorization Failed</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
   <style>
     body { font-family: system-ui, sans-serif; display: flex; align-items: center; justify-content: center; min-height: 100vh; margin: 0; background: #f8fafc; }
-    .container { text-align: center; padding: 2rem; max-width: 400px; }
+    .container { text-align: center; padding: 2rem; max-width: 420px; }
     .icon { font-size: 4rem; margin-bottom: 1rem; }
     h1 { color: #dc2626; margin-bottom: 0.5rem; }
     p { color: #64748b; }
+    a { color: #0f172a; }
   </style>
 </head>
 <body>
@@ -164,11 +177,12 @@ function getErrorHtml(message: string): string {
     <div class="icon">✕</div>
     <h1>Authorization Failed</h1>
     <p>${message}</p>
-    <p><a href="javascript:window.close()">Close this window</a></p>
+    ${target ? '<p><a href="' + target + '">Return to the app</a></p>' : ''}
   </div>
   <script>
-    if (window.opener) {
-      window.opener.postMessage({ type: 'google-oauth-error', error: '${message}' }, '*');
+    const target = ${JSON.stringify(target)};
+    if (target) {
+      window.location.replace(target);
     }
   </script>
 </body>
