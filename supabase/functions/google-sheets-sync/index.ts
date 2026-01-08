@@ -118,6 +118,11 @@ serve(async (req) => {
     const rows = allRows.slice(dataStartIndex);
 
     console.log('After skipping to header row', headerRow, ', processing', rows.length, 'rows');
+    
+    // Log the detected headers (first row after skipping)
+    if (rows.length > 0) {
+      console.log('Detected headers:', JSON.stringify(rows[0]));
+    }
 
     // Convert to CSV-like format for consistency with existing parser
     // Escape commas in cell values by quoting them
