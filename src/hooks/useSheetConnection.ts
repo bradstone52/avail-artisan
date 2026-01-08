@@ -2,7 +2,12 @@ import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { SheetConnection, Listing } from '@/lib/types';
-import { parseCSV, validateHeaders, parseListingRow } from '@/lib/sheet-parser';
+import { parseCSV } from '@/lib/sheet-parser';
+import { 
+  mapRowToListing, 
+  validateRequiredHeaders, 
+  getMappedHeaders 
+} from '@/lib/field-mapping';
 import { toast } from 'sonner';
 
 export interface SyncReport {
@@ -10,6 +15,7 @@ export interface SyncReport {
   updated_count: number;
   skipped_count: number;
   skipped_rows: Array<{ row: number; reason: string }>;
+  missing_headers: string[];
 }
 
 export function useSheetConnection() {
@@ -182,6 +188,7 @@ export function useSheetConnection() {
       updated_count: 0,
       skipped_count: 0,
       skipped_rows: [],
+      missing_headers: [],
     };
 
     try {
@@ -224,11 +231,16 @@ export function useSheetConnection() {
       }
 
       const headers = rows[0];
-      const { valid, missing } = validateHeaders(headers);
-
-      if (!valid) {
-        throw new Error(`Missing required columns: ${missing.join(', ')}`);
+      
+      // Validate required headers using field mapping
+      const missingRequired = validateRequiredHeaders(headers);
+      if (missingRequired.length > 0) {
+        throw new Error(`Missing required columns: ${missingRequired.join(', ')}`);
       }
+
+      // Get all mapped headers info for the report
+      const { missing: missingOptional } = getMappedHeaders(headers);
+      syncReport.missing_headers = missingOptional;
 
       // Get existing listings to determine create vs update
       const { data: existingListings } = await supabase
@@ -240,45 +252,16 @@ export function useSheetConnection() {
         (existingListings || []).map(l => l.listing_id)
       );
 
-      // Parse all data rows - ListingID is REQUIRED
-      const listingsToUpsert: Array<{
-        user_id: string;
-        listing_id: string;
-        property_name: string | null;
-        address: string;
-        city: string;
-        submarket: string;
-        size_sf: number;
-        clear_height_ft: number | null;
-        dock_doors: number;
-        drive_in_doors: number;
-        yard: string;
-        availability_date: string | null;
-        asking_rate_psf: string | null;
-        status: string;
-        include_in_issue: boolean;
-        landlord: string | null;
-        broker_source: string | null;
-        notes_public: string | null;
-        internal_note: string | null;
-        link: string | null;
-        photo_url: string | null;
-        last_verified_date: string | null;
-        power_amps: string | null;
-        sprinkler: string | null;
-        office_percent: string | null;
-        cross_dock: string;
-        trailer_parking: string;
-      }> = [];
-
+      // Parse all data rows using header-based mapping
+      const listingsToUpsert: Record<string, unknown>[] = [];
       const seenListingIds = new Set<string>();
 
       for (let i = 1; i < rows.length; i++) {
         const sheetRowNumber = i + 2; // +2 because: +1 for 0-indexed, +1 because header is row 2
-        const parsed = parseListingRow(rows[i], headers, sheetRowNumber);
+        const { listing, missingHeaders } = mapRowToListing(rows[i], headers, user.id);
         
         // Check if ListingID is present and not blank
-        const listingId = parsed.data.listing_id?.trim();
+        const listingId = (listing.listing_id as string)?.trim();
         
         if (!listingId) {
           syncReport.skipped_count++;
@@ -301,21 +284,14 @@ export function useSheetConnection() {
 
         seenListingIds.add(listingId);
 
-        // Check if other required fields are valid
-        if (!parsed.isValid) {
-          const errorMessages = parsed.errors
-            .filter(e => e.field !== 'ListingID')
-            .map(e => e.message)
-            .join('; ');
-          
-          if (errorMessages) {
-            syncReport.skipped_count++;
-            syncReport.skipped_rows.push({
-              row: sheetRowNumber,
-              reason: errorMessages,
-            });
-            continue;
-          }
+        // Check if required fields are missing in this row
+        if (missingHeaders.length > 0) {
+          syncReport.skipped_count++;
+          syncReport.skipped_rows.push({
+            row: sheetRowNumber,
+            reason: `Missing required: ${missingHeaders.join(', ')}`,
+          });
+          continue;
         }
 
         // Track if this is a create or update
@@ -325,35 +301,7 @@ export function useSheetConnection() {
           syncReport.created_count++;
         }
 
-        listingsToUpsert.push({
-          user_id: user.id,
-          listing_id: listingId,
-          property_name: parsed.data.property_name || null,
-          address: parsed.data.address || '',
-          city: parsed.data.city || '',
-          submarket: parsed.data.submarket || '',
-          size_sf: parsed.data.size_sf || 0,
-          clear_height_ft: parsed.data.clear_height_ft || null,
-          dock_doors: parsed.data.dock_doors || 0,
-          drive_in_doors: parsed.data.drive_in_doors || 0,
-          yard: parsed.data.yard || 'Unknown',
-          availability_date: parsed.data.availability_date || null,
-          asking_rate_psf: parsed.data.asking_rate_psf || null,
-          status: parsed.data.status || 'Active',
-          include_in_issue: parsed.data.include_in_issue ?? true,
-          landlord: parsed.data.landlord || null,
-          broker_source: parsed.data.broker_source || null,
-          notes_public: parsed.data.notes_public || null,
-          internal_note: parsed.data.internal_note || null,
-          link: parsed.data.link || null,
-          photo_url: parsed.data.photo_url || null,
-          last_verified_date: parsed.data.last_verified_date || null,
-          power_amps: parsed.data.power_amps || null,
-          sprinkler: parsed.data.sprinkler || null,
-          office_percent: parsed.data.office_percent || null,
-          cross_dock: parsed.data.cross_dock || 'Unknown',
-          trailer_parking: parsed.data.trailer_parking || 'Unknown',
-        });
+        listingsToUpsert.push(listing);
       }
 
       if (listingsToUpsert.length === 0) {
@@ -364,7 +312,7 @@ export function useSheetConnection() {
       // UPSERT: Use onConflict to update existing records by listing_id
       const { error: upsertError } = await supabase
         .from('listings')
-        .upsert(listingsToUpsert, {
+        .upsert(listingsToUpsert as never[], {
           onConflict: 'user_id,listing_id',
           ignoreDuplicates: false,
         });
@@ -390,9 +338,14 @@ export function useSheetConnection() {
         syncReport.skipped_count > 0 ? `Skipped: ${syncReport.skipped_count}` : null,
       ].filter(Boolean).join(' | ');
 
-      if (syncReport.skipped_count > 0) {
+      if (syncReport.skipped_count > 0 || syncReport.missing_headers.length > 0) {
         toast.warning(`Sync Complete - ${reportMessage}`);
-        console.log('Skipped rows:', syncReport.skipped_rows);
+        if (syncReport.missing_headers.length > 0) {
+          console.log('Missing optional headers:', syncReport.missing_headers);
+        }
+        if (syncReport.skipped_rows.length > 0) {
+          console.log('Skipped rows:', syncReport.skipped_rows);
+        }
       } else {
         toast.success(`Sync Complete - ${reportMessage}`);
       }
