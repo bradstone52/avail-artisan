@@ -182,96 +182,147 @@ export type Database = {
           asking_rate_psf: string | null
           availability_date: string | null
           broker_source: string | null
+          building_depth: string | null
           city: string
           clear_height_ft: number | null
+          condo_fees: string | null
+          crane_tons: string | null
+          cranes: string | null
           created_at: string
           cross_dock: string | null
+          display_address: string | null
           dock_doors: number | null
           drive_in_doors: number | null
+          gross_rate: string | null
           id: string
           include_in_issue: boolean
           internal_note: string | null
+          land_acres: string | null
           landlord: string | null
           last_verified_date: string | null
           link: string | null
           listing_id: string
+          listing_type: string | null
+          mua: string | null
           notes_public: string | null
           office_percent: string | null
+          office_sf: number | null
+          op_costs: string | null
           photo_url: string | null
           power_amps: string | null
           property_name: string | null
+          property_tax: string | null
+          sale_price: string | null
           size_sf: number
           sprinkler: string | null
           status: string
+          sublease_exp: string | null
           submarket: string
           trailer_parking: string | null
           updated_at: string
           user_id: string
+          voltage: string | null
+          warehouse_sf: number | null
           yard: string | null
+          zoning: string | null
         }
         Insert: {
           address: string
           asking_rate_psf?: string | null
           availability_date?: string | null
           broker_source?: string | null
+          building_depth?: string | null
           city: string
           clear_height_ft?: number | null
+          condo_fees?: string | null
+          crane_tons?: string | null
+          cranes?: string | null
           created_at?: string
           cross_dock?: string | null
+          display_address?: string | null
           dock_doors?: number | null
           drive_in_doors?: number | null
+          gross_rate?: string | null
           id?: string
           include_in_issue?: boolean
           internal_note?: string | null
+          land_acres?: string | null
           landlord?: string | null
           last_verified_date?: string | null
           link?: string | null
           listing_id: string
+          listing_type?: string | null
+          mua?: string | null
           notes_public?: string | null
           office_percent?: string | null
+          office_sf?: number | null
+          op_costs?: string | null
           photo_url?: string | null
           power_amps?: string | null
           property_name?: string | null
+          property_tax?: string | null
+          sale_price?: string | null
           size_sf: number
           sprinkler?: string | null
           status?: string
+          sublease_exp?: string | null
           submarket: string
           trailer_parking?: string | null
           updated_at?: string
           user_id: string
+          voltage?: string | null
+          warehouse_sf?: number | null
           yard?: string | null
+          zoning?: string | null
         }
         Update: {
           address?: string
           asking_rate_psf?: string | null
           availability_date?: string | null
           broker_source?: string | null
+          building_depth?: string | null
           city?: string
           clear_height_ft?: number | null
+          condo_fees?: string | null
+          crane_tons?: string | null
+          cranes?: string | null
           created_at?: string
           cross_dock?: string | null
+          display_address?: string | null
           dock_doors?: number | null
           drive_in_doors?: number | null
+          gross_rate?: string | null
           id?: string
           include_in_issue?: boolean
           internal_note?: string | null
+          land_acres?: string | null
           landlord?: string | null
           last_verified_date?: string | null
           link?: string | null
           listing_id?: string
+          listing_type?: string | null
+          mua?: string | null
           notes_public?: string | null
           office_percent?: string | null
+          office_sf?: number | null
+          op_costs?: string | null
           photo_url?: string | null
           power_amps?: string | null
           property_name?: string | null
+          property_tax?: string | null
+          sale_price?: string | null
           size_sf?: number
           sprinkler?: string | null
           status?: string
+          sublease_exp?: string | null
           submarket?: string
           trailer_parking?: string | null
           updated_at?: string
           user_id?: string
+          voltage?: string | null
+          warehouse_sf?: number | null
           yard?: string | null
+          zoning?: string | null
         }
         Relationships: []
       }
