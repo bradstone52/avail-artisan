@@ -51,6 +51,7 @@ interface Issue {
   changed_count: number;
   removed_count: number;
   published_at: string | null;
+  pdf_share_token: string | null;
 }
 
 function generateShareToken(): string {
@@ -73,6 +74,17 @@ function escapeHtml(text: string | null | undefined): string {
     .replace(/'/g, "&#039;");
 }
 
+// Fix mojibake characters (UTF-8 encoded as Latin-1)
+function fixMojibake(text: string): string {
+  return text
+    .replace(/â€"/g, "—") // em dash
+    .replace(/â€"/g, "–") // en dash
+    .replace(/â€™/g, "'") // right single quote
+    .replace(/â€œ/g, '"') // left double quote
+    .replace(/â€\u009d/g, '"') // right double quote
+    .replace(/â€¦/g, "…"); // ellipsis
+}
+
 function generatePdfHtml(issue: Issue, issueListings: IssueListing[]): string {
   const publishDate = issue.published_at
     ? format(new Date(issue.published_at), "MMMM d, yyyy")
@@ -88,13 +100,24 @@ function generatePdfHtml(issue: Issue, issueListings: IssueListing[]): string {
     .sort();
   const earliestAvailability = availabilities[0] || "TBD";
 
+  // Deduplicate by listing_id
+  const seenListingIds = new Set<string>();
+  const uniqueListings = issueListings.filter((il) => {
+    if (seenListingIds.has(il.listings.listing_id)) {
+      return false;
+    }
+    seenListingIds.add(il.listings.listing_id);
+    return true;
+  });
+
   // Generate property cards HTML (2 per page)
-  const propertyCardsHtml = issueListings
+  const propertyCardsHtml = uniqueListings
     .map((il, index) => {
       const listing = il.listings;
       const changeStatus = il.change_status;
-      const executiveNote =
-        il.executive_note || "Details available on request.";
+      const executiveNote = fixMojibake(
+        il.executive_note || "Details available on request."
+      );
 
       const badge =
         changeStatus === "new"
@@ -103,7 +126,12 @@ function generatePdfHtml(issue: Issue, issueListings: IssueListing[]): string {
             ? '<span style="background: #f59e0b; color: white; padding: 2px 8px; border-radius: 4px; font-size: 10px; font-weight: 600; margin-left: 8px;">CHANGED</span>'
             : "";
 
-      const photoHtml = listing.photo_url
+      // Only render image if photo_url is valid (not null, empty, or "None")
+      const hasValidPhoto = listing.photo_url && 
+        listing.photo_url.trim() !== "" && 
+        listing.photo_url.toLowerCase() !== "none";
+      
+      const photoHtml = hasValidPhoto
         ? `<div style="width: 150px; height: 100px; background: #f3f4f6; border-radius: 8px; overflow: hidden; flex-shrink: 0;">
            <img src="${escapeHtml(listing.photo_url)}" style="width: 100%; height: 100%; object-fit: cover;" />
          </div>`
@@ -213,10 +241,16 @@ function generatePdfHtml(issue: Issue, issueListings: IssueListing[]): string {
       padding: 0;
       color: #1f2937;
       line-height: 1.5;
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
     }
     @page {
       size: A4;
       margin: 20mm;
+    }
+    @media print {
+      .page { page-break-after: always; }
+      .page:last-child { page-break-after: avoid; }
     }
     .page { page-break-after: always; }
     .page:last-child { page-break-after: avoid; }
@@ -224,7 +258,7 @@ function generatePdfHtml(issue: Issue, issueListings: IssueListing[]): string {
 </head>
 <body>
   <!-- Cover Page -->
-  <div class="page" style="padding: 60px 40px; background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%); min-height: 100vh;">
+  <div class="page" style="padding: 60px 40px; background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%); min-height: 100vh; position: relative;">
     ${issue.logo_url ? `<img src="${escapeHtml(issue.logo_url)}" alt="Logo" style="height: 50px; margin-bottom: 40px;" />` : ""}
     
     <h1 style="font-size: 36px; font-weight: 700; color: #0f172a; margin: 0 0 16px 0; line-height: 1.2;">
@@ -304,7 +338,7 @@ function generatePdfHtml(issue: Issue, issueListings: IssueListing[]): string {
   </div>
   
   <!-- CTA Page -->
-  <div class="page" style="padding: 60px 40px; background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%); min-height: 100vh; color: white;">
+  <div class="page" style="padding: 60px 40px; background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%); min-height: 100vh; color: white; position: relative;">
     <h2 style="font-size: 32px; font-weight: 700; margin: 0 0 24px 0;">
       Planning 6–24 months out?
     </h2>
@@ -330,6 +364,45 @@ function generatePdfHtml(issue: Issue, issueListings: IssueListing[]): string {
 </body>
 </html>
   `;
+}
+
+async function convertHtmlToPdf(html: string): Promise<Uint8Array> {
+  const docraptorApiKey = Deno.env.get("DOCRAPTOR_API_KEY");
+  
+  if (!docraptorApiKey) {
+    throw new Error("DOCRAPTOR_API_KEY is not configured");
+  }
+
+  console.log("Calling DocRaptor API to convert HTML to PDF...");
+
+  const response = await fetch("https://api.docraptor.com/docs", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "Authorization": `Basic ${btoa(docraptorApiKey + ":")}`,
+    },
+    body: JSON.stringify({
+      test: false, // Set to true for testing (watermarked PDFs)
+      document_type: "pdf",
+      document_content: html,
+      name: "distribution_snapshot.pdf",
+      prince_options: {
+        media: "print",
+        baseurl: "https://vouzfwrumlhmtmgglsti.supabase.co",
+      },
+    }),
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    console.error("DocRaptor API error:", response.status, errorText);
+    throw new Error(`DocRaptor API error: ${response.status} - ${errorText}`);
+  }
+
+  const pdfBuffer = await response.arrayBuffer();
+  console.log(`PDF generated successfully, size: ${pdfBuffer.byteLength} bytes`);
+  
+  return new Uint8Array(pdfBuffer);
 }
 
 Deno.serve(async (req) => {
@@ -411,10 +484,20 @@ Deno.serve(async (req) => {
         .delete()
         .eq("issue_id", issue_id);
 
+      // Deduplicate by listing_id before inserting
+      const seenIds = new Set<string>();
+      const uniqueListings = issue_listings.filter((il: { listing_id: string }) => {
+        if (seenIds.has(il.listing_id)) {
+          return false;
+        }
+        seenIds.add(il.listing_id);
+        return true;
+      });
+
       // Insert new issue_listings
       const { error: insertError } = await supabaseClient
         .from("issue_listings")
-        .insert(issue_listings);
+        .insert(uniqueListings);
 
       if (insertError) {
         console.error("Error saving issue listings:", insertError);
@@ -487,12 +570,12 @@ Deno.serve(async (req) => {
     console.log(`Found ${fetchedIssueListings.length} listings for PDF`);
 
     // Transform data to match expected types
-    const transformedListings: IssueListing[] = fetchedIssueListings.map((il: any) => ({
-      id: il.id,
-      listing_id: il.listing_id,
-      change_status: il.change_status,
-      executive_note: il.executive_note,
-      sort_order: il.sort_order,
+    const transformedListings: IssueListing[] = fetchedIssueListings.map((il: Record<string, unknown>) => ({
+      id: il.id as string,
+      listing_id: il.listing_id as string,
+      change_status: il.change_status as string | null,
+      executive_note: il.executive_note as string | null,
+      sort_order: il.sort_order as number,
       listings: il.listings as Listing,
     }));
 
@@ -502,20 +585,19 @@ Deno.serve(async (req) => {
       transformedListings
     );
 
-    // Convert HTML to PDF using base64 encoding
-    const encoder = new TextEncoder();
-    const htmlBytes = encoder.encode(htmlContent);
+    // Convert HTML to real PDF using DocRaptor
+    const pdfBytes = await convertHtmlToPdf(htmlContent);
 
     // Generate filename
     const dateStr = format(new Date(), "yyyy_MM");
-    const filename = `distribution_snapshot_${dateStr}_${issue_id.slice(0, 8)}.html`;
+    const filename = `distribution_snapshot_${dateStr}_${issue_id.slice(0, 8)}.pdf`;
 
-    // Upload to storage (HTML file that can be printed to PDF by browser)
-    const { data: uploadData, error: uploadError } = await supabaseClient
+    // Upload PDF to storage
+    const { error: uploadError } = await supabaseClient
       .storage
       .from("issue-pdfs")
-      .upload(filename, htmlBytes, {
-        contentType: "text/html",
+      .upload(filename, pdfBytes, {
+        contentType: "application/pdf",
         upsert: true,
       });
 
@@ -533,7 +615,7 @@ Deno.serve(async (req) => {
     } = supabaseClient.storage.from("issue-pdfs").getPublicUrl(filename);
 
     // Generate share token if not exists
-    const shareToken = issue.pdf_share_token || generateShareToken();
+    const shareToken = (issue as Issue).pdf_share_token || generateShareToken();
 
     // Update issue with PDF info
     const { error: updateError } = await supabaseClient
@@ -541,9 +623,12 @@ Deno.serve(async (req) => {
       .update({
         pdf_url: publicUrl,
         pdf_filename: filename,
-        pdf_filesize: htmlBytes.length,
+        pdf_filesize: pdfBytes.length,
         pdf_generated_at: new Date().toISOString(),
         pdf_share_token: shareToken,
+        total_listings: transformedListings.length,
+        new_count: transformedListings.filter(l => l.change_status === "new").length,
+        changed_count: transformedListings.filter(l => l.change_status === "changed").length,
       })
       .eq("id", issue_id);
 
@@ -565,7 +650,7 @@ Deno.serve(async (req) => {
         success: true,
         pdf_url: publicUrl,
         pdf_filename: filename,
-        pdf_filesize: htmlBytes.length,
+        pdf_filesize: pdfBytes.length,
         pdf_share_token: shareToken,
       }),
       {

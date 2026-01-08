@@ -66,7 +66,7 @@ export default function SharePage() {
       const link = document.createElement('a');
       link.href = issue.pdf_url;
       link.target = '_blank';
-      link.download = issue.pdf_filename || 'distribution_snapshot.html';
+      link.download = issue.pdf_filename || 'distribution_snapshot.pdf';
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
