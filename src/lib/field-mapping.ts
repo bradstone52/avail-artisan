@@ -29,7 +29,7 @@ export const FIELD_MAPPINGS: FieldMapping[] = [
   { header: 'Drive-in Doors', dbColumn: 'drive_in_doors', type: 'number' },
   { header: 'Power (Amps)', dbColumn: 'power_amps', type: 'string' },
   { header: 'Voltage', dbColumn: 'voltage', type: 'string' },
-  { header: 'Yard Area', dbColumn: 'yard', type: 'string' },
+  { header: 'Yard Area', dbColumn: 'yard_area', type: 'string' },
   { header: 'Sprinklered', dbColumn: 'sprinkler', type: 'string' },
   { header: 'Cranes', dbColumn: 'cranes', type: 'string' },
   { header: 'Crane Tons', dbColumn: 'crane_tons', type: 'string' },
@@ -178,6 +178,24 @@ export function mapRowToListing(
     s => s.toLowerCase() === rawStatus.toLowerCase()
   );
   listing.status = normalizedStatus || 'Active';
+
+  // Ensure constrained columns have valid values (Yes/No/Unknown)
+  // These columns are not directly mapped from the sheet but have check constraints
+  const yesNoUnknownFields = ['yard', 'cross_dock', 'trailer_parking'] as const;
+  for (const field of yesNoUnknownFields) {
+    if (listing[field] === undefined || listing[field] === null) {
+      listing[field] = 'Unknown';
+    } else {
+      const val = String(listing[field]).trim().toLowerCase();
+      if (val === 'yes' || val === 'y' || val === 'true') {
+        listing[field] = 'Yes';
+      } else if (val === 'no' || val === 'n' || val === 'false') {
+        listing[field] = 'No';
+      } else {
+        listing[field] = 'Unknown';
+      }
+    }
+  }
 
   return { listing, missingHeaders };
 }
