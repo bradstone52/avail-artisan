@@ -169,8 +169,15 @@ export function mapRowToListing(
   if (!listing.address) listing.address = '';
   if (!listing.city) listing.city = '';
   if (!listing.submarket) listing.submarket = '';
-  if (!listing.status) listing.status = 'Active';
   if (!listing.size_sf) listing.size_sf = 0;
+
+  // Normalize status to match database check constraint: Active, Leased, Removed, OnHold
+  const validStatuses = ['Active', 'Leased', 'Removed', 'OnHold'];
+  const rawStatus = (listing.status as string || '').trim();
+  const normalizedStatus = validStatuses.find(
+    s => s.toLowerCase() === rawStatus.toLowerCase()
+  );
+  listing.status = normalizedStatus || 'Active';
 
   return { listing, missingHeaders };
 }
