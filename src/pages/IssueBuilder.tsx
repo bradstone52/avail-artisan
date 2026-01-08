@@ -106,6 +106,14 @@ export default function IssueBuilder() {
       const newCount = Object.values(changeStatus).filter(s => s === 'new').length;
       const changedCount = Object.values(changeStatus).filter(s => s === 'changed').length;
 
+      // Prepare issue_listings data
+      const issueListingsData = selectedIds.map((listingId, index) => ({
+        listing_id: listingId,
+        change_status: changeStatus[listingId] || null,
+        executive_note: executiveNotes[listingId] || null,
+        sort_order: index,
+      }));
+
       const issue = await createIssue({
         title,
         market: settings.market,
@@ -121,7 +129,7 @@ export default function IssueBuilder() {
         changed_count: changedCount,
         removed_count: 0,
         published_at: new Date().toISOString(),
-      });
+      }, issueListingsData);
 
       setCreatedIssue(issue);
       setCurrentStep(4);

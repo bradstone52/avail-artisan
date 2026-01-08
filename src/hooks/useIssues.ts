@@ -3,6 +3,13 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { Issue } from '@/lib/types';
 
+interface IssueListingInput {
+  listing_id: string;
+  change_status: string | null;
+  executive_note: string | null;
+  sort_order: number;
+}
+
 export function useIssues() {
   const { user } = useAuth();
   const [issues, setIssues] = useState<Issue[]>([]);
@@ -30,7 +37,10 @@ export function useIssues() {
     fetchIssues();
   }, [fetchIssues]);
 
-  const createIssue = async (issueData: Omit<Partial<Issue>, 'id' | 'user_id' | 'created_at' | 'updated_at'>) => {
+  const createIssue = async (
+    issueData: Omit<Partial<Issue>, 'id' | 'user_id' | 'created_at' | 'updated_at'>,
+    issueListings?: IssueListingInput[]
+  ) => {
     if (!user) throw new Error('Not authenticated');
 
     const insertData = {
@@ -60,8 +70,29 @@ export function useIssues() {
 
     if (error) throw error;
 
+    const createdIssue = data as Issue;
+
+    // Save issue_listings if provided
+    if (issueListings && issueListings.length > 0) {
+      const listingsToInsert = issueListings.map(il => ({
+        issue_id: createdIssue.id,
+        listing_id: il.listing_id,
+        change_status: il.change_status,
+        executive_note: il.executive_note,
+        sort_order: il.sort_order,
+      }));
+
+      const { error: listingsError } = await supabase
+        .from('issue_listings')
+        .insert(listingsToInsert);
+
+      if (listingsError) {
+        console.error('Error saving issue listings:', listingsError);
+      }
+    }
+
     await fetchIssues();
-    return data as Issue;
+    return createdIssue;
   };
 
   const updateIssue = async (id: string, updates: Partial<Issue>) => {
