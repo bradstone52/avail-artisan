@@ -43,6 +43,9 @@ export default function IssueBuilder() {
     primaryContactName: '',
     primaryContactEmail: '',
     primaryContactPhone: '',
+    secondaryContactName: '',
+    secondaryContactEmail: '',
+    secondaryContactPhone: '',
   });
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [executiveNotes, setExecutiveNotes] = useState<Record<string, string>>({});
@@ -124,6 +127,9 @@ export default function IssueBuilder() {
         primary_contact_name: settings.primaryContactName || null,
         primary_contact_email: settings.primaryContactEmail || null,
         primary_contact_phone: settings.primaryContactPhone || null,
+        secondary_contact_name: settings.secondaryContactName || null,
+        secondary_contact_email: settings.secondaryContactEmail || null,
+        secondary_contact_phone: settings.secondaryContactPhone || null,
         total_listings: selectedIds.length,
         new_count: newCount,
         changed_count: changedCount,
