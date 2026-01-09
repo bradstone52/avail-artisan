@@ -46,6 +46,9 @@ interface Issue {
   primary_contact_name: string | null;
   primary_contact_email: string | null;
   primary_contact_phone: string | null;
+  secondary_contact_name: string | null;
+  secondary_contact_email: string | null;
+  secondary_contact_phone: string | null;
   total_listings: number;
   new_count: number;
   changed_count: number;
@@ -85,10 +88,43 @@ function fixMojibake(text: string): string {
     .replace(/â€¦/g, "…"); // ellipsis
 }
 
+// Helper to format contact block with primary and optional secondary
+function formatContactBlock(issue: Issue, separator: string = ' • '): string {
+  const primary = [
+    issue.primary_contact_name,
+    issue.primary_contact_email,
+    issue.primary_contact_phone,
+  ].filter(Boolean).join(' | ');
+
+  const secondary = [
+    issue.secondary_contact_name,
+    issue.secondary_contact_email,
+    issue.secondary_contact_phone,
+  ].filter(Boolean).join(' | ');
+
+  if (secondary) {
+    return `${escapeHtml(primary)}${separator}${escapeHtml(secondary)}`;
+  }
+  return escapeHtml(primary);
+}
+
+// Helper to format contact line for property cards
+function formatContactLine(issue: Issue): string {
+  let line = `Details / tours: ${escapeHtml(issue.primary_contact_name || "Contact us")}`;
+  if (issue.primary_contact_email) line += ` — ${escapeHtml(issue.primary_contact_email)}`;
+  if (issue.primary_contact_phone) line += ` — ${escapeHtml(issue.primary_contact_phone)}`;
+  
+  if (issue.secondary_contact_name) {
+    line += ` • ${escapeHtml(issue.secondary_contact_name)}`;
+    if (issue.secondary_contact_email) line += ` — ${escapeHtml(issue.secondary_contact_email)}`;
+    if (issue.secondary_contact_phone) line += ` — ${escapeHtml(issue.secondary_contact_phone)}`;
+  }
+  
+  return line;
+}
+
 function generatePdfHtml(issue: Issue, issueListings: IssueListing[]): string {
   const publishDate = issue.published_at
-    ? format(new Date(issue.published_at), "MMMM d, yyyy")
-    : format(new Date(), "MMMM d, yyyy");
 
   // Calculate stats
   const sizes = issueListings.map((il) => il.listings.size_sf);
@@ -214,9 +250,7 @@ function generatePdfHtml(issue: Issue, issueListings: IssueListing[]): string {
             </p>
             
             <p style="color: #9ca3af; font-size: 12px; margin: 0; border-top: 1px solid #f3f4f6; padding-top: 12px;">
-              Details / tours: ${escapeHtml(issue.primary_contact_name || "Contact us")}
-              ${issue.primary_contact_email ? ` — ${escapeHtml(issue.primary_contact_email)}` : ""}
-              ${issue.primary_contact_phone ? ` — ${escapeHtml(issue.primary_contact_phone)}` : ""}
+              ${formatContactLine(issue)}
             </p>
           </div>
           ${photoHtml}
@@ -284,9 +318,7 @@ function generatePdfHtml(issue: Issue, issueListings: IssueListing[]): string {
     <div style="position: absolute; bottom: 60px; left: 40px; right: 40px;">
       <div style="border-top: 1px solid #cbd5e1; padding-top: 20px;">
         <p style="margin: 0 0 8px 0; font-size: 14px; color: #374151;">
-          ${escapeHtml(issue.primary_contact_name || "")}
-          ${issue.primary_contact_email ? ` | ${escapeHtml(issue.primary_contact_email)}` : ""}
-          ${issue.primary_contact_phone ? ` | ${escapeHtml(issue.primary_contact_phone)}` : ""}
+          ${formatContactBlock(issue)}
         </p>
         <p style="margin: 0; font-size: 11px; color: #94a3b8;">
           Information believed reliable but not guaranteed. Rates/availability subject to change.
@@ -347,12 +379,24 @@ function generatePdfHtml(issue: Issue, issueListings: IssueListing[]): string {
       Most logistics users don't see the best options until timing is tight. If any of these are relevant—or if you want off-market options—reply and we'll shortlist sites quickly.
     </p>
     
-    <div style="background: rgba(255,255,255,0.1); border-radius: 12px; padding: 24px; max-width: 400px;">
-      <p style="margin: 0 0 8px 0; font-weight: 600; font-size: 16px;">
-        ${escapeHtml(issue.primary_contact_name || "Contact Us")}
-      </p>
-      ${issue.primary_contact_email ? `<p style="margin: 0 0 4px 0; color: #94a3b8;">${escapeHtml(issue.primary_contact_email)}</p>` : ""}
-      ${issue.primary_contact_phone ? `<p style="margin: 0; color: #94a3b8;">${escapeHtml(issue.primary_contact_phone)}</p>` : ""}
+    <div style="background: rgba(255,255,255,0.1); border-radius: 12px; padding: 24px; max-width: 500px;">
+      <div style="display: flex; gap: 32px; flex-wrap: wrap;">
+        <div>
+          <p style="margin: 0 0 8px 0; font-weight: 600; font-size: 16px;">
+            ${escapeHtml(issue.primary_contact_name || "Contact Us")}
+          </p>
+          ${issue.primary_contact_email ? `<p style="margin: 0 0 4px 0; color: #94a3b8;">${escapeHtml(issue.primary_contact_email)}</p>` : ""}
+          ${issue.primary_contact_phone ? `<p style="margin: 0; color: #94a3b8;">${escapeHtml(issue.primary_contact_phone)}</p>` : ""}
+        </div>
+        ${issue.secondary_contact_name ? `
+        <div>
+          <p style="margin: 0 0 8px 0; font-weight: 600; font-size: 16px;">
+            ${escapeHtml(issue.secondary_contact_name)}
+          </p>
+          ${issue.secondary_contact_email ? `<p style="margin: 0 0 4px 0; color: #94a3b8;">${escapeHtml(issue.secondary_contact_email)}</p>` : ""}
+          ${issue.secondary_contact_phone ? `<p style="margin: 0; color: #94a3b8;">${escapeHtml(issue.secondary_contact_phone)}</p>` : ""}
+        </div>
+        ` : ""}
     </div>
     
     <div style="position: absolute; bottom: 60px; left: 40px; right: 40px;">

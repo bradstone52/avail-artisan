@@ -1,7 +1,7 @@
 import { IssueSettings } from '@/lib/types';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
+import { Button } from '@/components/ui/button';
 import {
   Select,
   SelectContent,
@@ -10,6 +10,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { format } from 'date-fns';
+import { UserPlus } from 'lucide-react';
 
 interface IssueSettingsStepProps {
   settings: IssueSettings;
@@ -122,40 +123,104 @@ export function IssueSettingsStep({ settings, onChange }: IssueSettingsStepProps
         </div>
       </div>
 
-      {/* Contact */}
+      {/* Contacts */}
       <div className="border-t border-border pt-6">
-        <h3 className="text-lg font-display font-semibold mb-4">Primary Contact</h3>
-        <div className="grid gap-4 sm:grid-cols-3">
-          <div className="space-y-2">
-            <Label htmlFor="contactName">Name</Label>
-            <Input
-              id="contactName"
-              placeholder="John Smith"
-              value={settings.primaryContactName}
-              onChange={(e) => updateField('primaryContactName', e.target.value)}
-            />
-          </div>
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-lg font-display font-semibold">Contacts</h3>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={() => {
+              onChange({
+                ...settings,
+                primaryContactName: 'Brad Stone',
+                primaryContactEmail: 'brad@cvpartners.ca',
+                primaryContactPhone: '(403) 613-2898',
+                secondaryContactName: 'Doug Johannson',
+                secondaryContactEmail: 'doug@cvpartners.ca',
+                secondaryContactPhone: '(403) 470-8875',
+              });
+            }}
+          >
+            <UserPlus className="w-4 h-4 mr-2" />
+            Use Defaults
+          </Button>
+        </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="contactEmail">Email</Label>
-            <Input
-              id="contactEmail"
-              type="email"
-              placeholder="john@brokerage.com"
-              value={settings.primaryContactEmail}
-              onChange={(e) => updateField('primaryContactEmail', e.target.value)}
-            />
-          </div>
+        {/* Primary Contact */}
+        <div className="mb-6">
+          <p className="text-sm text-muted-foreground mb-3">Primary Contact</p>
+          <div className="grid gap-4 sm:grid-cols-3">
+            <div className="space-y-2">
+              <Label htmlFor="primaryContactName">Name</Label>
+              <Input
+                id="primaryContactName"
+                placeholder="Brad Stone"
+                value={settings.primaryContactName}
+                onChange={(e) => updateField('primaryContactName', e.target.value)}
+              />
+            </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="contactPhone">Phone</Label>
-            <Input
-              id="contactPhone"
-              type="tel"
-              placeholder="(403) 555-1234"
-              value={settings.primaryContactPhone}
-              onChange={(e) => updateField('primaryContactPhone', e.target.value)}
-            />
+            <div className="space-y-2">
+              <Label htmlFor="primaryContactEmail">Email</Label>
+              <Input
+                id="primaryContactEmail"
+                type="email"
+                placeholder="brad@cvpartners.ca"
+                value={settings.primaryContactEmail}
+                onChange={(e) => updateField('primaryContactEmail', e.target.value)}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="primaryContactPhone">Phone</Label>
+              <Input
+                id="primaryContactPhone"
+                type="tel"
+                placeholder="(403) 613-2898"
+                value={settings.primaryContactPhone}
+                onChange={(e) => updateField('primaryContactPhone', e.target.value)}
+              />
+            </div>
+          </div>
+        </div>
+
+        {/* Secondary Contact */}
+        <div>
+          <p className="text-sm text-muted-foreground mb-3">Secondary Contact (optional)</p>
+          <div className="grid gap-4 sm:grid-cols-3">
+            <div className="space-y-2">
+              <Label htmlFor="secondaryContactName">Name</Label>
+              <Input
+                id="secondaryContactName"
+                placeholder="Doug Johannson"
+                value={settings.secondaryContactName}
+                onChange={(e) => updateField('secondaryContactName', e.target.value)}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="secondaryContactEmail">Email</Label>
+              <Input
+                id="secondaryContactEmail"
+                type="email"
+                placeholder="doug@cvpartners.ca"
+                value={settings.secondaryContactEmail}
+                onChange={(e) => updateField('secondaryContactEmail', e.target.value)}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="secondaryContactPhone">Phone</Label>
+              <Input
+                id="secondaryContactPhone"
+                type="tel"
+                placeholder="(403) 470-8875"
+                value={settings.secondaryContactPhone}
+                onChange={(e) => updateField('secondaryContactPhone', e.target.value)}
+              />
+            </div>
           </div>
         </div>
       </div>

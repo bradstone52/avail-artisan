@@ -113,6 +113,9 @@ export type Database = {
           primary_contact_phone: string | null
           published_at: string | null
           removed_count: number
+          secondary_contact_email: string | null
+          secondary_contact_name: string | null
+          secondary_contact_phone: string | null
           size_threshold: number
           sort_order: string
           title: string
@@ -140,6 +143,9 @@ export type Database = {
           primary_contact_phone?: string | null
           published_at?: string | null
           removed_count?: number
+          secondary_contact_email?: string | null
+          secondary_contact_name?: string | null
+          secondary_contact_phone?: string | null
           size_threshold?: number
           sort_order?: string
           title: string
@@ -167,6 +173,9 @@ export type Database = {
           primary_contact_phone?: string | null
           published_at?: string | null
           removed_count?: number
+          secondary_contact_email?: string | null
+          secondary_contact_name?: string | null
+          secondary_contact_phone?: string | null
           size_threshold?: number
           sort_order?: string
           title?: string

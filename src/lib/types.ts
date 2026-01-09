@@ -44,6 +44,9 @@ export interface Issue {
   primary_contact_name: string | null;
   primary_contact_email: string | null;
   primary_contact_phone: string | null;
+  secondary_contact_name: string | null;
+  secondary_contact_email: string | null;
+  secondary_contact_phone: string | null;
   pdf_url: string | null;
   pdf_filename: string | null;
   pdf_filesize: number | null;
@@ -92,6 +95,9 @@ export interface IssueSettings {
   primaryContactName: string;
   primaryContactEmail: string;
   primaryContactPhone: string;
+  secondaryContactName: string;
+  secondaryContactEmail: string;
+  secondaryContactPhone: string;
 }
 
 export interface ListingFilter {
