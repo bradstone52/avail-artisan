@@ -10,7 +10,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { format } from 'date-fns';
-import { UserPlus } from 'lucide-react';
+import { UserPlus, Building2 } from 'lucide-react';
 
 interface IssueSettingsStepProps {
   settings: IssueSettings;
@@ -98,20 +98,37 @@ export function IssueSettingsStep({ settings, onChange }: IssueSettingsStepProps
 
       {/* Branding */}
       <div className="border-t border-border pt-6">
-        <h3 className="text-lg font-display font-semibold mb-4">Branding</h3>
-        <div className="grid gap-4">
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-lg font-display font-semibold">Branding</h3>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={() => {
+              onChange({
+                ...settings,
+                brokerageName: 'ClearView Commercial Realty Inc.',
+                logoUrl: 'https://static.wixstatic.com/media/61f242_c5db9313e4e7406b98b65af86d332a61~mv2.png/v1/fill/w_734,h_128,al_c,q_85,usm_0.66_1.00_0.01,enc_avif,quality_auto/Clearview_CRI_Logo_HORZ_FC_KO_CMYK_edited.png',
+              });
+            }}
+          >
+            <Building2 className="w-4 h-4 mr-2" />
+            Use Defaults
+          </Button>
+        </div>
+        <div className="grid gap-4 sm:grid-cols-2">
           <div className="space-y-2">
             <Label htmlFor="brokerageName">Brokerage Name</Label>
             <Input
               id="brokerageName"
-              placeholder="Your Brokerage Inc."
+              placeholder="ClearView Commercial Realty Inc."
               value={settings.brokerageName}
               onChange={(e) => updateField('brokerageName', e.target.value)}
             />
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="logoUrl">Logo URL (optional)</Label>
+            <Label htmlFor="logoUrl">Logo URL</Label>
             <Input
               id="logoUrl"
               type="url"
