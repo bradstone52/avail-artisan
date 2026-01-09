@@ -1,71 +1,71 @@
-import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { AppLayout } from '@/components/layout/AppLayout';
-import { WizardSteps } from '@/components/issue-builder/WizardSteps';
-import { IssueSettingsStep } from '@/components/issue-builder/IssueSettingsStep';
-import { SelectListingsStep } from '@/components/issue-builder/SelectListingsStep';
-import { GenerateContentStep } from '@/components/issue-builder/GenerateContentStep';
-import { PreviewStep } from '@/components/issue-builder/PreviewStep';
-import { ShareStep } from '@/components/issue-builder/ShareStep';
-import { useSheetConnection } from '@/hooks/useSheetConnection';
-import { useIssues } from '@/hooks/useIssues';
-import { IssueSettings, Issue } from '@/lib/types';
-import { Button } from '@/components/ui/button';
-import { ArrowLeft, ArrowRight, FileSpreadsheet, Loader2 } from 'lucide-react';
-import { toast } from 'sonner';
-import { format } from 'date-fns';
+import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+import { AppLayout } from "@/components/layout/AppLayout";
+import { WizardSteps } from "@/components/issue-builder/WizardSteps";
+import { IssueSettingsStep } from "@/components/issue-builder/IssueSettingsStep";
+import { SelectListingsStep } from "@/components/issue-builder/SelectListingsStep";
+import { GenerateContentStep } from "@/components/issue-builder/GenerateContentStep";
+import { PreviewStep } from "@/components/issue-builder/PreviewStep";
+import { ShareStep } from "@/components/issue-builder/ShareStep";
+import { useSheetConnection } from "@/hooks/useSheetConnection";
+import { useIssues } from "@/hooks/useIssues";
+import { IssueSettings, Issue } from "@/lib/types";
+import { Button } from "@/components/ui/button";
+import { ArrowLeft, ArrowRight, FileSpreadsheet, Loader2 } from "lucide-react";
+import { toast } from "sonner";
+import { format } from "date-fns";
 
 const WIZARD_STEPS = [
-  { id: 'settings', title: 'Settings', description: 'Issue configuration' },
-  { id: 'listings', title: 'Listings', description: 'Select properties' },
-  { id: 'content', title: 'Content', description: 'Generate notes' },
-  { id: 'preview', title: 'Preview', description: 'Review PDF' },
-  { id: 'share', title: 'Share', description: 'Download & share' },
+  { id: "settings", title: "Settings", description: "Issue configuration" },
+  { id: "listings", title: "Listings", description: "Select properties" },
+  { id: "content", title: "Content", description: "Generate notes" },
+  { id: "preview", title: "Preview", description: "Review PDF" },
+  { id: "share", title: "Share", description: "Download & share" },
 ];
 
 export default function IssueBuilder() {
   const navigate = useNavigate();
   const { listings, loading: listingsLoading } = useSheetConnection();
   const { createIssue, getLatestIssue } = useIssues();
-  
+
   const [currentStep, setCurrentStep] = useState(0);
   const [isCreating, setIsCreating] = useState(false);
   const [createdIssue, setCreatedIssue] = useState<Issue | null>(null);
 
   // Form state
   const [settings, setSettings] = useState<IssueSettings>({
-    title: '',
-    market: 'Calgary Region',
+    title: "",
+    market: "Calgary Region",
     sizeThreshold: 100000,
-    sortOrder: 'size_desc',
-    brokerageName: 'ClearView Commercial Realty Inc.',
-    logoUrl: 'https://static.wixstatic.com/media/61f242_c5db9313e4e7406b98b65af86d332a61~mv2.png/v1/fill/w_734,h_128,al_c,q_85,usm_0.66_1.00_0.01,enc_avif,quality_auto/Clearview_CRI_Logo_HORZ_FC_KO_CMYK_edited.png',
-    primaryContactName: '',
-    primaryContactEmail: '',
-    primaryContactPhone: '',
-    secondaryContactName: '',
-    secondaryContactEmail: '',
-    secondaryContactPhone: '',
+    sortOrder: "size_desc",
+    brokerageName: "ClearView Commercial Realty Inc.",
+    logoUrl:
+      "https://static.wixstatic.com/media/61f242_c5db9313e4e7406b98b65af86d332a61~mv2.png/v1/fill/w_734,h_128,al_c,q_85,usm_0.66_1.00_0.01,enc_avif,quality_auto/Clearview_CRI_Logo_HORZ_FC_KO_CMYK_edited.png",
+    primary_contact_name: "Brad Stone",
+    primary_contact_email: "brad@cvpartners.ca",
+    primary_contact_phone: "(403) 613-2898",
+
+    secondary_contact_name: "Doug Johannson",
+    secondary_contact_email: "doug@cvpartners.ca",
+    secondary_contact_phone: "(403) 470-8875", // or his phone
   });
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [executiveNotes, setExecutiveNotes] = useState<Record<string, string>>({});
-  const [changeStatus, setChangeStatus] = useState<Record<string, 'new' | 'changed' | 'unchanged'>>({});
+  const [changeStatus, setChangeStatus] = useState<Record<string, "new" | "changed" | "unchanged">>({});
 
   // Auto-select eligible listings when moving to step 2
   useEffect(() => {
     if (currentStep === 1 && selectedIds.length === 0) {
-      const eligible = listings.filter(l => 
-        l.status === 'Active' && 
-        l.include_in_issue &&
-        l.size_sf >= settings.sizeThreshold
+      const eligible = listings.filter(
+        (l) => l.status === "Active" && l.include_in_issue && l.size_sf >= settings.sizeThreshold,
       );
-      setSelectedIds(eligible.map(l => l.id));
-      
+      setSelectedIds(eligible.map((l) => l.id));
+
       // Determine change status (all "new" for first issue)
       const latest = getLatestIssue();
-      const statusMap: Record<string, 'new' | 'changed' | 'unchanged'> = {};
-      eligible.forEach(l => {
-        statusMap[l.id] = latest ? 'new' : 'unchanged';
+      const statusMap: Record<string, "new" | "changed" | "unchanged"> = {};
+      eligible.forEach((l) => {
+        statusMap[l.id] = latest ? "new" : "unchanged";
       });
       setChangeStatus(statusMap);
     }
@@ -104,10 +104,10 @@ export default function IssueBuilder() {
   const handleCreateIssue = async () => {
     setIsCreating(true);
     try {
-      const title = settings.title || `Large-Format Distribution Availability — ${format(new Date(), 'MMMM yyyy')}`;
-      
-      const newCount = Object.values(changeStatus).filter(s => s === 'new').length;
-      const changedCount = Object.values(changeStatus).filter(s => s === 'changed').length;
+      const title = settings.title || `Large-Format Distribution Availability — ${format(new Date(), "MMMM yyyy")}`;
+
+      const newCount = Object.values(changeStatus).filter((s) => s === "new").length;
+      const changedCount = Object.values(changeStatus).filter((s) => s === "changed").length;
 
       // Prepare issue_listings data
       const issueListingsData = selectedIds.map((listingId, index) => ({
@@ -117,31 +117,34 @@ export default function IssueBuilder() {
         sort_order: index,
       }));
 
-      const issue = await createIssue({
-        title,
-        market: settings.market,
-        size_threshold: settings.sizeThreshold,
-        sort_order: settings.sortOrder,
-        brokerage_name: settings.brokerageName || null,
-        logo_url: settings.logoUrl || null,
-        primary_contact_name: settings.primaryContactName || null,
-        primary_contact_email: settings.primaryContactEmail || null,
-        primary_contact_phone: settings.primaryContactPhone || null,
-        secondary_contact_name: settings.secondaryContactName || null,
-        secondary_contact_email: settings.secondaryContactEmail || null,
-        secondary_contact_phone: settings.secondaryContactPhone || null,
-        total_listings: selectedIds.length,
-        new_count: newCount,
-        changed_count: changedCount,
-        removed_count: 0,
-        published_at: new Date().toISOString(),
-      }, issueListingsData);
+      const issue = await createIssue(
+        {
+          title,
+          market: settings.market,
+          size_threshold: settings.sizeThreshold,
+          sort_order: settings.sortOrder,
+          brokerage_name: settings.brokerageName || null,
+          logo_url: settings.logoUrl || null,
+          primary_contact_name: settings.primaryContactName || null,
+          primary_contact_email: settings.primaryContactEmail || null,
+          primary_contact_phone: settings.primaryContactPhone || null,
+          secondary_contact_name: settings.secondaryContactName || null,
+          secondary_contact_email: settings.secondaryContactEmail || null,
+          secondary_contact_phone: settings.secondaryContactPhone || null,
+          total_listings: selectedIds.length,
+          new_count: newCount,
+          changed_count: changedCount,
+          removed_count: 0,
+          published_at: new Date().toISOString(),
+        },
+        issueListingsData,
+      );
 
       setCreatedIssue(issue);
       setCurrentStep(4);
-      toast.success('Issue created successfully!');
+      toast.success("Issue created successfully!");
     } catch (error) {
-      toast.error('Failed to create issue');
+      toast.error("Failed to create issue");
       console.error(error);
     } finally {
       setIsCreating(false);
@@ -168,9 +171,7 @@ export default function IssueBuilder() {
             <p className="text-muted-foreground mb-4 max-w-md mx-auto">
               You need to connect a Google Sheet and sync your listings before creating an issue.
             </p>
-            <Button onClick={() => navigate('/dashboard')}>
-              Go to Dashboard
-            </Button>
+            <Button onClick={() => navigate("/dashboard")}>Go to Dashboard</Button>
           </div>
         </div>
       </AppLayout>
@@ -183,9 +184,7 @@ export default function IssueBuilder() {
         {/* Header */}
         <div className="mb-8">
           <h1 className="text-2xl font-display font-bold">Create Issue</h1>
-          <p className="text-muted-foreground mt-1">
-            Build your distribution market snapshot
-          </p>
+          <p className="text-muted-foreground mt-1">Build your distribution market snapshot</p>
         </div>
 
         {/* Wizard Steps */}
@@ -199,12 +198,7 @@ export default function IssueBuilder() {
 
         {/* Step Content */}
         <div className="mb-8">
-          {currentStep === 0 && (
-            <IssueSettingsStep
-              settings={settings}
-              onChange={setSettings}
-            />
-          )}
+          {currentStep === 0 && <IssueSettingsStep settings={settings} onChange={setSettings} />}
           {currentStep === 1 && (
             <SelectListingsStep
               listings={listings}
@@ -245,27 +239,20 @@ export default function IssueBuilder() {
 
         {/* Navigation */}
         <div className="flex items-center justify-between pt-6 border-t border-border">
-          <Button
-            variant="outline"
-            onClick={handleBack}
-            disabled={currentStep === 0}
-          >
+          <Button variant="outline" onClick={handleBack} disabled={currentStep === 0}>
             <ArrowLeft className="w-4 h-4 mr-2" />
             Back
           </Button>
 
           {currentStep < 4 && (
-            <Button
-              onClick={handleNext}
-              disabled={!canProceed() || isCreating}
-            >
+            <Button onClick={handleNext} disabled={!canProceed() || isCreating}>
               {isCreating ? (
                 <>
                   <Loader2 className="w-4 h-4 mr-2 animate-spin" />
                   Creating...
                 </>
               ) : currentStep === 3 ? (
-                'Create Issue'
+                "Create Issue"
               ) : (
                 <>
                   Next
@@ -275,11 +262,7 @@ export default function IssueBuilder() {
             </Button>
           )}
 
-          {currentStep === 4 && (
-            <Button onClick={() => navigate('/dashboard')}>
-              Done
-            </Button>
-          )}
+          {currentStep === 4 && <Button onClick={() => navigate("/dashboard")}>Done</Button>}
         </div>
       </div>
     </AppLayout>
