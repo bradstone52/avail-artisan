@@ -108,33 +108,94 @@ function formatContactBlock(issue: Issue, separator: string = ' • '): string {
   return escapeHtml(primary);
 }
 
-// Helper to format contact line for property cards
-function formatContactLine(issue: Issue): string {
-  let line = `Details / tours: ${escapeHtml(issue.primary_contact_name || "Contact us")}`;
-  if (issue.primary_contact_email) line += ` — ${escapeHtml(issue.primary_contact_email)}`;
-  if (issue.primary_contact_phone) line += ` — ${escapeHtml(issue.primary_contact_phone)}`;
+// Parse availability date for sorting - returns a sortable value
+// "Immediate" = earliest, "TBD" = latest, dates parsed normally
+function parseAvailabilityForSort(availability: string | null): number {
+  if (!availability) return Number.MAX_SAFE_INTEGER; // TBD equivalent
   
-  if (issue.secondary_contact_name) {
-    line += ` • ${escapeHtml(issue.secondary_contact_name)}`;
-    if (issue.secondary_contact_email) line += ` — ${escapeHtml(issue.secondary_contact_email)}`;
-    if (issue.secondary_contact_phone) line += ` — ${escapeHtml(issue.secondary_contact_phone)}`;
+  const lower = availability.toLowerCase().trim();
+  
+  // Immediate availability = earliest possible
+  if (lower === 'immediate' || lower === 'now' || lower === 'available') {
+    return 0;
   }
   
-  return line;
+  // TBD = last
+  if (lower === 'tbd' || lower === 'unknown' || lower === 'n/a' || lower === '') {
+    return Number.MAX_SAFE_INTEGER;
+  }
+  
+  // Try to parse quarter format (Q1 2025, Q4 2025, etc.)
+  const quarterMatch = lower.match(/q([1-4])\s*(\d{4})/);
+  if (quarterMatch) {
+    const quarter = parseInt(quarterMatch[1]);
+    const year = parseInt(quarterMatch[2]);
+    // Convert to approximate month (Q1=Jan, Q2=Apr, Q3=Jul, Q4=Oct)
+    const month = (quarter - 1) * 3;
+    return new Date(year, month, 1).getTime();
+  }
+  
+  // Try to parse year only (2025, 2026)
+  const yearMatch = lower.match(/^(\d{4})$/);
+  if (yearMatch) {
+    return new Date(parseInt(yearMatch[1]), 0, 1).getTime();
+  }
+  
+  // Try to parse ISO date (2025-02-01)
+  const isoMatch = availability.match(/(\d{4})-(\d{2})-(\d{2})/);
+  if (isoMatch) {
+    return new Date(parseInt(isoMatch[1]), parseInt(isoMatch[2]) - 1, parseInt(isoMatch[3])).getTime();
+  }
+  
+  // Try to parse other date formats
+  const parsed = Date.parse(availability);
+  if (!isNaN(parsed)) {
+    return parsed;
+  }
+  
+  // If unparseable, put it near the end but before TBD
+  return Number.MAX_SAFE_INTEGER - 1;
+}
+
+// Get earliest availability from listings
+function getEarliestAvailability(issueListings: IssueListing[]): string {
+  const availabilities = issueListings
+    .map((il) => ({
+      value: il.listings.availability_date,
+      sortKey: parseAvailabilityForSort(il.listings.availability_date),
+    }))
+    .filter((a) => a.value)
+    .sort((a, b) => a.sortKey - b.sortKey);
+  
+  return availabilities[0]?.value || "TBD";
+}
+
+// Check if photo URL is valid
+function isValidPhotoUrl(url: string | null): boolean {
+  if (!url) return false;
+  const trimmed = url.trim().toLowerCase();
+  return trimmed !== "" && trimmed !== "none" && trimmed !== "n/a" && trimmed !== "null";
+}
+
+// Format a spec value, return null if not displayable
+function formatSpec(value: string | number | null | undefined, suffix: string = ""): string | null {
+  if (value === null || value === undefined) return null;
+  if (typeof value === "string") {
+    const trimmed = value.trim().toLowerCase();
+    if (trimmed === "" || trimmed === "unknown" || trimmed === "n/a" || trimmed === "none") return null;
+    return value + suffix;
+  }
+  if (typeof value === "number") {
+    if (value === 0) return null;
+    return value.toLocaleString() + suffix;
+  }
+  return null;
 }
 
 function generatePdfHtml(issue: Issue, issueListings: IssueListing[]): string {
   const publishDate = issue.published_at
-
-  // Calculate stats
-  const sizes = issueListings.map((il) => il.listings.size_sf);
-  const minSize = Math.min(...sizes);
-  const maxSize = Math.max(...sizes);
-  const availabilities = issueListings
-    .map((il) => il.listings.availability_date)
-    .filter(Boolean)
-    .sort();
-  const earliestAvailability = availabilities[0] || "TBD";
+    ? format(new Date(issue.published_at), "MMMM d, yyyy")
+    : format(new Date(), "MMMM d, yyyy");
 
   // Deduplicate by listing_id
   const seenListingIds = new Set<string>();
@@ -146,117 +207,152 @@ function generatePdfHtml(issue: Issue, issueListings: IssueListing[]): string {
     return true;
   });
 
-  // Generate property cards HTML (2 per page)
-  const propertyCardsHtml = uniqueListings
-    .map((il, index) => {
-      const listing = il.listings;
-      const changeStatus = il.change_status;
-      const executiveNote = fixMojibake(
-        il.executive_note || "Details available on request."
-      );
+  // Calculate stats
+  const sizes = uniqueListings.map((il) => il.listings.size_sf);
+  const minSize = Math.min(...sizes);
+  const maxSize = Math.max(...sizes);
+  const earliestAvailability = getEarliestAvailability(uniqueListings);
 
-      const badge =
-        changeStatus === "new"
-          ? '<span style="background: #10b981; color: white; padding: 2px 8px; border-radius: 4px; font-size: 10px; font-weight: 600; margin-left: 8px;">NEW</span>'
-          : changeStatus === "changed"
-            ? '<span style="background: #f59e0b; color: white; padding: 2px 8px; border-radius: 4px; font-size: 10px; font-weight: 600; margin-left: 8px;">CHANGED</span>'
-            : "";
-
-      // Only render image if photo_url is valid (not null, empty, or "None")
-      const hasValidPhoto = listing.photo_url && 
-        listing.photo_url.trim() !== "" && 
-        listing.photo_url.toLowerCase() !== "none";
+  // Generate table rows for summary page
+  const tableRowsHtml = uniqueListings
+    .map((il) => {
+      const l = il.listings;
+      const badge = il.change_status === "new" 
+        ? '<span class="badge badge-new">NEW</span>' 
+        : il.change_status === "changed" 
+          ? '<span class="badge badge-changed">CHG</span>' 
+          : '';
       
-      const photoHtml = hasValidPhoto
-        ? `<div style="width: 150px; height: 100px; background: #f3f4f6; border-radius: 8px; overflow: hidden; flex-shrink: 0;">
-           <img src="${escapeHtml(listing.photo_url)}" style="width: 100%; height: 100%; object-fit: cover;" />
-         </div>`
-        : "";
+      return `
+        <tr>
+          <td class="property-cell">
+            <strong>${escapeHtml(l.property_name || l.address)}</strong>${badge}<br/>
+            <span class="submarket">${escapeHtml(l.submarket)}</span>
+          </td>
+          <td class="num">${l.size_sf.toLocaleString()}</td>
+          <td class="num">${l.clear_height_ft ? l.clear_height_ft + "'" : "—"}</td>
+          <td class="num">${l.dock_doors || "—"}</td>
+          <td class="num">${l.drive_in_doors || "—"}</td>
+          <td>${l.trailer_parking && l.trailer_parking !== "Unknown" ? l.trailer_parking : "—"}</td>
+          <td>${l.cross_dock && l.cross_dock !== "Unknown" ? l.cross_dock : "—"}</td>
+          <td>${l.yard && l.yard !== "Unknown" ? l.yard : "—"}</td>
+          <td>${l.availability_date || "TBD"}</td>
+          <td>${l.asking_rate_psf || "Contact"}</td>
+        </tr>
+      `;
+    })
+    .join("");
 
-      const pageBreak =
-        index > 0 && index % 2 === 0
-          ? 'style="page-break-before: always; margin-top: 40px;"'
+  // Generate detail pages (1 per property)
+  const detailPagesHtml = uniqueListings
+    .map((il) => {
+      const l = il.listings;
+      const executiveNote = fixMojibake(il.executive_note || "");
+      const badge = il.change_status === "new"
+        ? '<span class="badge badge-new" style="margin-left: 12px;">NEW</span>'
+        : il.change_status === "changed"
+          ? '<span class="badge badge-changed" style="margin-left: 12px;">CHANGED</span>'
           : "";
 
+      // Build spec groups
+      const buildingSpecs = [
+        formatSpec(l.size_sf, " SF") ? `<strong>${l.size_sf.toLocaleString()} SF</strong> total area` : null,
+        formatSpec(l.clear_height_ft) ? `<strong>${l.clear_height_ft}'</strong> clear height` : null,
+      ].filter(Boolean);
+
+      const shippingSpecs = [
+        l.dock_doors ? `<strong>${l.dock_doors}</strong> dock doors` : null,
+        l.drive_in_doors ? `<strong>${l.drive_in_doors}</strong> drive-in doors` : null,
+        l.cross_dock && l.cross_dock !== "Unknown" ? `Cross-dock: <strong>${l.cross_dock}</strong>` : null,
+      ].filter(Boolean);
+
+      const yardSpecs = [
+        l.yard && l.yard !== "Unknown" ? `Yard: <strong>${l.yard}</strong>` : null,
+        l.trailer_parking && l.trailer_parking !== "Unknown" ? `Trailer parking: <strong>${l.trailer_parking}</strong>` : null,
+      ].filter(Boolean);
+
+      const commercialSpecs = [
+        l.availability_date ? `Available: <strong>${l.availability_date}</strong>` : null,
+        l.asking_rate_psf ? `Asking rate: <strong>${l.asking_rate_psf}</strong>` : null,
+      ].filter(Boolean);
+
+      // Photo section (only if valid)
+      const photoHtml = isValidPhotoUrl(l.photo_url)
+        ? `<div class="photo-container">
+             <img src="${escapeHtml(l.photo_url)}" alt="Property photo" class="property-photo" />
+           </div>`
+        : "";
+
       return `
-      <div ${pageBreak} style="border: 1px solid #e5e7eb; border-radius: 12px; padding: 24px; margin-bottom: 20px; background: white;">
-        <div style="display: flex; gap: 20px;">
-          <div style="flex: 1;">
-            <div style="display: flex; align-items: center; margin-bottom: 12px;">
-              <h3 style="font-size: 18px; font-weight: 600; margin: 0; color: #1f2937;">
-                ${escapeHtml(listing.property_name || listing.address)}
-              </h3>
-              ${badge}
-            </div>
-            ${
-              listing.property_name
-                ? `<p style="color: #6b7280; font-size: 14px; margin: 0 0 16px 0;">${escapeHtml(listing.address)}, ${escapeHtml(listing.city)}</p>`
-                : ""
-            }
-            
-            <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 16px;">
-              <div>
-                <p style="color: #9ca3af; font-size: 11px; margin: 0;">Size</p>
-                <p style="font-weight: 600; margin: 2px 0 0 0; font-size: 14px;">${listing.size_sf.toLocaleString()} SF</p>
-              </div>
-              <div>
-                <p style="color: #9ca3af; font-size: 11px; margin: 0;">Clear Height</p>
-                <p style="font-weight: 600; margin: 2px 0 0 0; font-size: 14px;">${listing.clear_height_ft ? listing.clear_height_ft + "'" : "—"}</p>
-              </div>
-              <div>
-                <p style="color: #9ca3af; font-size: 11px; margin: 0;">Dock Doors</p>
-                <p style="font-weight: 600; margin: 2px 0 0 0; font-size: 14px;">${listing.dock_doors || 0}</p>
-              </div>
-              <div>
-                <p style="color: #9ca3af; font-size: 11px; margin: 0;">Drive-In</p>
-                <p style="font-weight: 600; margin: 2px 0 0 0; font-size: 14px;">${listing.drive_in_doors || 0}</p>
-              </div>
-              <div>
-                <p style="color: #9ca3af; font-size: 11px; margin: 0;">Yard</p>
-                <p style="font-weight: 600; margin: 2px 0 0 0; font-size: 14px;">${listing.yard || "Unknown"}</p>
-              </div>
-              <div>
-                <p style="color: #9ca3af; font-size: 11px; margin: 0;">Availability</p>
-                <p style="font-weight: 600; margin: 2px 0 0 0; font-size: 14px;">${listing.availability_date || "TBD"}</p>
-              </div>
-              <div>
-                <p style="color: #9ca3af; font-size: 11px; margin: 0;">Rate</p>
-                <p style="font-weight: 600; margin: 2px 0 0 0; font-size: 14px;">${listing.asking_rate_psf || "Contact"}</p>
-              </div>
-              <div>
-                <p style="color: #9ca3af; font-size: 11px; margin: 0;">Submarket</p>
-                <p style="font-weight: 600; margin: 2px 0 0 0; font-size: 14px;">${escapeHtml(listing.submarket)}</p>
-              </div>
-              ${
-                listing.cross_dock && listing.cross_dock !== "Unknown"
-                  ? `<div>
-                <p style="color: #9ca3af; font-size: 11px; margin: 0;">Cross-Dock</p>
-                <p style="font-weight: 600; margin: 2px 0 0 0; font-size: 14px;">${listing.cross_dock}</p>
-              </div>`
-                  : ""
-              }
-              ${
-                listing.trailer_parking && listing.trailer_parking !== "Unknown"
-                  ? `<div>
-                <p style="color: #9ca3af; font-size: 11px; margin: 0;">Trailer</p>
-                <p style="font-weight: 600; margin: 2px 0 0 0; font-size: 14px;">${listing.trailer_parking}</p>
-              </div>`
-                  : ""
-              }
-            </div>
-            
-            <p style="color: #4b5563; font-size: 14px; line-height: 1.5; margin: 0 0 12px 0; font-style: italic;">
-              ${escapeHtml(executiveNote)}
-            </p>
-            
-            <p style="color: #9ca3af; font-size: 12px; margin: 0; border-top: 1px solid #f3f4f6; padding-top: 12px;">
-              ${formatContactLine(issue)}
-            </p>
+        <div class="page detail-page">
+          <div class="detail-header">
+            <h2>${escapeHtml(l.property_name || l.address)}${badge}</h2>
+            ${l.property_name ? `<p class="address">${escapeHtml(l.address)}, ${escapeHtml(l.city)}</p>` : `<p class="address">${escapeHtml(l.city)}</p>`}
+            <p class="submarket-line">${escapeHtml(l.submarket)}</p>
           </div>
-          ${photoHtml}
+
+          <div class="detail-content">
+            <div class="specs-column">
+              ${buildingSpecs.length > 0 ? `
+                <div class="spec-group">
+                  <h4>Building</h4>
+                  <ul>${buildingSpecs.map(s => `<li>${s}</li>`).join("")}</ul>
+                </div>
+              ` : ""}
+
+              ${shippingSpecs.length > 0 ? `
+                <div class="spec-group">
+                  <h4>Shipping</h4>
+                  <ul>${shippingSpecs.map(s => `<li>${s}</li>`).join("")}</ul>
+                </div>
+              ` : ""}
+
+              ${yardSpecs.length > 0 ? `
+                <div class="spec-group">
+                  <h4>Yard & Parking</h4>
+                  <ul>${yardSpecs.map(s => `<li>${s}</li>`).join("")}</ul>
+                </div>
+              ` : ""}
+
+              ${commercialSpecs.length > 0 ? `
+                <div class="spec-group">
+                  <h4>Commercial</h4>
+                  <ul>${commercialSpecs.map(s => `<li>${s}</li>`).join("")}</ul>
+                </div>
+              ` : ""}
+
+              ${executiveNote ? `
+                <div class="notes-section">
+                  <h4>Notes</h4>
+                  <p>${escapeHtml(executiveNote)}</p>
+                </div>
+              ` : ""}
+            </div>
+
+            ${photoHtml}
+          </div>
+
+          <div class="detail-footer">
+            <div class="contact-block">
+              <p class="contact-label">For details or tours:</p>
+              <div class="contacts">
+                <div class="contact">
+                  <strong>${escapeHtml(issue.primary_contact_name || "Contact Us")}</strong><br/>
+                  ${issue.primary_contact_email ? `${escapeHtml(issue.primary_contact_email)}<br/>` : ""}
+                  ${issue.primary_contact_phone ? escapeHtml(issue.primary_contact_phone) : ""}
+                </div>
+                ${issue.secondary_contact_name ? `
+                  <div class="contact">
+                    <strong>${escapeHtml(issue.secondary_contact_name)}</strong><br/>
+                    ${issue.secondary_contact_email ? `${escapeHtml(issue.secondary_contact_email)}<br/>` : ""}
+                    ${issue.secondary_contact_phone ? escapeHtml(issue.secondary_contact_phone) : ""}
+                  </div>
+                ` : ""}
+              </div>
+            </div>
+          </div>
         </div>
-      </div>
-    `;
+      `;
     })
     .join("");
 
@@ -275,136 +371,324 @@ function generatePdfHtml(issue: Issue, issueListings: IssueListing[]): string {
       padding: 0;
       color: #1f2937;
       line-height: 1.5;
+      font-size: 11pt;
       -webkit-print-color-adjust: exact;
       print-color-adjust: exact;
     }
+    
     @page {
       size: A4;
-      margin: 20mm;
+      margin: 15mm 15mm 20mm 15mm;
+      @bottom-right {
+        content: "Page " counter(page) " of " counter(pages);
+        font-size: 9pt;
+        color: #64748b;
+      }
     }
-    @media print {
-      .page { page-break-after: always; }
-      .page:last-child { page-break-after: avoid; }
+    
+    @page:first {
+      @bottom-right { content: none; }
     }
-    .page { page-break-after: always; }
+    
+    .page {
+      page-break-after: always;
+      min-height: 100%;
+    }
     .page:last-child { page-break-after: avoid; }
+
+    /* Badges */
+    .badge {
+      display: inline-block;
+      padding: 2px 6px;
+      border-radius: 3px;
+      font-size: 8pt;
+      font-weight: 600;
+      text-transform: uppercase;
+      vertical-align: middle;
+    }
+    .badge-new { background: #10b981; color: white; }
+    .badge-changed { background: #f59e0b; color: white; }
+
+    /* Cover Page */
+    .cover-page {
+      padding: 40px;
+      background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+      position: relative;
+      height: 100%;
+    }
+    .cover-logo { height: 45px; margin-bottom: 30px; }
+    .cover-title {
+      font-size: 28pt;
+      font-weight: 700;
+      color: #0f172a;
+      margin: 0 0 12px 0;
+      line-height: 1.2;
+    }
+    .cover-subtitle {
+      font-size: 14pt;
+      color: #64748b;
+      margin: 0 0 8px 0;
+    }
+    .cover-date {
+      font-size: 10pt;
+      color: #94a3b8;
+      margin: 0 0 30px 0;
+    }
+    .cover-stats {
+      background: white;
+      border-radius: 8px;
+      padding: 20px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+      max-width: 500px;
+      margin-bottom: 24px;
+    }
+    .cover-stats p { margin: 0; font-size: 11pt; color: #374151; }
+    .how-to-use {
+      background: #f1f5f9;
+      border-radius: 8px;
+      padding: 16px 20px;
+      max-width: 500px;
+    }
+    .how-to-use h4 {
+      margin: 0 0 8px 0;
+      font-size: 10pt;
+      color: #475569;
+      font-weight: 600;
+    }
+    .how-to-use p {
+      margin: 0;
+      font-size: 9pt;
+      color: #64748b;
+      line-height: 1.5;
+    }
+    .cover-footer {
+      position: absolute;
+      bottom: 40px;
+      left: 40px;
+      right: 40px;
+      border-top: 1px solid #cbd5e1;
+      padding-top: 16px;
+    }
+    .cover-contacts {
+      display: flex;
+      gap: 40px;
+      margin-bottom: 12px;
+    }
+    .cover-contact strong { display: block; margin-bottom: 2px; font-size: 10pt; }
+    .cover-contact span { font-size: 9pt; color: #64748b; }
+    .cover-disclaimer {
+      font-size: 8pt;
+      color: #94a3b8;
+      margin: 0;
+    }
+
+    /* Summary Table Page */
+    .summary-page { padding: 20px 0; }
+    .summary-title {
+      font-size: 16pt;
+      font-weight: 600;
+      margin: 0 0 16px 0;
+      color: #0f172a;
+    }
+    .summary-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 8pt;
+    }
+    .summary-table th {
+      background: #f1f5f9;
+      padding: 8px 6px;
+      text-align: left;
+      font-weight: 600;
+      color: #475569;
+      border-bottom: 2px solid #e2e8f0;
+      white-space: nowrap;
+    }
+    .summary-table td {
+      padding: 8px 6px;
+      border-bottom: 1px solid #e5e7eb;
+      vertical-align: top;
+    }
+    .summary-table tr:nth-child(even) { background: #f9fafb; }
+    .summary-table .num { text-align: right; }
+    .summary-table .property-cell { min-width: 140px; }
+    .summary-table .property-cell strong { font-size: 8.5pt; }
+    .summary-table .property-cell .badge { margin-left: 4px; font-size: 6pt; padding: 1px 4px; }
+    .summary-table .submarket { font-size: 7pt; color: #64748b; }
+
+    /* Detail Pages */
+    .detail-page { padding: 30px 0; }
+    .detail-header {
+      border-bottom: 2px solid #e2e8f0;
+      padding-bottom: 16px;
+      margin-bottom: 24px;
+    }
+    .detail-header h2 {
+      font-size: 20pt;
+      font-weight: 700;
+      margin: 0 0 4px 0;
+      color: #0f172a;
+    }
+    .detail-header .address {
+      font-size: 11pt;
+      color: #4b5563;
+      margin: 0 0 2px 0;
+    }
+    .detail-header .submarket-line {
+      font-size: 10pt;
+      color: #64748b;
+      margin: 0;
+    }
+    .detail-content {
+      display: flex;
+      gap: 30px;
+    }
+    .specs-column { flex: 1; }
+    .spec-group {
+      margin-bottom: 20px;
+    }
+    .spec-group h4 {
+      font-size: 9pt;
+      font-weight: 600;
+      color: #64748b;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin: 0 0 8px 0;
+      border-bottom: 1px solid #e5e7eb;
+      padding-bottom: 4px;
+    }
+    .spec-group ul {
+      margin: 0;
+      padding: 0 0 0 20px;
+    }
+    .spec-group li {
+      margin-bottom: 4px;
+      font-size: 10pt;
+      color: #374151;
+    }
+    .notes-section {
+      margin-top: 24px;
+      padding: 16px;
+      background: #f8fafc;
+      border-radius: 6px;
+    }
+    .notes-section h4 {
+      font-size: 9pt;
+      font-weight: 600;
+      color: #64748b;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin: 0 0 8px 0;
+    }
+    .notes-section p {
+      margin: 0;
+      font-size: 10pt;
+      color: #374151;
+      line-height: 1.6;
+    }
+    .photo-container {
+      width: 200px;
+      flex-shrink: 0;
+    }
+    .property-photo {
+      width: 100%;
+      height: auto;
+      border-radius: 6px;
+      object-fit: cover;
+    }
+    .detail-footer {
+      margin-top: 30px;
+      padding-top: 20px;
+      border-top: 1px solid #e5e7eb;
+    }
+    .contact-block .contact-label {
+      font-size: 9pt;
+      color: #64748b;
+      margin: 0 0 8px 0;
+    }
+    .contacts {
+      display: flex;
+      gap: 40px;
+    }
+    .contact {
+      font-size: 9pt;
+      color: #374151;
+      line-height: 1.4;
+    }
+    .contact strong { font-size: 10pt; }
   </style>
 </head>
 <body>
-  <!-- Cover Page -->
-  <div class="page" style="padding: 60px 40px; background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%); min-height: 100vh; position: relative;">
-    ${issue.logo_url ? `<img src="${escapeHtml(issue.logo_url)}" alt="Logo" style="height: 50px; margin-bottom: 40px;" />` : ""}
+  <!-- Page 1: Cover -->
+  <div class="page cover-page">
+    ${issue.logo_url ? `<img src="${escapeHtml(issue.logo_url)}" alt="Logo" class="cover-logo" />` : ""}
     
-    <h1 style="font-size: 36px; font-weight: 700; color: #0f172a; margin: 0 0 16px 0; line-height: 1.2;">
-      ${escapeHtml(issue.title)}
-    </h1>
+    <h1 class="cover-title">${escapeHtml(issue.title)}</h1>
+    <p class="cover-subtitle">Distribution & logistics space in ${escapeHtml(issue.market)}</p>
+    <p class="cover-date">Published ${publishDate}</p>
     
-    <p style="font-size: 20px; color: #64748b; margin: 0 0 12px 0;">
-      Curated snapshot of logistics-capable space in ${escapeHtml(issue.market)}
-    </p>
-    
-    <p style="font-size: 14px; color: #94a3b8; margin: 0 0 40px 0;">
-      Published ${publishDate}
-    </p>
-    
-    <div style="background: white; border-radius: 12px; padding: 24px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); max-width: 600px;">
-      <p style="margin: 0; font-size: 16px; color: #374151;">
-        <strong>${issue.total_listings} spaces</strong> above ${issue.size_threshold.toLocaleString()} SF are currently tracked.
-        Earliest availability is <strong>${earliestAvailability}</strong>.
-        ${issue.new_count > 0 ? `New this month: <strong>${issue.new_count}</strong>.` : ""}
+    <div class="cover-stats">
+      <p>
+        <strong>${issue.total_listings} spaces</strong> above ${issue.size_threshold.toLocaleString()} SF tracked.
+        Earliest availability: <strong>${earliestAvailability}</strong>.
+        ${issue.new_count > 0 ? `<strong>${issue.new_count} new</strong> this period.` : ""}
       </p>
     </div>
-    
-    <div style="position: absolute; bottom: 60px; left: 40px; right: 40px;">
-      <div style="border-top: 1px solid #cbd5e1; padding-top: 20px;">
-        <p style="margin: 0 0 8px 0; font-size: 14px; color: #374151;">
-          ${formatContactBlock(issue)}
-        </p>
-        <p style="margin: 0; font-size: 11px; color: #94a3b8;">
-          Information believed reliable but not guaranteed. Rates/availability subject to change.
-        </p>
-      </div>
-    </div>
-  </div>
-  
-  <!-- Market Snapshot Page -->
-  <div class="page" style="padding: 40px;">
-    <h2 style="font-size: 24px; font-weight: 600; margin: 0 0 24px 0; color: #0f172a;">
-      Market Snapshot
-    </h2>
-    
-    <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 40px;">
-      <div style="background: #f1f5f9; border-radius: 12px; padding: 24px; text-align: center;">
-        <p style="font-size: 32px; font-weight: 700; margin: 0; color: #0f172a;">${issue.total_listings}</p>
-        <p style="font-size: 12px; color: #64748b; margin: 8px 0 0 0;">Total Tracked</p>
-      </div>
-      <div style="background: #dcfce7; border-radius: 12px; padding: 24px; text-align: center;">
-        <p style="font-size: 32px; font-weight: 700; margin: 0; color: #16a34a;">${issue.new_count}</p>
-        <p style="font-size: 12px; color: #64748b; margin: 8px 0 0 0;">New</p>
-      </div>
-      <div style="background: #fef3c7; border-radius: 12px; padding: 24px; text-align: center;">
-        <p style="font-size: 32px; font-weight: 700; margin: 0; color: #d97706;">${issue.changed_count}</p>
-        <p style="font-size: 12px; color: #64748b; margin: 8px 0 0 0;">Changed</p>
-      </div>
-      <div style="background: #f1f5f9; border-radius: 12px; padding: 24px; text-align: center;">
-        <p style="font-size: 18px; font-weight: 700; margin: 0; color: #0f172a;">
-          ${minSize.toLocaleString()}–${maxSize.toLocaleString()}
-        </p>
-        <p style="font-size: 12px; color: #64748b; margin: 8px 0 0 0;">Size Range (SF)</p>
-      </div>
-    </div>
-    
-    <div style="background: #f8fafc; border-radius: 12px; padding: 20px;">
-      <p style="margin: 0; font-size: 14px; color: #475569;">
-        <strong>Earliest Availability:</strong> ${earliestAvailability}
+
+    <div class="how-to-use">
+      <h4>How to use this snapshot</h4>
+      <p>
+        Page 2 is a quick-scan table of all properties. Following pages provide detailed specs for each listing.
+        Properties marked <span class="badge badge-new" style="font-size: 7pt;">NEW</span> were added recently.
+        Contact us for tours, additional details, or off-market options.
       </p>
     </div>
-  </div>
-  
-  <!-- Property Cards -->
-  <div class="page" style="padding: 40px;">
-    <h2 style="font-size: 24px; font-weight: 600; margin: 0 0 24px 0; color: #0f172a;">
-      Properties
-    </h2>
-    ${propertyCardsHtml}
-  </div>
-  
-  <!-- CTA Page -->
-  <div class="page" style="padding: 60px 40px; background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%); min-height: 100vh; color: white; position: relative;">
-    <h2 style="font-size: 32px; font-weight: 700; margin: 0 0 24px 0;">
-      Planning 6–24 months out?
-    </h2>
-    
-    <p style="font-size: 18px; line-height: 1.6; max-width: 600px; color: #cbd5e1; margin: 0 0 40px 0;">
-      Most logistics users don't see the best options until timing is tight. If any of these are relevant—or if you want off-market options—reply and we'll shortlist sites quickly.
-    </p>
-    
-    <div style="background: rgba(255,255,255,0.1); border-radius: 12px; padding: 24px; max-width: 500px;">
-      <div style="display: flex; gap: 32px; flex-wrap: wrap;">
-        <div>
-          <p style="margin: 0 0 8px 0; font-weight: 600; font-size: 16px;">
-            ${escapeHtml(issue.primary_contact_name || "Contact Us")}
-          </p>
-          ${issue.primary_contact_email ? `<p style="margin: 0 0 4px 0; color: #94a3b8;">${escapeHtml(issue.primary_contact_email)}</p>` : ""}
-          ${issue.primary_contact_phone ? `<p style="margin: 0; color: #94a3b8;">${escapeHtml(issue.primary_contact_phone)}</p>` : ""}
+
+    <div class="cover-footer">
+      <div class="cover-contacts">
+        <div class="cover-contact">
+          <strong>${escapeHtml(issue.primary_contact_name || "")}</strong>
+          <span>${[issue.primary_contact_email, issue.primary_contact_phone].filter(Boolean).map(escapeHtml).join(" | ")}</span>
         </div>
         ${issue.secondary_contact_name ? `
-        <div>
-          <p style="margin: 0 0 8px 0; font-weight: 600; font-size: 16px;">
-            ${escapeHtml(issue.secondary_contact_name)}
-          </p>
-          ${issue.secondary_contact_email ? `<p style="margin: 0 0 4px 0; color: #94a3b8;">${escapeHtml(issue.secondary_contact_email)}</p>` : ""}
-          ${issue.secondary_contact_phone ? `<p style="margin: 0; color: #94a3b8;">${escapeHtml(issue.secondary_contact_phone)}</p>` : ""}
-        </div>
+          <div class="cover-contact">
+            <strong>${escapeHtml(issue.secondary_contact_name)}</strong>
+            <span>${[issue.secondary_contact_email, issue.secondary_contact_phone].filter(Boolean).map(escapeHtml).join(" | ")}</span>
+          </div>
         ` : ""}
-    </div>
-    
-    <div style="position: absolute; bottom: 60px; left: 40px; right: 40px;">
-      <p style="margin: 0; font-size: 11px; color: #64748b;">
-        ${escapeHtml(issue.brokerage_name || "")} | Information believed reliable but not guaranteed. Rates/availability subject to change.
+      </div>
+      <p class="cover-disclaimer">
+        ${escapeHtml(issue.brokerage_name || "")}${issue.brokerage_name ? " | " : ""}Information believed reliable but not guaranteed. Rates and availability subject to change.
       </p>
     </div>
   </div>
+
+  <!-- Page 2: Summary Table -->
+  <div class="page summary-page">
+    <h2 class="summary-title">Availability Summary</h2>
+    <table class="summary-table">
+      <thead>
+        <tr>
+          <th>Property / Submarket</th>
+          <th class="num">Size (SF)</th>
+          <th class="num">Clear</th>
+          <th class="num">Dock</th>
+          <th class="num">Drive-In</th>
+          <th>Trailer</th>
+          <th>Cross-Dock</th>
+          <th>Yard</th>
+          <th>Availability</th>
+          <th>Rate</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${tableRowsHtml}
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Detail Pages (1 per property) -->
+  ${detailPagesHtml}
 </body>
 </html>
   `;
