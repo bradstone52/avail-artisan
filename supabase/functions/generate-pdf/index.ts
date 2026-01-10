@@ -73,11 +73,9 @@ serve(async (req) => {
 
     const body = await req.json().catch(() => ({}));
 
-    // Support both issueId (camelCase) and issue_id (snake_case)
     const issueId: string | undefined = body.issueId || body.issue_id;
     if (!issueId) throw new Error("Missing issueId");
 
-    // New option: includeDetails defaults to false (2-page PDF)
     const includeDetails: boolean = body.includeDetails ?? body.include_details ?? false;
 
     const issueListingsPayload: IssueListingPayload[] | undefined = body.issue_listings;
@@ -87,8 +85,6 @@ serve(async (req) => {
 
     const safeIssue = issue as Issue;
 
-    // If the client passed issue_listings, use that ordering + executive notes
-    // Otherwise, fall back to the user's include_in_issue list (legacy behavior).
     const noteByListingId = new Map<string, string>();
     const orderedListingIds: string[] | null = Array.isArray(issueListingsPayload) && issueListingsPayload.length > 0
       ? issueListingsPayload
@@ -155,7 +151,6 @@ serve(async (req) => {
     const html = buildPdfHtml(safeIssue, safeListings, { includeDetails });
     const pdfBytes = await convertHtmlToPdf(html);
 
-    // Store PDF
     const generatedAtIso = new Date().toISOString();
     const ymd = generatedAtIso.slice(0, 10);
     const safeName = (safeIssue.title || "distribution_snapshot")
@@ -216,20 +211,20 @@ serve(async (req) => {
   }
 });
 
-// ============ PDF HTML TEMPLATE ============
+// ============ PDF HTML TEMPLATE (Clean Reset) ============
 
 function buildPdfHtml(issue: any, listings: any[], opts?: { includeDetails?: boolean }) {
   const includeDetails = opts?.includeDetails ?? false;
 
-  const published = new Date().toLocaleDateString("en-CA", {
+  const published = new Date().toLocaleDateString("en-US", {
     year: "numeric",
     month: "long",
     day: "numeric",
   });
 
-  const title = issue.title || `Distribution Availability Snapshot`;
+  const title = issue.title || "Large-Format Distribution Availability";
   const market = issue.market || "Calgary Region";
-  const sizeThreshold = issue.size_threshold ? Number(issue.size_threshold).toLocaleString() : "—";
+  const sizeThreshold = issue.size_threshold ? Number(issue.size_threshold).toLocaleString() : "100,000";
 
   const primary = {
     name: issue.primary_contact_name || "Brad Stone",
@@ -243,40 +238,38 @@ function buildPdfHtml(issue: any, listings: any[], opts?: { includeDetails?: boo
     phone: issue.secondary_contact_phone || "",
   };
 
-  // Stats (simple + credible)
   const total = listings.length;
   const earliest = computeEarliestAvailability(listings);
   const newCount = Number(issue.new_count || 0);
 
-  // Keep the summary table scannable: sort biggest first
+  // Sort by size descending
   const sorted = [...listings].sort((a, b) => (Number(b.size_sf || 0) - Number(a.size_sf || 0)));
 
+  // Build chart data for size distribution
+  const sizeRanges = computeSizeDistribution(sorted);
+  const availabilityTimeline = computeAvailabilityTimeline(sorted);
+
   const summaryRows = sorted.map((l) => {
-    const property = escapeHtml(l.display_address || l.address || "");
-    const submarket = escapeHtml(l.submarket || "");
+    const property = esc(l.display_address || l.address || "—");
+    const submarket = esc(l.submarket || "");
     const size = fmtNum(l.size_sf);
     const clear = l.clear_height_ft ? `${l.clear_height_ft}'` : "—";
-    const dock = l.dock_doors ?? "—";
-    const drive = l.drive_in_doors ?? "—";
-    const trailer = normalizeYesNoUnknown(l.trailer_parking);
-    const avail = escapeHtml(l.availability_date || "TBD");
-    const rate = escapeHtml(l.asking_rate_psf || "Market");
+    const dock = l.dock_doors != null ? String(l.dock_doors) : "—";
+    const drive = l.drive_in_doors != null ? String(l.drive_in_doors) : "—";
+    const trailer = yesNo(l.trailer_parking);
+    const avail = esc(l.availability_date || "TBD");
+    const rate = esc(l.asking_rate_psf || "Market");
 
-    return `
-      <tr>
-        <td class="col-prop">
-          <div class="prop-name">${property}</div>
-          <div class="prop-sub">${submarket}</div>
-        </td>
-        <td class="col-num">${size}</td>
-        <td class="col-num">${clear}</td>
-        <td class="col-num">${dock}</td>
-        <td class="col-num">${drive}</td>
-        <td class="col-mid">${trailer}</td>
-        <td class="col-mid">${avail}</td>
-        <td class="col-mid">${rate}</td>
-      </tr>
-    `;
+    return `<tr>
+      <td class="col-prop"><span class="prop-name">${property}</span><span class="prop-sub">${submarket}</span></td>
+      <td class="col-num">${size}</td>
+      <td class="col-num">${clear}</td>
+      <td class="col-num">${dock}</td>
+      <td class="col-num">${drive}</td>
+      <td class="col-mid">${trailer}</td>
+      <td class="col-mid">${avail}</td>
+      <td class="col-mid">${rate}</td>
+    </tr>`;
   }).join("");
 
   const detailPages = includeDetails
@@ -287,268 +280,507 @@ function buildPdfHtml(issue: any, listings: any[], opts?: { includeDetails?: boo
 <html lang="en">
 <head>
 <meta charset="UTF-8" />
-<title>${escapeHtml(title)}</title>
+<title>${esc(title)}</title>
 <style>
-  @page { size: A4; margin: 18mm; }
-  @page {
-    @bottom-right {
-      content: "Page " counter(page) " of " counter(pages);
-      font-size: 9pt;
-      color: #64748b;
-    }
-  }
-
-  * { box-sizing: border-box; }
-  body {
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
-    color: #0f172a;
-    margin: 0;
-    padding: 0;
-    line-height: 1.45;
-  }
-
-  /* Page wrapper */
-  .page { page-break-after: always; }
-  .page:last-child { page-break-after: auto; }
-
-  /* Brand / typography */
-  .muted { color: #64748b; }
-  .small { font-size: 9.5pt; }
-  .tiny { font-size: 8.5pt; }
-
-  .h1 { font-size: 28pt; font-weight: 900; letter-spacing: -0.02em; margin: 0; }
-  .h2 { font-size: 14pt; font-weight: 800; margin: 0; }
-  .h3 { font-size: 10pt; font-weight: 800; margin: 0; letter-spacing: 0.04em; text-transform: uppercase; color: #334155; }
-
-  /* Cards */
-  .card {
-    background: #ffffff;
-    border: 1px solid #e2e8f0;
-    border-radius: 12px;
-    padding: 14px 16px;
-  }
-  .card.soft {
-    background: #f8fafc;
-    border-color: #e2e8f0;
-  }
-
-  /* COVER */
-  .cover {
-    min-height: 100%;
-    display: flex;
-    flex-direction: column;
-    gap: 14px;
-  }
-  .cover-top {
-    display: flex;
-    justify-content: space-between;
-    align-items: flex-start;
-    gap: 16px;
-  }
-  .logo {
-    height: 34px;
-    width: auto;
-  }
-  .cover-meta {
-    text-align: right;
-  }
-  .pill {
-    display: inline-block;
-    border: 1px solid #e2e8f0;
-    background: #f8fafc;
-    border-radius: 999px;
-    padding: 6px 10px;
-    font-size: 9pt;
-    color: #334155;
-    font-weight: 700;
-  }
-  .cover-stats {
-    display: grid;
-    grid-template-columns: 1fr 1fr 1fr;
-    gap: 10px;
-  }
-  .stat {
-    padding: 12px 14px;
-    border-radius: 12px;
-    border: 1px solid #e2e8f0;
-    background: #ffffff;
-  }
-  .stat .k { font-size: 8.5pt; color: #64748b; text-transform: uppercase; letter-spacing: 0.06em; }
-  .stat .v { font-size: 16pt; font-weight: 900; margin-top: 2px; }
-
-  .cover-footer {
-    margin-top: auto;
-    border-top: 1px solid #e2e8f0;
-    padding-top: 12px;
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 10px 20px;
-  }
-  .contact b { display:block; font-size: 10pt; margin-bottom: 2px; }
-  .contact span { font-size: 9pt; color: #334155; }
-
-  /* SUMMARY TABLE */
-  .summary-head {
-    display: flex;
-    justify-content: space-between;
-    align-items: flex-end;
-    gap: 16px;
-    margin-bottom: 10px;
-  }
-
-  table {
-    width: 100%;
-    border-collapse: collapse;
-    font-size: 9pt;
-  }
-  thead th {
-    text-align: left;
-    background: #f1f5f9;
-    padding: 10px 8px;
-    border-bottom: 2px solid #e2e8f0;
-    color: #334155;
-    font-weight: 800;
-    white-space: nowrap;
-  }
-  tbody td {
-    padding: 10px 8px;
-    border-bottom: 1px solid #e5e7eb;
-    vertical-align: top;
-  }
-  tbody tr:nth-child(even) { background: #fafafa; }
-
-  .col-prop { width: 34%; }
-  .prop-name { font-weight: 900; font-size: 9.5pt; }
-  .prop-sub { font-size: 8pt; color: #64748b; margin-top: 2px; }
-
-  .col-num { text-align: right; width: 9%; }
-  .col-mid { width: 11%; }
-
-  .note-line {
-    margin-top: 10px;
-    font-size: 8.5pt;
+@page {
+  size: A4;
+  margin: 16mm 18mm;
+  @bottom-right {
+    content: "Page " counter(page) " of " counter(pages);
+    font-size: 8pt;
     color: #64748b;
   }
+}
 
-  /* DETAIL PAGES */
-  .detail-header {
-    display: flex;
-    justify-content: space-between;
-    gap: 14px;
-    align-items: flex-start;
-  }
-  .detail-title { font-size: 18pt; font-weight: 900; margin: 0; letter-spacing: -0.01em; }
-  .detail-sub { margin-top: 4px; font-size: 10pt; color: #64748b; }
+* { box-sizing: border-box; margin: 0; padding: 0; }
 
-  .grid {
-    margin-top: 12px;
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 10px;
-  }
-  .kv { padding: 12px 14px; }
-  .kv .k { font-size: 8.5pt; color: #64748b; text-transform: uppercase; letter-spacing: 0.06em; }
-  .kv .v { font-size: 12pt; font-weight: 900; margin-top: 2px; }
+body {
+  font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  font-size: 10pt;
+  line-height: 1.5;
+  color: #1e293b;
+  background: #ffffff;
+}
 
-  .detail-notes {
-    margin-top: 12px;
-  }
-  .clamp {
-    display: -webkit-box;
-    -webkit-line-clamp: 3;
-    -webkit-box-orient: vertical;
-    overflow: hidden;
-  }
+.page {
+  page-break-after: always;
+  min-height: 100%;
+}
+.page:last-child { page-break-after: auto; }
+
+/* Typography */
+.text-muted { color: #64748b; }
+.text-xs { font-size: 8pt; }
+.text-sm { font-size: 9pt; }
+.font-semibold { font-weight: 600; }
+.font-bold { font-weight: 700; }
+.uppercase { text-transform: uppercase; letter-spacing: 0.05em; }
+
+/* Cover Page */
+.cover {
+  display: flex;
+  flex-direction: column;
+  min-height: 100%;
+  padding: 0;
+}
+
+.cover-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 32px;
+}
+
+.logo {
+  height: 28px;
+  width: auto;
+}
+
+.brand-text {
+  font-size: 11pt;
+  font-weight: 600;
+  color: #1e293b;
+}
+
+.cover-date {
+  font-size: 9pt;
+  color: #64748b;
+}
+
+.cover-title {
+  font-size: 26pt;
+  font-weight: 700;
+  color: #0f172a;
+  margin-bottom: 8px;
+  letter-spacing: -0.02em;
+}
+
+.cover-subtitle {
+  font-size: 14pt;
+  color: #475569;
+  margin-bottom: 40px;
+}
+
+.stats-row {
+  display: flex;
+  gap: 16px;
+  margin-bottom: 32px;
+}
+
+.stat-box {
+  flex: 1;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  padding: 16px 20px;
+}
+
+.stat-label {
+  font-size: 8pt;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 4px;
+}
+
+.stat-value {
+  font-size: 20pt;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.how-to-use {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  padding: 16px 20px;
+  margin-bottom: 32px;
+}
+
+.how-to-use-title {
+  font-size: 9pt;
+  font-weight: 600;
+  color: #1e293b;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 8px;
+}
+
+.how-to-use p {
+  font-size: 9pt;
+  color: #475569;
+  line-height: 1.6;
+}
+
+.cover-footer {
+  margin-top: auto;
+  border-top: 1px solid #e2e8f0;
+  padding-top: 20px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+}
+
+.contact-block .name {
+  font-size: 10pt;
+  font-weight: 600;
+  color: #1e293b;
+  margin-bottom: 2px;
+}
+
+.contact-block .details {
+  font-size: 9pt;
+  color: #64748b;
+}
+
+/* Summary Table Page */
+.summary-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  margin-bottom: 16px;
+}
+
+.summary-title {
+  font-size: 16pt;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.summary-meta {
+  font-size: 9pt;
+  color: #64748b;
+}
+
+.summary-badge {
+  background: #f1f5f9;
+  border: 1px solid #e2e8f0;
+  border-radius: 4px;
+  padding: 8px 12px;
+  text-align: right;
+}
+
+.summary-badge .market {
+  font-size: 10pt;
+  font-weight: 600;
+  color: #1e293b;
+}
+
+.summary-badge .threshold {
+  font-size: 8pt;
+  color: #64748b;
+}
+
+/* Charts Section */
+.charts-row {
+  display: flex;
+  gap: 16px;
+  margin-bottom: 20px;
+}
+
+.chart-box {
+  flex: 1;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  padding: 12px 16px;
+}
+
+.chart-title {
+  font-size: 8pt;
+  font-weight: 600;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 10px;
+}
+
+.chart-bars {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.chart-bar-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.chart-bar-label {
+  font-size: 8pt;
+  color: #475569;
+  width: 70px;
+  flex-shrink: 0;
+}
+
+.chart-bar-track {
+  flex: 1;
+  height: 14px;
+  background: #e2e8f0;
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.chart-bar-fill {
+  height: 100%;
+  background: #3b82f6;
+  border-radius: 3px;
+}
+
+.chart-bar-value {
+  font-size: 8pt;
+  font-weight: 600;
+  color: #1e293b;
+  width: 24px;
+  text-align: right;
+}
+
+/* Table Styles */
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 9pt;
+}
+
+thead th {
+  text-align: left;
+  background: #f1f5f9;
+  padding: 10px 8px;
+  border-bottom: 2px solid #e2e8f0;
+  color: #475569;
+  font-weight: 600;
+  font-size: 8pt;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+thead th.col-num,
+tbody td.col-num {
+  text-align: right;
+}
+
+tbody td {
+  padding: 10px 8px;
+  border-bottom: 1px solid #f1f5f9;
+  vertical-align: top;
+}
+
+tbody tr:nth-child(even) {
+  background: #fafafa;
+}
+
+.col-prop {
+  width: 32%;
+}
+
+.prop-name {
+  display: block;
+  font-weight: 600;
+  color: #1e293b;
+}
+
+.prop-sub {
+  display: block;
+  font-size: 8pt;
+  color: #64748b;
+  margin-top: 2px;
+}
+
+.col-num { width: 9%; }
+.col-mid { width: 10%; }
+
+.table-note {
+  margin-top: 16px;
+  font-size: 8pt;
+  color: #64748b;
+}
+
+/* Detail Pages */
+.detail-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 20px;
+}
+
+.detail-title {
+  font-size: 18pt;
+  font-weight: 700;
+  color: #0f172a;
+  margin-bottom: 4px;
+}
+
+.detail-location {
+  font-size: 10pt;
+  color: #64748b;
+}
+
+.detail-id {
+  font-size: 8pt;
+  color: #94a3b8;
+  margin-top: 4px;
+}
+
+.detail-photo {
+  width: 120px;
+  height: 80px;
+  object-fit: cover;
+  border-radius: 6px;
+  border: 1px solid #e2e8f0;
+}
+
+.specs-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.spec-card {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  padding: 12px 16px;
+}
+
+.spec-label {
+  font-size: 8pt;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 2px;
+}
+
+.spec-value {
+  font-size: 14pt;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.notes-box {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  padding: 14px 18px;
+  margin-bottom: 20px;
+}
+
+.notes-title {
+  font-size: 9pt;
+  font-weight: 600;
+  color: #1e293b;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 6px;
+}
+
+.notes-content {
+  font-size: 9pt;
+  color: #475569;
+  line-height: 1.6;
+}
+
+.detail-contact {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  padding: 14px 18px;
+}
+
+.detail-contact-title {
+  font-size: 9pt;
+  font-weight: 600;
+  color: #1e293b;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 8px;
+}
+
+.detail-contact-row {
+  font-size: 9pt;
+  color: #475569;
+  margin-bottom: 4px;
+}
 </style>
 </head>
 <body>
 
-<!-- COVER PAGE -->
+<!-- PAGE 1: COVER -->
 <div class="page cover">
-
-  <div class="cover-top">
+  <div class="cover-header">
     <div>
-      ${issue.logo_url ? `<img src="${escapeHtml(issue.logo_url)}" class="logo" alt="Logo" />` : `<div class="h3">Availability Snapshot</div>`}
+      ${issue.logo_url 
+        ? `<img src="${esc(issue.logo_url)}" class="logo" alt="ClearView Commercial Realty" />`
+        : `<span class="brand-text">ClearView Commercial Realty Inc.</span>`
+      }
     </div>
+    <div class="cover-date">${esc(published)}</div>
+  </div>
 
-    <div class="cover-meta">
-      <div class="pill">${escapeHtml(market)}</div>
-      <div class="small muted" style="margin-top:6px;">Published ${escapeHtml(published)}</div>
+  <h1 class="cover-title">${esc(title)}</h1>
+  <p class="cover-subtitle">${esc(market)} · ${esc(sizeThreshold)}+ SF</p>
+
+  <div class="stats-row">
+    <div class="stat-box">
+      <div class="stat-label">Total Spaces Tracked</div>
+      <div class="stat-value">${total}</div>
+    </div>
+    <div class="stat-box">
+      <div class="stat-label">Earliest Availability</div>
+      <div class="stat-value">${esc(earliest)}</div>
+    </div>
+    <div class="stat-box">
+      <div class="stat-label">New This Period</div>
+      <div class="stat-value">${newCount}</div>
     </div>
   </div>
 
-  <div>
-    <h1 class="h1">${escapeHtml(title)}</h1>
-    <p class="small muted" style="margin-top:6px;">
-      Curated distribution / logistics space above ${escapeHtml(sizeThreshold)} SF.
-      Built for quick scanning — details available on request.
-    </p>
-  </div>
-
-  <div class="cover-stats">
-    <div class="stat">
-      <div class="k">Tracked</div>
-      <div class="v">${total}</div>
-    </div>
-    <div class="stat">
-      <div class="k">Earliest Availability</div>
-      <div class="v">${escapeHtml(earliest)}</div>
-    </div>
-    <div class="stat">
-      <div class="k">New This Period</div>
-      <div class="v">${newCount || 0}</div>
-    </div>
-  </div>
-
-  <div class="card soft">
-    <div class="h3">How to use this</div>
-    <p class="small" style="margin-top:6px;">
-      The next page is the full scan list. If any space is close, reply with the ListingID and we'll confirm timing, trailer parking, and tour access.
+  <div class="how-to-use">
+    <div class="how-to-use-title">How to Use This Report</div>
+    <p>
+      Review the summary table on the next page to identify properties that meet your criteria.
+      Reply with the property address or listing ID for tours, timing confirmation, or additional details.
     </p>
   </div>
 
   <div class="cover-footer">
-    <div class="contact">
-      <b>${escapeHtml(primary.name)}</b>
-      <span>${escapeHtml(primary.email)}${primary.phone ? ` | ${escapeHtml(primary.phone)}` : ""}</span>
+    <div class="contact-block">
+      <div class="name">${esc(primary.name)}</div>
+      <div class="details">${esc(primary.email)}${primary.phone ? ` · ${esc(primary.phone)}` : ""}</div>
     </div>
-    <div class="contact">
-      <b>${escapeHtml(secondary.name)}</b>
-      <span>${escapeHtml(secondary.email)}${secondary.phone ? ` | ${escapeHtml(secondary.phone)}` : ""}</span>
-    </div>
-
-    <div class="tiny muted" style="grid-column: 1 / -1; margin-top:8px;">
-      Information believed reliable but not guaranteed. Rates/availability subject to change.
+    <div class="contact-block">
+      <div class="name">${esc(secondary.name)}</div>
+      <div class="details">${esc(secondary.email)}${secondary.phone ? ` · ${esc(secondary.phone)}` : ""}</div>
     </div>
   </div>
 </div>
 
-<!-- SUMMARY TABLE PAGE -->
+<!-- PAGE 2: SUMMARY TABLE -->
 <div class="page">
-  <div class="summary-head">
+  <div class="summary-header">
     <div>
-      <h2 class="h2">Availability Summary</h2>
-      <p class="tiny muted" style="margin-top:4px;">
-        Trailer parking shown only where confirmed. "Market" = asking rate not publicly stated.
-      </p>
+      <h2 class="summary-title">Availability Summary</h2>
+      <p class="summary-meta">Sorted by size · Trailer shown only where confirmed · "Market" = rate not stated</p>
     </div>
-
-    <div class="pill">
-      ${escapeHtml(market)}<br />
-      <span class="tiny muted">Threshold: ${escapeHtml(sizeThreshold)} SF</span>
+    <div class="summary-badge">
+      <div class="market">${esc(market)}</div>
+      <div class="threshold">${esc(sizeThreshold)}+ SF</div>
     </div>
   </div>
+
+  ${renderChartsHtml(sizeRanges, availabilityTimeline)}
 
   <table>
     <thead>
       <tr>
         <th class="col-prop">Property / Submarket</th>
         <th class="col-num">Size (SF)</th>
-        <th class="col-num">Clear</th>
-        <th class="col-num">Dock</th>
-        <th class="col-num">Drive</th>
+        <th class="col-num">Clear Height</th>
+        <th class="col-num">Dock Doors</th>
+        <th class="col-num">Drive-In</th>
         <th class="col-mid">Trailer</th>
-        <th class="col-mid">Avail.</th>
+        <th class="col-mid">Availability</th>
         <th class="col-mid">Rate</th>
       </tr>
     </thead>
@@ -557,8 +789,8 @@ function buildPdfHtml(issue: any, listings: any[], opts?: { includeDetails?: boo
     </tbody>
   </table>
 
-  <p class="note-line">
-    Tip: Reply with ListingIDs to shortlist. If timing is 6–24 months, ask early — off-market options may exist.
+  <p class="table-note">
+    Information believed reliable but not guaranteed. Rates and availability subject to change.
   </p>
 </div>
 
@@ -568,65 +800,201 @@ ${detailPages}
 </html>`;
 }
 
+function renderChartsHtml(sizeRanges: Array<{label: string; count: number; pct: number}>, timeline: Array<{label: string; count: number; pct: number}>) {
+  if (sizeRanges.length === 0 && timeline.length === 0) return "";
+
+  const sizeBarHtml = sizeRanges.map(r => `
+    <div class="chart-bar-row">
+      <span class="chart-bar-label">${esc(r.label)}</span>
+      <div class="chart-bar-track"><div class="chart-bar-fill" style="width: ${r.pct}%;"></div></div>
+      <span class="chart-bar-value">${r.count}</span>
+    </div>
+  `).join("");
+
+  const timelineBarHtml = timeline.map(t => `
+    <div class="chart-bar-row">
+      <span class="chart-bar-label">${esc(t.label)}</span>
+      <div class="chart-bar-track"><div class="chart-bar-fill" style="width: ${t.pct}%;"></div></div>
+      <span class="chart-bar-value">${t.count}</span>
+    </div>
+  `).join("");
+
+  return `
+  <div class="charts-row">
+    <div class="chart-box">
+      <div class="chart-title">By Size Range</div>
+      <div class="chart-bars">${sizeBarHtml}</div>
+    </div>
+    <div class="chart-box">
+      <div class="chart-title">By Availability Timeline</div>
+      <div class="chart-bars">${timelineBarHtml}</div>
+    </div>
+  </div>`;
+}
+
 function renderDetailPage(l: any, primary: any, secondary: any) {
-  const title = escapeHtml(l.display_address || l.address || "");
-  const loc = escapeHtml([l.city, l.submarket].filter(Boolean).join(" • "));
+  const title = esc(l.display_address || l.address || "Property");
+  const loc = esc([l.city, l.submarket].filter(Boolean).join(" · "));
   const size = fmtNum(l.size_sf);
   const clear = l.clear_height_ft ? `${l.clear_height_ft}'` : "—";
-  const dock = l.dock_doors ?? "—";
-  const drive = l.drive_in_doors ?? "—";
-  const trailer = normalizeYesNoUnknown(l.trailer_parking);
-  const avail = escapeHtml(l.availability_date || "TBD");
-  const rate = escapeHtml(l.asking_rate_psf || "Market");
+  const dock = l.dock_doors != null ? String(l.dock_doors) : "—";
+  const drive = l.drive_in_doors != null ? String(l.drive_in_doors) : "—";
+  const trailer = yesNo(l.trailer_parking);
+  const avail = esc(l.availability_date || "TBD");
+  const rate = esc(l.asking_rate_psf || "Market");
   const notes = (l.notes_public || "").trim();
 
   return `
 <div class="page">
-
   <div class="detail-header">
     <div>
       <h2 class="detail-title">${title}</h2>
-      <div class="detail-sub">${loc}</div>
-      <div class="tiny muted">ListingID: ${escapeHtml(l.listing_id || "—")}</div>
+      <p class="detail-location">${loc}</p>
+      ${l.listing_id ? `<p class="detail-id">ID: ${esc(l.listing_id)}</p>` : ""}
     </div>
-    ${l.photo_url ? `<img src="${escapeHtml(l.photo_url)}" style="width:140px; height:auto; border-radius:8px; object-fit:cover;" alt="Property" />` : ""}
+    ${l.photo_url ? `<img src="${esc(l.photo_url)}" class="detail-photo" alt="Property" />` : ""}
   </div>
 
-  <div class="grid">
-    <div class="card kv"><div class="k">Total Area</div><div class="v">${size} SF</div></div>
-    <div class="card kv"><div class="k">Clear Height</div><div class="v">${clear}</div></div>
-    <div class="card kv"><div class="k">Dock Doors</div><div class="v">${dock}</div></div>
-    <div class="card kv"><div class="k">Drive-In Doors</div><div class="v">${drive}</div></div>
-    <div class="card kv"><div class="k">Trailer Parking</div><div class="v">${trailer}</div></div>
-    <div class="card kv"><div class="k">Availability</div><div class="v">${avail}</div></div>
-    <div class="card kv"><div class="k">Asking Rate</div><div class="v">${rate}</div></div>
-    <div class="card kv"><div class="k">Submarket</div><div class="v">${escapeHtml(l.submarket || "—")}</div></div>
+  <div class="specs-grid">
+    <div class="spec-card">
+      <div class="spec-label">Total Area</div>
+      <div class="spec-value">${size} SF</div>
+    </div>
+    <div class="spec-card">
+      <div class="spec-label">Clear Height</div>
+      <div class="spec-value">${clear}</div>
+    </div>
+    <div class="spec-card">
+      <div class="spec-label">Dock Doors</div>
+      <div class="spec-value">${dock}</div>
+    </div>
+    <div class="spec-card">
+      <div class="spec-label">Drive-In Doors</div>
+      <div class="spec-value">${drive}</div>
+    </div>
+    <div class="spec-card">
+      <div class="spec-label">Trailer Parking</div>
+      <div class="spec-value">${trailer}</div>
+    </div>
+    <div class="spec-card">
+      <div class="spec-label">Availability</div>
+      <div class="spec-value">${avail}</div>
+    </div>
+    <div class="spec-card">
+      <div class="spec-label">Asking Rate</div>
+      <div class="spec-value">${rate}</div>
+    </div>
+    <div class="spec-card">
+      <div class="spec-label">Submarket</div>
+      <div class="spec-value">${esc(l.submarket || "—")}</div>
+    </div>
   </div>
+
   ${notes ? `
-  <div class="card soft detail-notes">
-    <div class="h3">Notes</div>
-    <p class="small clamp" style="margin-top:6px;">${escapeHtml(notes)}</p>
-  </div>` : ""}
+  <div class="notes-box">
+    <div class="notes-title">Notes</div>
+    <p class="notes-content">${esc(notes)}</p>
+  </div>
+  ` : ""}
 
-  <div class="card soft" style="margin-top:12px;">
-    <div class="h3">Tours / Details</div>
-    <p class="small" style="margin-top:6px;">
-      ${escapeHtml(primary.name)} — ${escapeHtml(primary.email)}${primary.phone ? ` | ${escapeHtml(primary.phone)}` : ""}<br/>
-      ${escapeHtml(secondary.name)} — ${escapeHtml(secondary.email)}${secondary.phone ? ` | ${escapeHtml(secondary.phone)}` : ""}
-    </p>
+  <div class="detail-contact">
+    <div class="detail-contact-title">Tours / Details</div>
+    <p class="detail-contact-row">${esc(primary.name)} — ${esc(primary.email)}${primary.phone ? ` · ${esc(primary.phone)}` : ""}</p>
+    <p class="detail-contact-row">${esc(secondary.name)} — ${esc(secondary.email)}${secondary.phone ? ` · ${esc(secondary.phone)}` : ""}</p>
   </div>
 </div>`;
 }
 
+// ============ CHART HELPERS ============
+
+function computeSizeDistribution(listings: any[]): Array<{label: string; count: number; pct: number}> {
+  const ranges = [
+    { min: 100000, max: 199999, label: "100–200K SF" },
+    { min: 200000, max: 299999, label: "200–300K SF" },
+    { min: 300000, max: 499999, label: "300–500K SF" },
+    { min: 500000, max: Infinity, label: "500K+ SF" },
+  ];
+
+  const counts = ranges.map(r => ({
+    label: r.label,
+    count: listings.filter(l => {
+      const sf = Number(l.size_sf) || 0;
+      return sf >= r.min && sf <= r.max;
+    }).length,
+  }));
+
+  const maxCount = Math.max(...counts.map(c => c.count), 1);
+  return counts.filter(c => c.count > 0).map(c => ({
+    ...c,
+    pct: Math.round((c.count / maxCount) * 100),
+  }));
+}
+
+function computeAvailabilityTimeline(listings: any[]): Array<{label: string; count: number; pct: number}> {
+  const now = new Date();
+  const sixMonths = new Date(now);
+  sixMonths.setMonth(sixMonths.getMonth() + 6);
+  const twelveMonths = new Date(now);
+  twelveMonths.setMonth(twelveMonths.getMonth() + 12);
+  const twentyFourMonths = new Date(now);
+  twentyFourMonths.setMonth(twentyFourMonths.getMonth() + 24);
+
+  let immediate = 0;
+  let sixToTwelve = 0;
+  let twelvePlus = 0;
+  let tbd = 0;
+
+  for (const l of listings) {
+    const av = (l.availability_date || "").toLowerCase().trim();
+    if (!av || av === "tbd" || av === "unknown") {
+      tbd++;
+      continue;
+    }
+    if (av.includes("immediate") || av.includes("now")) {
+      immediate++;
+      continue;
+    }
+    const parsed = Date.parse(l.availability_date);
+    if (!Number.isNaN(parsed)) {
+      const d = new Date(parsed);
+      if (d <= sixMonths) {
+        immediate++;
+      } else if (d <= twelveMonths) {
+        sixToTwelve++;
+      } else {
+        twelvePlus++;
+      }
+    } else {
+      tbd++;
+    }
+  }
+
+  const results = [
+    { label: "Immediate", count: immediate },
+    { label: "6–12 Months", count: sixToTwelve },
+    { label: "12+ Months", count: twelvePlus },
+  ];
+
+  if (tbd > 0) {
+    results.push({ label: "TBD", count: tbd });
+  }
+
+  const maxCount = Math.max(...results.map(r => r.count), 1);
+  return results.filter(r => r.count > 0).map(r => ({
+    ...r,
+    pct: Math.round((r.count / maxCount) * 100),
+  }));
+}
+
 // ============ HELPER FUNCTIONS ============
 
-function fmtNum(v: any) {
+function fmtNum(v: any): string {
   const n = Number(v);
   if (!Number.isFinite(n) || n <= 0) return "—";
   return Math.round(n).toLocaleString();
 }
 
-function escapeHtml(s: any) {
+function esc(s: any): string {
   return String(s ?? "")
     .replace(/&/g, "&amp;")
     .replace(/</g, "&lt;")
@@ -634,37 +1002,32 @@ function escapeHtml(s: any) {
     .replace(/"/g, "&quot;");
 }
 
-function normalizeYesNoUnknown(v: any): string {
+function yesNo(v: any): string {
   const s = String(v ?? "").trim().toLowerCase();
   if (!s) return "—";
   if (["yes", "y", "true", "1"].includes(s)) return "Yes";
   if (["no", "n", "false", "0"].includes(s)) return "No";
   if (["unknown", "tbd"].includes(s)) return "—";
-  // if someone types a custom note like "Limited"
-  return escapeHtml(v);
+  return esc(v);
 }
 
-// Robust-ish earliest availability: puts "Immediate" first, "TBD" last.
 function computeEarliestAvailability(listings: any[]): string {
   const rank = (v: string) => {
     const s = (v || "").toLowerCase().trim();
     if (!s || s === "tbd" || s === "unknown") return 999999;
-    if (s.includes("immediate")) return 0;
-    // Try parse ISO date
+    if (s.includes("immediate") || s.includes("now")) return 0;
     const t = Date.parse(v);
     if (!Number.isNaN(t)) return t;
-    // Quarters like "Q4 2025"
     const m = s.match(/q([1-4])\s*(20\d{2})/i);
     if (m) {
       const q = Number(m[1]);
       const y = Number(m[2]);
-      const month = (q - 1) * 3; // 0,3,6,9
-      return Date.UTC(y, month, 1);
+      return Date.UTC(y, (q - 1) * 3, 1);
     }
-    return 900000; // unknown format
+    return 900000;
   };
 
-  let best = "";
+  let best = "TBD";
   let bestRank = 9999999;
 
   for (const l of listings) {
@@ -675,7 +1038,7 @@ function computeEarliestAvailability(listings: any[]): string {
       best = v;
     }
   }
-  return best || "TBD";
+  return best;
 }
 
 // ============ PDF CONVERSION ============
