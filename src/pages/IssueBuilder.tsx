@@ -41,13 +41,12 @@ export default function IssueBuilder() {
     brokerageName: "ClearView Commercial Realty Inc.",
     logoUrl:
       "https://static.wixstatic.com/media/61f242_c5db9313e4e7406b98b65af86d332a61~mv2.png/v1/fill/w_734,h_128,al_c,q_85,usm_0.66_1.00_0.01,enc_avif,quality_auto/Clearview_CRI_Logo_HORZ_FC_KO_CMYK_edited.png",
-    primary_contact_name: "Brad Stone",
-    primary_contact_email: "brad@cvpartners.ca",
-    primary_contact_phone: "(403) 613-2898",
-
-    secondary_contact_name: "Doug Johannson",
-    secondary_contact_email: "doug@cvpartners.ca",
-    secondary_contact_phone: "(403) 470-8875", // or his phone
+    primaryContactName: "Brad Stone",
+    primaryContactEmail: "brad@cvpartners.ca",
+    primaryContactPhone: "(403) 613-2898",
+    secondaryContactName: "Doug Johannson",
+    secondaryContactEmail: "doug@cvpartners.ca",
+    secondaryContactPhone: "(403) 470-8875",
   });
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [executiveNotes, setExecutiveNotes] = useState<Record<string, string>>({});
