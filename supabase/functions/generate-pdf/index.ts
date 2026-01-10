@@ -77,6 +77,9 @@ serve(async (req) => {
     const issueId: string | undefined = body.issueId || body.issue_id;
     if (!issueId) throw new Error("Missing issueId");
 
+    // New option: includeDetails defaults to false (2-page PDF)
+    const includeDetails: boolean = body.includeDetails ?? body.include_details ?? false;
+
     const issueListingsPayload: IssueListingPayload[] | undefined = body.issue_listings;
 
     const { data: issue, error: issueErr } = await supabase.from("issues").select("*").eq("id", issueId).single();
@@ -98,6 +101,7 @@ serve(async (req) => {
       : null;
 
     const listingSelectFields = [
+      "id",
       "listing_id",
       "display_address",
       "address",
@@ -148,7 +152,7 @@ serve(async (req) => {
       safeListings = (listings || []) as unknown as Listing[];
     }
 
-    const html = buildPdfHtml(safeIssue, safeListings, noteByListingId);
+    const html = buildPdfHtml(safeIssue, safeListings, { includeDetails });
     const pdfBytes = await convertHtmlToPdf(html);
 
     // Store PDF
@@ -212,571 +216,495 @@ serve(async (req) => {
   }
 });
 
-// Parse availability for sorting: "Immediate" first, "TBD" last
-function parseAvailabilityForSort(val: string | null): number {
-  if (!val) return 999999999;
-  const lower = val.toLowerCase().trim();
-  if (lower === "immediate" || lower === "now") return 0;
-  if (lower === "tbd" || lower === "unknown" || lower === "n/a") return 999999998;
+// ============ PDF HTML TEMPLATE ============
 
-  // Try ISO date (e.g., "2026-02-01")
-  const isoMatch = val.match(/^(\d{4})-(\d{2})-(\d{2})/);
-  if (isoMatch) return parseInt(isoMatch[1] + isoMatch[2] + isoMatch[3], 10);
+function buildPdfHtml(issue: any, listings: any[], opts?: { includeDetails?: boolean }) {
+  const includeDetails = opts?.includeDetails ?? false;
 
-  // Try quarter format (e.g., "Q4 2025")
-  const qMatch = val.match(/Q(\d)\s*(\d{4})/i);
-  if (qMatch) {
-    const q = parseInt(qMatch[1], 10);
-    const year = parseInt(qMatch[2], 10);
-    const month = (q - 1) * 3 + 2; // Q1=02, Q2=05, Q3=08, Q4=11
-    return year * 10000 + month * 100 + 15;
-  }
+  const published = new Date().toLocaleDateString("en-CA", {
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+  });
 
-  // Try month-year (e.g., "Feb 2026")
-  const monthMatch = val.match(/(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\w*\s*(\d{4})/i);
-  if (monthMatch) {
-    const months: Record<string, number> = {
-      jan: 1,
-      feb: 2,
-      mar: 3,
-      apr: 4,
-      may: 5,
-      jun: 6,
-      jul: 7,
-      aug: 8,
-      sep: 9,
-      oct: 10,
-      nov: 11,
-      dec: 12,
-    };
-    const m = months[monthMatch[1].toLowerCase().slice(0, 3)] || 1;
-    const y = parseInt(monthMatch[2], 10);
-    return y * 10000 + m * 100 + 15;
-  }
+  const title = issue.title || `Distribution Availability Snapshot`;
+  const market = issue.market || "Calgary Region";
+  const sizeThreshold = issue.size_threshold ? Number(issue.size_threshold).toLocaleString() : "—";
 
-  return 500000000;
-}
+  const primary = {
+    name: issue.primary_contact_name || "Brad Stone",
+    email: issue.primary_contact_email || "brad@cvpartners.ca",
+    phone: issue.primary_contact_phone || "(403) 613-2898",
+  };
 
-function getEarliestAvailability(listings: Listing[]): string {
-  const sorted = [...listings]
-    .map((l) => ({ val: l.availability_date || "", sort: parseAvailabilityForSort(l.availability_date) }))
-    .filter((x) => x.val)
-    .sort((a, b) => a.sort - b.sort);
-  return sorted[0]?.val || "TBD";
-}
+  const secondary = {
+    name: issue.secondary_contact_name || "Doug Johannson",
+    email: issue.secondary_contact_email || "doug@cvpartners.ca",
+    phone: issue.secondary_contact_phone || "",
+  };
 
-function buildPdfHtml(issue: Issue, listings: Listing[], noteByListingId: Map<string, string>): string {
-  const publishDate = new Date().toLocaleDateString("en-CA", { year: "numeric", month: "long", day: "numeric" });
-  const earliestAvailability = getEarliestAvailability(listings);
+  // Stats (simple + credible)
+  const total = listings.length;
+  const earliest = computeEarliestAvailability(listings);
+  const newCount = Number(issue.new_count || 0);
 
-  const hasPrimary = !!issue.primary_contact_name;
-  const hasSecondary = !!issue.secondary_contact_name;
+  // Keep the summary table scannable: sort biggest first
+  const sorted = [...listings].sort((a, b) => (Number(b.size_sf || 0) - Number(a.size_sf || 0)));
 
-  const primaryContactHtml = hasPrimary
-    ? `
-    <div class="contact-card">
-      <div class="contact-name">${escapeHtml(issue.primary_contact_name || "")}</div>
-      ${issue.primary_contact_email ? `<div class="contact-detail">${escapeHtml(issue.primary_contact_email)}</div>` : ""}
-      ${issue.primary_contact_phone ? `<div class="contact-detail">${escapeHtml(issue.primary_contact_phone)}</div>` : ""}
-    </div>
-  `
+  const summaryRows = sorted.map((l) => {
+    const property = escapeHtml(l.display_address || l.address || "");
+    const submarket = escapeHtml(l.submarket || "");
+    const size = fmtNum(l.size_sf);
+    const clear = l.clear_height_ft ? `${l.clear_height_ft}'` : "—";
+    const dock = l.dock_doors ?? "—";
+    const drive = l.drive_in_doors ?? "—";
+    const trailer = normalizeYesNoUnknown(l.trailer_parking);
+    const avail = escapeHtml(l.availability_date || "TBD");
+    const rate = escapeHtml(l.asking_rate_psf || "Market");
+
+    return `
+      <tr>
+        <td class="col-prop">
+          <div class="prop-name">${property}</div>
+          <div class="prop-sub">${submarket}</div>
+        </td>
+        <td class="col-num">${size}</td>
+        <td class="col-num">${clear}</td>
+        <td class="col-num">${dock}</td>
+        <td class="col-num">${drive}</td>
+        <td class="col-mid">${trailer}</td>
+        <td class="col-mid">${avail}</td>
+        <td class="col-mid">${rate}</td>
+      </tr>
+    `;
+  }).join("");
+
+  const detailPages = includeDetails
+    ? sorted.map((l) => renderDetailPage(l, primary, secondary)).join("")
     : "";
 
-  const secondaryContactHtml = hasSecondary
-    ? `
-    <div class="contact-card">
-      <div class="contact-name">${escapeHtml(issue.secondary_contact_name || "")}</div>
-      ${issue.secondary_contact_email ? `<div class="contact-detail">${escapeHtml(issue.secondary_contact_email)}</div>` : ""}
-      ${issue.secondary_contact_phone ? `<div class="contact-detail">${escapeHtml(issue.secondary_contact_phone)}</div>` : ""}
-    </div>
-  `
-    : "";
-
-  const tableRowsHtml = listings
-    .map((l, idx) => {
-      const isEven = idx % 2 === 1;
-      const trailer = l.trailer_parking && l.trailer_parking !== "Unknown" ? escapeHtml(String(l.trailer_parking)) : "—";
-      return `
-        <tr class="${isEven ? "even-row" : ""}">
-          <td class="property-cell">
-            <div class="prop-name">${escapeHtml(l.display_address || l.address || "")}</div>
-            <div class="prop-submarket">${escapeHtml(l.submarket || "")}</div>
-          </td>
-          <td class="num">${fmtNum(l.size_sf)}</td>
-          <td class="num">${l.clear_height_ft ? `${l.clear_height_ft}'` : "—"}</td>
-          <td class="num">${l.dock_doors ?? "—"}</td>
-          <td class="num">${l.drive_in_doors ?? "—"}</td>
-          <td class="center">${trailer}</td>
-          <td>${escapeHtml(l.availability_date || "TBD")}</td>
-          <td>${escapeHtml(l.asking_rate_psf || "Market")}</td>
-        </tr>
-      `;
-    })
-    .join("");
-
-  const detailPagesHtml = listings.map((l) => buildDetailPage(issue, l, noteByListingId, hasPrimary, hasSecondary)).join("");
-
-  return `
-<!DOCTYPE html>
+  return `<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8" />
-<title>${escapeHtml(issue.title)}</title>
+<title>${escapeHtml(title)}</title>
 <style>
+  @page { size: A4; margin: 18mm; }
   @page {
-    size: A4;
-    margin: 20mm 18mm 22mm 18mm;
     @bottom-right {
       content: "Page " counter(page) " of " counter(pages);
-      font-size: 8pt;
+      font-size: 9pt;
       color: #64748b;
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
     }
   }
-  @page :first {
-    @bottom-right { content: none; }
-  }
 
-  * { box-sizing: border-box; margin: 0; padding: 0; }
-
+  * { box-sizing: border-box; }
   body {
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
-    color: #1e293b;
-    line-height: 1.5;
-    font-size: 10pt;
+    color: #0f172a;
+    margin: 0;
+    padding: 0;
+    line-height: 1.45;
   }
 
-  .page {
-    page-break-after: always;
-    min-height: 100%;
-  }
+  /* Page wrapper */
+  .page { page-break-after: always; }
   .page:last-child { page-break-after: auto; }
 
-  /* ========== COVER PAGE ========== */
-  .cover-page {
-    display: flex;
-    flex-direction: column;
-    min-height: 100%;
-  }
+  /* Brand / typography */
+  .muted { color: #64748b; }
+  .small { font-size: 9.5pt; }
+  .tiny { font-size: 8.5pt; }
 
-  .cover-header {
-    margin-bottom: 24px;
-  }
-  .cover-logo {
-    height: 44px;
-    margin-bottom: 20px;
-  }
-  .cover-title {
-    font-size: 32pt;
-    font-weight: 800;
-    color: #0f172a;
-    line-height: 1.1;
-    margin-bottom: 8px;
-    letter-spacing: -0.02em;
-  }
-  .cover-subtitle {
-    font-size: 14pt;
-    color: #475569;
-    font-weight: 400;
-  }
-  .cover-date {
-    font-size: 10pt;
-    color: #64748b;
-    margin-top: 12px;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-  }
+  .h1 { font-size: 28pt; font-weight: 900; letter-spacing: -0.02em; margin: 0; }
+  .h2 { font-size: 14pt; font-weight: 800; margin: 0; }
+  .h3 { font-size: 10pt; font-weight: 800; margin: 0; letter-spacing: 0.04em; text-transform: uppercase; color: #334155; }
 
-  .cover-stats-card {
-    background: #f8fafc;
-    border: 1px solid #e2e8f0;
-    border-radius: 12px;
-    padding: 20px 24px;
-    margin: 20px 0;
-  }
-  .stats-row {
-    display: flex;
-    gap: 32px;
-    flex-wrap: wrap;
-  }
-  .stat-item { text-align: left; }
-  .stat-value {
-    font-size: 28pt;
-    font-weight: 800;
-    color: #0f172a;
-    line-height: 1;
-  }
-  .stat-label {
-    font-size: 9pt;
-    color: #64748b;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-    margin-top: 4px;
-  }
-
-  .cover-howto {
+  /* Cards */
+  .card {
     background: #ffffff;
     border: 1px solid #e2e8f0;
-    border-left: 4px solid #3b82f6;
-    border-radius: 8px;
-    padding: 16px 20px;
-    margin: 16px 0;
+    border-radius: 12px;
+    padding: 14px 16px;
   }
-  .cover-howto h4 {
-    font-size: 10pt;
+  .card.soft {
+    background: #f8fafc;
+    border-color: #e2e8f0;
+  }
+
+  /* COVER */
+  .cover {
+    min-height: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+  .cover-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 16px;
+  }
+  .logo {
+    height: 34px;
+    width: auto;
+  }
+  .cover-meta {
+    text-align: right;
+  }
+  .pill {
+    display: inline-block;
+    border: 1px solid #e2e8f0;
+    background: #f8fafc;
+    border-radius: 999px;
+    padding: 6px 10px;
+    font-size: 9pt;
+    color: #334155;
     font-weight: 700;
-    color: #1e293b;
-    margin-bottom: 6px;
-    text-transform: uppercase;
-    letter-spacing: 0.04em;
   }
-  .cover-howto p {
-    font-size: 10pt;
-    color: #475569;
-    line-height: 1.5;
+  .cover-stats {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 10px;
   }
+  .stat {
+    padding: 12px 14px;
+    border-radius: 12px;
+    border: 1px solid #e2e8f0;
+    background: #ffffff;
+  }
+  .stat .k { font-size: 8.5pt; color: #64748b; text-transform: uppercase; letter-spacing: 0.06em; }
+  .stat .v { font-size: 16pt; font-weight: 900; margin-top: 2px; }
 
   .cover-footer {
     margin-top: auto;
-    border-top: 2px solid #e2e8f0;
-    padding-top: 20px;
-  }
-  .contacts-grid {
-    display: flex;
-    gap: 32px;
-    margin-bottom: 16px;
-  }
-  .contact-card { flex: 1; }
-  .contact-name {
-    font-size: 11pt;
-    font-weight: 700;
-    color: #0f172a;
-    margin-bottom: 2px;
-  }
-  .contact-detail {
-    font-size: 9pt;
-    color: #475569;
-  }
-  .cover-disclaimer {
-    font-size: 8pt;
-    color: #94a3b8;
-    border-top: 1px solid #f1f5f9;
+    border-top: 1px solid #e2e8f0;
     padding-top: 12px;
-  }
-
-  /* ========== SUMMARY TABLE ========== */
-  .summary-header { margin-bottom: 16px; }
-  .summary-title {
-    font-size: 20pt;
-    font-weight: 800;
-    color: #0f172a;
-    margin-bottom: 4px;
-  }
-  .summary-subtitle { font-size: 9pt; color: #64748b; }
-
-  .summary-table {
-    width: 100%;
-    border-collapse: collapse;
-    font-size: 8.5pt;
-    border: 1px solid #e2e8f0;
-    border-radius: 8px;
-    overflow: hidden;
-  }
-  .summary-table thead { background: #1e293b; color: white; }
-  .summary-table th {
-    padding: 10px 8px;
-    text-align: left;
-    font-weight: 600;
-    font-size: 8pt;
-    text-transform: uppercase;
-    letter-spacing: 0.04em;
-    border: none;
-  }
-  .summary-table th.num,
-  .summary-table th.center { text-align: center; }
-  .summary-table td {
-    padding: 10px 8px;
-    border-bottom: 1px solid #f1f5f9;
-    vertical-align: top;
-  }
-  .summary-table tr.even-row { background: #f8fafc; }
-  .summary-table .num { text-align: right; font-variant-numeric: tabular-nums; }
-  .summary-table .center { text-align: center; }
-  .property-cell { min-width: 160px; }
-  .prop-name { font-weight: 600; color: #0f172a; font-size: 9pt; }
-  .prop-submarket { font-size: 7.5pt; color: #64748b; margin-top: 1px; }
-
-  /* ========== DETAIL PAGES ========== */
-  .detail-header {
-    border-bottom: 2px solid #e2e8f0;
-    padding-bottom: 16px;
-    margin-bottom: 20px;
-  }
-  .detail-title {
-    font-size: 24pt;
-    font-weight: 800;
-    color: #0f172a;
-    line-height: 1.15;
-    margin-bottom: 4px;
-  }
-  .detail-location { font-size: 12pt; color: #475569; }
-  .detail-submarket {
-    font-size: 10pt;
-    color: #64748b;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-    margin-top: 4px;
-  }
-
-  .specs-grid {
     display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: 12px;
-    margin-bottom: 20px;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px 20px;
   }
-  .spec-card {
-    background: #f8fafc;
-    border: 1px solid #e2e8f0;
-    border-radius: 10px;
-    padding: 14px 16px;
-    text-align: center;
-  }
-  .spec-value {
-    font-size: 18pt;
-    font-weight: 800;
-    color: #0f172a;
-    line-height: 1;
-    margin-bottom: 4px;
-  }
-  .spec-label {
-    font-size: 8pt;
-    color: #64748b;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-  }
+  .contact b { display:block; font-size: 10pt; margin-bottom: 2px; }
+  .contact span { font-size: 9pt; color: #334155; }
 
-  .notes-box {
-    background: #fffbeb;
-    border: 1px solid #fcd34d;
-    border-radius: 10px;
-    padding: 16px 20px;
-    margin-bottom: 20px;
-  }
-  .notes-box h4 {
-    font-size: 9pt;
-    font-weight: 700;
-    color: #92400e;
-    text-transform: uppercase;
-    letter-spacing: 0.04em;
-    margin-bottom: 8px;
-  }
-  .notes-box p {
-    font-size: 10pt;
-    color: #78350f;
-    line-height: 1.5;
-  }
-
-  .detail-footer {
-    border-top: 2px solid #e2e8f0;
-    padding-top: 16px;
-  }
-  .detail-footer-title {
-    font-size: 9pt;
-    color: #64748b;
-    text-transform: uppercase;
-    letter-spacing: 0.04em;
+  /* SUMMARY TABLE */
+  .summary-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    gap: 16px;
     margin-bottom: 10px;
   }
-  .detail-contacts { display: flex; gap: 32px; }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 9pt;
+  }
+  thead th {
+    text-align: left;
+    background: #f1f5f9;
+    padding: 10px 8px;
+    border-bottom: 2px solid #e2e8f0;
+    color: #334155;
+    font-weight: 800;
+    white-space: nowrap;
+  }
+  tbody td {
+    padding: 10px 8px;
+    border-bottom: 1px solid #e5e7eb;
+    vertical-align: top;
+  }
+  tbody tr:nth-child(even) { background: #fafafa; }
+
+  .col-prop { width: 34%; }
+  .prop-name { font-weight: 900; font-size: 9.5pt; }
+  .prop-sub { font-size: 8pt; color: #64748b; margin-top: 2px; }
+
+  .col-num { text-align: right; width: 9%; }
+  .col-mid { width: 11%; }
+
+  .note-line {
+    margin-top: 10px;
+    font-size: 8.5pt;
+    color: #64748b;
+  }
+
+  /* DETAIL PAGES */
+  .detail-header {
+    display: flex;
+    justify-content: space-between;
+    gap: 14px;
+    align-items: flex-start;
+  }
+  .detail-title { font-size: 18pt; font-weight: 900; margin: 0; letter-spacing: -0.01em; }
+  .detail-sub { margin-top: 4px; font-size: 10pt; color: #64748b; }
+
+  .grid {
+    margin-top: 12px;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+  }
+  .kv { padding: 12px 14px; }
+  .kv .k { font-size: 8.5pt; color: #64748b; text-transform: uppercase; letter-spacing: 0.06em; }
+  .kv .v { font-size: 12pt; font-weight: 900; margin-top: 2px; }
+
+  .detail-notes {
+    margin-top: 12px;
+  }
+  .clamp {
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
 </style>
 </head>
 <body>
 
-<div class="page cover-page">
-  <div class="cover-header">
-    ${issue.logo_url ? `<img src="${escapeHtml(issue.logo_url)}" class="cover-logo" />` : ""}
-    <h1 class="cover-title">${escapeHtml(issue.title)}</h1>
-    <p class="cover-subtitle">Large-format distribution & logistics space in ${escapeHtml(issue.market)}</p>
-    <p class="cover-date">Published ${publishDate}</p>
-  </div>
+<!-- COVER PAGE -->
+<div class="page cover">
 
-  <div class="cover-stats-card">
-    <div class="stats-row">
-      <div class="stat-item">
-        <div class="stat-value">${issue.total_listings}</div>
-        <div class="stat-label">Properties</div>
-      </div>
-      <div class="stat-item">
-        <div class="stat-value">${fmtNum(issue.size_threshold)}+</div>
-        <div class="stat-label">SF Minimum</div>
-      </div>
-      <div class="stat-item">
-        <div class="stat-value">${escapeHtml(earliestAvailability)}</div>
-        <div class="stat-label">Earliest Available</div>
-      </div>
-      ${issue.new_count > 0 ? `
-      <div class="stat-item">
-        <div class="stat-value">${issue.new_count}</div>
-        <div class="stat-label">New This Period</div>
-      </div>
-      ` : ""}
+  <div class="cover-top">
+    <div>
+      ${issue.logo_url ? `<img src="${escapeHtml(issue.logo_url)}" class="logo" alt="Logo" />` : `<div class="h3">Availability Snapshot</div>`}
+    </div>
+
+    <div class="cover-meta">
+      <div class="pill">${escapeHtml(market)}</div>
+      <div class="small muted" style="margin-top:6px;">Published ${escapeHtml(published)}</div>
     </div>
   </div>
 
-  <div class="cover-howto">
-    <h4>How to Use This Snapshot</h4>
-    <p>
-      Page 2 provides a quick-scan availability summary. Following pages contain one-page spec sheets per property.
-      If your timeline is 6–24 months out, contact us early — we can often surface off-market opportunities before they hit the market.
+  <div>
+    <h1 class="h1">${escapeHtml(title)}</h1>
+    <p class="small muted" style="margin-top:6px;">
+      Curated distribution / logistics space above ${escapeHtml(sizeThreshold)} SF.
+      Built for quick scanning — details available on request.
+    </p>
+  </div>
+
+  <div class="cover-stats">
+    <div class="stat">
+      <div class="k">Tracked</div>
+      <div class="v">${total}</div>
+    </div>
+    <div class="stat">
+      <div class="k">Earliest Availability</div>
+      <div class="v">${escapeHtml(earliest)}</div>
+    </div>
+    <div class="stat">
+      <div class="k">New This Period</div>
+      <div class="v">${newCount || 0}</div>
+    </div>
+  </div>
+
+  <div class="card soft">
+    <div class="h3">How to use this</div>
+    <p class="small" style="margin-top:6px;">
+      The next page is the full scan list. If any space is close, reply with the ListingID and we'll confirm timing, trailer parking, and tour access.
     </p>
   </div>
 
   <div class="cover-footer">
-    <div class="contacts-grid">
-      ${primaryContactHtml}
-      ${secondaryContactHtml}
+    <div class="contact">
+      <b>${escapeHtml(primary.name)}</b>
+      <span>${escapeHtml(primary.email)}${primary.phone ? ` | ${escapeHtml(primary.phone)}` : ""}</span>
     </div>
-    <p class="cover-disclaimer">
-      ${escapeHtml(issue.brokerage_name || "")}${issue.brokerage_name ? " • " : ""}Information believed reliable but not guaranteed. All rates and availability subject to change without notice.
-    </p>
+    <div class="contact">
+      <b>${escapeHtml(secondary.name)}</b>
+      <span>${escapeHtml(secondary.email)}${secondary.phone ? ` | ${escapeHtml(secondary.phone)}` : ""}</span>
+    </div>
+
+    <div class="tiny muted" style="grid-column: 1 / -1; margin-top:8px;">
+      Information believed reliable but not guaranteed. Rates/availability subject to change.
+    </div>
   </div>
 </div>
 
+<!-- SUMMARY TABLE PAGE -->
 <div class="page">
-  <div class="summary-header">
-    <h2 class="summary-title">Availability Summary</h2>
-    <p class="summary-subtitle">Properties above ${fmtNum(issue.size_threshold)} SF • Rates and availability subject to change</p>
+  <div class="summary-head">
+    <div>
+      <h2 class="h2">Availability Summary</h2>
+      <p class="tiny muted" style="margin-top:4px;">
+        Trailer parking shown only where confirmed. "Market" = asking rate not publicly stated.
+      </p>
+    </div>
+
+    <div class="pill">
+      ${escapeHtml(market)}<br />
+      <span class="tiny muted">Threshold: ${escapeHtml(sizeThreshold)} SF</span>
+    </div>
   </div>
 
-  <table class="summary-table">
+  <table>
     <thead>
       <tr>
-        <th>Property / Submarket</th>
-        <th class="num">Size (SF)</th>
-        <th class="num">Clear</th>
-        <th class="num">Dock</th>
-        <th class="num">Drive-In</th>
-        <th class="center">Trailer</th>
-        <th>Availability</th>
-        <th>Rate</th>
+        <th class="col-prop">Property / Submarket</th>
+        <th class="col-num">Size (SF)</th>
+        <th class="col-num">Clear</th>
+        <th class="col-num">Dock</th>
+        <th class="col-num">Drive</th>
+        <th class="col-mid">Trailer</th>
+        <th class="col-mid">Avail.</th>
+        <th class="col-mid">Rate</th>
       </tr>
     </thead>
-    <tbody>${tableRowsHtml}</tbody>
+    <tbody>
+      ${summaryRows}
+    </tbody>
   </table>
+
+  <p class="note-line">
+    Tip: Reply with ListingIDs to shortlist. If timing is 6–24 months, ask early — off-market options may exist.
+  </p>
 </div>
 
-${detailPagesHtml}
+${detailPages}
 
 </body>
-</html>
-`;
+</html>`;
 }
 
-function buildDetailPage(
-  issue: Issue,
-  l: Listing,
-  noteByListingId: Map<string, string>,
-  hasPrimary: boolean,
-  hasSecondary: boolean,
-): string {
-  const title = l.display_address || l.address || "";
-  const trailer = l.trailer_parking && l.trailer_parking !== "Unknown" ? String(l.trailer_parking) : "—";
-
-  const note = noteByListingId.get((l as any).id) || l.notes_public || "";
-
-  const primaryHtml = hasPrimary
-    ? `
-    <div class="contact-card">
-      <div class="contact-name">${escapeHtml(issue.primary_contact_name || "")}</div>
-      ${issue.primary_contact_email ? `<div class="contact-detail">${escapeHtml(issue.primary_contact_email)}</div>` : ""}
-      ${issue.primary_contact_phone ? `<div class="contact-detail">${escapeHtml(issue.primary_contact_phone)}</div>` : ""}
-    </div>
-  `
-    : "";
-
-  const secondaryHtml = hasSecondary
-    ? `
-    <div class="contact-card">
-      <div class="contact-name">${escapeHtml(issue.secondary_contact_name || "")}</div>
-      ${issue.secondary_contact_email ? `<div class="contact-detail">${escapeHtml(issue.secondary_contact_email)}</div>` : ""}
-      ${issue.secondary_contact_phone ? `<div class="contact-detail">${escapeHtml(issue.secondary_contact_phone)}</div>` : ""}
-    </div>
-  `
-    : "";
+function renderDetailPage(l: any, primary: any, secondary: any) {
+  const title = escapeHtml(l.display_address || l.address || "");
+  const loc = escapeHtml([l.city, l.submarket].filter(Boolean).join(" • "));
+  const size = fmtNum(l.size_sf);
+  const clear = l.clear_height_ft ? `${l.clear_height_ft}'` : "—";
+  const dock = l.dock_doors ?? "—";
+  const drive = l.drive_in_doors ?? "—";
+  const trailer = normalizeYesNoUnknown(l.trailer_parking);
+  const avail = escapeHtml(l.availability_date || "TBD");
+  const rate = escapeHtml(l.asking_rate_psf || "Market");
+  const notes = (l.notes_public || "").trim();
 
   return `
-  <div class="page">
-    <div class="detail-header">
-      <h2 class="detail-title">${escapeHtml(title)}</h2>
-      <p class="detail-location">${escapeHtml(l.city || "")}</p>
-      <p class="detail-submarket">${escapeHtml(l.submarket || "")}</p>
-    </div>
+<div class="page">
 
-    <div class="specs-grid">
-      <div class="spec-card"><div class="spec-value">${fmtNum(l.size_sf)}</div><div class="spec-label">Total SF</div></div>
-      <div class="spec-card"><div class="spec-value">${l.clear_height_ft ? `${l.clear_height_ft}'` : "—"}</div><div class="spec-label">Clear Height</div></div>
-      <div class="spec-card"><div class="spec-value">${l.dock_doors ?? "—"}</div><div class="spec-label">Dock Doors</div></div>
-      <div class="spec-card"><div class="spec-value">${l.drive_in_doors ?? "—"}</div><div class="spec-label">Drive-In Doors</div></div>
-      <div class="spec-card"><div class="spec-value">${escapeHtml(trailer)}</div><div class="spec-label">Trailer Parking</div></div>
-      <div class="spec-card"><div class="spec-value">${escapeHtml(l.availability_date || "TBD")}</div><div class="spec-label">Availability</div></div>
-      <div class="spec-card"><div class="spec-value">${escapeHtml(l.asking_rate_psf || "Market")}</div><div class="spec-label">Asking Rate</div></div>
-      <div class="spec-card"><div class="spec-value">${escapeHtml(l.submarket || "—")}</div><div class="spec-label">Submarket</div></div>
+  <div class="detail-header">
+    <div>
+      <h2 class="detail-title">${title}</h2>
+      <div class="detail-sub">${loc}</div>
+      <div class="tiny muted">ListingID: ${escapeHtml(l.listing_id || "—")}</div>
     </div>
-
-    ${note ? `
-      <div class="notes-box">
-        <h4>Notes</h4>
-        <p>${escapeHtml(note)}</p>
-      </div>
-    ` : ""}
-
-    <div class="detail-footer">
-      <p class="detail-footer-title">For Tours & Details</p>
-      <div class="detail-contacts">
-        ${primaryHtml}
-        ${secondaryHtml}
-      </div>
-    </div>
+    ${l.photo_url ? `<img src="${escapeHtml(l.photo_url)}" style="width:140px; height:auto; border-radius:8px; object-fit:cover;" alt="Property" />` : ""}
   </div>
-  `;
+
+  <div class="grid">
+    <div class="card kv"><div class="k">Total Area</div><div class="v">${size} SF</div></div>
+    <div class="card kv"><div class="k">Clear Height</div><div class="v">${clear}</div></div>
+    <div class="card kv"><div class="k">Dock Doors</div><div class="v">${dock}</div></div>
+    <div class="card kv"><div class="k">Drive-In Doors</div><div class="v">${drive}</div></div>
+    <div class="card kv"><div class="k">Trailer Parking</div><div class="v">${trailer}</div></div>
+    <div class="card kv"><div class="k">Availability</div><div class="v">${avail}</div></div>
+    <div class="card kv"><div class="k">Asking Rate</div><div class="v">${rate}</div></div>
+    <div class="card kv"><div class="k">Submarket</div><div class="v">${escapeHtml(l.submarket || "—")}</div></div>
+  </div>
+  ${notes ? `
+  <div class="card soft detail-notes">
+    <div class="h3">Notes</div>
+    <p class="small clamp" style="margin-top:6px;">${escapeHtml(notes)}</p>
+  </div>` : ""}
+
+  <div class="card soft" style="margin-top:12px;">
+    <div class="h3">Tours / Details</div>
+    <p class="small" style="margin-top:6px;">
+      ${escapeHtml(primary.name)} — ${escapeHtml(primary.email)}${primary.phone ? ` | ${escapeHtml(primary.phone)}` : ""}<br/>
+      ${escapeHtml(secondary.name)} — ${escapeHtml(secondary.email)}${secondary.phone ? ` | ${escapeHtml(secondary.phone)}` : ""}
+    </p>
+  </div>
+</div>`;
 }
 
-async function convertHtmlToPdf(html: string): Promise<Uint8Array> {
-  const docraptorApiKey = Deno.env.get("DOCRAPTOR_API_KEY");
-  if (!docraptorApiKey) throw new Error("DOCRAPTOR_API_KEY is not configured");
+// ============ HELPER FUNCTIONS ============
 
-  const response = await fetch("https://api.docraptor.com/docs", {
+function fmtNum(v: any) {
+  const n = Number(v);
+  if (!Number.isFinite(n) || n <= 0) return "—";
+  return Math.round(n).toLocaleString();
+}
+
+function escapeHtml(s: any) {
+  return String(s ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
+}
+
+function normalizeYesNoUnknown(v: any): string {
+  const s = String(v ?? "").trim().toLowerCase();
+  if (!s) return "—";
+  if (["yes", "y", "true", "1"].includes(s)) return "Yes";
+  if (["no", "n", "false", "0"].includes(s)) return "No";
+  if (["unknown", "tbd"].includes(s)) return "—";
+  // if someone types a custom note like "Limited"
+  return escapeHtml(v);
+}
+
+// Robust-ish earliest availability: puts "Immediate" first, "TBD" last.
+function computeEarliestAvailability(listings: any[]): string {
+  const rank = (v: string) => {
+    const s = (v || "").toLowerCase().trim();
+    if (!s || s === "tbd" || s === "unknown") return 999999;
+    if (s.includes("immediate")) return 0;
+    // Try parse ISO date
+    const t = Date.parse(v);
+    if (!Number.isNaN(t)) return t;
+    // Quarters like "Q4 2025"
+    const m = s.match(/q([1-4])\s*(20\d{2})/i);
+    if (m) {
+      const q = Number(m[1]);
+      const y = Number(m[2]);
+      const month = (q - 1) * 3; // 0,3,6,9
+      return Date.UTC(y, month, 1);
+    }
+    return 900000; // unknown format
+  };
+
+  let best = "";
+  let bestRank = 9999999;
+
+  for (const l of listings) {
+    const v = String(l.availability_date || "TBD");
+    const r = rank(v);
+    if (r < bestRank) {
+      bestRank = r;
+      best = v;
+    }
+  }
+  return best || "TBD";
+}
+
+// ============ PDF CONVERSION ============
+
+async function convertHtmlToPdf(html: string): Promise<Uint8Array> {
+  const apiKey = Deno.env.get("DOCRAPTOR_API_KEY");
+  if (!apiKey) throw new Error("DOCRAPTOR_API_KEY not configured");
+
+  const response = await fetch("https://docraptor.com/docs", {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      Authorization: `Basic ${btoa(docraptorApiKey + ":")}`,
+      Authorization: `Basic ${btoa(apiKey + ":")}`,
     },
     body: JSON.stringify({
       test: false,
       document_type: "pdf",
       document_content: html,
-      name: "distribution_snapshot.pdf",
-      prince_options: { media: "print" },
+      prince_options: {
+        profile: "PDF/A-1b",
+      },
     }),
   });
 
   if (!response.ok) {
-    const text = await response.text();
-    throw new Error(`DocRaptor error: ${text}`);
+    const errorText = await response.text();
+    throw new Error(`DocRaptor error: ${response.status} - ${errorText}`);
   }
 
-  return new Uint8Array(await response.arrayBuffer());
-}
-
-function fmtNum(v: number | null | undefined): string {
-  if (v == null || Number.isNaN(v)) return "—";
-  return Math.round(v).toLocaleString();
-}
-
-function escapeHtml(s: string): string {
-  return String(s || "")
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/\"/g, "&quot;");
+  const arrayBuffer = await response.arrayBuffer();
+  return new Uint8Array(arrayBuffer);
 }
