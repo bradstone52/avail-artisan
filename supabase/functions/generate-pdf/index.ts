@@ -53,7 +53,9 @@ serve(async (req) => {
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    const { issueId } = await req.json();
+    const body = await req.json();
+    // Support both issueId (camelCase) and issue_id (snake_case)
+    const issueId = body.issueId || body.issue_id;
     if (!issueId) throw new Error("Missing issueId");
 
     const { data: issue, error: issueErr } = await supabase.from("issues").select("*").eq("id", issueId).single();
