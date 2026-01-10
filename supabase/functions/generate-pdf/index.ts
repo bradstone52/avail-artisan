@@ -4,6 +4,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 type YesNoUnknown = "Yes" | "No" | "Unknown";
 
 interface Listing {
+  id?: string;
   listing_id: string;
   display_address: string | null;
   address: string;
@@ -38,6 +39,23 @@ interface Issue {
   secondary_contact_name: string | null;
   secondary_contact_email: string | null;
   secondary_contact_phone: string | null;
+  pdf_share_token: string | null;
+}
+
+interface IssueListingPayload {
+  issue_id: string;
+  listing_id: string;
+  change_status: string | null;
+  executive_note: string | null;
+  sort_order: number;
+}
+
+interface PdfGenerationResult {
+  success: boolean;
+  pdf_url: string;
+  pdf_filename: string;
+  pdf_filesize: number;
+  pdf_share_token: string;
 }
 
 const corsHeaders = {
@@ -53,54 +71,136 @@ serve(async (req) => {
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    const body = await req.json();
+    const body = await req.json().catch(() => ({}));
+
     // Support both issueId (camelCase) and issue_id (snake_case)
-    const issueId = body.issueId || body.issue_id;
+    const issueId: string | undefined = body.issueId || body.issue_id;
     if (!issueId) throw new Error("Missing issueId");
 
-    const { data: issue, error: issueErr } = await supabase.from("issues").select("*").eq("id", issueId).single();
+    const issueListingsPayload: IssueListingPayload[] | undefined = body.issue_listings;
 
+    const { data: issue, error: issueErr } = await supabase.from("issues").select("*").eq("id", issueId).single();
     if (issueErr || !issue) throw new Error("Issue not found");
 
-    const { data: listings, error: listingsErr } = await supabase
-      .from("listings")
-      .select(
-        [
-          "listing_id",
-          "display_address",
-          "address",
-          "city",
-          "submarket",
-          "status",
-          "size_sf",
-          "clear_height_ft",
-          "dock_doors",
-          "drive_in_doors",
-          "trailer_parking",
-          "availability_date",
-          "asking_rate_psf",
-          "notes_public",
-          "link",
-          "photo_url",
-        ].join(","),
-      )
-      .eq("user_id", (issue as Issue).user_id)
-      .eq("include_in_issue", true)
-      .eq("status", "Active")
-      .order("size_sf", { ascending: false });
-
-    if (listingsErr) throw new Error("Failed to load listings");
     const safeIssue = issue as Issue;
-    const safeListings = (listings || []) as unknown as Listing[];
 
-    const html = buildPdfHtml(safeIssue, safeListings);
+    // If the client passed issue_listings, use that ordering + executive notes
+    // Otherwise, fall back to the user's include_in_issue list (legacy behavior).
+    const noteByListingId = new Map<string, string>();
+    const orderedListingIds: string[] | null = Array.isArray(issueListingsPayload) && issueListingsPayload.length > 0
+      ? issueListingsPayload
+          .slice()
+          .sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0))
+          .map((x) => {
+            if (x.listing_id && x.executive_note) noteByListingId.set(x.listing_id, x.executive_note);
+            return x.listing_id;
+          })
+      : null;
+
+    const listingSelectFields = [
+      "listing_id",
+      "display_address",
+      "address",
+      "city",
+      "submarket",
+      "status",
+      "size_sf",
+      "clear_height_ft",
+      "dock_doors",
+      "drive_in_doors",
+      "trailer_parking",
+      "availability_date",
+      "asking_rate_psf",
+      "notes_public",
+      "link",
+      "photo_url",
+    ].join(",");
+
+    let safeListings: Listing[] = [];
+
+    if (orderedListingIds && orderedListingIds.length > 0) {
+      const { data: listings, error: listingsErr } = await supabase
+        .from("listings")
+        .select(listingSelectFields)
+        .eq("user_id", safeIssue.user_id)
+        .in("id", orderedListingIds);
+
+      if (listingsErr) throw new Error("Failed to load listings");
+
+      const byId = new Map<string, Listing>();
+      (listings || []).forEach((l: any) => {
+        if (l?.id) byId.set(String(l.id), l as Listing);
+      });
+
+      safeListings = orderedListingIds
+        .map((id) => byId.get(id))
+        .filter(Boolean) as Listing[];
+    } else {
+      const { data: listings, error: listingsErr } = await supabase
+        .from("listings")
+        .select(listingSelectFields)
+        .eq("user_id", safeIssue.user_id)
+        .eq("include_in_issue", true)
+        .eq("status", "Active")
+        .order("size_sf", { ascending: false });
+
+      if (listingsErr) throw new Error("Failed to load listings");
+      safeListings = (listings || []) as unknown as Listing[];
+    }
+
+    const html = buildPdfHtml(safeIssue, safeListings, noteByListingId);
     const pdfBytes = await convertHtmlToPdf(html);
 
-    return new Response(pdfBytes.buffer as ArrayBuffer, {
+    // Store PDF
+    const generatedAtIso = new Date().toISOString();
+    const ymd = generatedAtIso.slice(0, 10);
+    const safeName = (safeIssue.title || "distribution_snapshot")
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/(^-|-$)/g, "")
+      .slice(0, 60);
+
+    const pdfFilename = `${safeName || "distribution_snapshot"}-${ymd}.pdf`;
+    const storagePath = `${safeIssue.user_id}/${safeIssue.id}/${pdfFilename}`;
+
+    const uploadRes = await supabase.storage
+      .from("issue-pdfs")
+      .upload(storagePath, pdfBytes.buffer as ArrayBuffer, {
+        contentType: "application/pdf",
+        upsert: true,
+      });
+
+    if (uploadRes.error) throw new Error(`Failed to upload PDF: ${uploadRes.error.message}`);
+
+    const publicUrl = supabase.storage.from("issue-pdfs").getPublicUrl(storagePath).data.publicUrl;
+
+    const shareToken = safeIssue.pdf_share_token || crypto.randomUUID().replace(/-/g, "");
+
+    const { error: updateErr } = await supabase
+      .from("issues")
+      .update({
+        pdf_url: publicUrl,
+        pdf_filename: pdfFilename,
+        pdf_filesize: pdfBytes.byteLength,
+        pdf_generated_at: generatedAtIso,
+        pdf_share_token: shareToken,
+      })
+      .eq("id", safeIssue.id);
+
+    if (updateErr) throw new Error(`Failed to update issue: ${updateErr.message}`);
+
+    const result: PdfGenerationResult = {
+      success: true,
+      pdf_url: publicUrl,
+      pdf_filename: pdfFilename,
+      pdf_filesize: pdfBytes.byteLength,
+      pdf_share_token: shareToken,
+    };
+
+    return new Response(JSON.stringify(result), {
       headers: {
         ...corsHeaders,
-        "Content-Type": "application/pdf",
-        "Content-Disposition": `inline; filename="distribution_snapshot.pdf"`,
+        "Content-Type": "application/json",
       },
     });
   } catch (e) {
@@ -118,14 +218,12 @@ function parseAvailabilityForSort(val: string | null): number {
   const lower = val.toLowerCase().trim();
   if (lower === "immediate" || lower === "now") return 0;
   if (lower === "tbd" || lower === "unknown" || lower === "n/a") return 999999998;
-  
+
   // Try ISO date (e.g., "2026-02-01")
   const isoMatch = val.match(/^(\d{4})-(\d{2})-(\d{2})/);
-  if (isoMatch) {
-    return parseInt(isoMatch[1] + isoMatch[2] + isoMatch[3], 10);
-  }
-  
-  // Try quarter format (e.g., "Q4 2025", "Q1 2026")
+  if (isoMatch) return parseInt(isoMatch[1] + isoMatch[2] + isoMatch[3], 10);
+
+  // Try quarter format (e.g., "Q4 2025")
   const qMatch = val.match(/Q(\d)\s*(\d{4})/i);
   if (qMatch) {
     const q = parseInt(qMatch[1], 10);
@@ -133,61 +231,73 @@ function parseAvailabilityForSort(val: string | null): number {
     const month = (q - 1) * 3 + 2; // Q1=02, Q2=05, Q3=08, Q4=11
     return year * 10000 + month * 100 + 15;
   }
-  
-  // Try month-year (e.g., "Feb 2026", "March 2025")
+
+  // Try month-year (e.g., "Feb 2026")
   const monthMatch = val.match(/(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\w*\s*(\d{4})/i);
   if (monthMatch) {
     const months: Record<string, number> = {
-      jan: 1, feb: 2, mar: 3, apr: 4, may: 5, jun: 6,
-      jul: 7, aug: 8, sep: 9, oct: 10, nov: 11, dec: 12
+      jan: 1,
+      feb: 2,
+      mar: 3,
+      apr: 4,
+      may: 5,
+      jun: 6,
+      jul: 7,
+      aug: 8,
+      sep: 9,
+      oct: 10,
+      nov: 11,
+      dec: 12,
     };
     const m = months[monthMatch[1].toLowerCase().slice(0, 3)] || 1;
     const y = parseInt(monthMatch[2], 10);
     return y * 10000 + m * 100 + 15;
   }
-  
-  // Fallback: middle priority
+
   return 500000000;
 }
 
 function getEarliestAvailability(listings: Listing[]): string {
   const sorted = [...listings]
-    .map(l => ({ val: l.availability_date || "", sort: parseAvailabilityForSort(l.availability_date) }))
-    .filter(x => x.val)
+    .map((l) => ({ val: l.availability_date || "", sort: parseAvailabilityForSort(l.availability_date) }))
+    .filter((x) => x.val)
     .sort((a, b) => a.sort - b.sort);
   return sorted[0]?.val || "TBD";
 }
 
-function buildPdfHtml(issue: Issue, listings: Listing[]): string {
+function buildPdfHtml(issue: Issue, listings: Listing[], noteByListingId: Map<string, string>): string {
   const publishDate = new Date().toLocaleDateString("en-CA", { year: "numeric", month: "long", day: "numeric" });
   const earliestAvailability = getEarliestAvailability(listings);
 
-  // Build contacts
   const hasPrimary = !!issue.primary_contact_name;
   const hasSecondary = !!issue.secondary_contact_name;
 
-  const primaryContactHtml = hasPrimary ? `
+  const primaryContactHtml = hasPrimary
+    ? `
     <div class="contact-card">
       <div class="contact-name">${escapeHtml(issue.primary_contact_name || "")}</div>
-      <div class="contact-detail">${escapeHtml(issue.primary_contact_email || "")}</div>
-      <div class="contact-detail">${escapeHtml(issue.primary_contact_phone || "")}</div>
+      ${issue.primary_contact_email ? `<div class="contact-detail">${escapeHtml(issue.primary_contact_email)}</div>` : ""}
+      ${issue.primary_contact_phone ? `<div class="contact-detail">${escapeHtml(issue.primary_contact_phone)}</div>` : ""}
     </div>
-  ` : "";
+  `
+    : "";
 
-  const secondaryContactHtml = hasSecondary ? `
+  const secondaryContactHtml = hasSecondary
+    ? `
     <div class="contact-card">
       <div class="contact-name">${escapeHtml(issue.secondary_contact_name || "")}</div>
-      <div class="contact-detail">${escapeHtml(issue.secondary_contact_email || "")}</div>
-      <div class="contact-detail">${escapeHtml(issue.secondary_contact_phone || "")}</div>
+      ${issue.secondary_contact_email ? `<div class="contact-detail">${escapeHtml(issue.secondary_contact_email)}</div>` : ""}
+      ${issue.secondary_contact_phone ? `<div class="contact-detail">${escapeHtml(issue.secondary_contact_phone)}</div>` : ""}
     </div>
-  ` : "";
+  `
+    : "";
 
   const tableRowsHtml = listings
     .map((l, idx) => {
       const isEven = idx % 2 === 1;
       const trailer = l.trailer_parking && l.trailer_parking !== "Unknown" ? escapeHtml(String(l.trailer_parking)) : "—";
       return `
-        <tr class="${isEven ? 'even-row' : ''}">
+        <tr class="${isEven ? "even-row" : ""}">
           <td class="property-cell">
             <div class="prop-name">${escapeHtml(l.display_address || l.address || "")}</div>
             <div class="prop-submarket">${escapeHtml(l.submarket || "")}</div>
@@ -204,7 +314,7 @@ function buildPdfHtml(issue: Issue, listings: Listing[]): string {
     })
     .join("");
 
-  const detailPagesHtml = listings.map((l) => buildDetailPage(issue, l, hasPrimary, hasSecondary)).join("");
+  const detailPagesHtml = listings.map((l) => buildDetailPage(issue, l, noteByListingId, hasPrimary, hasSecondary)).join("");
 
   return `
 <!DOCTYPE html>
@@ -228,7 +338,7 @@ function buildPdfHtml(issue: Issue, listings: Listing[]): string {
   }
 
   * { box-sizing: border-box; margin: 0; padding: 0; }
-  
+
   body {
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
     color: #1e293b;
@@ -247,7 +357,6 @@ function buildPdfHtml(issue: Issue, listings: Listing[]): string {
     display: flex;
     flex-direction: column;
     min-height: 100%;
-    padding: 0;
   }
 
   .cover-header {
@@ -290,9 +399,7 @@ function buildPdfHtml(issue: Issue, listings: Listing[]): string {
     gap: 32px;
     flex-wrap: wrap;
   }
-  .stat-item {
-    text-align: left;
-  }
+  .stat-item { text-align: left; }
   .stat-value {
     font-size: 28pt;
     font-weight: 800;
@@ -339,9 +446,7 @@ function buildPdfHtml(issue: Issue, listings: Listing[]): string {
     gap: 32px;
     margin-bottom: 16px;
   }
-  .contact-card {
-    flex: 1;
-  }
+  .contact-card { flex: 1; }
   .contact-name {
     font-size: 11pt;
     font-weight: 700;
@@ -360,22 +465,14 @@ function buildPdfHtml(issue: Issue, listings: Listing[]): string {
   }
 
   /* ========== SUMMARY TABLE ========== */
-  .summary-page {
-    padding-top: 0;
-  }
-  .summary-header {
-    margin-bottom: 16px;
-  }
+  .summary-header { margin-bottom: 16px; }
   .summary-title {
     font-size: 20pt;
     font-weight: 800;
     color: #0f172a;
     margin-bottom: 4px;
   }
-  .summary-subtitle {
-    font-size: 9pt;
-    color: #64748b;
-  }
+  .summary-subtitle { font-size: 9pt; color: #64748b; }
 
   .summary-table {
     width: 100%;
@@ -385,10 +482,7 @@ function buildPdfHtml(issue: Issue, listings: Listing[]): string {
     border-radius: 8px;
     overflow: hidden;
   }
-  .summary-table thead {
-    background: #1e293b;
-    color: white;
-  }
+  .summary-table thead { background: #1e293b; color: white; }
   .summary-table th {
     padding: 10px 8px;
     text-align: left;
@@ -399,43 +493,20 @@ function buildPdfHtml(issue: Issue, listings: Listing[]): string {
     border: none;
   }
   .summary-table th.num,
-  .summary-table th.center {
-    text-align: center;
-  }
+  .summary-table th.center { text-align: center; }
   .summary-table td {
     padding: 10px 8px;
     border-bottom: 1px solid #f1f5f9;
     vertical-align: top;
   }
-  .summary-table tr.even-row {
-    background: #f8fafc;
-  }
-  .summary-table .num {
-    text-align: right;
-    font-variant-numeric: tabular-nums;
-  }
-  .summary-table .center {
-    text-align: center;
-  }
-  .property-cell {
-    min-width: 160px;
-  }
-  .prop-name {
-    font-weight: 600;
-    color: #0f172a;
-    font-size: 9pt;
-  }
-  .prop-submarket {
-    font-size: 7.5pt;
-    color: #64748b;
-    margin-top: 1px;
-  }
+  .summary-table tr.even-row { background: #f8fafc; }
+  .summary-table .num { text-align: right; font-variant-numeric: tabular-nums; }
+  .summary-table .center { text-align: center; }
+  .property-cell { min-width: 160px; }
+  .prop-name { font-weight: 600; color: #0f172a; font-size: 9pt; }
+  .prop-submarket { font-size: 7.5pt; color: #64748b; margin-top: 1px; }
 
   /* ========== DETAIL PAGES ========== */
-  .detail-page {
-    padding-top: 0;
-  }
-
   .detail-header {
     border-bottom: 2px solid #e2e8f0;
     padding-bottom: 16px;
@@ -448,10 +519,7 @@ function buildPdfHtml(issue: Issue, listings: Listing[]): string {
     line-height: 1.15;
     margin-bottom: 4px;
   }
-  .detail-location {
-    font-size: 12pt;
-    color: #475569;
-  }
+  .detail-location { font-size: 12pt; color: #475569; }
   .detail-submarket {
     font-size: 10pt;
     color: #64748b;
@@ -511,7 +579,6 @@ function buildPdfHtml(issue: Issue, listings: Listing[]): string {
   .detail-footer {
     border-top: 2px solid #e2e8f0;
     padding-top: 16px;
-    margin-top: auto;
   }
   .detail-footer-title {
     font-size: 9pt;
@@ -520,15 +587,11 @@ function buildPdfHtml(issue: Issue, listings: Listing[]): string {
     letter-spacing: 0.04em;
     margin-bottom: 10px;
   }
-  .detail-contacts {
-    display: flex;
-    gap: 32px;
-  }
+  .detail-contacts { display: flex; gap: 32px; }
 </style>
 </head>
 <body>
 
-<!-- ========== COVER PAGE ========== -->
 <div class="page cover-page">
   <div class="cover-header">
     ${issue.logo_url ? `<img src="${escapeHtml(issue.logo_url)}" class="cover-logo" />` : ""}
@@ -579,11 +642,10 @@ function buildPdfHtml(issue: Issue, listings: Listing[]): string {
   </div>
 </div>
 
-<!-- ========== SUMMARY PAGE ========== -->
-<div class="page summary-page">
+<div class="page">
   <div class="summary-header">
     <h2 class="summary-title">Availability Summary</h2>
-    <p class="summary-subtitle">Properties above ${fmtNum(issue.size_threshold)} SF • Sorted by size • Rates and availability subject to change</p>
+    <p class="summary-subtitle">Properties above ${fmtNum(issue.size_threshold)} SF • Rates and availability subject to change</p>
   </div>
 
   <table class="summary-table">
@@ -603,7 +665,6 @@ function buildPdfHtml(issue: Issue, listings: Listing[]): string {
   </table>
 </div>
 
-<!-- ========== DETAIL PAGES ========== -->
 ${detailPagesHtml}
 
 </body>
@@ -611,28 +672,40 @@ ${detailPagesHtml}
 `;
 }
 
-function buildDetailPage(issue: Issue, l: Listing, hasPrimary: boolean, hasSecondary: boolean): string {
+function buildDetailPage(
+  issue: Issue,
+  l: Listing,
+  noteByListingId: Map<string, string>,
+  hasPrimary: boolean,
+  hasSecondary: boolean,
+): string {
   const title = l.display_address || l.address || "";
   const trailer = l.trailer_parking && l.trailer_parking !== "Unknown" ? String(l.trailer_parking) : "—";
 
-  const primaryHtml = hasPrimary ? `
+  const note = noteByListingId.get((l as any).id) || l.notes_public || "";
+
+  const primaryHtml = hasPrimary
+    ? `
     <div class="contact-card">
       <div class="contact-name">${escapeHtml(issue.primary_contact_name || "")}</div>
-      <div class="contact-detail">${escapeHtml(issue.primary_contact_email || "")}</div>
-      <div class="contact-detail">${escapeHtml(issue.primary_contact_phone || "")}</div>
+      ${issue.primary_contact_email ? `<div class="contact-detail">${escapeHtml(issue.primary_contact_email)}</div>` : ""}
+      ${issue.primary_contact_phone ? `<div class="contact-detail">${escapeHtml(issue.primary_contact_phone)}</div>` : ""}
     </div>
-  ` : "";
+  `
+    : "";
 
-  const secondaryHtml = hasSecondary ? `
+  const secondaryHtml = hasSecondary
+    ? `
     <div class="contact-card">
       <div class="contact-name">${escapeHtml(issue.secondary_contact_name || "")}</div>
-      <div class="contact-detail">${escapeHtml(issue.secondary_contact_email || "")}</div>
-      <div class="contact-detail">${escapeHtml(issue.secondary_contact_phone || "")}</div>
+      ${issue.secondary_contact_email ? `<div class="contact-detail">${escapeHtml(issue.secondary_contact_email)}</div>` : ""}
+      ${issue.secondary_contact_phone ? `<div class="contact-detail">${escapeHtml(issue.secondary_contact_phone)}</div>` : ""}
     </div>
-  ` : "";
+  `
+    : "";
 
   return `
-  <div class="page detail-page">
+  <div class="page">
     <div class="detail-header">
       <h2 class="detail-title">${escapeHtml(title)}</h2>
       <p class="detail-location">${escapeHtml(l.city || "")}</p>
@@ -640,44 +713,20 @@ function buildDetailPage(issue: Issue, l: Listing, hasPrimary: boolean, hasSecon
     </div>
 
     <div class="specs-grid">
-      <div class="spec-card">
-        <div class="spec-value">${fmtNum(l.size_sf)}</div>
-        <div class="spec-label">Total SF</div>
-      </div>
-      <div class="spec-card">
-        <div class="spec-value">${l.clear_height_ft ? `${l.clear_height_ft}'` : "—"}</div>
-        <div class="spec-label">Clear Height</div>
-      </div>
-      <div class="spec-card">
-        <div class="spec-value">${l.dock_doors ?? "—"}</div>
-        <div class="spec-label">Dock Doors</div>
-      </div>
-      <div class="spec-card">
-        <div class="spec-value">${l.drive_in_doors ?? "—"}</div>
-        <div class="spec-label">Drive-In Doors</div>
-      </div>
-      <div class="spec-card">
-        <div class="spec-value">${escapeHtml(trailer)}</div>
-        <div class="spec-label">Trailer Parking</div>
-      </div>
-      <div class="spec-card">
-        <div class="spec-value">${escapeHtml(l.availability_date || "TBD")}</div>
-        <div class="spec-label">Availability</div>
-      </div>
-      <div class="spec-card">
-        <div class="spec-value">${escapeHtml(l.asking_rate_psf || "Market")}</div>
-        <div class="spec-label">Asking Rate</div>
-      </div>
-      <div class="spec-card">
-        <div class="spec-value">${escapeHtml(l.submarket || "—")}</div>
-        <div class="spec-label">Submarket</div>
-      </div>
+      <div class="spec-card"><div class="spec-value">${fmtNum(l.size_sf)}</div><div class="spec-label">Total SF</div></div>
+      <div class="spec-card"><div class="spec-value">${l.clear_height_ft ? `${l.clear_height_ft}'` : "—"}</div><div class="spec-label">Clear Height</div></div>
+      <div class="spec-card"><div class="spec-value">${l.dock_doors ?? "—"}</div><div class="spec-label">Dock Doors</div></div>
+      <div class="spec-card"><div class="spec-value">${l.drive_in_doors ?? "—"}</div><div class="spec-label">Drive-In Doors</div></div>
+      <div class="spec-card"><div class="spec-value">${escapeHtml(trailer)}</div><div class="spec-label">Trailer Parking</div></div>
+      <div class="spec-card"><div class="spec-value">${escapeHtml(l.availability_date || "TBD")}</div><div class="spec-label">Availability</div></div>
+      <div class="spec-card"><div class="spec-value">${escapeHtml(l.asking_rate_psf || "Market")}</div><div class="spec-label">Asking Rate</div></div>
+      <div class="spec-card"><div class="spec-value">${escapeHtml(l.submarket || "—")}</div><div class="spec-label">Submarket</div></div>
     </div>
 
-    ${l.notes_public ? `
+    ${note ? `
       <div class="notes-box">
         <h4>Notes</h4>
-        <p>${escapeHtml(l.notes_public)}</p>
+        <p>${escapeHtml(note)}</p>
       </div>
     ` : ""}
 
@@ -716,8 +765,7 @@ async function convertHtmlToPdf(html: string): Promise<Uint8Array> {
     throw new Error(`DocRaptor error: ${text}`);
   }
 
-  const buf = new Uint8Array(await response.arrayBuffer());
-  return buf;
+  return new Uint8Array(await response.arrayBuffer());
 }
 
 function fmtNum(v: number | null | undefined): string {
@@ -730,5 +778,5 @@ function escapeHtml(s: string): string {
     .replace(/&/g, "&amp;")
     .replace(/</g, "&lt;")
     .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;");
+    .replace(/\"/g, "&quot;");
 }
