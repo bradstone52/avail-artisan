@@ -15,10 +15,8 @@ interface Listing {
   dock_doors: number | null;
   drive_in_doors: number | null;
   trailer_parking: YesNoUnknown | string | null;
-
   availability_date: string | null;
   asking_rate_psf: string | null;
-
   notes_public: string | null;
   link: string | null;
   photo_url?: string | null;
@@ -32,14 +30,11 @@ interface Issue {
   size_threshold: number;
   total_listings: number;
   new_count: number;
-
   logo_url: string | null;
   brokerage_name: string | null;
-
   primary_contact_name: string | null;
   primary_contact_email: string | null;
   primary_contact_phone: string | null;
-
   secondary_contact_name: string | null;
   secondary_contact_email: string | null;
   secondary_contact_phone: string | null;
@@ -94,12 +89,12 @@ serve(async (req) => {
 
     if (listingsErr) throw new Error("Failed to load listings");
     const safeIssue = issue as Issue;
-    const safeListings = (listings || []) as Listing[];
+    const safeListings = (listings || []) as unknown as Listing[];
 
     const html = buildPdfHtml(safeIssue, safeListings);
     const pdfBytes = await convertHtmlToPdf(html);
 
-    return new Response(pdfBytes, {
+    return new Response(pdfBytes.buffer as ArrayBuffer, {
       headers: {
         ...corsHeaders,
         "Content-Type": "application/pdf",
@@ -115,29 +110,91 @@ serve(async (req) => {
   }
 });
 
+// Parse availability for sorting: "Immediate" first, "TBD" last
+function parseAvailabilityForSort(val: string | null): number {
+  if (!val) return 999999999;
+  const lower = val.toLowerCase().trim();
+  if (lower === "immediate" || lower === "now") return 0;
+  if (lower === "tbd" || lower === "unknown" || lower === "n/a") return 999999998;
+  
+  // Try ISO date (e.g., "2026-02-01")
+  const isoMatch = val.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (isoMatch) {
+    return parseInt(isoMatch[1] + isoMatch[2] + isoMatch[3], 10);
+  }
+  
+  // Try quarter format (e.g., "Q4 2025", "Q1 2026")
+  const qMatch = val.match(/Q(\d)\s*(\d{4})/i);
+  if (qMatch) {
+    const q = parseInt(qMatch[1], 10);
+    const year = parseInt(qMatch[2], 10);
+    const month = (q - 1) * 3 + 2; // Q1=02, Q2=05, Q3=08, Q4=11
+    return year * 10000 + month * 100 + 15;
+  }
+  
+  // Try month-year (e.g., "Feb 2026", "March 2025")
+  const monthMatch = val.match(/(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\w*\s*(\d{4})/i);
+  if (monthMatch) {
+    const months: Record<string, number> = {
+      jan: 1, feb: 2, mar: 3, apr: 4, may: 5, jun: 6,
+      jul: 7, aug: 8, sep: 9, oct: 10, nov: 11, dec: 12
+    };
+    const m = months[monthMatch[1].toLowerCase().slice(0, 3)] || 1;
+    const y = parseInt(monthMatch[2], 10);
+    return y * 10000 + m * 100 + 15;
+  }
+  
+  // Fallback: middle priority
+  return 500000000;
+}
+
+function getEarliestAvailability(listings: Listing[]): string {
+  const sorted = [...listings]
+    .map(l => ({ val: l.availability_date || "", sort: parseAvailabilityForSort(l.availability_date) }))
+    .filter(x => x.val)
+    .sort((a, b) => a.sort - b.sort);
+  return sorted[0]?.val || "TBD";
+}
+
 function buildPdfHtml(issue: Issue, listings: Listing[]): string {
   const publishDate = new Date().toLocaleDateString("en-CA", { year: "numeric", month: "long", day: "numeric" });
+  const earliestAvailability = getEarliestAvailability(listings);
 
-  const earliestAvailability =
-    listings
-      .map((l) => l.availability_date || "")
-      .filter(Boolean)
-      .sort()[0] || "TBD";
+  // Build contacts
+  const hasPrimary = !!issue.primary_contact_name;
+  const hasSecondary = !!issue.secondary_contact_name;
+
+  const primaryContactHtml = hasPrimary ? `
+    <div class="contact-card">
+      <div class="contact-name">${escapeHtml(issue.primary_contact_name || "")}</div>
+      <div class="contact-detail">${escapeHtml(issue.primary_contact_email || "")}</div>
+      <div class="contact-detail">${escapeHtml(issue.primary_contact_phone || "")}</div>
+    </div>
+  ` : "";
+
+  const secondaryContactHtml = hasSecondary ? `
+    <div class="contact-card">
+      <div class="contact-name">${escapeHtml(issue.secondary_contact_name || "")}</div>
+      <div class="contact-detail">${escapeHtml(issue.secondary_contact_email || "")}</div>
+      <div class="contact-detail">${escapeHtml(issue.secondary_contact_phone || "")}</div>
+    </div>
+  ` : "";
 
   const tableRowsHtml = listings
-    .map((l) => {
-      const badge = `<span class="badge badge-new">NEW</span>`; // (still OK for now)
+    .map((l, idx) => {
+      const isEven = idx % 2 === 1;
+      const trailer = l.trailer_parking && l.trailer_parking !== "Unknown" ? escapeHtml(String(l.trailer_parking)) : "—";
       return `
-        <tr>
+        <tr class="${isEven ? 'even-row' : ''}">
           <td class="property-cell">
-            <strong>${escapeHtml(l.display_address || l.address || "")}</strong> ${badge}
-            <div class="submarket">${escapeHtml(l.submarket || "")}</div>
+            <div class="prop-name">${escapeHtml(l.display_address || l.address || "")}</div>
+            <div class="prop-submarket">${escapeHtml(l.submarket || "")}</div>
           </td>
           <td class="num">${fmtNum(l.size_sf)}</td>
           <td class="num">${l.clear_height_ft ? `${l.clear_height_ft}'` : "—"}</td>
           <td class="num">${l.dock_doors ?? "—"}</td>
           <td class="num">${l.drive_in_doors ?? "—"}</td>
-          <td>${l.trailer_parking && l.trailer_parking !== "Unknown" ? escapeHtml(String(l.trailer_parking)) : "—"}</td>
+          <td class="center">${trailer}</td>
           <td>${escapeHtml(l.availability_date || "TBD")}</td>
           <td>${escapeHtml(l.asking_rate_psf || "Market")}</td>
         </tr>
@@ -145,7 +202,7 @@ function buildPdfHtml(issue: Issue, listings: Listing[]): string {
     })
     .join("");
 
-  const detailPagesHtml = listings.map((l) => buildDetailPage(issue, l)).join("");
+  const detailPagesHtml = listings.map((l) => buildDetailPage(issue, l, hasPrimary, hasSecondary)).join("");
 
   return `
 <!DOCTYPE html>
@@ -154,229 +211,378 @@ function buildPdfHtml(issue: Issue, listings: Listing[]): string {
 <meta charset="UTF-8" />
 <title>${escapeHtml(issue.title)}</title>
 <style>
-  * { box-sizing: border-box; }
-  body {
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
-    margin: 0;
-    padding: 0;
-    color: #0f172a;
-    line-height: 1.45;
-  }
-  @page { size: A4; margin: 18mm; }
-  .page { page-break-after: always; }
-  .page:last-child { page-break-after: auto; }
-
-  /* Page numbering */
   @page {
+    size: A4;
+    margin: 20mm 18mm 22mm 18mm;
     @bottom-right {
       content: "Page " counter(page) " of " counter(pages);
-      font-size: 9pt;
+      font-size: 8pt;
       color: #64748b;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
     }
   }
-
-  /* Badges */
-  .badge {
-    display: inline-block;
-    padding: 2px 6px;
-    border-radius: 3px;
-    font-size: 8pt;
-    font-weight: 600;
-    text-transform: uppercase;
-    vertical-align: middle;
+  @page :first {
+    @bottom-right { content: none; }
   }
-  .badge-new { background: #10b981; color: white; }
 
-  /* Cover Page (FIXED: no absolute footer; use flex) */
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+    color: #1e293b;
+    line-height: 1.5;
+    font-size: 10pt;
+  }
+
+  .page {
+    page-break-after: always;
+    min-height: 100%;
+  }
+  .page:last-child { page-break-after: auto; }
+
+  /* ========== COVER PAGE ========== */
   .cover-page {
-    padding: 40px;
-    background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
-    height: 100%;
     display: flex;
     flex-direction: column;
-    gap: 14px;
+    min-height: 100%;
+    padding: 0;
   }
-  .cover-logo { height: 48px; margin-bottom: 8px; }
+
+  .cover-header {
+    margin-bottom: 24px;
+  }
+  .cover-logo {
+    height: 44px;
+    margin-bottom: 20px;
+  }
   .cover-title {
-    font-size: 28pt;
+    font-size: 32pt;
     font-weight: 800;
-    margin: 0;
-    line-height: 1.15;
+    color: #0f172a;
+    line-height: 1.1;
+    margin-bottom: 8px;
+    letter-spacing: -0.02em;
   }
   .cover-subtitle {
     font-size: 14pt;
     color: #475569;
-    margin: 0;
+    font-weight: 400;
   }
   .cover-date {
     font-size: 10pt;
     color: #64748b;
-    margin: 0 0 8px 0;
+    margin-top: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
   }
-  .cover-stats {
-    background: white;
-    border-radius: 10px;
-    padding: 18px 18px;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.10);
-    max-width: 560px;
+
+  .cover-stats-card {
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    padding: 20px 24px;
+    margin: 20px 0;
   }
-  .cover-stats p { margin: 0; font-size: 11.5pt; color: #0f172a; }
-  .how-to-use {
-    background: rgba(255,255,255,0.7);
-    border: 1px solid rgba(148,163,184,0.35);
-    border-radius: 10px;
-    padding: 14px 16px;
-    max-width: 560px;
+  .stats-row {
+    display: flex;
+    gap: 32px;
+    flex-wrap: wrap;
   }
-  .how-to-use h4 {
-    margin: 0 0 6px 0;
+  .stat-item {
+    text-align: left;
+  }
+  .stat-value {
+    font-size: 28pt;
+    font-weight: 800;
+    color: #0f172a;
+    line-height: 1;
+  }
+  .stat-label {
+    font-size: 9pt;
+    color: #64748b;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-top: 4px;
+  }
+
+  .cover-howto {
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-left: 4px solid #3b82f6;
+    border-radius: 8px;
+    padding: 16px 20px;
+    margin: 16px 0;
+  }
+  .cover-howto h4 {
     font-size: 10pt;
-    color: #334155;
     font-weight: 700;
+    color: #1e293b;
+    margin-bottom: 6px;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
   }
-  .how-to-use p { margin: 0; font-size: 9.5pt; color: #475569; }
+  .cover-howto p {
+    font-size: 10pt;
+    color: #475569;
+    line-height: 1.5;
+  }
 
   .cover-footer {
-    margin-top: auto;              /* <- pushes footer to bottom */
-    border-top: 1px solid #cbd5e1;
-    padding-top: 14px;
+    margin-top: auto;
+    border-top: 2px solid #e2e8f0;
+    padding-top: 20px;
   }
-  .cover-contacts {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 14px 24px;
-    margin-bottom: 10px;
+  .contacts-grid {
+    display: flex;
+    gap: 32px;
+    margin-bottom: 16px;
   }
-  .cover-contact strong { display:block; font-size: 10pt; margin-bottom: 2px; }
-  .cover-contact span { font-size: 9pt; color: #334155; }
-  .cover-disclaimer { font-size: 8pt; color: #64748b; margin: 0; }
+  .contact-card {
+    flex: 1;
+  }
+  .contact-name {
+    font-size: 11pt;
+    font-weight: 700;
+    color: #0f172a;
+    margin-bottom: 2px;
+  }
+  .contact-detail {
+    font-size: 9pt;
+    color: #475569;
+  }
+  .cover-disclaimer {
+    font-size: 8pt;
+    color: #94a3b8;
+    border-top: 1px solid #f1f5f9;
+    padding-top: 12px;
+  }
 
-  /* Summary */
-  .summary-page { padding: 8px 0 0 0; }
-  .summary-title { font-size: 16pt; font-weight: 800; margin: 0 0 14px 0; }
-  .summary-note { font-size: 9.5pt; color: #475569; margin: 0 0 10px 0; }
+  /* ========== SUMMARY TABLE ========== */
+  .summary-page {
+    padding-top: 0;
+  }
+  .summary-header {
+    margin-bottom: 16px;
+  }
+  .summary-title {
+    font-size: 20pt;
+    font-weight: 800;
+    color: #0f172a;
+    margin-bottom: 4px;
+  }
+  .summary-subtitle {
+    font-size: 9pt;
+    color: #64748b;
+  }
 
   .summary-table {
     width: 100%;
     border-collapse: collapse;
     font-size: 8.5pt;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    overflow: hidden;
+  }
+  .summary-table thead {
+    background: #1e293b;
+    color: white;
   }
   .summary-table th {
-    background: #f1f5f9;
-    padding: 8px 6px;
+    padding: 10px 8px;
     text-align: left;
-    font-weight: 700;
-    color: #334155;
-    border-bottom: 2px solid #e2e8f0;
-    white-space: nowrap;
+    font-weight: 600;
+    font-size: 8pt;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    border: none;
+  }
+  .summary-table th.num,
+  .summary-table th.center {
+    text-align: center;
   }
   .summary-table td {
-    padding: 8px 6px;
-    border-bottom: 1px solid #e5e7eb;
+    padding: 10px 8px;
+    border-bottom: 1px solid #f1f5f9;
     vertical-align: top;
   }
-  .summary-table tr:nth-child(even) { background: #f9fafb; }
-  .summary-table .num { text-align: right; }
-  .property-cell { min-width: 180px; }
-  .property-cell strong { font-size: 9pt; }
-  .submarket { font-size: 7.5pt; color: #64748b; margin-top: 2px; }
-
-  /* Detail */
-  .detail-page { padding: 18px 0 0 0; }
-  .detail-title { font-size: 22pt; font-weight: 900; margin: 0; }
-  .detail-loc { margin: 6px 0 0 0; color: #475569; font-size: 11pt; }
-  .detail-submarket { margin: 4px 0 0 0; color: #64748b; font-size: 10pt; letter-spacing: 0.02em; text-transform: uppercase; }
-
-  .hr { border-top: 1px solid #e2e8f0; margin: 18px 0; }
-
-  .kv {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 10px 18px;
-    margin-top: 10px;
-  }
-  .kv .item {
+  .summary-table tr.even-row {
     background: #f8fafc;
-    border: 1px solid #e2e8f0;
-    border-radius: 10px;
-    padding: 10px 12px;
   }
-  .kv .k { font-size: 8.5pt; color: #64748b; text-transform: uppercase; letter-spacing: 0.04em; margin: 0 0 4px 0; }
-  .kv .v { font-size: 11pt; font-weight: 800; margin: 0; }
-
-  .notes {
-    background: #f8fafc;
-    border-radius: 10px;
-    padding: 12px 14px;
-    border: 1px solid #e2e8f0;
-    margin-top: 14px;
+  .summary-table .num {
+    text-align: right;
+    font-variant-numeric: tabular-nums;
   }
-  .notes h4 { margin: 0 0 6px 0; font-size: 9.5pt; letter-spacing:0.04em; color:#475569; text-transform: uppercase; }
-  .notes p { margin: 0; font-size: 10pt; color:#334155; }
+  .summary-table .center {
+    text-align: center;
+  }
+  .property-cell {
+    min-width: 160px;
+  }
+  .prop-name {
+    font-weight: 600;
+    color: #0f172a;
+    font-size: 9pt;
+  }
+  .prop-submarket {
+    font-size: 7.5pt;
+    color: #64748b;
+    margin-top: 1px;
+  }
 
-  .contact-block {
-    margin-top: 18px;
-    padding-top: 14px;
-    border-top: 1px solid #e2e8f0;
-    font-size: 9.5pt;
+  /* ========== DETAIL PAGES ========== */
+  .detail-page {
+    padding-top: 0;
+  }
+
+  .detail-header {
+    border-bottom: 2px solid #e2e8f0;
+    padding-bottom: 16px;
+    margin-bottom: 20px;
+  }
+  .detail-title {
+    font-size: 24pt;
+    font-weight: 800;
+    color: #0f172a;
+    line-height: 1.15;
+    margin-bottom: 4px;
+  }
+  .detail-location {
+    font-size: 12pt;
     color: #475569;
   }
-  .contact-grid {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 10px 24px;
-    margin-top: 8px;
+  .detail-submarket {
+    font-size: 10pt;
+    color: #64748b;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-top: 4px;
   }
-  .contact-grid .name { font-weight: 800; color:#0f172a; }
+
+  .specs-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 12px;
+    margin-bottom: 20px;
+  }
+  .spec-card {
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 10px;
+    padding: 14px 16px;
+    text-align: center;
+  }
+  .spec-value {
+    font-size: 18pt;
+    font-weight: 800;
+    color: #0f172a;
+    line-height: 1;
+    margin-bottom: 4px;
+  }
+  .spec-label {
+    font-size: 8pt;
+    color: #64748b;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+
+  .notes-box {
+    background: #fffbeb;
+    border: 1px solid #fcd34d;
+    border-radius: 10px;
+    padding: 16px 20px;
+    margin-bottom: 20px;
+  }
+  .notes-box h4 {
+    font-size: 9pt;
+    font-weight: 700;
+    color: #92400e;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    margin-bottom: 8px;
+  }
+  .notes-box p {
+    font-size: 10pt;
+    color: #78350f;
+    line-height: 1.5;
+  }
+
+  .detail-footer {
+    border-top: 2px solid #e2e8f0;
+    padding-top: 16px;
+    margin-top: auto;
+  }
+  .detail-footer-title {
+    font-size: 9pt;
+    color: #64748b;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    margin-bottom: 10px;
+  }
+  .detail-contacts {
+    display: flex;
+    gap: 32px;
+  }
 </style>
 </head>
 <body>
 
-<!-- Cover -->
+<!-- ========== COVER PAGE ========== -->
 <div class="page cover-page">
-  ${issue.logo_url ? `<img src="${escapeHtml(issue.logo_url)}" class="cover-logo" />` : ""}
-
-  <h1 class="cover-title">${escapeHtml(issue.title)}</h1>
-  <p class="cover-subtitle">Distribution & logistics space in ${escapeHtml(issue.market)}</p>
-  <p class="cover-date">Published ${publishDate}</p>
-
-  <div class="cover-stats">
-    <p>
-      <strong>${issue.total_listings} spaces</strong> above ${issue.size_threshold.toLocaleString()} SF tracked.
-      Earliest availability: <strong>${escapeHtml(earliestAvailability)}</strong>.
-      ${issue.new_count > 0 ? `<strong>${issue.new_count} new</strong> this period.` : ""}
-    </p>
+  <div class="cover-header">
+    ${issue.logo_url ? `<img src="${escapeHtml(issue.logo_url)}" class="cover-logo" />` : ""}
+    <h1 class="cover-title">${escapeHtml(issue.title)}</h1>
+    <p class="cover-subtitle">Large-format distribution & logistics space in ${escapeHtml(issue.market)}</p>
+    <p class="cover-date">Published ${publishDate}</p>
   </div>
 
-  <div class="how-to-use">
-    <h4>How to use this snapshot</h4>
+  <div class="cover-stats-card">
+    <div class="stats-row">
+      <div class="stat-item">
+        <div class="stat-value">${issue.total_listings}</div>
+        <div class="stat-label">Properties</div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-value">${fmtNum(issue.size_threshold)}+</div>
+        <div class="stat-label">SF Minimum</div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-value">${escapeHtml(earliestAvailability)}</div>
+        <div class="stat-label">Earliest Available</div>
+      </div>
+      ${issue.new_count > 0 ? `
+      <div class="stat-item">
+        <div class="stat-value">${issue.new_count}</div>
+        <div class="stat-label">New This Period</div>
+      </div>
+      ` : ""}
+    </div>
+  </div>
+
+  <div class="cover-howto">
+    <h4>How to Use This Snapshot</h4>
     <p>
-      The next pages provide a quick-scan table and then one-page spec sheets per property.
-      If timing is 6–24 months out, ask us early — we can often surface off-market options.
+      Page 2 provides a quick-scan availability summary. Following pages contain one-page spec sheets per property.
+      If your timeline is 6–24 months out, contact us early — we can often surface off-market opportunities before they hit the market.
     </p>
   </div>
 
   <div class="cover-footer">
-    <div class="cover-contacts">
-      <div class="cover-contact">
-        <strong>${escapeHtml(issue.primary_contact_name || "")}</strong>
-        <span>${[issue.primary_contact_email, issue.primary_contact_phone].filter(Boolean).map(escapeHtml).join(" | ")}</span>
-      </div>
-      <div class="cover-contact">
-        <strong>${escapeHtml(issue.secondary_contact_name || "")}</strong>
-        <span>${[issue.secondary_contact_email, issue.secondary_contact_phone].filter(Boolean).map(escapeHtml).join(" | ")}</span>
-      </div>
+    <div class="contacts-grid">
+      ${primaryContactHtml}
+      ${secondaryContactHtml}
     </div>
     <p class="cover-disclaimer">
-      ${escapeHtml(issue.brokerage_name || "")}${issue.brokerage_name ? " | " : ""}Information believed reliable but not guaranteed. Rates and availability subject to change.
+      ${escapeHtml(issue.brokerage_name || "")}${issue.brokerage_name ? " • " : ""}Information believed reliable but not guaranteed. All rates and availability subject to change without notice.
     </p>
   </div>
 </div>
 
-<!-- Summary -->
+<!-- ========== SUMMARY PAGE ========== -->
 <div class="page summary-page">
-  <h2 class="summary-title">Availability Summary</h2>
-  <p class="summary-note">Trailer parking shown only where confirmed. Rates/availability subject to change.</p>
+  <div class="summary-header">
+    <h2 class="summary-title">Availability Summary</h2>
+    <p class="summary-subtitle">Properties above ${fmtNum(issue.size_threshold)} SF • Sorted by size • Rates and availability subject to change</p>
+  </div>
 
   <table class="summary-table">
     <thead>
@@ -386,7 +592,7 @@ function buildPdfHtml(issue: Issue, listings: Listing[]): string {
         <th class="num">Clear</th>
         <th class="num">Dock</th>
         <th class="num">Drive-In</th>
-        <th>Trailer</th>
+        <th class="center">Trailer</th>
         <th>Availability</th>
         <th>Rate</th>
       </tr>
@@ -395,7 +601,7 @@ function buildPdfHtml(issue: Issue, listings: Listing[]): string {
   </table>
 </div>
 
-<!-- Detail pages -->
+<!-- ========== DETAIL PAGES ========== -->
 ${detailPagesHtml}
 
 </body>
@@ -403,54 +609,81 @@ ${detailPagesHtml}
 `;
 }
 
-function buildDetailPage(issue: Issue, l: Listing): string {
+function buildDetailPage(issue: Issue, l: Listing, hasPrimary: boolean, hasSecondary: boolean): string {
   const title = l.display_address || l.address || "";
   const trailer = l.trailer_parking && l.trailer_parking !== "Unknown" ? String(l.trailer_parking) : "—";
 
+  const primaryHtml = hasPrimary ? `
+    <div class="contact-card">
+      <div class="contact-name">${escapeHtml(issue.primary_contact_name || "")}</div>
+      <div class="contact-detail">${escapeHtml(issue.primary_contact_email || "")}</div>
+      <div class="contact-detail">${escapeHtml(issue.primary_contact_phone || "")}</div>
+    </div>
+  ` : "";
+
+  const secondaryHtml = hasSecondary ? `
+    <div class="contact-card">
+      <div class="contact-name">${escapeHtml(issue.secondary_contact_name || "")}</div>
+      <div class="contact-detail">${escapeHtml(issue.secondary_contact_email || "")}</div>
+      <div class="contact-detail">${escapeHtml(issue.secondary_contact_phone || "")}</div>
+    </div>
+  ` : "";
+
   return `
   <div class="page detail-page">
-    <div style="display:flex;align-items:center;gap:10px;">
+    <div class="detail-header">
       <h2 class="detail-title">${escapeHtml(title)}</h2>
-      <span class="badge badge-new">NEW</span>
-    </div>
-    <p class="detail-loc">${escapeHtml(l.city || "")}</p>
-    <p class="detail-submarket">${escapeHtml(l.submarket || "")}</p>
-
-    <div class="hr"></div>
-
-    <div class="kv">
-      <div class="item"><p class="k">Total Area</p><p class="v">${fmtNum(l.size_sf)} SF</p></div>
-      <div class="item"><p class="k">Clear Height</p><p class="v">${l.clear_height_ft ? `${l.clear_height_ft}'` : "—"}</p></div>
-      <div class="item"><p class="k">Dock Doors</p><p class="v">${l.dock_doors ?? "—"}</p></div>
-      <div class="item"><p class="k">Drive-In Doors</p><p class="v">${l.drive_in_doors ?? "—"}</p></div>
-      <div class="item"><p class="k">Trailer Parking</p><p class="v">${escapeHtml(trailer)}</p></div>
-      <div class="item"><p class="k">Availability</p><p class="v">${escapeHtml(l.availability_date || "TBD")}</p></div>
-      <div class="item"><p class="k">Asking Rate</p><p class="v">${escapeHtml(l.asking_rate_psf || "Market")}</p></div>
-      <div class="item"><p class="k">Submarket</p><p class="v">${escapeHtml(l.submarket || "")}</p></div>
+      <p class="detail-location">${escapeHtml(l.city || "")}</p>
+      <p class="detail-submarket">${escapeHtml(l.submarket || "")}</p>
     </div>
 
-    ${
-      l.notes_public
-        ? `
-      <div class="notes">
+    <div class="specs-grid">
+      <div class="spec-card">
+        <div class="spec-value">${fmtNum(l.size_sf)}</div>
+        <div class="spec-label">Total SF</div>
+      </div>
+      <div class="spec-card">
+        <div class="spec-value">${l.clear_height_ft ? `${l.clear_height_ft}'` : "—"}</div>
+        <div class="spec-label">Clear Height</div>
+      </div>
+      <div class="spec-card">
+        <div class="spec-value">${l.dock_doors ?? "—"}</div>
+        <div class="spec-label">Dock Doors</div>
+      </div>
+      <div class="spec-card">
+        <div class="spec-value">${l.drive_in_doors ?? "—"}</div>
+        <div class="spec-label">Drive-In Doors</div>
+      </div>
+      <div class="spec-card">
+        <div class="spec-value">${escapeHtml(trailer)}</div>
+        <div class="spec-label">Trailer Parking</div>
+      </div>
+      <div class="spec-card">
+        <div class="spec-value">${escapeHtml(l.availability_date || "TBD")}</div>
+        <div class="spec-label">Availability</div>
+      </div>
+      <div class="spec-card">
+        <div class="spec-value">${escapeHtml(l.asking_rate_psf || "Market")}</div>
+        <div class="spec-label">Asking Rate</div>
+      </div>
+      <div class="spec-card">
+        <div class="spec-value">${escapeHtml(l.submarket || "—")}</div>
+        <div class="spec-label">Submarket</div>
+      </div>
+    </div>
+
+    ${l.notes_public ? `
+      <div class="notes-box">
         <h4>Notes</h4>
         <p>${escapeHtml(l.notes_public)}</p>
       </div>
-    `
-        : ""
-    }
+    ` : ""}
 
-    <div class="contact-block">
-      For tours / details:
-      <div class="contact-grid">
-        <div>
-          <div class="name">${escapeHtml(issue.primary_contact_name || "")}</div>
-          <div>${[issue.primary_contact_email, issue.primary_contact_phone].filter(Boolean).map(escapeHtml).join(" | ")}</div>
-        </div>
-        <div>
-          <div class="name">${escapeHtml(issue.secondary_contact_name || "")}</div>
-          <div>${[issue.secondary_contact_email, issue.secondary_contact_phone].filter(Boolean).map(escapeHtml).join(" | ")}</div>
-        </div>
+    <div class="detail-footer">
+      <p class="detail-footer-title">For Tours & Details</p>
+      <div class="detail-contacts">
+        ${primaryHtml}
+        ${secondaryHtml}
       </div>
     </div>
   </div>
