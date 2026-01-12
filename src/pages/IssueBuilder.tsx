@@ -37,6 +37,7 @@ export default function IssueBuilder() {
     title: "",
     market: "Calgary Region",
     sizeThreshold: 100000,
+    sizeThresholdMax: 500000,
     sortOrder: "size_desc",
     brokerageName: "ClearView Commercial Realty Inc.",
     logoUrl:
@@ -56,7 +57,9 @@ export default function IssueBuilder() {
   useEffect(() => {
     if (currentStep === 1 && selectedIds.length === 0) {
       const eligible = listings.filter(
-        (l) => l.status === "Active" && l.include_in_issue && l.size_sf >= settings.sizeThreshold,
+        (l) => l.status === "Active" && l.include_in_issue && 
+               l.size_sf >= settings.sizeThreshold && 
+               l.size_sf <= settings.sizeThresholdMax,
       );
       setSelectedIds(eligible.map((l) => l.id));
 
@@ -68,7 +71,7 @@ export default function IssueBuilder() {
       });
       setChangeStatus(statusMap);
     }
-  }, [currentStep, listings, settings.sizeThreshold, getLatestIssue]);
+  }, [currentStep, listings, settings.sizeThreshold, settings.sizeThresholdMax, getLatestIssue]);
 
   const canProceed = () => {
     switch (currentStep) {

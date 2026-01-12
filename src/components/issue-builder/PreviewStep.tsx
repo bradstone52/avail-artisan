@@ -37,9 +37,9 @@ export function PreviewStep({
   const issueTitle = settings.title || "Large-Format Distribution Availability";
   const market = settings.market || "Calgary Region";
   const sizeThreshold = settings.sizeThreshold?.toLocaleString() || "100,000";
+  const sizeThresholdMax = settings.sizeThresholdMax?.toLocaleString() || "500,000";
   
   const newCount = Object.values(changeStatus).filter(s => s === 'new').length;
-  const earliest = computeEarliestAvailability(selectedListings);
 
   const primary = {
     name: settings.primaryContactName || DEFAULT_PRIMARY.name,
@@ -52,9 +52,6 @@ export function PreviewStep({
     email: settings.secondaryContactEmail || DEFAULT_SECONDARY.email,
     phone: settings.secondaryContactPhone || DEFAULT_SECONDARY.phone,
   };
-
-  const sizeRanges = computeSizeDistribution(sortedListings);
-  const timeline = computeAvailabilityTimeline(sortedListings);
 
   return (
     <div className="space-y-6 animate-fade-in">
@@ -84,85 +81,33 @@ export function PreviewStep({
           <div className="mb-10">
             <h1 className="text-display mb-3">{issueTitle}</h1>
             <p className="text-subhead text-muted-foreground">
-              {market} · {sizeThreshold}+ SF
+              {market} · {sizeThreshold}–{sizeThresholdMax} SF
             </p>
           </div>
 
-          {/* Stats Row */}
-          <div className="grid grid-cols-3 gap-3 mb-8">
-            <div className="brutalist-stat">
+          {/* Stats Row - Only 2 stats: Tracked and New */}
+          <div className="grid grid-cols-2 gap-4 mb-10">
+            <div className="brutalist-stat" style={{ padding: '20px 24px' }}>
               <div className="brutalist-stat-label">Tracked</div>
-              <div className="brutalist-stat-value">{selectedListings.length}</div>
+              <div className="brutalist-stat-value text-4xl">{selectedListings.length}</div>
             </div>
-            <div className="brutalist-stat">
-              <div className="brutalist-stat-label">Earliest</div>
-              <div className="text-xl font-black mt-1">{earliest}</div>
-            </div>
-            <div className="brutalist-stat">
+            <div className="brutalist-stat" style={{ padding: '20px 24px' }}>
               <div className="brutalist-stat-label">New</div>
-              <div className="brutalist-stat-value">{newCount}</div>
+              <div className="brutalist-stat-value text-4xl">{newCount}</div>
             </div>
           </div>
 
-          {/* Charts Row */}
-          {(sizeRanges.length > 0 || timeline.length > 0) && (
-            <div className="grid grid-cols-2 gap-3 mb-8">
-              {sizeRanges.length > 0 && (
-                <div className="brutalist-chart">
-                  <div className="brutalist-chart-title">Size Distribution</div>
-                  {sizeRanges.map((item) => (
-                    <div key={item.label} className="brutalist-chart-row">
-                      <div className="brutalist-chart-label">{item.label}</div>
-                      <div className="brutalist-chart-bar-bg">
-                        <div className="brutalist-chart-bar" style={{ width: `${item.pct}%` }} />
-                      </div>
-                      <div className="brutalist-chart-value">{item.count}</div>
-                    </div>
-                  ))}
-                </div>
-              )}
-              {timeline.length > 0 && (
-                <div className="brutalist-chart">
-                  <div className="brutalist-chart-title">Availability Timeline</div>
-                  {timeline.map((item) => (
-                    <div key={item.label} className="brutalist-chart-row">
-                      <div className="brutalist-chart-label">{item.label}</div>
-                      <div className="brutalist-chart-bar-bg">
-                        <div className="brutalist-chart-bar" style={{ width: `${item.pct}%` }} />
-                      </div>
-                      <div className="brutalist-chart-value">{item.count}</div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* How to Use */}
-          <div className="brutalist-section mb-8">
-            <div className="brutalist-section-header">
-              <span className="text-xs font-bold uppercase tracking-wider">How to Use This</span>
-            </div>
-            <div className="brutalist-section-body">
-              <p className="text-sm leading-relaxed">
-                The summary table on the next page lists all tracked availabilities.
-                If any space fits your criteria, reply with the property address and we'll
-                confirm timing, trailer parking, and arrange a tour.
-              </p>
-            </div>
-          </div>
-
-          {/* Contacts */}
-          <div className="grid grid-cols-2 gap-6 pt-6 border-t-2 border-foreground">
+          {/* Contacts - Two distinct columns with clear spacing */}
+          <div className="grid grid-cols-2 gap-8 pt-8 border-t-2 border-foreground mt-auto">
             <div className="contact-block">
-              <div className="contact-name">{primary.name}</div>
-              <div className="contact-detail">{primary.email}</div>
-              {primary.phone && <div className="contact-detail">{primary.phone}</div>}
+              <div className="contact-name text-base font-bold mb-1">{primary.name}</div>
+              <div className="contact-detail text-sm">{primary.email}</div>
+              {primary.phone && <div className="contact-detail text-sm">{primary.phone}</div>}
             </div>
             <div className="contact-block">
-              <div className="contact-name">{secondary.name}</div>
-              <div className="contact-detail">{secondary.email}</div>
-              {secondary.phone && <div className="contact-detail">{secondary.phone}</div>}
+              <div className="contact-name text-base font-bold mb-1">{secondary.name}</div>
+              <div className="contact-detail text-sm">{secondary.email}</div>
+              {secondary.phone && <div className="contact-detail text-sm">{secondary.phone}</div>}
             </div>
           </div>
         </div>
@@ -172,7 +117,7 @@ export function PreviewStep({
           <div className="flex justify-between items-end mb-4">
             <div>
               <h2 className="text-headline">Availability Summary</h2>
-              <p className="text-caption mt-1">{market} · Threshold: {sizeThreshold} SF</p>
+              <p className="text-caption mt-1">{market} · {sizeThreshold}–{sizeThresholdMax} SF</p>
             </div>
             <div className="text-micro">{selectedListings.length} Properties</div>
           </div>
@@ -181,14 +126,14 @@ export function PreviewStep({
             <table className="brutalist-table">
               <thead>
                 <tr>
-                  <th style={{ width: '28%' }}>Property / Submarket</th>
+                  <th style={{ width: '26%' }}>Property / Submarket</th>
+                  <th style={{ width: '12%' }}>City</th>
                   <th className="num" style={{ width: '10%' }}>Size (SF)</th>
                   <th className="num" style={{ width: '9%' }}>Clear</th>
-                  <th className="num" style={{ width: '8%' }}>Dock</th>
-                  <th className="num" style={{ width: '8%' }}>Drive</th>
+                  <th className="num" style={{ width: '9%' }}>Dock</th>
+                  <th className="num" style={{ width: '9%' }}>Drive</th>
                   <th style={{ width: '10%' }}>Trailer</th>
-                  <th style={{ width: '13%' }}>Avail.</th>
-                  <th style={{ width: '14%' }}>Rate</th>
+                  <th style={{ width: '15%' }}>Avail.</th>
                 </tr>
               </thead>
               <tbody>
@@ -201,6 +146,9 @@ export function PreviewStep({
                       <div className="text-xs text-muted-foreground mt-0.5">
                         {listing.submarket}
                       </div>
+                    </td>
+                    <td className="text-sm">
+                      {listing.city || '—'}
                     </td>
                     <td className="num font-medium">
                       {listing.size_sf.toLocaleString()}
@@ -220,9 +168,6 @@ export function PreviewStep({
                     <td>
                       {listing.availability_date || '—'}
                     </td>
-                    <td>
-                      {listing.asking_rate_psf || 'Market'}
-                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -236,7 +181,7 @@ export function PreviewStep({
           )}
 
           <p className="text-xs text-muted-foreground mt-6">
-            Information believed reliable but not guaranteed. Rates and availability subject to change.
+            Information believed reliable but not guaranteed. Availability subject to change.
           </p>
         </div>
 
@@ -280,10 +225,6 @@ export function PreviewStep({
                 <div className="brutalist-stat-label">Availability</div>
                 <div className="text-2xl font-black">{listing.availability_date || '—'}</div>
               </div>
-              <div className="brutalist-stat col-span-2">
-                <div className="brutalist-stat-label">Asking Rate</div>
-                <div className="text-2xl font-black">{listing.asking_rate_psf || 'Market'}</div>
-              </div>
             </div>
 
             {(listing.notes_public || executiveNotes[listing.id]) && (
@@ -299,16 +240,16 @@ export function PreviewStep({
               </div>
             )}
 
-            <div className="grid grid-cols-2 gap-6 pt-6 border-t-2 border-foreground mt-auto">
+            <div className="grid grid-cols-2 gap-8 pt-6 border-t-2 border-foreground mt-auto">
               <div className="contact-block">
-                <div className="contact-name">{primary.name}</div>
-                <div className="contact-detail">{primary.email}</div>
-                {primary.phone && <div className="contact-detail">{primary.phone}</div>}
+                <div className="contact-name text-base font-bold mb-1">{primary.name}</div>
+                <div className="contact-detail text-sm">{primary.email}</div>
+                {primary.phone && <div className="contact-detail text-sm">{primary.phone}</div>}
               </div>
               <div className="contact-block">
-                <div className="contact-name">{secondary.name}</div>
-                <div className="contact-detail">{secondary.email}</div>
-                {secondary.phone && <div className="contact-detail">{secondary.phone}</div>}
+                <div className="contact-name text-base font-bold mb-1">{secondary.name}</div>
+                <div className="contact-detail text-sm">{secondary.email}</div>
+                {secondary.phone && <div className="contact-detail text-sm">{secondary.phone}</div>}
               </div>
             </div>
           </div>
@@ -327,112 +268,4 @@ function normalizeYesNo(v: string | null | undefined): string {
   if (['no', 'n', 'false', '0'].includes(s)) return 'No';
   if (['unknown', 'tbd'].includes(s)) return '—';
   return v || '—';
-}
-
-function computeEarliestAvailability(listings: Listing[]): string {
-  const rank = (v: string | null) => {
-    const s = (v || '').toLowerCase().trim();
-    if (!s || s === 'tbd' || s === 'unknown') return 999999;
-    if (s.includes('immediate') || s.includes('now')) return 0;
-    const t = Date.parse(v || '');
-    if (!Number.isNaN(t)) return t;
-    const m = s.match(/q([1-4])\s*(20\d{2})/i);
-    if (m) {
-      const q = Number(m[1]);
-      const y = Number(m[2]);
-      return Date.UTC(y, (q - 1) * 3, 1);
-    }
-    return 900000;
-  };
-
-  let best = 'TBD';
-  let bestRank = 9999999;
-
-  for (const l of listings) {
-    const v = l.availability_date || 'TBD';
-    const r = rank(v);
-    if (r < bestRank) {
-      bestRank = r;
-      best = v;
-    }
-  }
-  return best;
-}
-
-function computeSizeDistribution(listings: Listing[]): Array<{ label: string; count: number; pct: number }> {
-  const ranges = [
-    { min: 100000, max: 149999, label: '100-150K' },
-    { min: 150000, max: 199999, label: '150-200K' },
-    { min: 200000, max: 299999, label: '200-300K' },
-    { min: 300000, max: Infinity, label: '300K+' },
-  ];
-
-  const counts = ranges.map(r => ({
-    label: r.label,
-    count: listings.filter(l => {
-      const sf = l.size_sf || 0;
-      return sf >= r.min && sf <= r.max;
-    }).length,
-  }));
-
-  const maxCount = Math.max(...counts.map(c => c.count), 1);
-  return counts.filter(c => c.count > 0).map(c => ({
-    ...c,
-    pct: Math.round((c.count / maxCount) * 100),
-  }));
-}
-
-function computeAvailabilityTimeline(listings: Listing[]): Array<{ label: string; count: number; pct: number }> {
-  const now = new Date();
-  const sixMonths = new Date(now);
-  sixMonths.setMonth(sixMonths.getMonth() + 6);
-  const twelveMonths = new Date(now);
-  twelveMonths.setMonth(twelveMonths.getMonth() + 12);
-  const twentyFourMonths = new Date(now);
-  twentyFourMonths.setMonth(twentyFourMonths.getMonth() + 24);
-
-  let immediate = 0;
-  let sixToTwelve = 0;
-  let twelveTo24 = 0;
-  let later = 0;
-
-  for (const l of listings) {
-    const av = (l.availability_date || '').toLowerCase().trim();
-    if (!av || av === 'tbd' || av === 'unknown') {
-      later++;
-      continue;
-    }
-    if (av.includes('immediate') || av.includes('now')) {
-      immediate++;
-      continue;
-    }
-    const parsed = Date.parse(l.availability_date || '');
-    if (!Number.isNaN(parsed)) {
-      const d = new Date(parsed);
-      if (d <= sixMonths) {
-        immediate++;
-      } else if (d <= twelveMonths) {
-        sixToTwelve++;
-      } else if (d <= twentyFourMonths) {
-        twelveTo24++;
-      } else {
-        later++;
-      }
-    } else {
-      later++;
-    }
-  }
-
-  const results = [
-    { label: 'Immediate', count: immediate },
-    { label: '6-12 mo', count: sixToTwelve },
-    { label: '12-24 mo', count: twelveTo24 },
-    { label: 'Later', count: later },
-  ];
-
-  const maxCount = Math.max(...results.map(r => r.count), 1);
-  return results.filter(r => r.count > 0).map(r => ({
-    ...r,
-    pct: Math.round((r.count / maxCount) * 100),
-  }));
 }
