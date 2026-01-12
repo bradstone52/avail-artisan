@@ -7,14 +7,29 @@ interface PreviewStepProps {
   selectedIds: string[];
   executiveNotes: Record<string, string>;
   changeStatus: Record<string, 'new' | 'changed' | 'unchanged'>;
+  includeDetails?: boolean;
 }
+
+// Default contacts
+const DEFAULT_PRIMARY = {
+  name: "Brad Stone",
+  email: "brad@cvpartners.ca",
+  phone: "(403) 613-2898",
+};
+
+const DEFAULT_SECONDARY = {
+  name: "Doug Johannson",
+  email: "doug@cvpartners.ca",
+  phone: "(403) 470-8875",
+};
 
 export function PreviewStep({ 
   settings, 
   listings, 
   selectedIds, 
   executiveNotes,
-  changeStatus 
+  changeStatus,
+  includeDetails = false,
 }: PreviewStepProps) {
   const selectedListings = listings.filter(l => selectedIds.includes(l.id));
   const sortedListings = [...selectedListings].sort((a, b) => b.size_sf - a.size_sf);
@@ -27,171 +42,185 @@ export function PreviewStep({
   const earliest = computeEarliestAvailability(selectedListings);
 
   const primary = {
-    name: settings.primaryContactName || "Brad Stone",
-    email: settings.primaryContactEmail || "brad@cvpartners.ca",
-    phone: settings.primaryContactPhone || "(403) 613-2898",
+    name: settings.primaryContactName || DEFAULT_PRIMARY.name,
+    email: settings.primaryContactEmail || DEFAULT_PRIMARY.email,
+    phone: settings.primaryContactPhone || DEFAULT_PRIMARY.phone,
   };
 
   const secondary = {
-    name: settings.secondaryContactName || "Doug Johannson",
-    email: settings.secondaryContactEmail || "doug@cvpartners.ca",
-    phone: settings.secondaryContactPhone || "",
+    name: settings.secondaryContactName || DEFAULT_SECONDARY.name,
+    email: settings.secondaryContactEmail || DEFAULT_SECONDARY.email,
+    phone: settings.secondaryContactPhone || DEFAULT_SECONDARY.phone,
   };
 
-  // Chart data
   const sizeRanges = computeSizeDistribution(sortedListings);
   const timeline = computeAvailabilityTimeline(sortedListings);
 
   return (
     <div className="space-y-6 animate-fade-in">
       <div>
-        <h2 className="text-xl font-semibold text-foreground mb-1">Preview</h2>
-        <p className="text-muted-foreground text-sm">
+        <h2 className="text-headline mb-1">Preview</h2>
+        <p className="text-caption">
           Review your market snapshot before generating the PDF
         </p>
       </div>
 
-      {/* PDF Preview Container */}
-      <div className="border border-border rounded-lg overflow-hidden bg-white">
+      {/* Neo-Brutalist Document Preview */}
+      <div className="document-wrapper">
         
-        {/* Page 1: Cover */}
-        <div className="p-8 border-b border-border">
+        {/* PAGE 1: COVER */}
+        <div className="document-page">
           {/* Header */}
-          <div className="flex justify-between items-start mb-8">
-            <div>
-              {settings.logoUrl ? (
-                <img src={settings.logoUrl} alt="Logo" className="h-7 object-contain" />
-              ) : (
-                <span className="text-sm font-semibold text-foreground">ClearView Commercial Realty Inc.</span>
-              )}
+          <div className="flex justify-between items-start mb-10">
+            <div className="brutalist-badge">
+              ClearView Commercial Realty Inc.
             </div>
-            <span className="text-sm text-muted-foreground">
-              {format(new Date(), 'MMMM d, yyyy')}
-            </span>
+            <div className="text-micro">
+              Published {format(new Date(), 'MMMM d, yyyy')}
+            </div>
           </div>
 
           {/* Title */}
-          <h1 className="text-3xl font-bold text-foreground mb-2 tracking-tight">
-            {issueTitle}
-          </h1>
-          <p className="text-lg text-muted-foreground mb-10">
-            {market} · {sizeThreshold}+ SF
-          </p>
+          <div className="mb-10">
+            <h1 className="text-display mb-3">{issueTitle}</h1>
+            <p className="text-subhead text-muted-foreground">
+              {market} · {sizeThreshold}+ SF
+            </p>
+          </div>
 
           {/* Stats Row */}
-          <div className="grid grid-cols-3 gap-4 mb-8">
-            <StatBox label="Total Spaces Tracked" value={String(selectedListings.length)} />
-            <StatBox label="Earliest Availability" value={earliest} />
-            <StatBox label="New This Period" value={String(newCount)} />
-          </div>
-
-          {/* How to Use */}
-          <div className="bg-muted/50 border border-border rounded-md p-4 mb-8">
-            <p className="text-xs font-semibold text-foreground uppercase tracking-wide mb-2">
-              How to Use This Report
-            </p>
-            <p className="text-sm text-muted-foreground leading-relaxed">
-              Review the summary table on the next page to identify properties that meet your criteria.
-              Reply with the property address or listing ID for tours, timing confirmation, or additional details.
-            </p>
-          </div>
-
-          {/* Footer Contacts */}
-          <div className="border-t border-border pt-5 grid grid-cols-2 gap-6">
-            <ContactBlock name={primary.name} email={primary.email} phone={primary.phone} />
-            <ContactBlock name={secondary.name} email={secondary.email} phone={secondary.phone} />
-          </div>
-        </div>
-
-        {/* Page 2: Summary Table */}
-        <div className="p-8">
-          {/* Header */}
-          <div className="flex justify-between items-end mb-4">
-            <div>
-              <h2 className="text-xl font-bold text-foreground">Availability Summary</h2>
-              <p className="text-xs text-muted-foreground mt-1">
-                Sorted by size · Trailer shown only where confirmed · "Market" = rate not stated
-              </p>
+          <div className="grid grid-cols-3 gap-3 mb-8">
+            <div className="brutalist-stat">
+              <div className="brutalist-stat-label">Tracked</div>
+              <div className="brutalist-stat-value">{selectedListings.length}</div>
             </div>
-            <div className="bg-muted/50 border border-border rounded px-3 py-2 text-right">
-              <p className="text-sm font-semibold text-foreground">{market}</p>
-              <p className="text-xs text-muted-foreground">{sizeThreshold}+ SF</p>
+            <div className="brutalist-stat">
+              <div className="brutalist-stat-label">Earliest</div>
+              <div className="text-xl font-black mt-1">{earliest}</div>
+            </div>
+            <div className="brutalist-stat">
+              <div className="brutalist-stat-label">New</div>
+              <div className="brutalist-stat-value">{newCount}</div>
             </div>
           </div>
 
-          {/* Charts */}
+          {/* Charts Row */}
           {(sizeRanges.length > 0 || timeline.length > 0) && (
-            <div className="grid grid-cols-2 gap-4 mb-6">
+            <div className="grid grid-cols-2 gap-3 mb-8">
               {sizeRanges.length > 0 && (
-                <ChartBox title="By Size Range" data={sizeRanges} />
+                <div className="brutalist-chart">
+                  <div className="brutalist-chart-title">Size Distribution</div>
+                  {sizeRanges.map((item) => (
+                    <div key={item.label} className="brutalist-chart-row">
+                      <div className="brutalist-chart-label">{item.label}</div>
+                      <div className="brutalist-chart-bar-bg">
+                        <div className="brutalist-chart-bar" style={{ width: `${item.pct}%` }} />
+                      </div>
+                      <div className="brutalist-chart-value">{item.count}</div>
+                    </div>
+                  ))}
+                </div>
               )}
               {timeline.length > 0 && (
-                <ChartBox title="By Availability Timeline" data={timeline} />
+                <div className="brutalist-chart">
+                  <div className="brutalist-chart-title">Availability Timeline</div>
+                  {timeline.map((item) => (
+                    <div key={item.label} className="brutalist-chart-row">
+                      <div className="brutalist-chart-label">{item.label}</div>
+                      <div className="brutalist-chart-bar-bg">
+                        <div className="brutalist-chart-bar" style={{ width: `${item.pct}%` }} />
+                      </div>
+                      <div className="brutalist-chart-value">{item.count}</div>
+                    </div>
+                  ))}
+                </div>
               )}
             </div>
           )}
 
-          {/* Table */}
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
+          {/* How to Use */}
+          <div className="brutalist-section mb-8">
+            <div className="brutalist-section-header">
+              <span className="text-xs font-bold uppercase tracking-wider">How to Use This</span>
+            </div>
+            <div className="brutalist-section-body">
+              <p className="text-sm leading-relaxed">
+                The summary table on the next page lists all tracked availabilities.
+                If any space fits your criteria, reply with the property address and we'll
+                confirm timing, trailer parking, and arrange a tour.
+              </p>
+            </div>
+          </div>
+
+          {/* Contacts */}
+          <div className="grid grid-cols-2 gap-6 pt-6 border-t-2 border-foreground">
+            <div className="contact-block">
+              <div className="contact-name">{primary.name}</div>
+              <div className="contact-detail">{primary.email}</div>
+              {primary.phone && <div className="contact-detail">{primary.phone}</div>}
+            </div>
+            <div className="contact-block">
+              <div className="contact-name">{secondary.name}</div>
+              <div className="contact-detail">{secondary.email}</div>
+              {secondary.phone && <div className="contact-detail">{secondary.phone}</div>}
+            </div>
+          </div>
+        </div>
+
+        {/* PAGE 2: SUMMARY TABLE */}
+        <div className="document-page">
+          <div className="flex justify-between items-end mb-4">
+            <div>
+              <h2 className="text-headline">Availability Summary</h2>
+              <p className="text-caption mt-1">{market} · Threshold: {sizeThreshold} SF</p>
+            </div>
+            <div className="text-micro">{selectedListings.length} Properties</div>
+          </div>
+
+          <div className="brutalist-section">
+            <table className="brutalist-table">
               <thead>
-                <tr className="bg-muted/50">
-                  <th className="text-left px-3 py-2 text-xs font-semibold text-muted-foreground uppercase tracking-wide">
-                    Property / Submarket
-                  </th>
-                  <th className="text-right px-3 py-2 text-xs font-semibold text-muted-foreground uppercase tracking-wide">
-                    Size (SF)
-                  </th>
-                  <th className="text-right px-3 py-2 text-xs font-semibold text-muted-foreground uppercase tracking-wide">
-                    Clear Height
-                  </th>
-                  <th className="text-right px-3 py-2 text-xs font-semibold text-muted-foreground uppercase tracking-wide">
-                    Dock
-                  </th>
-                  <th className="text-right px-3 py-2 text-xs font-semibold text-muted-foreground uppercase tracking-wide">
-                    Drive-In
-                  </th>
-                  <th className="px-3 py-2 text-xs font-semibold text-muted-foreground uppercase tracking-wide">
-                    Trailer
-                  </th>
-                  <th className="px-3 py-2 text-xs font-semibold text-muted-foreground uppercase tracking-wide">
-                    Availability
-                  </th>
-                  <th className="px-3 py-2 text-xs font-semibold text-muted-foreground uppercase tracking-wide">
-                    Rate
-                  </th>
+                <tr>
+                  <th style={{ width: '28%' }}>Property / Submarket</th>
+                  <th className="num" style={{ width: '10%' }}>Size (SF)</th>
+                  <th className="num" style={{ width: '9%' }}>Clear</th>
+                  <th className="num" style={{ width: '8%' }}>Dock</th>
+                  <th className="num" style={{ width: '8%' }}>Drive</th>
+                  <th style={{ width: '10%' }}>Trailer</th>
+                  <th style={{ width: '13%' }}>Avail.</th>
+                  <th style={{ width: '14%' }}>Rate</th>
                 </tr>
               </thead>
               <tbody>
-                {sortedListings.slice(0, 10).map((listing, idx) => (
-                  <tr key={listing.id} className={idx % 2 === 1 ? 'bg-muted/30' : ''}>
-                    <td className="px-3 py-2.5">
-                      <span className="font-semibold text-foreground block">
+                {sortedListings.slice(0, 12).map((listing) => (
+                  <tr key={listing.id}>
+                    <td>
+                      <div className="font-bold text-sm">
                         {listing.property_name || listing.address}
-                      </span>
-                      <span className="text-xs text-muted-foreground">
+                      </div>
+                      <div className="text-xs text-muted-foreground mt-0.5">
                         {listing.submarket}
-                      </span>
+                      </div>
                     </td>
-                    <td className="text-right px-3 py-2.5 text-foreground">
+                    <td className="num font-medium">
                       {listing.size_sf.toLocaleString()}
                     </td>
-                    <td className="text-right px-3 py-2.5 text-foreground">
+                    <td className="num">
                       {listing.clear_height_ft ? `${listing.clear_height_ft}'` : '—'}
                     </td>
-                    <td className="text-right px-3 py-2.5 text-foreground">
+                    <td className="num">
                       {listing.dock_doors ?? '—'}
                     </td>
-                    <td className="text-right px-3 py-2.5 text-foreground">
+                    <td className="num">
                       {listing.drive_in_doors ?? '—'}
                     </td>
-                    <td className="px-3 py-2.5 text-foreground">
+                    <td>
                       {normalizeYesNo(listing.trailer_parking)}
                     </td>
-                    <td className="px-3 py-2.5 text-foreground">
-                      {listing.availability_date || 'TBD'}
+                    <td>
+                      {listing.availability_date || '—'}
                     </td>
-                    <td className="px-3 py-2.5 text-foreground">
+                    <td>
                       {listing.asking_rate_psf || 'Market'}
                     </td>
                   </tr>
@@ -200,59 +229,88 @@ export function PreviewStep({
             </table>
           </div>
 
-          {sortedListings.length > 10 && (
-            <p className="text-center text-sm text-muted-foreground mt-4">
-              + {sortedListings.length - 10} more properties in full PDF
+          {sortedListings.length > 12 && (
+            <p className="text-center text-caption mt-4">
+              + {sortedListings.length - 12} more properties in full PDF
             </p>
           )}
 
-          {/* Footer Note */}
           <p className="text-xs text-muted-foreground mt-6">
             Information believed reliable but not guaranteed. Rates and availability subject to change.
           </p>
         </div>
-      </div>
-    </div>
-  );
-}
 
-// ============ Sub-components ============
-
-function StatBox({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="bg-muted/50 border border-border rounded-md p-4">
-      <p className="text-xs text-muted-foreground uppercase tracking-wide mb-1">{label}</p>
-      <p className="text-2xl font-bold text-foreground">{value}</p>
-    </div>
-  );
-}
-
-function ContactBlock({ name, email, phone }: { name: string; email: string; phone?: string }) {
-  return (
-    <div>
-      <p className="text-sm font-semibold text-foreground">{name}</p>
-      <p className="text-sm text-muted-foreground">
-        {email}{phone ? ` · ${phone}` : ''}
-      </p>
-    </div>
-  );
-}
-
-function ChartBox({ title, data }: { title: string; data: Array<{ label: string; count: number; pct: number }> }) {
-  return (
-    <div className="bg-muted/50 border border-border rounded-md p-4">
-      <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-3">{title}</p>
-      <div className="space-y-2">
-        {data.map((item) => (
-          <div key={item.label} className="flex items-center gap-2">
-            <span className="text-xs text-muted-foreground w-20 flex-shrink-0">{item.label}</span>
-            <div className="flex-1 h-3 bg-border rounded overflow-hidden">
-              <div 
-                className="h-full bg-primary rounded" 
-                style={{ width: `${item.pct}%` }} 
-              />
+        {/* DETAIL PAGES (Optional) */}
+        {includeDetails && sortedListings.map((listing) => (
+          <div key={`detail-${listing.id}`} className="document-page">
+            <div className="mb-6">
+              <h2 className="text-headline mb-1">
+                {listing.property_name || listing.address}
+              </h2>
+              <p className="text-caption">
+                {[listing.city, listing.submarket].filter(Boolean).join(' · ')}
+              </p>
+              <p className="text-micro mt-2">ID: {listing.listing_id}</p>
             </div>
-            <span className="text-xs font-semibold text-foreground w-6 text-right">{item.count}</span>
+
+            <div className="grid grid-cols-2 gap-3 mb-6">
+              <div className="brutalist-stat">
+                <div className="brutalist-stat-label">Total Area</div>
+                <div className="text-2xl font-black">{listing.size_sf.toLocaleString()} SF</div>
+              </div>
+              <div className="brutalist-stat">
+                <div className="brutalist-stat-label">Clear Height</div>
+                <div className="text-2xl font-black">
+                  {listing.clear_height_ft ? `${listing.clear_height_ft}'` : '—'}
+                </div>
+              </div>
+              <div className="brutalist-stat">
+                <div className="brutalist-stat-label">Dock Doors</div>
+                <div className="text-2xl font-black">{listing.dock_doors ?? '—'}</div>
+              </div>
+              <div className="brutalist-stat">
+                <div className="brutalist-stat-label">Drive-In Doors</div>
+                <div className="text-2xl font-black">{listing.drive_in_doors ?? '—'}</div>
+              </div>
+              <div className="brutalist-stat">
+                <div className="brutalist-stat-label">Trailer Parking</div>
+                <div className="text-2xl font-black">{normalizeYesNo(listing.trailer_parking)}</div>
+              </div>
+              <div className="brutalist-stat">
+                <div className="brutalist-stat-label">Availability</div>
+                <div className="text-2xl font-black">{listing.availability_date || '—'}</div>
+              </div>
+              <div className="brutalist-stat col-span-2">
+                <div className="brutalist-stat-label">Asking Rate</div>
+                <div className="text-2xl font-black">{listing.asking_rate_psf || 'Market'}</div>
+              </div>
+            </div>
+
+            {(listing.notes_public || executiveNotes[listing.id]) && (
+              <div className="brutalist-section mb-6">
+                <div className="brutalist-section-header">
+                  <span className="text-xs font-bold uppercase tracking-wider">Notes</span>
+                </div>
+                <div className="brutalist-section-body">
+                  <p className="text-sm leading-relaxed">
+                    {executiveNotes[listing.id] || listing.notes_public}
+                  </p>
+                </div>
+              </div>
+            )}
+
+            <div className="grid grid-cols-2 gap-6 pt-6 border-t-2 border-foreground mt-auto">
+              <div className="contact-block">
+                <div className="contact-name">{primary.name}</div>
+                <div className="contact-detail">{primary.email}</div>
+                {primary.phone && <div className="contact-detail">{primary.phone}</div>}
+              </div>
+              <div className="contact-block">
+                <div className="contact-name">{secondary.name}</div>
+                <div className="contact-detail">{secondary.email}</div>
+                {secondary.phone && <div className="contact-detail">{secondary.phone}</div>}
+              </div>
+            </div>
           </div>
         ))}
       </div>
@@ -303,10 +361,10 @@ function computeEarliestAvailability(listings: Listing[]): string {
 
 function computeSizeDistribution(listings: Listing[]): Array<{ label: string; count: number; pct: number }> {
   const ranges = [
-    { min: 100000, max: 199999, label: '100–200K' },
-    { min: 200000, max: 299999, label: '200–300K' },
-    { min: 300000, max: 499999, label: '300–500K' },
-    { min: 500000, max: Infinity, label: '500K+' },
+    { min: 100000, max: 149999, label: '100-150K' },
+    { min: 150000, max: 199999, label: '150-200K' },
+    { min: 200000, max: 299999, label: '200-300K' },
+    { min: 300000, max: Infinity, label: '300K+' },
   ];
 
   const counts = ranges.map(r => ({
@@ -330,16 +388,18 @@ function computeAvailabilityTimeline(listings: Listing[]): Array<{ label: string
   sixMonths.setMonth(sixMonths.getMonth() + 6);
   const twelveMonths = new Date(now);
   twelveMonths.setMonth(twelveMonths.getMonth() + 12);
+  const twentyFourMonths = new Date(now);
+  twentyFourMonths.setMonth(twentyFourMonths.getMonth() + 24);
 
   let immediate = 0;
   let sixToTwelve = 0;
-  let twelvePlus = 0;
-  let tbd = 0;
+  let twelveTo24 = 0;
+  let later = 0;
 
   for (const l of listings) {
     const av = (l.availability_date || '').toLowerCase().trim();
     if (!av || av === 'tbd' || av === 'unknown') {
-      tbd++;
+      later++;
       continue;
     }
     if (av.includes('immediate') || av.includes('now')) {
@@ -353,23 +413,22 @@ function computeAvailabilityTimeline(listings: Listing[]): Array<{ label: string
         immediate++;
       } else if (d <= twelveMonths) {
         sixToTwelve++;
+      } else if (d <= twentyFourMonths) {
+        twelveTo24++;
       } else {
-        twelvePlus++;
+        later++;
       }
     } else {
-      tbd++;
+      later++;
     }
   }
 
   const results = [
     { label: 'Immediate', count: immediate },
-    { label: '6–12 Mo', count: sixToTwelve },
-    { label: '12+ Mo', count: twelvePlus },
+    { label: '6-12 mo', count: sixToTwelve },
+    { label: '12-24 mo', count: twelveTo24 },
+    { label: 'Later', count: later },
   ];
-
-  if (tbd > 0) {
-    results.push({ label: 'TBD', count: tbd });
-  }
 
   const maxCount = Math.max(...results.map(r => r.count), 1);
   return results.filter(r => r.count > 0).map(r => ({
