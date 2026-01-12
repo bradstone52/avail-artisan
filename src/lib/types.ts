@@ -89,6 +89,7 @@ export interface IssueSettings {
   title: string;
   market: string;
   sizeThreshold: number;
+  sizeThresholdMax: number;
   sortOrder: 'size_desc' | 'size_asc' | 'availability_asc' | 'availability_desc';
   brokerageName: string;
   logoUrl: string;

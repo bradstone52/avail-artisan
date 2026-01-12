@@ -51,19 +51,19 @@ export function IssueSettingsStep({ settings, onChange }: IssueSettingsStepProps
           </p>
         </div>
 
+        <div className="space-y-2">
+          <Label htmlFor="market">Market</Label>
+          <Input
+            id="market"
+            placeholder="Calgary Region"
+            value={settings.market}
+            onChange={(e) => updateField('market', e.target.value)}
+          />
+        </div>
+
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div className="space-y-2">
-            <Label htmlFor="market">Market</Label>
-            <Input
-              id="market"
-              placeholder="Calgary Region"
-              value={settings.market}
-              onChange={(e) => updateField('market', e.target.value)}
-            />
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="threshold">Size Threshold (SF)</Label>
+            <Label htmlFor="threshold">Minimum SF</Label>
             <Input
               id="threshold"
               type="number"
@@ -72,7 +72,21 @@ export function IssueSettingsStep({ settings, onChange }: IssueSettingsStepProps
               onChange={(e) => updateField('sizeThreshold', parseInt(e.target.value) || 0)}
             />
             <p className="text-xs text-muted-foreground">
-              Only include properties above this size
+              Properties must be at least this size
+            </p>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="thresholdMax">Maximum SF</Label>
+            <Input
+              id="thresholdMax"
+              type="number"
+              placeholder="500000"
+              value={settings.sizeThresholdMax || ''}
+              onChange={(e) => updateField('sizeThresholdMax', parseInt(e.target.value) || 500000)}
+            />
+            <p className="text-xs text-muted-foreground">
+              Properties must be at most this size
             </p>
           </div>
         </div>

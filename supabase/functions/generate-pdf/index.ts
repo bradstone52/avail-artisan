@@ -7,6 +7,7 @@ interface Listing {
   id?: string;
   listing_id: string;
   display_address: string | null;
+  property_name: string | null;
   address: string;
   city: string;
   submarket: string;
@@ -77,6 +78,7 @@ serve(async (req) => {
     if (!issueId) throw new Error("Missing issueId");
 
     const includeDetails: boolean = body.includeDetails ?? body.include_details ?? false;
+    const sizeThresholdMax: number = body.size_threshold_max ?? 500000;
 
     const issueListingsPayload: IssueListingPayload[] | undefined = body.issue_listings;
 
@@ -100,6 +102,7 @@ serve(async (req) => {
       "id",
       "listing_id",
       "display_address",
+      "property_name",
       "address",
       "city",
       "submarket",
@@ -142,13 +145,15 @@ serve(async (req) => {
         .eq("user_id", safeIssue.user_id)
         .eq("include_in_issue", true)
         .eq("status", "Active")
+        .gte("size_sf", safeIssue.size_threshold)
+        .lte("size_sf", sizeThresholdMax)
         .order("size_sf", { ascending: false });
 
       if (listingsErr) throw new Error("Failed to load listings");
       safeListings = (listings || []) as unknown as Listing[];
     }
 
-    const html = buildPdfHtml(safeIssue, safeListings, { includeDetails });
+    const html = buildPdfHtml(safeIssue, safeListings, { includeDetails, sizeThresholdMax });
     const pdfBytes = await convertHtmlToPdf(html);
 
     const generatedAtIso = new Date().toISOString();
@@ -213,8 +218,9 @@ serve(async (req) => {
 
 // ============ NEO-BRUTALIST PDF HTML TEMPLATE ============
 
-function buildPdfHtml(issue: any, listings: any[], opts?: { includeDetails?: boolean }) {
+function buildPdfHtml(issue: any, listings: any[], opts?: { includeDetails?: boolean; sizeThresholdMax?: number }) {
   const includeDetails = opts?.includeDetails ?? false;
+  const sizeThresholdMax = opts?.sizeThresholdMax ?? 500000;
 
   const published = new Date().toLocaleDateString("en-US", {
     year: "numeric",
@@ -225,6 +231,7 @@ function buildPdfHtml(issue: any, listings: any[], opts?: { includeDetails?: boo
   const title = issue.title || "Large-Format Distribution Availability";
   const market = issue.market || "Calgary Region";
   const sizeThreshold = issue.size_threshold ? Number(issue.size_threshold).toLocaleString() : "100,000";
+  const sizeThresholdMaxStr = sizeThresholdMax.toLocaleString();
 
   const primary = {
     name: issue.primary_contact_name || "Brad Stone",
@@ -239,37 +246,32 @@ function buildPdfHtml(issue: any, listings: any[], opts?: { includeDetails?: boo
   };
 
   const total = listings.length;
-  const earliest = computeEarliestAvailability(listings);
   const newCount = Number(issue.new_count || 0);
 
   // Sort by size descending
   const sorted = [...listings].sort((a, b) => (Number(b.size_sf || 0) - Number(a.size_sf || 0)));
 
-  // Build chart data
-  const sizeRanges = computeSizeDistribution(sorted);
-  const availabilityTimeline = computeAvailabilityTimeline(sorted);
-
   const summaryRows = sorted.map((l, idx) => {
-    const property = esc(l.display_address || l.address || "—");
+    const property = esc(l.property_name || l.display_address || l.address || "—");
     const submarket = esc(l.submarket || "");
+    const city = esc(l.city || "—");
     const size = fmtNum(l.size_sf);
     const clear = l.clear_height_ft ? `${l.clear_height_ft}'` : "—";
     const dock = l.dock_doors != null ? String(l.dock_doors) : "—";
     const drive = l.drive_in_doors != null ? String(l.drive_in_doors) : "—";
     const trailer = yesNo(l.trailer_parking);
     const avail = esc(l.availability_date || "TBD");
-    const rate = esc(l.asking_rate_psf || "Market");
     const rowClass = idx % 2 === 1 ? ' class="alt"' : '';
 
     return `<tr${rowClass}>
       <td class="col-prop"><span class="prop-name">${property}</span><span class="prop-sub">${submarket}</span></td>
+      <td class="col-city">${city}</td>
       <td class="col-num">${size}</td>
       <td class="col-num">${clear}</td>
       <td class="col-num">${dock}</td>
       <td class="col-num">${drive}</td>
       <td class="col-mid">${trailer}</td>
       <td class="col-mid">${avail}</td>
-      <td class="col-mid">${rate}</td>
     </tr>`;
   }).join("");
 
@@ -389,126 +391,62 @@ body {
   font-size: 12pt;
   font-weight: 500;
   color: #525252;
-  margin-bottom: 40px;
+  margin-bottom: 50px;
 }
 
 /* ============ BRUTALIST STAT BLOCKS ============ */
 .stats-row {
   display: flex;
-  gap: 12px;
-  margin-bottom: 28px;
+  gap: 16px;
+  margin-bottom: 40px;
 }
 
 .stat-block {
   flex: 1;
   border: 2px solid #0a0a0a;
-  padding: 14px 16px;
+  padding: 20px 24px;
 }
 
 .stat-label {
-  font-size: 7pt;
+  font-size: 8pt;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.08em;
   color: #525252;
-  margin-bottom: 4px;
+  margin-bottom: 6px;
 }
 
 .stat-value {
-  font-size: 24pt;
+  font-size: 32pt;
   font-weight: 900;
   color: #0a0a0a;
   line-height: 1;
 }
 
-/* ============ BRUTALIST CHARTS ============ */
-.charts-row {
+/* ============ CONTACT FOOTER ============ */
+.contact-footer {
+  margin-top: auto;
+  border-top: 2px solid #0a0a0a;
+  padding-top: 24px;
   display: flex;
-  gap: 12px;
-  margin-bottom: 20px;
+  gap: 48px;
 }
 
-.chart-block {
+.contact-block {
   flex: 1;
-  border: 2px solid #0a0a0a;
-  padding: 12px 14px;
 }
 
-.chart-title {
-  font-size: 7pt;
+.contact-block .contact-name {
+  font-size: 11pt;
   font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  color: #525252;
-  margin-bottom: 10px;
-  padding-bottom: 6px;
-  border-bottom: 1px solid #e5e5e5;
-}
-
-.chart-bars {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-
-.chart-bar-row {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.chart-bar-label {
-  font-size: 7pt;
-  font-weight: 600;
-  color: #525252;
-  width: 60px;
-  flex-shrink: 0;
-}
-
-.chart-bar-track {
-  flex: 1;
-  height: 12px;
-  background: #e5e5e5;
-  border: 1px solid #0a0a0a;
-}
-
-.chart-bar-fill {
-  height: 100%;
-  background: #0a0a0a;
-}
-
-.chart-bar-value {
-  font-size: 7pt;
-  font-weight: 800;
   color: #0a0a0a;
-  width: 20px;
-  text-align: right;
+  margin-bottom: 4px;
 }
 
-/* ============ BRUTALIST SECTION ============ */
-.section-block {
-  border: 2px solid #0a0a0a;
-  margin-bottom: 24px;
-}
-
-.section-header {
-  background: #0a0a0a;
-  color: #ffffff;
-  padding: 8px 14px;
-  font-size: 7pt;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-}
-
-.section-body {
-  padding: 14px;
-}
-
-.section-body p {
-  font-size: 9pt;
+.contact-block .contact-detail {
+  font-size: 10pt;
   color: #525252;
-  line-height: 1.6;
+  margin-bottom: 2px;
 }
 
 /* ============ BRUTALIST TABLE ============ */
@@ -558,9 +496,10 @@ tbody tr:last-child td {
   border-bottom: none;
 }
 
-.col-prop { width: 28%; }
+.col-prop { width: 24%; }
+.col-city { width: 12%; }
 .col-num { width: 9%; }
-.col-mid { width: 10%; }
+.col-mid { width: 11%; }
 
 .prop-name {
   display: block;
@@ -579,28 +518,6 @@ tbody tr:last-child td {
 .table-note {
   margin-top: 16px;
   font-size: 7pt;
-  color: #525252;
-}
-
-/* ============ CONTACT FOOTER ============ */
-.contact-footer {
-  margin-top: auto;
-  border-top: 2px solid #0a0a0a;
-  padding-top: 20px;
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 24px;
-}
-
-.contact-block .contact-name {
-  font-size: 9pt;
-  font-weight: 700;
-  color: #0a0a0a;
-  margin-bottom: 2px;
-}
-
-.contact-block .contact-detail {
-  font-size: 8pt;
   color: #525252;
 }
 
@@ -680,31 +597,12 @@ tbody tr:last-child td {
   line-height: 1.6;
 }
 
-.detail-contact-block {
-  border: 2px solid #0a0a0a;
-  padding: 14px;
-}
-
-.detail-contact-title {
-  font-size: 7pt;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  color: #525252;
-  margin-bottom: 10px;
-  padding-bottom: 8px;
-  border-bottom: 1px solid #e5e5e5;
-}
-
-.detail-contact-row {
-  font-size: 8pt;
-  color: #525252;
-  margin-bottom: 4px;
-}
-
-.detail-contact-row strong {
-  color: #0a0a0a;
-  font-weight: 700;
+.detail-contact-footer {
+  margin-top: auto;
+  border-top: 2px solid #0a0a0a;
+  padding-top: 20px;
+  display: flex;
+  gap: 48px;
 }
 </style>
 </head>
@@ -718,7 +616,7 @@ tbody tr:last-child td {
   </div>
 
   <h1 class="cover-title">${esc(title)}</h1>
-  <p class="cover-subtitle">${esc(market)} · ${esc(sizeThreshold)}+ SF</p>
+  <p class="cover-subtitle">${esc(market)} · ${esc(sizeThreshold)}–${esc(sizeThresholdMaxStr)} SF</p>
 
   <div class="stats-row">
     <div class="stat-block">
@@ -726,25 +624,8 @@ tbody tr:last-child td {
       <div class="stat-value">${total}</div>
     </div>
     <div class="stat-block">
-      <div class="stat-label">Earliest</div>
-      <div class="stat-value" style="font-size: 14pt;">${esc(earliest)}</div>
-    </div>
-    <div class="stat-block">
       <div class="stat-label">New</div>
       <div class="stat-value">${newCount}</div>
-    </div>
-  </div>
-
-  ${renderChartsHtml(sizeRanges, availabilityTimeline)}
-
-  <div class="section-block">
-    <div class="section-header">How to Use This</div>
-    <div class="section-body">
-      <p>
-        The summary table on the next page lists all tracked availabilities.
-        If any space fits your criteria, reply with the property address and we'll
-        confirm timing, trailer parking, and arrange a tour.
-      </p>
     </div>
   </div>
 
@@ -767,7 +648,7 @@ tbody tr:last-child td {
   <div style="display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 16px;">
     <div>
       <h2 class="text-headline">Availability Summary</h2>
-      <p style="font-size: 8pt; color: #525252; margin-top: 4px;">${esc(market)} · Threshold: ${esc(sizeThreshold)} SF</p>
+      <p style="font-size: 8pt; color: #525252; margin-top: 4px;">${esc(market)} · ${esc(sizeThreshold)}–${esc(sizeThresholdMaxStr)} SF</p>
     </div>
     <div class="text-micro">${total} Properties</div>
   </div>
@@ -777,13 +658,13 @@ tbody tr:last-child td {
       <thead>
         <tr>
           <th class="col-prop">Property / Submarket</th>
+          <th class="col-city">City</th>
           <th class="col-num">Size (SF)</th>
           <th class="col-num">Clear</th>
           <th class="col-num">Dock</th>
           <th class="col-num">Drive</th>
           <th class="col-mid">Trailer</th>
           <th class="col-mid">Avail.</th>
-          <th class="col-mid">Rate</th>
         </tr>
       </thead>
       <tbody>
@@ -793,7 +674,7 @@ tbody tr:last-child td {
   </div>
 
   <p class="table-note">
-    Information believed reliable but not guaranteed. Rates and availability subject to change.
+    Information believed reliable but not guaranteed. Availability subject to change.
   </p>
 </div>
 
@@ -803,40 +684,8 @@ ${detailPages}
 </html>`;
 }
 
-function renderChartsHtml(sizeRanges: Array<{label: string; count: number; pct: number}>, timeline: Array<{label: string; count: number; pct: number}>) {
-  if (sizeRanges.length === 0 && timeline.length === 0) return "";
-
-  const sizeBarHtml = sizeRanges.map(r => `
-    <div class="chart-bar-row">
-      <span class="chart-bar-label">${esc(r.label)}</span>
-      <div class="chart-bar-track"><div class="chart-bar-fill" style="width: ${r.pct}%;"></div></div>
-      <span class="chart-bar-value">${r.count}</span>
-    </div>
-  `).join("");
-
-  const timelineBarHtml = timeline.map(t => `
-    <div class="chart-bar-row">
-      <span class="chart-bar-label">${esc(t.label)}</span>
-      <div class="chart-bar-track"><div class="chart-bar-fill" style="width: ${t.pct}%;"></div></div>
-      <span class="chart-bar-value">${t.count}</span>
-    </div>
-  `).join("");
-
-  return `
-  <div class="charts-row">
-    <div class="chart-block">
-      <div class="chart-title">Size Distribution</div>
-      <div class="chart-bars">${sizeBarHtml}</div>
-    </div>
-    <div class="chart-block">
-      <div class="chart-title">Availability Timeline</div>
-      <div class="chart-bars">${timelineBarHtml}</div>
-    </div>
-  </div>`;
-}
-
 function renderDetailPage(l: any, primary: any, secondary: any) {
-  const title = esc(l.display_address || l.address || "Property");
+  const title = esc(l.property_name || l.display_address || l.address || "Property");
   const loc = esc([l.city, l.submarket].filter(Boolean).join(" · "));
   const size = fmtNum(l.size_sf);
   const clear = l.clear_height_ft ? `${l.clear_height_ft}'` : "—";
@@ -844,7 +693,6 @@ function renderDetailPage(l: any, primary: any, secondary: any) {
   const drive = l.drive_in_doors != null ? String(l.drive_in_doors) : "—";
   const trailer = yesNo(l.trailer_parking);
   const avail = esc(l.availability_date || "TBD");
-  const rate = esc(l.asking_rate_psf || "Market");
   const notes = (l.notes_public || "").trim();
 
   return `
@@ -880,14 +728,6 @@ function renderDetailPage(l: any, primary: any, secondary: any) {
       <div class="spec-label">Availability</div>
       <div class="spec-value">${avail}</div>
     </div>
-    <div class="spec-block">
-      <div class="spec-label">Asking Rate</div>
-      <div class="spec-value">${rate}</div>
-    </div>
-    <div class="spec-block">
-      <div class="spec-label">Submarket</div>
-      <div class="spec-value">${esc(l.submarket || "—")}</div>
-    </div>
   </div>
 
   ${notes ? `
@@ -897,93 +737,19 @@ function renderDetailPage(l: any, primary: any, secondary: any) {
   </div>
   ` : ""}
 
-  <div class="detail-contact-block">
-    <div class="detail-contact-title">Tours / Details</div>
-    <p class="detail-contact-row"><strong>${esc(primary.name)}</strong> — ${esc(primary.email)}${primary.phone ? ` · ${esc(primary.phone)}` : ""}</p>
-    <p class="detail-contact-row"><strong>${esc(secondary.name)}</strong> — ${esc(secondary.email)}${secondary.phone ? ` · ${esc(secondary.phone)}` : ""}</p>
+  <div class="detail-contact-footer">
+    <div class="contact-block">
+      <div class="contact-name">${esc(primary.name)}</div>
+      <div class="contact-detail">${esc(primary.email)}</div>
+      ${primary.phone ? `<div class="contact-detail">${esc(primary.phone)}</div>` : ""}
+    </div>
+    <div class="contact-block">
+      <div class="contact-name">${esc(secondary.name)}</div>
+      <div class="contact-detail">${esc(secondary.email)}</div>
+      ${secondary.phone ? `<div class="contact-detail">${esc(secondary.phone)}</div>` : ""}
+    </div>
   </div>
 </div>`;
-}
-
-// ============ CHART HELPERS ============
-
-function computeSizeDistribution(listings: any[]): Array<{label: string; count: number; pct: number}> {
-  const ranges = [
-    { min: 100000, max: 199999, label: "100–200K SF" },
-    { min: 200000, max: 299999, label: "200–300K SF" },
-    { min: 300000, max: 499999, label: "300–500K SF" },
-    { min: 500000, max: Infinity, label: "500K+ SF" },
-  ];
-
-  const counts = ranges.map(r => ({
-    label: r.label,
-    count: listings.filter(l => {
-      const sf = Number(l.size_sf) || 0;
-      return sf >= r.min && sf <= r.max;
-    }).length,
-  }));
-
-  const maxCount = Math.max(...counts.map(c => c.count), 1);
-  return counts.filter(c => c.count > 0).map(c => ({
-    ...c,
-    pct: Math.round((c.count / maxCount) * 100),
-  }));
-}
-
-function computeAvailabilityTimeline(listings: any[]): Array<{label: string; count: number; pct: number}> {
-  const now = new Date();
-  const sixMonths = new Date(now);
-  sixMonths.setMonth(sixMonths.getMonth() + 6);
-  const twelveMonths = new Date(now);
-  twelveMonths.setMonth(twelveMonths.getMonth() + 12);
-  const twentyFourMonths = new Date(now);
-  twentyFourMonths.setMonth(twentyFourMonths.getMonth() + 24);
-
-  let immediate = 0;
-  let sixToTwelve = 0;
-  let twelvePlus = 0;
-  let tbd = 0;
-
-  for (const l of listings) {
-    const av = (l.availability_date || "").toLowerCase().trim();
-    if (!av || av === "tbd" || av === "unknown") {
-      tbd++;
-      continue;
-    }
-    if (av.includes("immediate") || av.includes("now")) {
-      immediate++;
-      continue;
-    }
-    const parsed = Date.parse(l.availability_date);
-    if (!Number.isNaN(parsed)) {
-      const d = new Date(parsed);
-      if (d <= sixMonths) {
-        immediate++;
-      } else if (d <= twelveMonths) {
-        sixToTwelve++;
-      } else {
-        twelvePlus++;
-      }
-    } else {
-      tbd++;
-    }
-  }
-
-  const results = [
-    { label: "Immediate", count: immediate },
-    { label: "6–12 Months", count: sixToTwelve },
-    { label: "12+ Months", count: twelvePlus },
-  ];
-
-  if (tbd > 0) {
-    results.push({ label: "TBD", count: tbd });
-  }
-
-  const maxCount = Math.max(...results.map(r => r.count), 1);
-  return results.filter(r => r.count > 0).map(r => ({
-    ...r,
-    pct: Math.round((r.count / maxCount) * 100),
-  }));
 }
 
 // ============ HELPER FUNCTIONS ============
@@ -1009,36 +775,6 @@ function yesNo(v: any): string {
   if (["no", "n", "false", "0"].includes(s)) return "No";
   if (["unknown", "tbd"].includes(s)) return "—";
   return esc(v);
-}
-
-function computeEarliestAvailability(listings: any[]): string {
-  const rank = (v: string) => {
-    const s = (v || "").toLowerCase().trim();
-    if (!s || s === "tbd" || s === "unknown") return 999999;
-    if (s.includes("immediate") || s.includes("now")) return 0;
-    const t = Date.parse(v);
-    if (!Number.isNaN(t)) return t;
-    const m = s.match(/q([1-4])\s*(20\d{2})/i);
-    if (m) {
-      const q = Number(m[1]);
-      const y = Number(m[2]);
-      return Date.UTC(y, (q - 1) * 3, 1);
-    }
-    return 900000;
-  };
-
-  let best = "TBD";
-  let bestRank = 9999999;
-
-  for (const l of listings) {
-    const v = String(l.availability_date || "TBD");
-    const r = rank(v);
-    if (r < bestRank) {
-      bestRank = r;
-      best = v;
-    }
-  }
-  return best;
 }
 
 // ============ PDF CONVERSION ============
