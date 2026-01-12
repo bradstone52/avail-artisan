@@ -211,7 +211,7 @@ serve(async (req) => {
   }
 });
 
-// ============ PDF HTML TEMPLATE (Clean Reset) ============
+// ============ NEO-BRUTALIST PDF HTML TEMPLATE ============
 
 function buildPdfHtml(issue: any, listings: any[], opts?: { includeDetails?: boolean }) {
   const includeDetails = opts?.includeDetails ?? false;
@@ -235,7 +235,7 @@ function buildPdfHtml(issue: any, listings: any[], opts?: { includeDetails?: boo
   const secondary = {
     name: issue.secondary_contact_name || "Doug Johannson",
     email: issue.secondary_contact_email || "doug@cvpartners.ca",
-    phone: issue.secondary_contact_phone || "",
+    phone: issue.secondary_contact_phone || "(403) 470-8875",
   };
 
   const total = listings.length;
@@ -245,11 +245,11 @@ function buildPdfHtml(issue: any, listings: any[], opts?: { includeDetails?: boo
   // Sort by size descending
   const sorted = [...listings].sort((a, b) => (Number(b.size_sf || 0) - Number(a.size_sf || 0)));
 
-  // Build chart data for size distribution
+  // Build chart data
   const sizeRanges = computeSizeDistribution(sorted);
   const availabilityTimeline = computeAvailabilityTimeline(sorted);
 
-  const summaryRows = sorted.map((l) => {
+  const summaryRows = sorted.map((l, idx) => {
     const property = esc(l.display_address || l.address || "—");
     const submarket = esc(l.submarket || "");
     const size = fmtNum(l.size_sf);
@@ -259,8 +259,9 @@ function buildPdfHtml(issue: any, listings: any[], opts?: { includeDetails?: boo
     const trailer = yesNo(l.trailer_parking);
     const avail = esc(l.availability_date || "TBD");
     const rate = esc(l.asking_rate_psf || "Market");
+    const rowClass = idx % 2 === 1 ? ' class="alt"' : '';
 
-    return `<tr>
+    return `<tr${rowClass}>
       <td class="col-prop"><span class="prop-name">${property}</span><span class="prop-sub">${submarket}</span></td>
       <td class="col-num">${size}</td>
       <td class="col-num">${clear}</td>
@@ -282,13 +283,17 @@ function buildPdfHtml(issue: any, listings: any[], opts?: { includeDetails?: boo
 <meta charset="UTF-8" />
 <title>${esc(title)}</title>
 <style>
+/* ============ NEO-BRUTALIST PDF STYLES ============ */
 @page {
   size: A4;
-  margin: 16mm 18mm;
+  margin: 14mm 16mm;
   @bottom-right {
     content: "Page " counter(page) " of " counter(pages);
-    font-size: 8pt;
-    color: #64748b;
+    font-size: 7pt;
+    font-weight: 700;
+    color: #0a0a0a;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
   }
 }
 
@@ -296,9 +301,9 @@ function buildPdfHtml(issue: any, listings: any[], opts?: { includeDetails?: boo
 
 body {
   font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-  font-size: 10pt;
-  line-height: 1.5;
-  color: #1e293b;
+  font-size: 9pt;
+  line-height: 1.4;
+  color: #0a0a0a;
   background: #ffffff;
 }
 
@@ -308,191 +313,136 @@ body {
 }
 .page:last-child { page-break-after: auto; }
 
-/* Typography */
-.text-muted { color: #64748b; }
-.text-xs { font-size: 8pt; }
-.text-sm { font-size: 9pt; }
-.font-semibold { font-weight: 600; }
-.font-bold { font-weight: 700; }
-.uppercase { text-transform: uppercase; letter-spacing: 0.05em; }
+/* ============ TYPOGRAPHY ============ */
+.text-display {
+  font-size: 28pt;
+  font-weight: 900;
+  letter-spacing: -0.03em;
+  line-height: 1.1;
+  color: #0a0a0a;
+}
 
-/* Cover Page */
+.text-headline {
+  font-size: 16pt;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  color: #0a0a0a;
+}
+
+.text-subhead {
+  font-size: 12pt;
+  font-weight: 500;
+  color: #525252;
+}
+
+.text-micro {
+  font-size: 7pt;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #525252;
+}
+
+/* ============ COVER PAGE ============ */
 .cover {
   display: flex;
   flex-direction: column;
   min-height: 100%;
-  padding: 0;
 }
 
 .cover-header {
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
-  margin-bottom: 32px;
-}
-
-.logo {
-  height: 28px;
-  width: auto;
-}
-
-.brand-text {
-  font-size: 11pt;
-  font-weight: 600;
-  color: #1e293b;
-}
-
-.cover-date {
-  font-size: 9pt;
-  color: #64748b;
-}
-
-.cover-title {
-  font-size: 26pt;
-  font-weight: 700;
-  color: #0f172a;
-  margin-bottom: 8px;
-  letter-spacing: -0.02em;
-}
-
-.cover-subtitle {
-  font-size: 14pt;
-  color: #475569;
   margin-bottom: 40px;
 }
 
-.stats-row {
-  display: flex;
-  gap: 16px;
-  margin-bottom: 32px;
+.brand-badge {
+  display: inline-block;
+  background: #0a0a0a;
+  color: #ffffff;
+  font-size: 8pt;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 6px 12px;
 }
 
-.stat-box {
+.cover-date {
+  font-size: 7pt;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #525252;
+}
+
+.cover-title {
+  font-size: 28pt;
+  font-weight: 900;
+  letter-spacing: -0.03em;
+  line-height: 1.1;
+  color: #0a0a0a;
+  margin-bottom: 8px;
+}
+
+.cover-subtitle {
+  font-size: 12pt;
+  font-weight: 500;
+  color: #525252;
+  margin-bottom: 40px;
+}
+
+/* ============ BRUTALIST STAT BLOCKS ============ */
+.stats-row {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 28px;
+}
+
+.stat-block {
   flex: 1;
-  background: #f8fafc;
-  border: 1px solid #e2e8f0;
-  border-radius: 6px;
-  padding: 16px 20px;
+  border: 2px solid #0a0a0a;
+  padding: 14px 16px;
 }
 
 .stat-label {
-  font-size: 8pt;
-  color: #64748b;
+  font-size: 7pt;
+  font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.05em;
+  letter-spacing: 0.08em;
+  color: #525252;
   margin-bottom: 4px;
 }
 
 .stat-value {
-  font-size: 20pt;
-  font-weight: 700;
-  color: #0f172a;
+  font-size: 24pt;
+  font-weight: 900;
+  color: #0a0a0a;
+  line-height: 1;
 }
 
-.how-to-use {
-  background: #f8fafc;
-  border: 1px solid #e2e8f0;
-  border-radius: 6px;
-  padding: 16px 20px;
-  margin-bottom: 32px;
-}
-
-.how-to-use-title {
-  font-size: 9pt;
-  font-weight: 600;
-  color: #1e293b;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  margin-bottom: 8px;
-}
-
-.how-to-use p {
-  font-size: 9pt;
-  color: #475569;
-  line-height: 1.6;
-}
-
-.cover-footer {
-  margin-top: auto;
-  border-top: 1px solid #e2e8f0;
-  padding-top: 20px;
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 20px;
-}
-
-.contact-block .name {
-  font-size: 10pt;
-  font-weight: 600;
-  color: #1e293b;
-  margin-bottom: 2px;
-}
-
-.contact-block .details {
-  font-size: 9pt;
-  color: #64748b;
-}
-
-/* Summary Table Page */
-.summary-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-end;
-  margin-bottom: 16px;
-}
-
-.summary-title {
-  font-size: 16pt;
-  font-weight: 700;
-  color: #0f172a;
-}
-
-.summary-meta {
-  font-size: 9pt;
-  color: #64748b;
-}
-
-.summary-badge {
-  background: #f1f5f9;
-  border: 1px solid #e2e8f0;
-  border-radius: 4px;
-  padding: 8px 12px;
-  text-align: right;
-}
-
-.summary-badge .market {
-  font-size: 10pt;
-  font-weight: 600;
-  color: #1e293b;
-}
-
-.summary-badge .threshold {
-  font-size: 8pt;
-  color: #64748b;
-}
-
-/* Charts Section */
+/* ============ BRUTALIST CHARTS ============ */
 .charts-row {
   display: flex;
-  gap: 16px;
+  gap: 12px;
   margin-bottom: 20px;
 }
 
-.chart-box {
+.chart-block {
   flex: 1;
-  background: #f8fafc;
-  border: 1px solid #e2e8f0;
-  border-radius: 6px;
-  padding: 12px 16px;
+  border: 2px solid #0a0a0a;
+  padding: 12px 14px;
 }
 
 .chart-title {
-  font-size: 8pt;
-  font-weight: 600;
-  color: #64748b;
+  font-size: 7pt;
+  font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.05em;
+  letter-spacing: 0.08em;
+  color: #525252;
   margin-bottom: 10px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid #e5e5e5;
 }
 
 .chart-bars {
@@ -508,199 +458,253 @@ body {
 }
 
 .chart-bar-label {
-  font-size: 8pt;
-  color: #475569;
-  width: 70px;
+  font-size: 7pt;
+  font-weight: 600;
+  color: #525252;
+  width: 60px;
   flex-shrink: 0;
 }
 
 .chart-bar-track {
   flex: 1;
-  height: 14px;
-  background: #e2e8f0;
-  border-radius: 3px;
-  overflow: hidden;
+  height: 12px;
+  background: #e5e5e5;
+  border: 1px solid #0a0a0a;
 }
 
 .chart-bar-fill {
   height: 100%;
-  background: #3b82f6;
-  border-radius: 3px;
+  background: #0a0a0a;
 }
 
 .chart-bar-value {
-  font-size: 8pt;
-  font-weight: 600;
-  color: #1e293b;
-  width: 24px;
+  font-size: 7pt;
+  font-weight: 800;
+  color: #0a0a0a;
+  width: 20px;
   text-align: right;
 }
 
-/* Table Styles */
+/* ============ BRUTALIST SECTION ============ */
+.section-block {
+  border: 2px solid #0a0a0a;
+  margin-bottom: 24px;
+}
+
+.section-header {
+  background: #0a0a0a;
+  color: #ffffff;
+  padding: 8px 14px;
+  font-size: 7pt;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.section-body {
+  padding: 14px;
+}
+
+.section-body p {
+  font-size: 9pt;
+  color: #525252;
+  line-height: 1.6;
+}
+
+/* ============ BRUTALIST TABLE ============ */
+.brutalist-table-wrapper {
+  border: 2px solid #0a0a0a;
+}
+
 table {
   width: 100%;
   border-collapse: collapse;
-  font-size: 9pt;
+  font-size: 8pt;
 }
 
 thead th {
+  background: #0a0a0a;
+  color: #ffffff;
   text-align: left;
-  background: #f1f5f9;
   padding: 10px 8px;
-  border-bottom: 2px solid #e2e8f0;
-  color: #475569;
-  font-weight: 600;
-  font-size: 8pt;
+  font-size: 7pt;
+  font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.03em;
+  letter-spacing: 0.05em;
+  border: none;
 }
 
-thead th.col-num,
-tbody td.col-num {
+thead th.col-num {
   text-align: right;
 }
 
 tbody td {
   padding: 10px 8px;
-  border-bottom: 1px solid #f1f5f9;
+  border-bottom: 1px solid #e5e5e5;
   vertical-align: top;
+  color: #0a0a0a;
 }
 
-tbody tr:nth-child(even) {
+tbody td.col-num {
+  text-align: right;
+  font-weight: 600;
+}
+
+tbody tr.alt {
   background: #fafafa;
 }
 
-.col-prop {
-  width: 32%;
+tbody tr:last-child td {
+  border-bottom: none;
 }
+
+.col-prop { width: 28%; }
+.col-num { width: 9%; }
+.col-mid { width: 10%; }
 
 .prop-name {
   display: block;
-  font-weight: 600;
-  color: #1e293b;
+  font-weight: 700;
+  color: #0a0a0a;
+  font-size: 8pt;
 }
 
 .prop-sub {
   display: block;
-  font-size: 8pt;
-  color: #64748b;
+  font-size: 7pt;
+  color: #525252;
   margin-top: 2px;
 }
 
-.col-num { width: 9%; }
-.col-mid { width: 10%; }
-
 .table-note {
   margin-top: 16px;
-  font-size: 8pt;
-  color: #64748b;
+  font-size: 7pt;
+  color: #525252;
 }
 
-/* Detail Pages */
+/* ============ CONTACT FOOTER ============ */
+.contact-footer {
+  margin-top: auto;
+  border-top: 2px solid #0a0a0a;
+  padding-top: 20px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+}
+
+.contact-block .contact-name {
+  font-size: 9pt;
+  font-weight: 700;
+  color: #0a0a0a;
+  margin-bottom: 2px;
+}
+
+.contact-block .contact-detail {
+  font-size: 8pt;
+  color: #525252;
+}
+
+/* ============ DETAIL PAGES ============ */
 .detail-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  margin-bottom: 20px;
+  margin-bottom: 24px;
 }
 
 .detail-title {
   font-size: 18pt;
-  font-weight: 700;
-  color: #0f172a;
+  font-weight: 900;
+  color: #0a0a0a;
   margin-bottom: 4px;
 }
 
 .detail-location {
   font-size: 10pt;
-  color: #64748b;
+  color: #525252;
 }
 
 .detail-id {
-  font-size: 8pt;
-  color: #94a3b8;
-  margin-top: 4px;
-}
-
-.detail-photo {
-  width: 120px;
-  height: 80px;
-  object-fit: cover;
-  border-radius: 6px;
-  border: 1px solid #e2e8f0;
+  font-size: 7pt;
+  font-weight: 700;
+  color: #737373;
+  margin-top: 6px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
 }
 
 .specs-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 12px;
-  margin-bottom: 20px;
+  gap: 10px;
+  margin-bottom: 24px;
 }
 
-.spec-card {
-  background: #f8fafc;
-  border: 1px solid #e2e8f0;
-  border-radius: 6px;
-  padding: 12px 16px;
+.spec-block {
+  border: 2px solid #0a0a0a;
+  padding: 12px 14px;
 }
 
 .spec-label {
-  font-size: 8pt;
-  color: #64748b;
+  font-size: 7pt;
+  font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.05em;
-  margin-bottom: 2px;
+  letter-spacing: 0.08em;
+  color: #525252;
+  margin-bottom: 4px;
 }
 
 .spec-value {
-  font-size: 14pt;
+  font-size: 16pt;
+  font-weight: 900;
+  color: #0a0a0a;
+  line-height: 1;
+}
+
+.notes-block {
+  border: 2px solid #0a0a0a;
+  margin-bottom: 24px;
+}
+
+.notes-header {
+  background: #0a0a0a;
+  color: #ffffff;
+  padding: 8px 14px;
+  font-size: 7pt;
   font-weight: 700;
-  color: #0f172a;
-}
-
-.notes-box {
-  background: #f8fafc;
-  border: 1px solid #e2e8f0;
-  border-radius: 6px;
-  padding: 14px 18px;
-  margin-bottom: 20px;
-}
-
-.notes-title {
-  font-size: 9pt;
-  font-weight: 600;
-  color: #1e293b;
   text-transform: uppercase;
-  letter-spacing: 0.05em;
-  margin-bottom: 6px;
+  letter-spacing: 0.08em;
 }
 
-.notes-content {
+.notes-body {
+  padding: 14px;
   font-size: 9pt;
-  color: #475569;
+  color: #525252;
   line-height: 1.6;
 }
 
-.detail-contact {
-  background: #f8fafc;
-  border: 1px solid #e2e8f0;
-  border-radius: 6px;
-  padding: 14px 18px;
+.detail-contact-block {
+  border: 2px solid #0a0a0a;
+  padding: 14px;
 }
 
 .detail-contact-title {
-  font-size: 9pt;
-  font-weight: 600;
-  color: #1e293b;
+  font-size: 7pt;
+  font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.05em;
-  margin-bottom: 8px;
+  letter-spacing: 0.08em;
+  color: #525252;
+  margin-bottom: 10px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid #e5e5e5;
 }
 
 .detail-contact-row {
-  font-size: 9pt;
-  color: #475569;
+  font-size: 8pt;
+  color: #525252;
   margin-bottom: 4px;
+}
+
+.detail-contact-row strong {
+  color: #0a0a0a;
+  font-weight: 700;
 }
 </style>
 </head>
@@ -709,85 +713,84 @@ tbody tr:nth-child(even) {
 <!-- PAGE 1: COVER -->
 <div class="page cover">
   <div class="cover-header">
-    <div>
-      ${issue.logo_url 
-        ? `<img src="${esc(issue.logo_url)}" class="logo" alt="ClearView Commercial Realty" />`
-        : `<span class="brand-text">ClearView Commercial Realty Inc.</span>`
-      }
-    </div>
-    <div class="cover-date">${esc(published)}</div>
+    <div class="brand-badge">ClearView Commercial Realty Inc.</div>
+    <div class="cover-date">Published ${esc(published)}</div>
   </div>
 
   <h1 class="cover-title">${esc(title)}</h1>
   <p class="cover-subtitle">${esc(market)} · ${esc(sizeThreshold)}+ SF</p>
 
   <div class="stats-row">
-    <div class="stat-box">
-      <div class="stat-label">Total Spaces Tracked</div>
+    <div class="stat-block">
+      <div class="stat-label">Tracked</div>
       <div class="stat-value">${total}</div>
     </div>
-    <div class="stat-box">
-      <div class="stat-label">Earliest Availability</div>
-      <div class="stat-value">${esc(earliest)}</div>
+    <div class="stat-block">
+      <div class="stat-label">Earliest</div>
+      <div class="stat-value" style="font-size: 14pt;">${esc(earliest)}</div>
     </div>
-    <div class="stat-box">
-      <div class="stat-label">New This Period</div>
+    <div class="stat-block">
+      <div class="stat-label">New</div>
       <div class="stat-value">${newCount}</div>
     </div>
   </div>
 
-  <div class="how-to-use">
-    <div class="how-to-use-title">How to Use This Report</div>
-    <p>
-      Review the summary table on the next page to identify properties that meet your criteria.
-      Reply with the property address or listing ID for tours, timing confirmation, or additional details.
-    </p>
+  ${renderChartsHtml(sizeRanges, availabilityTimeline)}
+
+  <div class="section-block">
+    <div class="section-header">How to Use This</div>
+    <div class="section-body">
+      <p>
+        The summary table on the next page lists all tracked availabilities.
+        If any space fits your criteria, reply with the property address and we'll
+        confirm timing, trailer parking, and arrange a tour.
+      </p>
+    </div>
   </div>
 
-  <div class="cover-footer">
+  <div class="contact-footer">
     <div class="contact-block">
-      <div class="name">${esc(primary.name)}</div>
-      <div class="details">${esc(primary.email)}${primary.phone ? ` · ${esc(primary.phone)}` : ""}</div>
+      <div class="contact-name">${esc(primary.name)}</div>
+      <div class="contact-detail">${esc(primary.email)}</div>
+      ${primary.phone ? `<div class="contact-detail">${esc(primary.phone)}</div>` : ""}
     </div>
     <div class="contact-block">
-      <div class="name">${esc(secondary.name)}</div>
-      <div class="details">${esc(secondary.email)}${secondary.phone ? ` · ${esc(secondary.phone)}` : ""}</div>
+      <div class="contact-name">${esc(secondary.name)}</div>
+      <div class="contact-detail">${esc(secondary.email)}</div>
+      ${secondary.phone ? `<div class="contact-detail">${esc(secondary.phone)}</div>` : ""}
     </div>
   </div>
 </div>
 
 <!-- PAGE 2: SUMMARY TABLE -->
 <div class="page">
-  <div class="summary-header">
+  <div style="display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 16px;">
     <div>
-      <h2 class="summary-title">Availability Summary</h2>
-      <p class="summary-meta">Sorted by size · Trailer shown only where confirmed · "Market" = rate not stated</p>
+      <h2 class="text-headline">Availability Summary</h2>
+      <p style="font-size: 8pt; color: #525252; margin-top: 4px;">${esc(market)} · Threshold: ${esc(sizeThreshold)} SF</p>
     </div>
-    <div class="summary-badge">
-      <div class="market">${esc(market)}</div>
-      <div class="threshold">${esc(sizeThreshold)}+ SF</div>
-    </div>
+    <div class="text-micro">${total} Properties</div>
   </div>
 
-  ${renderChartsHtml(sizeRanges, availabilityTimeline)}
-
-  <table>
-    <thead>
-      <tr>
-        <th class="col-prop">Property / Submarket</th>
-        <th class="col-num">Size (SF)</th>
-        <th class="col-num">Clear Height</th>
-        <th class="col-num">Dock Doors</th>
-        <th class="col-num">Drive-In</th>
-        <th class="col-mid">Trailer</th>
-        <th class="col-mid">Availability</th>
-        <th class="col-mid">Rate</th>
-      </tr>
-    </thead>
-    <tbody>
-      ${summaryRows}
-    </tbody>
-  </table>
+  <div class="brutalist-table-wrapper">
+    <table>
+      <thead>
+        <tr>
+          <th class="col-prop">Property / Submarket</th>
+          <th class="col-num">Size (SF)</th>
+          <th class="col-num">Clear</th>
+          <th class="col-num">Dock</th>
+          <th class="col-num">Drive</th>
+          <th class="col-mid">Trailer</th>
+          <th class="col-mid">Avail.</th>
+          <th class="col-mid">Rate</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${summaryRows}
+      </tbody>
+    </table>
+  </div>
 
   <p class="table-note">
     Information believed reliable but not guaranteed. Rates and availability subject to change.
@@ -821,12 +824,12 @@ function renderChartsHtml(sizeRanges: Array<{label: string; count: number; pct: 
 
   return `
   <div class="charts-row">
-    <div class="chart-box">
-      <div class="chart-title">By Size Range</div>
+    <div class="chart-block">
+      <div class="chart-title">Size Distribution</div>
       <div class="chart-bars">${sizeBarHtml}</div>
     </div>
-    <div class="chart-box">
-      <div class="chart-title">By Availability Timeline</div>
+    <div class="chart-block">
+      <div class="chart-title">Availability Timeline</div>
       <div class="chart-bars">${timelineBarHtml}</div>
     </div>
   </div>`;
@@ -847,60 +850,57 @@ function renderDetailPage(l: any, primary: any, secondary: any) {
   return `
 <div class="page">
   <div class="detail-header">
-    <div>
-      <h2 class="detail-title">${title}</h2>
-      <p class="detail-location">${loc}</p>
-      ${l.listing_id ? `<p class="detail-id">ID: ${esc(l.listing_id)}</p>` : ""}
-    </div>
-    ${l.photo_url ? `<img src="${esc(l.photo_url)}" class="detail-photo" alt="Property" />` : ""}
+    <h2 class="detail-title">${title}</h2>
+    <p class="detail-location">${loc}</p>
+    ${l.listing_id ? `<p class="detail-id">ID: ${esc(l.listing_id)}</p>` : ""}
   </div>
 
   <div class="specs-grid">
-    <div class="spec-card">
+    <div class="spec-block">
       <div class="spec-label">Total Area</div>
       <div class="spec-value">${size} SF</div>
     </div>
-    <div class="spec-card">
+    <div class="spec-block">
       <div class="spec-label">Clear Height</div>
       <div class="spec-value">${clear}</div>
     </div>
-    <div class="spec-card">
+    <div class="spec-block">
       <div class="spec-label">Dock Doors</div>
       <div class="spec-value">${dock}</div>
     </div>
-    <div class="spec-card">
+    <div class="spec-block">
       <div class="spec-label">Drive-In Doors</div>
       <div class="spec-value">${drive}</div>
     </div>
-    <div class="spec-card">
+    <div class="spec-block">
       <div class="spec-label">Trailer Parking</div>
       <div class="spec-value">${trailer}</div>
     </div>
-    <div class="spec-card">
+    <div class="spec-block">
       <div class="spec-label">Availability</div>
       <div class="spec-value">${avail}</div>
     </div>
-    <div class="spec-card">
+    <div class="spec-block">
       <div class="spec-label">Asking Rate</div>
       <div class="spec-value">${rate}</div>
     </div>
-    <div class="spec-card">
+    <div class="spec-block">
       <div class="spec-label">Submarket</div>
       <div class="spec-value">${esc(l.submarket || "—")}</div>
     </div>
   </div>
 
   ${notes ? `
-  <div class="notes-box">
-    <div class="notes-title">Notes</div>
-    <p class="notes-content">${esc(notes)}</p>
+  <div class="notes-block">
+    <div class="notes-header">Notes</div>
+    <div class="notes-body">${esc(notes)}</div>
   </div>
   ` : ""}
 
-  <div class="detail-contact">
+  <div class="detail-contact-block">
     <div class="detail-contact-title">Tours / Details</div>
-    <p class="detail-contact-row">${esc(primary.name)} — ${esc(primary.email)}${primary.phone ? ` · ${esc(primary.phone)}` : ""}</p>
-    <p class="detail-contact-row">${esc(secondary.name)} — ${esc(secondary.email)}${secondary.phone ? ` · ${esc(secondary.phone)}` : ""}</p>
+    <p class="detail-contact-row"><strong>${esc(primary.name)}</strong> — ${esc(primary.email)}${primary.phone ? ` · ${esc(primary.phone)}` : ""}</p>
+    <p class="detail-contact-row"><strong>${esc(secondary.name)}</strong> — ${esc(secondary.email)}${secondary.phone ? ` · ${esc(secondary.phone)}` : ""}</p>
   </div>
 </div>`;
 }
