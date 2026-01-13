@@ -143,10 +143,14 @@ export function useSheetConnection() {
     }
 
     try {
+      // Pass current page as returnTo so user comes back here after OAuth
+      const returnTo = window.location.pathname + window.location.search;
+      
       const { data, error } = await supabase.functions.invoke('google-sheets-auth', {
         headers: {
           Authorization: `Bearer ${session.access_token}`,
         },
+        body: { returnTo },
       });
 
       if (error) throw error;

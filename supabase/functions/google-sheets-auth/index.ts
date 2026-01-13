@@ -52,7 +52,18 @@ serve(async (req) => {
 
     const redirectUri = `${Deno.env.get('SUPABASE_URL')}/functions/v1/google-sheets-callback`;
 
-    const { returnTo } = await req.json().catch(() => ({ returnTo: null }));
+    const body = await req.json().catch(() => ({}));
+    // Build absolute returnTo URL from request origin or provided value
+    const origin = req.headers.get('origin') || req.headers.get('referer')?.replace(/\/[^/]*$/, '') || '';
+    let returnTo: string | null = null;
+    
+    if (body.returnTo) {
+      // If returnTo is already absolute, use it; otherwise prepend origin
+      returnTo = body.returnTo.startsWith('http') ? body.returnTo : `${origin}${body.returnTo}`;
+    } else if (origin) {
+      // Default to /dashboard if no returnTo provided
+      returnTo = `${origin}/dashboard`;
+    }
 
     // Include user_id (and return URL) in state so we can identify them in callback
     const state = btoa(JSON.stringify({ userId, timestamp: Date.now(), returnTo }));

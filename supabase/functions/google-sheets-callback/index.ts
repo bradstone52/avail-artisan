@@ -2,7 +2,7 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const htmlHeaders = {
-  'Content-Type': 'text/html',
+  'Content-Type': 'text/html; charset=utf-8',
   'Cross-Origin-Opener-Policy': 'unsafe-none',
   'Cross-Origin-Embedder-Policy': 'unsafe-none',
 };
@@ -116,35 +116,41 @@ serve(async (req) => {
 });
 
 function getSuccessHtml(returnTo: string | null): string {
-  const safeReturnTo = returnTo && returnTo.startsWith('http') ? returnTo : null;
-  const target = safeReturnTo
-    ? `${safeReturnTo}${safeReturnTo.includes('?') ? '&' : '?'}google_oauth=success`
+  // Accept any returnTo that starts with http (should already be absolute from auth function)
+  const target = returnTo && returnTo.startsWith('http')
+    ? `${returnTo}${returnTo.includes('?') ? '&' : '?'}google_oauth=success`
     : null;
 
-  return `
-<!DOCTYPE html>
-<html>
+  return `<!DOCTYPE html>
+<html lang="en">
 <head>
+  <meta charset="utf-8" />
   <title>Authorization Successful</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <style>
     body { font-family: system-ui, sans-serif; display: flex; align-items: center; justify-content: center; min-height: 100vh; margin: 0; background: #f8fafc; }
     .container { text-align: center; padding: 2rem; }
-    .icon { font-size: 4rem; margin-bottom: 1rem; }
+    .icon { font-size: 4rem; margin-bottom: 1rem; color: #16a34a; }
     h1 { color: #16a34a; margin-bottom: 0.5rem; }
     p { color: #64748b; }
   </style>
 </head>
 <body>
   <div class="container">
-    <div class="icon">✓</div>
+    <div class="icon">&#x2713;</div>
     <h1>Connected</h1>
-    <p>Returning to the app…</p>
+    <p>Returning to the app&#x2026;</p>
   </div>
   <script>
     const target = ${JSON.stringify(target)};
     if (target) {
       window.location.replace(target);
+    } else {
+      // Fallback: try to close or redirect to root
+      if (window.opener) {
+        window.opener.postMessage({ type: 'google-oauth-success' }, '*');
+        window.close();
+      }
     }
   </script>
 </body>
@@ -152,21 +158,23 @@ function getSuccessHtml(returnTo: string | null): string {
 }
 
 function getErrorHtml(message: string, returnTo: string | null): string {
-  const safeReturnTo = returnTo && returnTo.startsWith('http') ? returnTo : null;
-  const target = safeReturnTo
-    ? `${safeReturnTo}${safeReturnTo.includes('?') ? '&' : '?'}google_oauth=error&message=${encodeURIComponent(message)}`
+  const target = returnTo && returnTo.startsWith('http')
+    ? `${returnTo}${returnTo.includes('?') ? '&' : '?'}google_oauth=error&message=${encodeURIComponent(message)}`
     : null;
 
-  return `
-<!DOCTYPE html>
-<html>
+  // Escape message for safe HTML embedding
+  const safeMessage = message.replace(/</g, '&lt;').replace(/>/g, '&gt;');
+
+  return `<!DOCTYPE html>
+<html lang="en">
 <head>
+  <meta charset="utf-8" />
   <title>Authorization Failed</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <style>
     body { font-family: system-ui, sans-serif; display: flex; align-items: center; justify-content: center; min-height: 100vh; margin: 0; background: #f8fafc; }
     .container { text-align: center; padding: 2rem; max-width: 420px; }
-    .icon { font-size: 4rem; margin-bottom: 1rem; }
+    .icon { font-size: 4rem; margin-bottom: 1rem; color: #dc2626; }
     h1 { color: #dc2626; margin-bottom: 0.5rem; }
     p { color: #64748b; }
     a { color: #0f172a; }
@@ -174,15 +182,15 @@ function getErrorHtml(message: string, returnTo: string | null): string {
 </head>
 <body>
   <div class="container">
-    <div class="icon">✕</div>
+    <div class="icon">&#x2717;</div>
     <h1>Authorization Failed</h1>
-    <p>${message}</p>
+    <p>${safeMessage}</p>
     ${target ? '<p><a href="' + target + '">Return to the app</a></p>' : ''}
   </div>
   <script>
     const target = ${JSON.stringify(target)};
     if (target) {
-      window.location.replace(target);
+      setTimeout(function() { window.location.replace(target); }, 2000);
     }
   </script>
 </body>
