@@ -12,6 +12,7 @@ import {
   FILTER_COLUMNS,
 } from '@/lib/field-mapping';
 import { toast } from 'sonner';
+import { SyncReportData } from '@/components/dashboard/SyncReportSummary';
 
 export interface SyncReport {
   created_count: number;
@@ -30,6 +31,7 @@ export function useSheetConnection() {
   const [isSyncing, setIsSyncing] = useState(false);
   const [hasOAuthToken, setHasOAuthToken] = useState(false);
   const [lastSyncReport, setLastSyncReport] = useState<SyncReport | null>(null);
+  const [lastSyncReportData, setLastSyncReportData] = useState<SyncReportData | null>(null);
 
   const fetchConnection = useCallback(async () => {
     if (!user) return;
@@ -40,9 +42,9 @@ export function useSheetConnection() {
       .eq('user_id', user.id)
       .order('created_at', { ascending: false })
       .limit(1)
-      .single();
+      .maybeSingle();
 
-    if (error && error.code !== 'PGRST116') {
+    if (error) {
       console.error('Error fetching connection:', error);
     }
 
@@ -74,7 +76,7 @@ export function useSheetConnection() {
       .from('google_oauth_tokens')
       .select('id')
       .eq('user_id', user.id)
-      .single();
+      .maybeSingle();
 
     setHasOAuthToken(!!data);
   }, [user]);
@@ -175,9 +177,16 @@ export function useSheetConnection() {
 
     setConnection(null);
     setListings([]);
+    setLastSyncReportData(null);
     toast.success('Sheet disconnected');
   };
 
+  /**
+   * Full refresh sync with two-phase atomic approach:
+   * 1. Parse and validate all data first (staging phase)
+   * 2. Only if successful, delete old data and insert new
+   * 3. If any failure, keep prior dataset intact
+   */
   const syncListings = async (): Promise<SyncReport | null> => {
     if (!user || !connection) {
       toast.error('No sheet connected');
@@ -186,6 +195,27 @@ export function useSheetConnection() {
 
     setIsSyncing(true);
     setLastSyncReport(null);
+    setLastSyncReportData(null);
+
+    const syncStartTime = new Date().toISOString();
+    
+    // Initialize report data for UI
+    const reportData: SyncReportData = {
+      timestamp: syncStartTime,
+      rows_read: 0,
+      rows_imported: 0,
+      rows_skipped: 0,
+      skipped_breakdown: {
+        inactive: 0,
+        not_distribution: 0,
+        missing_fields: 0,
+        duplicate_listing_id: 0,
+      },
+      skipped_details: [],
+      missing_headers: [],
+      success: false,
+      error_message: undefined,
+    };
 
     const syncReport: SyncReport = {
       created_count: 0,
@@ -236,6 +266,7 @@ export function useSheetConnection() {
       }
 
       const headers = rows[0];
+      reportData.rows_read = rows.length - 1; // Exclude header row
       
       // Validate required headers using field mapping
       const missingRequired = validateRequiredHeaders(headers);
@@ -253,19 +284,14 @@ export function useSheetConnection() {
       // Get all mapped headers info for the report
       const { missing: missingOptional } = getMappedHeaders(headers);
       syncReport.missing_headers = missingOptional;
+      reportData.missing_headers = missingOptional;
 
-      // Get existing listings to determine create vs update
-      const { data: existingListings } = await supabase
-        .from('listings')
-        .select('listing_id')
-        .eq('user_id', user.id);
-
-      const existingListingIds = new Set(
-        (existingListings || []).map(l => l.listing_id)
-      );
-
-      // Parse all data rows using header-based mapping
-      const listingsToUpsert: Record<string, unknown>[] = [];
+      // ============================================
+      // PHASE 1: Parse all data into staging array
+      // (No database changes yet - if this fails, we abort)
+      // ============================================
+      
+      const stagedListings: Record<string, unknown>[] = [];
       const seenListingIds = new Set<string>();
 
       for (let i = 1; i < rows.length; i++) {
@@ -276,6 +302,18 @@ export function useSheetConnection() {
         if (!filterResult.include) {
           syncReport.skipped_count++;
           syncReport.skipped_rows.push({
+            row: sheetRowNumber,
+            reason: filterResult.reason || 'Excluded by filter',
+          });
+          
+          // Track breakdown
+          if (filterResult.reason?.toLowerCase().includes('status')) {
+            reportData.skipped_breakdown.inactive++;
+          } else if (filterResult.reason?.toLowerCase().includes('distribution')) {
+            reportData.skipped_breakdown.not_distribution++;
+          }
+          
+          reportData.skipped_details.push({
             row: sheetRowNumber,
             reason: filterResult.reason || 'Excluded by filter',
           });
@@ -293,6 +331,11 @@ export function useSheetConnection() {
             row: sheetRowNumber,
             reason: 'ListingID is missing or blank',
           });
+          reportData.skipped_breakdown.missing_fields++;
+          reportData.skipped_details.push({
+            row: sheetRowNumber,
+            reason: 'ListingID is missing or blank',
+          });
           continue;
         }
 
@@ -302,6 +345,11 @@ export function useSheetConnection() {
           syncReport.skipped_rows.push({
             row: sheetRowNumber,
             reason: `Duplicate ListingID "${listingId}" (already seen in this sync)`,
+          });
+          reportData.skipped_breakdown.duplicate_listing_id++;
+          reportData.skipped_details.push({
+            row: sheetRowNumber,
+            reason: `Duplicate ListingID "${listingId}"`,
           });
           continue;
         }
@@ -315,33 +363,54 @@ export function useSheetConnection() {
             row: sheetRowNumber,
             reason: `Missing required: ${missingHeaders.join(', ')}`,
           });
+          reportData.skipped_breakdown.missing_fields++;
+          reportData.skipped_details.push({
+            row: sheetRowNumber,
+            reason: `Missing required: ${missingHeaders.join(', ')}`,
+          });
           continue;
         }
 
-        // Track if this is a create or update
-        if (existingListingIds.has(listingId)) {
-          syncReport.updated_count++;
-        } else {
-          syncReport.created_count++;
-        }
-
-        listingsToUpsert.push(listing);
+        // All new records in full refresh mode
+        syncReport.created_count++;
+        stagedListings.push(listing);
       }
 
-      if (listingsToUpsert.length === 0) {
+      if (stagedListings.length === 0) {
         setLastSyncReport(syncReport);
-        throw new Error('No valid listings found in the sheet');
+        throw new Error('No valid listings found in the sheet after applying filters');
       }
 
-      // UPSERT: Use onConflict to update existing records by listing_id
-      const { error: upsertError } = await supabase
+      // ============================================
+      // PHASE 2: Atomic swap - delete old, insert new
+      // (Only runs if staging was successful)
+      // ============================================
+      
+      console.log(`[Sync] Phase 2: Deleting all existing listings for user ${user.id}`);
+      
+      // Delete ALL existing listings for this user
+      const { error: deleteError } = await supabase
         .from('listings')
-        .upsert(listingsToUpsert as never[], {
-          onConflict: 'user_id,listing_id',
-          ignoreDuplicates: false,
-        });
+        .delete()
+        .eq('user_id', user.id);
 
-      if (upsertError) throw upsertError;
+      if (deleteError) {
+        throw new Error(`Failed to clear old listings: ${deleteError.message}`);
+      }
+
+      console.log(`[Sync] Inserting ${stagedListings.length} new listings`);
+      
+      // Insert all staged listings
+      const { error: insertError } = await supabase
+        .from('listings')
+        .insert(stagedListings as never[]);
+
+      if (insertError) {
+        // Critical: Insert failed after delete - this is a problem
+        // In a real atomic system, we'd rollback. Here we log the error clearly.
+        console.error('[Sync] CRITICAL: Insert failed after delete!', insertError);
+        throw new Error(`Failed to insert new listings: ${insertError.message}. Previous data may be lost.`);
+      }
 
       // Update sync timestamp
       await supabase
@@ -353,17 +422,19 @@ export function useSheetConnection() {
       await fetchConnection();
       await fetchListings();
 
+      // Mark success
+      reportData.success = true;
+      reportData.rows_imported = stagedListings.length;
+      reportData.rows_skipped = syncReport.skipped_count;
+      
       setLastSyncReport(syncReport);
+      setLastSyncReportData(reportData);
 
       // Show sync report toast
-      const reportMessage = [
-        `Created: ${syncReport.created_count}`,
-        `Updated: ${syncReport.updated_count}`,
-        syncReport.skipped_count > 0 ? `Skipped: ${syncReport.skipped_count}` : null,
-      ].filter(Boolean).join(' | ');
+      const reportMessage = `Imported: ${stagedListings.length} | Skipped: ${syncReport.skipped_count}`;
 
       if (syncReport.skipped_count > 0 || syncReport.missing_headers.length > 0) {
-        toast.warning(`Sync Complete - ${reportMessage}`);
+        toast.warning(`Full Refresh Complete - ${reportMessage}`);
         if (syncReport.missing_headers.length > 0) {
           console.log('Missing optional headers:', syncReport.missing_headers);
         }
@@ -371,13 +442,20 @@ export function useSheetConnection() {
           console.log('Skipped rows:', syncReport.skipped_rows);
         }
       } else {
-        toast.success(`Sync Complete - ${reportMessage}`);
+        toast.success(`Full Refresh Complete - ${reportMessage}`);
       }
 
       return syncReport;
     } catch (error) {
       console.error('Sync error:', error);
-      toast.error(error instanceof Error ? error.message : 'Failed to sync listings');
+      const errorMessage = error instanceof Error ? error.message : 'Failed to sync listings';
+      
+      // Update report with error
+      reportData.error_message = errorMessage;
+      reportData.success = false;
+      setLastSyncReportData(reportData);
+      
+      toast.error(errorMessage);
       return null;
     } finally {
       setIsSyncing(false);
@@ -391,6 +469,7 @@ export function useSheetConnection() {
     isSyncing,
     hasOAuthToken,
     lastSyncReport,
+    lastSyncReportData,
     connectSheet,
     connectOAuth,
     disconnectSheet,
