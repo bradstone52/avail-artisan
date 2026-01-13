@@ -30,14 +30,16 @@ serve(async (req) => {
       });
     }
 
-    // Decode state to get user ID + return URL
+    // Decode state to get user ID + return URL (+ workspace flag)
     let userId: string;
     let returnTo: string | null = null;
+    let isWorkspace = false;
     try {
       const stateData = JSON.parse(atob(state));
       userId = stateData.userId;
       returnTo = typeof stateData.returnTo === 'string' ? stateData.returnTo : null;
-      console.log('Decoded user ID from state:', userId, 'returnTo:', returnTo);
+      isWorkspace = !!stateData.isWorkspace;
+      console.log('Decoded user ID from state:', userId, 'isWorkspace:', isWorkspace, 'returnTo:', returnTo);
     } catch (e) {
       console.error('Failed to decode state:', e);
       return new Response(getErrorHtml('Invalid state parameter', null), {
@@ -91,6 +93,7 @@ serve(async (req) => {
         refresh_token: tokenData.refresh_token,
         expires_at: expiresAt,
         scope: tokenData.scope,
+        is_workspace_token: isWorkspace,
       }, { onConflict: 'user_id' });
 
     if (upsertError) {

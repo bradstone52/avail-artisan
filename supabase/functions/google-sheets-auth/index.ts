@@ -53,6 +53,8 @@ serve(async (req) => {
     const redirectUri = `${Deno.env.get('SUPABASE_URL')}/functions/v1/google-sheets-callback`;
 
     const body = await req.json().catch(() => ({}));
+    const isWorkspace = !!body.isWorkspace;
+
     // Build absolute returnTo URL from request origin or provided value
     const origin = req.headers.get('origin') || req.headers.get('referer')?.replace(/\/[^/]*$/, '') || '';
     let returnTo: string | null = null;
@@ -65,8 +67,8 @@ serve(async (req) => {
       returnTo = `${origin}/dashboard`;
     }
 
-    // Include user_id (and return URL) in state so we can identify them in callback
-    const state = btoa(JSON.stringify({ userId, timestamp: Date.now(), returnTo }));
+    // Include user_id, workspace flag (and return URL) in state so we can identify them in callback
+    const state = btoa(JSON.stringify({ userId, isWorkspace, timestamp: Date.now(), returnTo }));
 
     const scope = encodeURIComponent('https://www.googleapis.com/auth/spreadsheets.readonly');
     
