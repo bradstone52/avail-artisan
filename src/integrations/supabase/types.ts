@@ -407,6 +407,90 @@ export type Database = {
         }
         Relationships: []
       }
+      sync_logs: {
+        Row: {
+          completed_at: string | null
+          created_at: string
+          error_message: string | null
+          id: string
+          rows_imported: number | null
+          rows_read: number | null
+          rows_skipped: number | null
+          run_type: string
+          skipped_breakdown: Json | null
+          started_at: string
+          status: string
+          triggered_by: string | null
+        }
+        Insert: {
+          completed_at?: string | null
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          rows_imported?: number | null
+          rows_read?: number | null
+          rows_skipped?: number | null
+          run_type: string
+          skipped_breakdown?: Json | null
+          started_at?: string
+          status?: string
+          triggered_by?: string | null
+        }
+        Update: {
+          completed_at?: string | null
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          rows_imported?: number | null
+          rows_read?: number | null
+          rows_skipped?: number | null
+          run_type?: string
+          skipped_breakdown?: Json | null
+          started_at?: string
+          status?: string
+          triggered_by?: string | null
+        }
+        Relationships: []
+      }
+      sync_settings: {
+        Row: {
+          evening_sync_time: string
+          google_credentials_expired: boolean
+          id: string
+          last_scheduled_run_at: string | null
+          last_scheduled_run_status: string | null
+          morning_sync_time: string
+          scheduled_sync_enabled: boolean
+          timezone: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          evening_sync_time?: string
+          google_credentials_expired?: boolean
+          id?: string
+          last_scheduled_run_at?: string | null
+          last_scheduled_run_status?: string | null
+          morning_sync_time?: string
+          scheduled_sync_enabled?: boolean
+          timezone?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          evening_sync_time?: string
+          google_credentials_expired?: boolean
+          id?: string
+          last_scheduled_run_at?: string | null
+          last_scheduled_run_status?: string | null
+          morning_sync_time?: string
+          scheduled_sync_enabled?: boolean
+          timezone?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           created_at: string

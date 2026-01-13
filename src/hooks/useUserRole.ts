@@ -2,11 +2,13 @@ import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 
-type AppRole = 'admin' | 'member';
+export type AppRole = 'admin' | 'sync_operator' | 'member';
 
 interface UseUserRoleReturn {
   role: AppRole | null;
   isAdmin: boolean;
+  isSyncOperator: boolean;
+  canRunSync: boolean;
   loading: boolean;
   refetchRole: () => Promise<void>;
 }
@@ -51,9 +53,15 @@ export function useUserRole(): UseUserRoleReturn {
     fetchRole();
   }, [fetchRole]);
 
+  const isAdmin = role === 'admin';
+  const isSyncOperator = role === 'sync_operator';
+  const canRunSync = isAdmin || isSyncOperator;
+
   return {
     role,
-    isAdmin: role === 'admin',
+    isAdmin,
+    isSyncOperator,
+    canRunSync,
     loading,
     refetchRole: fetchRole,
   };

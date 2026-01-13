@@ -27,6 +27,8 @@ export default function Dashboard() {
     isSyncing,
     hasOAuthToken,
     isAdmin,
+    canRunSync,
+    googleCredentialsExpired,
     lastSyncReportData,
     connectSheet, 
     connectOAuth,
@@ -94,6 +96,19 @@ export default function Dashboard() {
   return (
     <AppLayout>
       <div className="p-6 lg:p-8 max-w-7xl mx-auto">
+        {/* Google Credentials Expired Banner - Admin Only */}
+        {googleCredentialsExpired && isAdmin && (
+          <div className="mb-6 p-4 bg-destructive/10 border border-destructive/30 rounded-lg flex items-center gap-3">
+            <Sparkles className="w-5 h-5 text-destructive" />
+            <div className="flex-1">
+              <p className="font-medium text-destructive">Google Connection Expired</p>
+              <p className="text-sm text-muted-foreground">
+                Scheduled sync is paused. Please reconnect Google Sheets to resume.
+              </p>
+            </div>
+          </div>
+        )}
+
         {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
           <div>
