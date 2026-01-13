@@ -107,7 +107,10 @@ Information believed reliable but not guaranteed.`;
       sort_order: index,
     }));
 
-    const result = await generatePdf(currentIssue.id, issueListingsData);
+    // Pass the current maxSF filter value to ensure PDF uses the same filter as web
+    const result = await generatePdf(currentIssue.id, issueListingsData, {
+      sizeThresholdMax: settings.sizeThresholdMax ?? 500000,
+    });
     
     if (result) {
       // Refresh issue data
