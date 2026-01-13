@@ -6,7 +6,10 @@ import { parseCSV } from '@/lib/sheet-parser';
 import { 
   mapRowToListing, 
   validateRequiredHeaders, 
-  getMappedHeaders 
+  getMappedHeaders,
+  validateFilterColumns,
+  shouldIncludeRow,
+  FILTER_COLUMNS,
 } from '@/lib/field-mapping';
 import { toast } from 'sonner';
 
@@ -16,6 +19,7 @@ export interface SyncReport {
   skipped_count: number;
   skipped_rows: Array<{ row: number; reason: string }>;
   missing_headers: string[];
+  filter_errors: string[]; // Missing filter columns
 }
 
 export function useSheetConnection() {
@@ -189,6 +193,7 @@ export function useSheetConnection() {
       skipped_count: 0,
       skipped_rows: [],
       missing_headers: [],
+      filter_errors: [],
     };
 
     try {
@@ -238,6 +243,13 @@ export function useSheetConnection() {
         throw new Error(`Missing required columns: ${missingRequired.join(', ')}`);
       }
 
+      // Validate filter columns (Status, Distribution Warehouse?)
+      const missingFilterCols = validateFilterColumns(headers);
+      if (missingFilterCols.length > 0) {
+        syncReport.filter_errors = missingFilterCols;
+        throw new Error(`Missing required columns: ${missingFilterCols.join(', ')}`);
+      }
+
       // Get all mapped headers info for the report
       const { missing: missingOptional } = getMappedHeaders(headers);
       syncReport.missing_headers = missingOptional;
@@ -258,6 +270,18 @@ export function useSheetConnection() {
 
       for (let i = 1; i < rows.length; i++) {
         const sheetRowNumber = i + 2; // +2 because: +1 for 0-indexed, +1 because header is row 2
+        
+        // FILTER: Check Status="Active" AND "Distribution Warehouse?"=TRUE
+        const filterResult = shouldIncludeRow(rows[i], headers);
+        if (!filterResult.include) {
+          syncReport.skipped_count++;
+          syncReport.skipped_rows.push({
+            row: sheetRowNumber,
+            reason: filterResult.reason || 'Excluded by filter',
+          });
+          continue;
+        }
+        
         const { listing, missingHeaders } = mapRowToListing(rows[i], headers, user.id);
         
         // Check if ListingID is present and not blank
