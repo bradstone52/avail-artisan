@@ -385,16 +385,19 @@ export type Database = {
         Row: {
           created_at: string
           id: string
+          invite_code: string
           name: string
         }
         Insert: {
           created_at?: string
           id?: string
+          invite_code?: string
           name: string
         }
         Update: {
           created_at?: string
           id?: string
+          invite_code?: string
           name?: string
         }
         Relationships: []
@@ -607,6 +610,7 @@ export type Database = {
     Functions: {
       can_run_sync: { Args: { _user_id: string }; Returns: boolean }
       ensure_user_org: { Args: { _user_id: string }; Returns: string }
+      generate_invite_code: { Args: never; Returns: string }
       get_user_org_ids: { Args: { _user_id: string }; Returns: string[] }
       has_role: {
         Args: {
