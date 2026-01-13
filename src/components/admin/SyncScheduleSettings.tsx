@@ -23,6 +23,8 @@ export function SyncScheduleSettings() {
   const { isAdmin } = useUserRole();
   const [morningTime, setMorningTime] = useState(settings?.morning_sync_time || '07:00');
   const [eveningTime, setEveningTime] = useState(settings?.evening_sync_time || '18:00');
+  const [minSF, setMinSF] = useState(settings?.size_threshold_min?.toString() || '100000');
+  const [maxSF, setMaxSF] = useState(settings?.size_threshold_max?.toString() || '500000');
 
   if (loading || !settings) {
     return (
@@ -43,6 +45,19 @@ export function SyncScheduleSettings() {
     } else {
       setEveningTime(value);
       await updateSettings({ evening_sync_time: value });
+    }
+  };
+
+  const handleSizeChange = async (type: 'min' | 'max', value: string) => {
+    const numValue = parseInt(value.replace(/,/g, ''), 10);
+    if (isNaN(numValue)) return;
+    
+    if (type === 'min') {
+      setMinSF(value);
+      await updateSettings({ size_threshold_min: numValue });
+    } else {
+      setMaxSF(value);
+      await updateSettings({ size_threshold_max: numValue });
     }
   };
 
@@ -142,6 +157,35 @@ export function SyncScheduleSettings() {
                   />
                 </div>
               </div>
+
+              {/* Size Thresholds */}
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="min-sf">Min Size (SF)</Label>
+                  <Input
+                    id="min-sf"
+                    type="number"
+                    value={minSF}
+                    onChange={(e) => handleSizeChange('min', e.target.value)}
+                    disabled={!isAdmin}
+                    placeholder="100000"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="max-sf">Max Size (SF)</Label>
+                  <Input
+                    id="max-sf"
+                    type="number"
+                    value={maxSF}
+                    onChange={(e) => handleSizeChange('max', e.target.value)}
+                    disabled={!isAdmin}
+                    placeholder="500000"
+                  />
+                </div>
+              </div>
+              <p className="text-sm text-muted-foreground">
+                Only listings with Total SF between {Number(minSF).toLocaleString()} and {Number(maxSF).toLocaleString()} will be imported.
+              </p>
 
               <p className="text-sm text-muted-foreground">
                 Timezone: {settings.timezone}

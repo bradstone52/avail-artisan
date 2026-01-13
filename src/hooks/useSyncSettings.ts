@@ -9,6 +9,8 @@ export interface SyncSettings {
   morning_sync_time: string;
   evening_sync_time: string;
   timezone: string;
+  size_threshold_min: number;
+  size_threshold_max: number;
   last_scheduled_run_at: string | null;
   last_scheduled_run_status: string | null;
   google_credentials_expired: boolean;
@@ -28,6 +30,7 @@ export interface SyncLog {
   skipped_breakdown: {
     inactive?: number;
     not_distribution?: number;
+    outside_size_range?: number;
     missing_fields?: number;
     duplicate_listing_id?: number;
   };
