@@ -220,6 +220,7 @@ export type Database = {
           office_percent: string | null
           office_sf: number | null
           op_costs: string | null
+          org_id: string | null
           photo_url: string | null
           power_amps: string | null
           property_name: string | null
@@ -270,6 +271,7 @@ export type Database = {
           office_percent?: string | null
           office_sf?: number | null
           op_costs?: string | null
+          org_id?: string | null
           photo_url?: string | null
           power_amps?: string | null
           property_name?: string | null
@@ -320,6 +322,7 @@ export type Database = {
           office_percent?: string | null
           office_sf?: number | null
           op_costs?: string | null
+          org_id?: string | null
           photo_url?: string | null
           power_amps?: string | null
           property_name?: string | null
@@ -338,6 +341,61 @@ export type Database = {
           yard?: string | null
           yard_area?: string | null
           zoning?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "listings_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "orgs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      org_members: {
+        Row: {
+          created_at: string
+          org_id: string
+          role: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          org_id: string
+          role?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          org_id?: string
+          role?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "org_members_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "orgs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      orgs: {
+        Row: {
+          created_at: string
+          id: string
+          name: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          name: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          name?: string
         }
         Relationships: []
       }
@@ -548,6 +606,8 @@ export type Database = {
     }
     Functions: {
       can_run_sync: { Args: { _user_id: string }; Returns: boolean }
+      ensure_user_org: { Args: { _user_id: string }; Returns: string }
+      get_user_org_ids: { Args: { _user_id: string }; Returns: string[] }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
@@ -556,6 +616,10 @@ export type Database = {
         Returns: boolean
       }
       is_admin: { Args: { _user_id: string }; Returns: boolean }
+      is_org_member: {
+        Args: { _org_id: string; _user_id: string }
+        Returns: boolean
+      }
       is_sync_operator: { Args: { _user_id: string }; Returns: boolean }
       make_first_user_admin: { Args: never; Returns: undefined }
     }

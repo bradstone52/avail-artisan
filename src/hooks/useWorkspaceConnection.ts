@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useUserRole } from '@/hooks/useUserRole';
+import { useOrg } from '@/hooks/useOrg';
 import { SheetConnection, Listing } from '@/lib/types';
 import { parseCSV } from '@/lib/sheet-parser';
 import { 
@@ -16,13 +17,14 @@ import { toast } from 'sonner';
 
 /**
  * Hook for workspace-level sheet connection management.
- * All users can view the connection and listings.
+ * All users can view the connection and listings within their org.
  * Admins can connect, disconnect, and sync.
  * Sync operators can run manual sync.
  */
 export function useWorkspaceConnection() {
   const { user, session } = useAuth();
   const { isAdmin, canRunSync, loading: roleLoading } = useUserRole();
+  const { orgId, loading: orgLoading } = useOrg();
   
   const [connection, setConnection] = useState<SheetConnection | null>(null);
   const [listings, setListings] = useState<Listing[]>([]);
@@ -54,15 +56,16 @@ export function useWorkspaceConnection() {
     }
   }, [user]);
 
-  // Fetch listings (all users can see these - get all listings, not just user's)
+  // Fetch listings for the user's org (RLS handles scoping automatically)
   const fetchListings = useCallback(async () => {
-    if (!user) return;
+    if (!user || !orgId) return;
 
     try {
-      // Get listings from any user that has workspace connection
+      // RLS automatically filters by org_id membership
       const { data, error } = await supabase
         .from('listings')
         .select('*')
+        .eq('org_id', orgId)
         .order('size_sf', { ascending: false });
 
       if (error) throw error;
@@ -70,7 +73,7 @@ export function useWorkspaceConnection() {
     } catch (err) {
       console.error('Error fetching listings:', err);
     }
-  }, [user]);
+  }, [user, orgId]);
 
   // Check if there's a workspace OAuth token
   const checkOAuthToken = useCallback(async () => {
@@ -110,7 +113,7 @@ export function useWorkspaceConnection() {
     }
   }, [user]);
 
-  // Initial fetch
+  // Initial fetch - wait for orgId to be available
   useEffect(() => {
     const init = async () => {
       setLoading(true);
@@ -118,10 +121,10 @@ export function useWorkspaceConnection() {
       setLoading(false);
     };
 
-    if (user) {
+    if (user && orgId && !orgLoading) {
       init();
     }
-  }, [user, fetchConnection, fetchListings, checkOAuthToken]);
+  }, [user, orgId, orgLoading, fetchConnection, fetchListings, checkOAuthToken]);
 
   // Listen for OAuth popup messages
   useEffect(() => {
@@ -220,8 +223,10 @@ export function useWorkspaceConnection() {
       .delete()
       .eq('is_workspace_connection', true);
 
-    // Delete all listings (they're workspace-level now)
-    await supabase.from('listings').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+    // Delete all listings for this org
+    if (orgId) {
+      await supabase.from('listings').delete().eq('org_id', orgId);
+    }
 
     setConnection(null);
     setListings([]);
@@ -355,7 +360,7 @@ export function useWorkspaceConnection() {
           continue;
         }
 
-        const { listing, missingHeaders } = mapRowToListing(row, headers, user.id);
+        const { listing, missingHeaders } = mapRowToListing(row, headers, user.id, orgId || undefined);
         const listingId = (listing.listing_id as string)?.trim();
 
         if (!listingId) {
@@ -396,12 +401,12 @@ export function useWorkspaceConnection() {
         throw new Error('No valid listings found after applying filters');
       }
 
-      // PHASE 2: Atomic swap
-      console.log(`[Sync] Deleting all existing listings`);
+      // PHASE 2: Atomic swap - delete only this org's listings
+      console.log(`[Sync] Deleting existing listings for org: ${orgId}`);
       const { error: deleteError } = await supabase
         .from('listings')
         .delete()
-        .neq('id', '00000000-0000-0000-0000-000000000000');
+        .eq('org_id', orgId);
 
       if (deleteError) {
         throw new Error(`Failed to clear old listings: ${deleteError.message}`);

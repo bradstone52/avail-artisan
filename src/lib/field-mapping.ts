@@ -193,10 +193,12 @@ export function computeDisplayAddress(row: string[], headers: string[]): string 
 export function mapRowToListing(
   row: string[], 
   headers: string[], 
-  userId: string
+  userId: string,
+  orgId?: string
 ): { listing: Record<string, unknown>; missingHeaders: string[] } {
   const listing: Record<string, unknown> = {
     user_id: userId,
+    org_id: orgId || null,
   };
   const missingHeaders: string[] = [];
 
