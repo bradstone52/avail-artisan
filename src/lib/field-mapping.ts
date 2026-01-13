@@ -58,6 +58,76 @@ export const FIELD_MAPPINGS: FieldMapping[] = [
 // Special computed field: Unit/Bay for display_address
 export const UNIT_BAY_HEADER = 'Unit/Bay';
 
+// Filter columns - required for row inclusion
+export const FILTER_COLUMNS = {
+  STATUS: 'Status',
+  DISTRIBUTION_WAREHOUSE: 'Distribution Warehouse?',
+} as const;
+
+/**
+ * Check if a row should be included based on filter criteria:
+ * - Status = "Active" (case-insensitive, trimmed)
+ * - Distribution Warehouse? = TRUE/checked
+ */
+export function shouldIncludeRow(row: string[], headers: string[]): { include: boolean; reason?: string } {
+  const statusIdx = findHeaderIndex(headers, FILTER_COLUMNS.STATUS);
+  const distributionIdx = findHeaderIndex(headers, FILTER_COLUMNS.DISTRIBUTION_WAREHOUSE);
+  
+  // Get status value
+  const statusValue = statusIdx !== -1 ? row[statusIdx]?.trim().toLowerCase() : '';
+  if (statusValue !== 'active') {
+    return { include: false, reason: `Status is "${row[statusIdx]?.trim() || 'empty'}" (must be "Active")` };
+  }
+  
+  // Get distribution warehouse value
+  const distributionValue = distributionIdx !== -1 ? row[distributionIdx]?.trim().toLowerCase() : '';
+  const isTruthy = ['true', 'yes', 'y', '1', 'checked', 'x'].includes(distributionValue);
+  if (!isTruthy) {
+    return { include: false, reason: `"Distribution Warehouse?" is not checked/TRUE` };
+  }
+  
+  return { include: true };
+}
+
+/**
+ * Validate that filter columns exist in headers
+ * @throws Error if assertion fails (for runtime safety)
+ */
+export function validateFilterColumns(headers: string[]): string[] {
+  const missing: string[] = [];
+  
+  if (findHeaderIndex(headers, FILTER_COLUMNS.STATUS) === -1) {
+    missing.push(FILTER_COLUMNS.STATUS);
+  }
+  if (findHeaderIndex(headers, FILTER_COLUMNS.DISTRIBUTION_WAREHOUSE) === -1) {
+    missing.push(FILTER_COLUMNS.DISTRIBUTION_WAREHOUSE);
+  }
+  
+  return missing;
+}
+
+/**
+ * Runtime assertion: Throws if filter columns are missing.
+ * Use this to prevent silent failures during sync.
+ */
+export function assertFilterColumnsExist(headers: string[]): void {
+  const missing = validateFilterColumns(headers);
+  if (missing.length > 0) {
+    throw new Error(`Missing required columns: ${missing.join(', ')}`);
+  }
+}
+
+/**
+ * Runtime assertion: Throws if a row should not be included.
+ * Use for debugging/testing to ensure filter logic is applied.
+ */
+export function assertRowShouldBeIncluded(row: string[], headers: string[]): void {
+  const result = shouldIncludeRow(row, headers);
+  if (!result.include) {
+    throw new Error(`Row excluded: ${result.reason}`);
+  }
+}
+
 /**
  * Normalize header for comparison (lowercase, trim whitespace)
  */
