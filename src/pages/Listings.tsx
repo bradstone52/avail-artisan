@@ -1,6 +1,6 @@
 import { AppLayout } from '@/components/layout/AppLayout';
 import { ListingsTable } from '@/components/listings/ListingsTable';
-import { useSheetConnection } from '@/hooks/useSheetConnection';
+import { useWorkspaceConnection } from '@/hooks/useWorkspaceConnection';
 import { Button } from '@/components/ui/button';
 import { RefreshCw, FileSpreadsheet, AlertCircle, AlertTriangle } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
@@ -18,8 +18,8 @@ export default function Listings() {
     isSyncing, 
     syncListings, 
     refreshListings,
-    lastSyncReport,
-  } = useSheetConnection();
+    lastSyncReportData,
+  } = useWorkspaceConnection();
 
   const handleToggleInclude = async (listing: Listing) => {
     try {
@@ -45,7 +45,7 @@ export default function Listings() {
   }
 
   // Check for filter column errors in last sync report
-  const hasFilterErrors = lastSyncReport?.filter_errors && lastSyncReport.filter_errors.length > 0;
+  const hasFilterErrors = lastSyncReportData?.missing_headers && lastSyncReportData.missing_headers.length > 0;
 
   return (
     <AppLayout>
@@ -74,19 +74,16 @@ export default function Listings() {
         {hasFilterErrors && (
           <Alert variant="destructive" className="mb-6 border-2 border-ink">
             <AlertTriangle className="h-5 w-5" />
-            <AlertTitle className="font-display font-bold">Missing Required Columns</AlertTitle>
+            <AlertTitle className="font-display font-bold">Missing Optional Columns</AlertTitle>
             <AlertDescription className="mt-2">
               <p className="mb-2">
-                Your sheet is missing required filter columns. Please add these columns to your Google Sheet:
+                Your sheet is missing some optional columns:
               </p>
               <ul className="list-disc list-inside space-y-1 font-mono text-sm">
-                {lastSyncReport.filter_errors.map((col) => (
+                {lastSyncReportData.missing_headers.map((col) => (
                   <li key={col}>{col}</li>
                 ))}
               </ul>
-              <p className="mt-3 text-sm">
-                The sync only imports rows where <strong>Status = "Active"</strong> AND <strong>"Distribution Warehouse?" = TRUE</strong>.
-              </p>
             </AlertDescription>
           </Alert>
         )}
@@ -108,9 +105,7 @@ export default function Listings() {
             <AlertCircle className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
             <h3 className="text-lg font-display font-semibold mb-2">No Listings Found</h3>
             <p className="text-muted-foreground mb-4 max-w-md mx-auto">
-              {hasFilterErrors 
-                ? 'Check that your sheet has the required "Status" and "Distribution Warehouse?" columns.'
-                : 'Your connected sheet appears to be empty or no rows match the filter criteria (Status=Active, Distribution Warehouse?=TRUE).'}
+              Your connected sheet appears to be empty or no rows match the filter criteria (Status=Active, Distribution Warehouse?=TRUE).
             </p>
             <Button onClick={syncListings} disabled={isSyncing}>
               <RefreshCw className={`w-4 h-4 mr-2 ${isSyncing ? 'animate-spin' : ''}`} />
