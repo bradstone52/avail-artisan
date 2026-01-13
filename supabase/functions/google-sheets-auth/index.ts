@@ -7,7 +7,6 @@ const corsHeaders = {
 };
 
 serve(async (req) => {
-  // Handle CORS preflight
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
@@ -21,54 +20,75 @@ serve(async (req) => {
       });
     }
 
-    const supabase = createClient(
-      Deno.env.get('SUPABASE_URL')!,
-      Deno.env.get('SUPABASE_ANON_KEY')!,
-      { global: { headers: { Authorization: authHeader } } }
-    );
+    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+    const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY')!;
+    const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
 
-    const token = authHeader.replace('Bearer ', '');
-    const { data: claimsData, error: claimsError } = await supabase.auth.getClaims(token);
-    
-    if (claimsError || !claimsData?.claims) {
-      console.error('Auth error:', claimsError);
+    // Verify user
+    const userClient = createClient(supabaseUrl, supabaseAnonKey, {
+      global: { headers: { Authorization: authHeader } },
+    });
+
+    const { data: { user }, error: userError } = await userClient.auth.getUser();
+    if (userError || !user) {
       return new Response(JSON.stringify({ error: 'Unauthorized' }), { 
         status: 401, 
         headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
       });
     }
 
-    const userId = claimsData.claims.sub;
-    console.log('Starting OAuth flow for user:', userId);
+    const body = await req.json().catch(() => ({}));
+    const orgId = body.orgId;
+
+    if (!orgId) {
+      return new Response(JSON.stringify({ error: 'orgId is required' }), { 
+        status: 400, 
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+      });
+    }
+
+    // Verify user is an admin of this org using service role
+    const adminClient = createClient(supabaseUrl, serviceRoleKey);
+    
+    const { data: membership } = await adminClient
+      .from('org_members')
+      .select('role')
+      .eq('org_id', orgId)
+      .eq('user_id', user.id)
+      .single();
+
+    if (membership?.role !== 'admin') {
+      return new Response(JSON.stringify({ error: 'Only org admins can connect Google' }), { 
+        status: 403, 
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+      });
+    }
+
+    console.log('Starting OAuth flow for org:', orgId, 'by user:', user.id);
 
     const clientId = Deno.env.get('GOOGLE_CLIENT_ID');
     if (!clientId) {
-      console.error('GOOGLE_CLIENT_ID not configured');
       return new Response(JSON.stringify({ error: 'OAuth not configured' }), { 
         status: 500, 
         headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
       });
     }
 
-    const redirectUri = `${Deno.env.get('SUPABASE_URL')}/functions/v1/google-sheets-callback`;
+    const redirectUri = `${supabaseUrl}/functions/v1/google-sheets-callback`;
 
-    const body = await req.json().catch(() => ({}));
-    const isWorkspace = !!body.isWorkspace;
-
-    // Build absolute returnTo URL from request origin or provided value
+    // Build returnTo URL
     const origin = req.headers.get('origin') || req.headers.get('referer')?.replace(/\/[^/]*$/, '') || '';
-    let returnTo: string | null = null;
-    
-    if (body.returnTo) {
-      // If returnTo is already absolute, use it; otherwise prepend origin
-      returnTo = body.returnTo.startsWith('http') ? body.returnTo : `${origin}${body.returnTo}`;
-    } else if (origin) {
-      // Default to /dashboard if no returnTo provided
-      returnTo = `${origin}/dashboard`;
-    }
+    let returnTo = body.returnTo 
+      ? (body.returnTo.startsWith('http') ? body.returnTo : `${origin}${body.returnTo}`)
+      : (origin ? `${origin}/dashboard` : null);
 
-    // Include user_id, workspace flag (and return URL) in state so we can identify them in callback
-    const state = btoa(JSON.stringify({ userId, isWorkspace, timestamp: Date.now(), returnTo }));
+    // Include orgId in state so callback knows where to store tokens
+    const state = btoa(JSON.stringify({ 
+      userId: user.id, 
+      orgId, 
+      timestamp: Date.now(), 
+      returnTo 
+    }));
 
     const scope = encodeURIComponent('https://www.googleapis.com/auth/spreadsheets.readonly');
     
@@ -80,8 +100,6 @@ serve(async (req) => {
       `&access_type=offline` +
       `&prompt=consent` +
       `&state=${state}`;
-
-    console.log('Generated auth URL for user:', userId);
 
     return new Response(JSON.stringify({ authUrl }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
