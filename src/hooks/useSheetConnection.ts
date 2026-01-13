@@ -9,10 +9,10 @@ import {
   getMappedHeaders,
   validateFilterColumns,
   shouldIncludeRow,
-  FILTER_COLUMNS,
 } from '@/lib/field-mapping';
 import { toast } from 'sonner';
-import { SyncReportData } from '@/components/dashboard/SyncReportSummary';
+import type { SyncReportData } from '@/lib/sync-report';
+
 
 export interface SyncReport {
   created_count: number;
