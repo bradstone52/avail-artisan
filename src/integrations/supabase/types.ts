@@ -352,6 +352,56 @@ export type Database = {
           },
         ]
       }
+      org_integrations: {
+        Row: {
+          google_access_token: string | null
+          google_refresh_token: string | null
+          google_token_expiry: string | null
+          header_row: number | null
+          last_synced_at: string | null
+          org_id: string
+          sheet_id: string | null
+          sheet_url: string | null
+          tab_name: string | null
+          updated_at: string | null
+          updated_by: string | null
+        }
+        Insert: {
+          google_access_token?: string | null
+          google_refresh_token?: string | null
+          google_token_expiry?: string | null
+          header_row?: number | null
+          last_synced_at?: string | null
+          org_id: string
+          sheet_id?: string | null
+          sheet_url?: string | null
+          tab_name?: string | null
+          updated_at?: string | null
+          updated_by?: string | null
+        }
+        Update: {
+          google_access_token?: string | null
+          google_refresh_token?: string | null
+          google_token_expiry?: string | null
+          header_row?: number | null
+          last_synced_at?: string | null
+          org_id?: string
+          sheet_id?: string | null
+          sheet_url?: string | null
+          tab_name?: string | null
+          updated_at?: string | null
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "org_integrations_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: true
+            referencedRelation: "orgs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       org_members: {
         Row: {
           created_at: string

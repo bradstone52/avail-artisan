@@ -30,20 +30,26 @@ serve(async (req) => {
       });
     }
 
-    // Decode state to get user ID, return URL, and workspace flag
+    // Decode state to get orgId and returnTo
     let userId: string;
+    let orgId: string;
     let returnTo: string | null = null;
-    let isWorkspace = false;
 
     try {
       const stateData = JSON.parse(atob(state));
       userId = stateData.userId;
+      orgId = stateData.orgId;
       returnTo = typeof stateData.returnTo === "string" ? stateData.returnTo : null;
-      isWorkspace = !!stateData.isWorkspace;
-      console.log("Decoded state - userId:", userId, "isWorkspace:", isWorkspace, "returnTo:", returnTo);
+      console.log("Decoded state - userId:", userId, "orgId:", orgId, "returnTo:", returnTo);
     } catch (e) {
       console.error("Failed to decode state:", e);
       return new Response(getErrorHtml("Invalid state parameter", null), {
+        headers: htmlHeaders,
+      });
+    }
+
+    if (!orgId) {
+      return new Response(getErrorHtml("Missing organization ID", returnTo), {
         headers: htmlHeaders,
       });
     }
@@ -83,7 +89,7 @@ serve(async (req) => {
       );
     }
 
-    console.log("Token exchange successful, storing tokens...");
+    console.log("Token exchange successful, storing tokens in org_integrations...");
 
     // Store tokens using service role (bypasses RLS)
     const supabase = createClient(
@@ -93,17 +99,16 @@ serve(async (req) => {
 
     const expiresAt = new Date(Date.now() + tokenData.expires_in * 1000).toISOString();
 
-    // Upsert the token with the workspace flag
-    const { error: upsertError } = await supabase.from("google_oauth_tokens").upsert(
+    // Upsert into org_integrations
+    const { error: upsertError } = await supabase.from("org_integrations").upsert(
       {
-        user_id: userId,
-        access_token: tokenData.access_token,
-        refresh_token: tokenData.refresh_token || null,
-        expires_at: expiresAt,
-        scope: tokenData.scope,
-        is_workspace_token: isWorkspace,
+        org_id: orgId,
+        google_access_token: tokenData.access_token,
+        google_refresh_token: tokenData.refresh_token || null,
+        google_token_expiry: expiresAt,
+        updated_by: userId,
       },
-      { onConflict: "user_id" },
+      { onConflict: "org_id" },
     );
 
     if (upsertError) {
@@ -113,9 +118,8 @@ serve(async (req) => {
       });
     }
 
-    console.log("Tokens stored successfully for user:", userId, "isWorkspace:", isWorkspace);
+    console.log("Tokens stored successfully for org:", orgId);
 
-    // Return success page with redirect
     return new Response(getSuccessHtml(returnTo), { headers: htmlHeaders });
   } catch (error: unknown) {
     console.error("Error in google-sheets-callback:", error);
@@ -125,18 +129,13 @@ serve(async (req) => {
 });
 
 function resolveReturnTo(returnTo: string | null): string {
-  // First try the provided returnTo
   if (returnTo && returnTo.startsWith("http")) {
     return returnTo;
   }
-
-  // Fallback to PUBLIC_SITE_URL environment variable
   const publicSiteUrl = Deno.env.get("PUBLIC_SITE_URL");
   if (publicSiteUrl && publicSiteUrl.startsWith("http")) {
     return publicSiteUrl;
   }
-
-  // Last resort fallback - this shouldn't happen if secrets are configured
   console.warn("No valid returnTo or PUBLIC_SITE_URL found, using fallback");
   return "https://avail-artisan.lovable.app";
 }
@@ -144,8 +143,6 @@ function resolveReturnTo(returnTo: string | null): string {
 function getSuccessHtml(returnTo: string | null): string {
   const baseUrl = resolveReturnTo(returnTo);
   const target = `${baseUrl}${baseUrl.includes("?") ? "&" : "?"}google_oauth=success`;
-
-  console.log("Redirecting to:", target);
 
   return `<!DOCTYPE html>
 <html lang="en">
@@ -175,12 +172,7 @@ function getSuccessHtml(returnTo: string | null): string {
   <script>
     (function() {
       var target = ${JSON.stringify(target)};
-      // Try immediate redirect
-      try {
-        window.location.replace(target);
-      } catch (e) {
-        console.error('Redirect failed:', e);
-      }
+      try { window.location.replace(target); } catch (e) {}
     })();
   </script>
 </body>
@@ -190,8 +182,6 @@ function getSuccessHtml(returnTo: string | null): string {
 function getErrorHtml(message: string, returnTo: string | null): string {
   const baseUrl = resolveReturnTo(returnTo);
   const target = `${baseUrl}${baseUrl.includes("?") ? "&" : "?"}google_oauth=error&message=${encodeURIComponent(message)}`;
-
-  console.log("Error redirect to:", target);
 
   return `<!DOCTYPE html>
 <html lang="en">
@@ -222,11 +212,7 @@ function getErrorHtml(message: string, returnTo: string | null): string {
     (function() {
       var target = ${JSON.stringify(target)};
       setTimeout(function() {
-        try {
-          window.location.replace(target);
-        } catch (e) {
-          console.error('Redirect failed:', e);
-        }
+        try { window.location.replace(target); } catch (e) {}
       }, 2000);
     })();
   </script>

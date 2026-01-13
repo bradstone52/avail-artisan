@@ -3,10 +3,10 @@ import { AppLayout } from '@/components/layout/AppLayout';
 import { OnboardingChecklist } from '@/components/dashboard/OnboardingChecklist';
 import { StatCard } from '@/components/dashboard/StatCard';
 import { IssueCard } from '@/components/dashboard/IssueCard';
-import { SheetConnectionCard } from '@/components/dashboard/SheetConnectionCard';
 import { SyncReportSummary } from '@/components/dashboard/SyncReportSummary';
 import { InviteCodeCard } from '@/components/admin/InviteCodeCard';
-import { useWorkspaceConnection } from '@/hooks/useWorkspaceConnection';
+import { OrgIntegrationCard } from '@/components/admin/OrgIntegrationCard';
+import { useOrgIntegration } from '@/hooks/useOrgIntegration';
 import { useOrg } from '@/hooks/useOrg';
 import { useIssues } from '@/hooks/useIssues';
 import { Button } from '@/components/ui/button';
@@ -23,33 +23,32 @@ import { toast } from 'sonner';
 export default function Dashboard() {
   const navigate = useNavigate();
   const { 
-    connection, 
+    integration,
     listings, 
     loading: sheetLoading, 
     isSyncing,
-    hasOAuthToken,
-    isAdmin,
-    canRunSync,
-    googleCredentialsExpired,
-    lastSyncReportData,
-    connectSheet, 
-    connectOAuth,
-    disconnectSheet, 
-    syncListings 
-  } = useWorkspaceConnection();
-  const { orgName, inviteCode, isOrgAdmin } = useOrg();
+    isOrgAdmin,
+    hasGoogleConnection,
+    hasSheetConfigured,
+    lastSyncReport,
+    connectGoogle,
+    disconnectGoogle,
+    updateSheetSettings,
+    syncListings,
+  } = useOrgIntegration();
+  const { orgName, inviteCode } = useOrg();
   const { issues, loading: issuesLoading, refreshIssues } = useIssues();
 
   const activeListings = listings.filter(l => l.status === 'Active');
-  const includedListings = listings.filter(l => l.include_in_issue && l.status === 'Active');
 
   const checklistItems = [
     {
       id: 'connect',
       title: 'Connect Google Sheet',
       description: 'Link your distribution listings spreadsheet',
-      completed: !!connection,
-      action: () => {},
+      completed: hasGoogleConnection && hasSheetConfigured,
+      action: connectGoogle,
+      actionLabel: 'Connect',
     },
     {
       id: 'sync',
@@ -87,11 +86,10 @@ export default function Dashboard() {
   };
 
   const handleLoadSampleData = async () => {
-    if (!connection) {
-      toast.error('Please connect a sheet first');
+    if (!hasSheetConfigured) {
+      toast.error('Please configure a sheet first');
       return;
     }
-    // For demo purposes, we'll create a local sample
     toast.info('To load sample data, paste the sample CSV content into your Google Sheet');
     downloadCSV(generateSampleData(), 'sample_data.csv');
   };
@@ -99,19 +97,6 @@ export default function Dashboard() {
   return (
     <AppLayout>
       <div className="p-6 lg:p-8 max-w-7xl mx-auto">
-        {/* Google Credentials Expired Banner - Admin Only */}
-        {googleCredentialsExpired && isAdmin && (
-          <div className="mb-6 p-4 bg-destructive/10 border border-destructive/30 rounded-lg flex items-center gap-3">
-            <Sparkles className="w-5 h-5 text-destructive" />
-            <div className="flex-1">
-              <p className="font-medium text-destructive">Google Connection Expired</p>
-              <p className="text-sm text-muted-foreground">
-                Scheduled sync is paused. Please reconnect Google Sheets to resume.
-              </p>
-            </div>
-          </div>
-        )}
-
         {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
           <div>
@@ -191,38 +176,35 @@ export default function Dashboard() {
             </div>
           </div>
 
-          {/* Right Column - Checklist, Connection, and Sync Report */}
+          {/* Right Column - Checklist, Integration, and Invite */}
           <div className="space-y-6">
             <OnboardingChecklist items={checklistItems} />
             
-            {isAdmin && (
-              <SheetConnectionCard
-                connection={connection}
-                onConnect={connectSheet}
-                onSync={syncListings}
-                onDisconnect={disconnectSheet}
-                onConnectOAuth={connectOAuth}
-                isSyncing={isSyncing}
-                hasOAuthToken={hasOAuthToken}
-                isAdmin={isAdmin}
-              />
-            )}
-            
-            {!isAdmin && connection && (
-              <div className="bg-card border border-border rounded-xl p-5">
-                <h3 className="font-display font-semibold mb-2">Data Source</h3>
-                <p className="text-sm text-muted-foreground">
-                  Connected to: <span className="font-medium text-foreground">{connection.sheet_name}</span>
-                </p>
-                <p className="text-xs text-muted-foreground mt-1">
-                  Contact an admin to manage the data connection.
-                </p>
-              </div>
-            )}
+            {/* Org Integration Card */}
+            <OrgIntegrationCard
+              integration={integration}
+              hasGoogleConnection={hasGoogleConnection}
+              hasSheetConfigured={hasSheetConfigured}
+              isAdmin={isOrgAdmin}
+              isSyncing={isSyncing}
+              onConnectGoogle={connectGoogle}
+              onDisconnectGoogle={disconnectGoogle}
+              onUpdateSettings={updateSheetSettings}
+              onSync={syncListings}
+            />
 
             {/* Sync Report Summary */}
-            {lastSyncReportData && (
-              <SyncReportSummary report={lastSyncReportData} />
+            {lastSyncReport && (
+              <SyncReportSummary report={{
+                timestamp: new Date().toISOString(),
+                rows_read: lastSyncReport.rows_imported + lastSyncReport.rows_skipped,
+                rows_imported: lastSyncReport.rows_imported,
+                rows_skipped: lastSyncReport.rows_skipped,
+                skipped_breakdown: lastSyncReport.skipped_breakdown,
+                skipped_details: [],
+                missing_headers: [],
+                success: true,
+              }} />
             )}
 
             {/* Invite Code Card - Admin only */}
