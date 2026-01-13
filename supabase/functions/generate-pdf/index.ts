@@ -217,6 +217,7 @@ serve(async (req) => {
 });
 
 // ============ NEO-BRUTALIST PDF HTML TEMPLATE ============
+// Palette: White bg + black outlines + cobalt blue (#2563eb) + warm yellow (#facc15)
 
 function buildPdfHtml(issue: any, listings: any[], opts?: { includeDetails?: boolean; sizeThresholdMax?: number }) {
   const includeDetails = opts?.includeDetails ?? false;
@@ -286,6 +287,19 @@ function buildPdfHtml(issue: any, listings: any[], opts?: { includeDetails?: boo
 <title>${esc(title)}</title>
 <style>
 /* ============ NEO-BRUTALIST PDF STYLES ============ */
+/* Palette: White bg + black ink + cobalt blue + warm yellow */
+
+:root {
+  --bg: #ffffff;
+  --ink: #0b0b0f;
+  --muted: #374151;
+  --border: #0b0b0f;
+  --blue: #2563eb;
+  --yellow: #facc15;
+  --paper: #f8fafc;
+  --table-stripe: #f3f4f6;
+}
+
 @page {
   size: A4;
   margin: 14mm 16mm;
@@ -293,7 +307,7 @@ function buildPdfHtml(issue: any, listings: any[], opts?: { includeDetails?: boo
     content: "Page " counter(page) " of " counter(pages);
     font-size: 7pt;
     font-weight: 700;
-    color: #0a0a0a;
+    color: var(--ink);
     text-transform: uppercase;
     letter-spacing: 0.05em;
   }
@@ -305,8 +319,8 @@ body {
   font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   font-size: 9pt;
   line-height: 1.4;
-  color: #0a0a0a;
-  background: #ffffff;
+  color: var(--ink);
+  background: var(--bg);
 }
 
 .page {
@@ -321,20 +335,20 @@ body {
   font-weight: 900;
   letter-spacing: -0.03em;
   line-height: 1.1;
-  color: #0a0a0a;
+  color: var(--ink);
 }
 
 .text-headline {
   font-size: 16pt;
   font-weight: 800;
   letter-spacing: -0.02em;
-  color: #0a0a0a;
+  color: var(--ink);
 }
 
 .text-subhead {
   font-size: 12pt;
   font-weight: 500;
-  color: #525252;
+  color: var(--muted);
 }
 
 .text-micro {
@@ -342,7 +356,7 @@ body {
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.08em;
-  color: #525252;
+  color: var(--muted);
 }
 
 /* ============ COVER PAGE ============ */
@@ -361,13 +375,14 @@ body {
 
 .brand-badge {
   display: inline-block;
-  background: #0a0a0a;
-  color: #ffffff;
+  background: var(--ink);
+  color: var(--bg);
   font-size: 8pt;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.05em;
   padding: 6px 12px;
+  border: 2px solid var(--ink);
 }
 
 .cover-date {
@@ -375,7 +390,7 @@ body {
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.08em;
-  color: #525252;
+  color: var(--muted);
 }
 
 .cover-title {
@@ -383,53 +398,67 @@ body {
   font-weight: 900;
   letter-spacing: -0.03em;
   line-height: 1.1;
-  color: #0a0a0a;
+  color: var(--ink);
   margin-bottom: 8px;
 }
 
 .cover-subtitle {
   font-size: 12pt;
   font-weight: 500;
-  color: #525252;
+  color: var(--muted);
   margin-bottom: 50px;
 }
 
 /* ============ BRUTALIST STAT BLOCKS ============ */
 .stats-row {
   display: flex;
-  gap: 16px;
+  gap: 20px;
   margin-bottom: 40px;
 }
 
 .stat-block {
   flex: 1;
-  border: 2px solid #0a0a0a;
-  padding: 20px 24px;
+  border: 3px solid var(--ink);
+  padding: 24px 28px;
+  background: var(--bg);
+}
+
+.stat-block.accent-blue {
+  border-color: var(--blue);
+}
+
+.stat-block.accent-yellow {
+  border-color: var(--yellow);
+  background: var(--yellow);
 }
 
 .stat-label {
-  font-size: 8pt;
+  font-size: 9pt;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.08em;
-  color: #525252;
-  margin-bottom: 6px;
+  color: var(--blue);
+  margin-bottom: 8px;
+}
+
+.stat-block.accent-yellow .stat-label {
+  color: var(--ink);
 }
 
 .stat-value {
-  font-size: 32pt;
+  font-size: 36pt;
   font-weight: 900;
-  color: #0a0a0a;
+  color: var(--ink);
   line-height: 1;
 }
 
 /* ============ CONTACT FOOTER ============ */
 .contact-footer {
   margin-top: auto;
-  border-top: 2px solid #0a0a0a;
+  border-top: 3px solid var(--ink);
   padding-top: 24px;
   display: flex;
-  gap: 48px;
+  gap: 60px;
 }
 
 .contact-block {
@@ -437,21 +466,21 @@ body {
 }
 
 .contact-block .contact-name {
-  font-size: 11pt;
-  font-weight: 700;
-  color: #0a0a0a;
-  margin-bottom: 4px;
+  font-size: 13pt;
+  font-weight: 800;
+  color: var(--ink);
+  margin-bottom: 6px;
 }
 
 .contact-block .contact-detail {
-  font-size: 10pt;
-  color: #525252;
-  margin-bottom: 2px;
+  font-size: 11pt;
+  color: var(--muted);
+  margin-bottom: 3px;
 }
 
 /* ============ BRUTALIST TABLE ============ */
 .brutalist-table-wrapper {
-  border: 2px solid #0a0a0a;
+  border: 3px solid var(--ink);
 }
 
 table {
@@ -461,10 +490,10 @@ table {
 }
 
 thead th {
-  background: #0a0a0a;
-  color: #ffffff;
+  background: var(--ink);
+  color: var(--bg);
   text-align: left;
-  padding: 10px 8px;
+  padding: 12px 8px;
   font-size: 7pt;
   font-weight: 700;
   text-transform: uppercase;
@@ -478,9 +507,9 @@ thead th.col-num {
 
 tbody td {
   padding: 10px 8px;
-  border-bottom: 1px solid #e5e5e5;
+  border-bottom: 1px solid #d1d5db;
   vertical-align: top;
-  color: #0a0a0a;
+  color: var(--ink);
 }
 
 tbody td.col-num {
@@ -489,7 +518,7 @@ tbody td.col-num {
 }
 
 tbody tr.alt {
-  background: #fafafa;
+  background: var(--table-stripe);
 }
 
 tbody tr:last-child td {
@@ -504,21 +533,21 @@ tbody tr:last-child td {
 .prop-name {
   display: block;
   font-weight: 700;
-  color: #0a0a0a;
+  color: var(--ink);
   font-size: 8pt;
 }
 
 .prop-sub {
   display: block;
   font-size: 7pt;
-  color: #525252;
+  color: var(--muted);
   margin-top: 2px;
 }
 
 .table-note {
   margin-top: 16px;
   font-size: 7pt;
-  color: #525252;
+  color: var(--muted);
 }
 
 /* ============ DETAIL PAGES ============ */
@@ -529,19 +558,19 @@ tbody tr:last-child td {
 .detail-title {
   font-size: 18pt;
   font-weight: 900;
-  color: #0a0a0a;
+  color: var(--ink);
   margin-bottom: 4px;
 }
 
 .detail-location {
   font-size: 10pt;
-  color: #525252;
+  color: var(--muted);
 }
 
 .detail-id {
   font-size: 7pt;
   font-weight: 700;
-  color: #737373;
+  color: var(--blue);
   margin-top: 6px;
   text-transform: uppercase;
   letter-spacing: 0.05em;
@@ -550,13 +579,18 @@ tbody tr:last-child td {
 .specs-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 10px;
+  gap: 12px;
   margin-bottom: 24px;
 }
 
 .spec-block {
-  border: 2px solid #0a0a0a;
-  padding: 12px 14px;
+  border: 3px solid var(--ink);
+  padding: 14px 16px;
+  background: var(--bg);
+}
+
+.spec-block.highlight {
+  border-color: var(--blue);
 }
 
 .spec-label {
@@ -564,45 +598,46 @@ tbody tr:last-child td {
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.08em;
-  color: #525252;
-  margin-bottom: 4px;
+  color: var(--blue);
+  margin-bottom: 6px;
 }
 
 .spec-value {
-  font-size: 16pt;
+  font-size: 18pt;
   font-weight: 900;
-  color: #0a0a0a;
+  color: var(--ink);
   line-height: 1;
 }
 
 .notes-block {
-  border: 2px solid #0a0a0a;
+  border: 3px solid var(--ink);
   margin-bottom: 24px;
 }
 
 .notes-header {
-  background: #0a0a0a;
-  color: #ffffff;
-  padding: 8px 14px;
-  font-size: 7pt;
+  background: var(--yellow);
+  color: var(--ink);
+  padding: 10px 14px;
+  font-size: 8pt;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.08em;
+  border-bottom: 2px solid var(--ink);
 }
 
 .notes-body {
   padding: 14px;
   font-size: 9pt;
-  color: #525252;
+  color: var(--muted);
   line-height: 1.6;
 }
 
 .detail-contact-footer {
   margin-top: auto;
-  border-top: 2px solid #0a0a0a;
+  border-top: 3px solid var(--ink);
   padding-top: 20px;
   display: flex;
-  gap: 48px;
+  gap: 60px;
 }
 </style>
 </head>
@@ -619,11 +654,11 @@ tbody tr:last-child td {
   <p class="cover-subtitle">${esc(market)} · ${esc(sizeThreshold)}–${esc(sizeThresholdMaxStr)} SF</p>
 
   <div class="stats-row">
-    <div class="stat-block">
+    <div class="stat-block accent-blue">
       <div class="stat-label">Tracked</div>
       <div class="stat-value">${total}</div>
     </div>
-    <div class="stat-block">
+    <div class="stat-block accent-yellow">
       <div class="stat-label">New</div>
       <div class="stat-value">${newCount}</div>
     </div>
@@ -648,9 +683,9 @@ tbody tr:last-child td {
   <div style="display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 16px;">
     <div>
       <h2 class="text-headline">Availability Summary</h2>
-      <p style="font-size: 8pt; color: #525252; margin-top: 4px;">${esc(market)} · ${esc(sizeThreshold)}–${esc(sizeThresholdMaxStr)} SF</p>
+      <p style="font-size: 8pt; color: var(--muted); margin-top: 4px;">${esc(market)} · ${esc(sizeThreshold)}–${esc(sizeThresholdMaxStr)} SF</p>
     </div>
-    <div class="text-micro">${total} Properties</div>
+    <div class="text-micro" style="color: var(--blue);">${total} Properties</div>
   </div>
 
   <div class="brutalist-table-wrapper">
@@ -704,7 +739,7 @@ function renderDetailPage(l: any, primary: any, secondary: any) {
   </div>
 
   <div class="specs-grid">
-    <div class="spec-block">
+    <div class="spec-block highlight">
       <div class="spec-label">Total Area</div>
       <div class="spec-value">${size} SF</div>
     </div>

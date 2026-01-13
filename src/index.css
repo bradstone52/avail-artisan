@@ -4,6 +4,7 @@
 
 /* Neo-Brutalist Design System for ClearView Commercial Realty
    Industrial CRE intelligence tool - confident, data-first, print-safe
+   Palette: White background + bold black outlines + cobalt blue + warm yellow
 */
 
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
@@ -11,119 +12,129 @@
 @layer base {
   :root {
     /* Neo-Brutalist: High contrast, minimal decoration */
+    /* Base colors - White background, near-black ink */
     --background: 0 0% 100%;
-    --foreground: 0 0% 7%;
+    --foreground: 240 10% 5%;
 
     --card: 0 0% 100%;
-    --card-foreground: 0 0% 7%;
+    --card-foreground: 240 10% 5%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 0 0% 7%;
+    --popover-foreground: 240 10% 5%;
 
-    /* Primary - Near black for strong visual weight */
-    --primary: 0 0% 10%;
+    /* Primary - Cobalt Blue for main actions */
+    --primary: 217 91% 53%;
     --primary-foreground: 0 0% 100%;
 
-    /* Secondary - Light neutral */
-    --secondary: 210 15% 96%;
-    --secondary-foreground: 0 0% 15%;
+    /* Secondary - Warm Yellow for emphasis */
+    --secondary: 48 97% 53%;
+    --secondary-foreground: 240 10% 5%;
 
-    /* Muted - Subtle backgrounds */
-    --muted: 210 10% 95%;
-    --muted-foreground: 215 10% 45%;
+    /* Muted - Dark gray text and subtle surfaces */
+    --muted: 210 20% 98%;
+    --muted-foreground: 215 16% 27%;
 
-    /* Accent - Single brand color (slate blue) */
-    --accent: 215 60% 45%;
+    /* Accent - Blue (same as primary) */
+    --accent: 217 91% 53%;
     --accent-foreground: 0 0% 100%;
+
+    /* Paper - Light gray for subtle surfaces */
+    --paper: 210 40% 98%;
+
+    /* Table stripe for zebra rows */
+    --table-stripe: 220 14% 96%;
 
     /* Status colors */
     --success: 145 55% 38%;
     --success-foreground: 0 0% 100%;
 
-    --warning: 40 90% 50%;
-    --warning-foreground: 0 0% 10%;
+    --warning: 48 97% 53%;
+    --warning-foreground: 240 10% 5%;
 
     --destructive: 0 70% 50%;
     --destructive-foreground: 0 0% 100%;
 
-    /* Borders - Strong for brutalist aesthetic */
-    --border: 0 0% 7%;
-    --border-subtle: 210 10% 85%;
-    --input: 210 10% 90%;
-    --ring: 215 60% 45%;
+    /* Borders - Strong black for brutalist aesthetic */
+    --border: 240 10% 5%;
+    --border-subtle: 220 14% 90%;
+    --input: 220 14% 90%;
+    --ring: 217 91% 53%;
 
     --radius: 4px;
 
-    /* Badge colors */
+    /* Badge colors - Blue and Yellow accents */
     --badge-new: 145 55% 38%;
     --badge-new-foreground: 0 0% 100%;
-    --badge-changed: 215 60% 45%;
+    --badge-changed: 217 91% 53%;
     --badge-changed-foreground: 0 0% 100%;
     --badge-removed: 0 0% 45%;
     --badge-removed-foreground: 0 0% 100%;
 
     /* Sidebar - Neo-brutalist */
-    --sidebar-background: 0 0% 98%;
-    --sidebar-foreground: 0 0% 15%;
-    --sidebar-primary: 0 0% 10%;
+    --sidebar-background: 0 0% 100%;
+    --sidebar-foreground: 240 10% 5%;
+    --sidebar-primary: 217 91% 53%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 210 10% 92%;
-    --sidebar-accent-foreground: 0 0% 15%;
-    --sidebar-border: 0 0% 7%;
-    --sidebar-ring: 215 60% 45%;
+    --sidebar-accent: 48 97% 53%;
+    --sidebar-accent-foreground: 240 10% 5%;
+    --sidebar-border: 240 10% 5%;
+    --sidebar-ring: 217 91% 53%;
   }
 
   .dark {
-    --background: 0 0% 5%;
+    --background: 240 10% 5%;
     --foreground: 0 0% 95%;
 
-    --card: 0 0% 8%;
+    --card: 240 10% 8%;
     --card-foreground: 0 0% 95%;
 
-    --popover: 0 0% 8%;
+    --popover: 240 10% 8%;
     --popover-foreground: 0 0% 95%;
 
-    --primary: 0 0% 95%;
-    --primary-foreground: 0 0% 5%;
+    --primary: 217 91% 60%;
+    --primary-foreground: 0 0% 100%;
 
-    --secondary: 210 10% 15%;
-    --secondary-foreground: 0 0% 90%;
+    --secondary: 48 97% 60%;
+    --secondary-foreground: 240 10% 5%;
 
-    --muted: 210 8% 15%;
-    --muted-foreground: 210 8% 55%;
+    --muted: 240 8% 15%;
+    --muted-foreground: 220 10% 60%;
 
-    --accent: 215 55% 55%;
-    --accent-foreground: 0 0% 5%;
+    --accent: 217 91% 60%;
+    --accent-foreground: 0 0% 100%;
+
+    --paper: 240 8% 12%;
+    --table-stripe: 240 8% 10%;
 
     --success: 145 50% 45%;
     --success-foreground: 0 0% 100%;
 
-    --warning: 40 85% 55%;
-    --warning-foreground: 0 0% 10%;
+    --warning: 48 90% 55%;
+    --warning-foreground: 240 10% 5%;
 
     --destructive: 0 60% 55%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 0 0% 95%;
-    --border-subtle: 210 8% 25%;
-    --input: 210 8% 20%;
-    --ring: 215 55% 55%;
+    --border: 0 0% 90%;
+    --border-subtle: 240 8% 25%;
+    --input: 240 8% 20%;
+    --ring: 217 91% 60%;
 
     --badge-new: 145 50% 45%;
     --badge-new-foreground: 0 0% 100%;
-    --badge-changed: 215 55% 55%;
+    --badge-changed: 217 91% 60%;
     --badge-changed-foreground: 0 0% 100%;
     --badge-removed: 0 0% 55%;
     --badge-removed-foreground: 0 0% 100%;
 
-    --sidebar-background: 0 0% 6%;
+    --sidebar-background: 240 10% 6%;
     --sidebar-foreground: 0 0% 90%;
-    --sidebar-primary: 0 0% 95%;
-    --sidebar-primary-foreground: 0 0% 5%;
-    --sidebar-accent: 210 8% 12%;
-    --sidebar-accent-foreground: 0 0% 90%;
-    --sidebar-border: 0 0% 95%;
-    --sidebar-ring: 215 55% 55%;
+    --sidebar-primary: 217 91% 60%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 48 97% 55%;
+    --sidebar-accent-foreground: 240 10% 5%;
+    --sidebar-border: 0 0% 90%;
+    --sidebar-ring: 217 91% 60%;
   }
 }
 
@@ -205,7 +216,7 @@
   }
 
   .brutalist-table tbody tr:nth-child(even) {
-    @apply bg-muted/40;
+    background: hsl(var(--table-stripe));
   }
 
   /* Neo-Brutalist Section */
@@ -252,7 +263,7 @@
   }
 
   .brutalist-chart-bar {
-    @apply h-full bg-foreground;
+    @apply h-full bg-primary;
   }
 
   .brutalist-chart-value {
@@ -293,11 +304,11 @@
   }
 
   .wizard-step-active {
-    @apply bg-foreground text-background;
+    @apply bg-primary text-primary-foreground;
   }
 
   .wizard-step-complete {
-    @apply bg-success/10 text-success border border-success/30;
+    @apply bg-secondary/20 text-foreground border-2 border-secondary;
   }
 
   .wizard-step-pending {
