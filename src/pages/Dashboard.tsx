@@ -5,7 +5,7 @@ import { StatCard } from '@/components/dashboard/StatCard';
 import { IssueCard } from '@/components/dashboard/IssueCard';
 import { SheetConnectionCard } from '@/components/dashboard/SheetConnectionCard';
 import { SyncReportSummary } from '@/components/dashboard/SyncReportSummary';
-import { useSheetConnection } from '@/hooks/useSheetConnection';
+import { useWorkspaceConnection } from '@/hooks/useWorkspaceConnection';
 import { useIssues } from '@/hooks/useIssues';
 import { Button } from '@/components/ui/button';
 import { 
@@ -26,12 +26,13 @@ export default function Dashboard() {
     loading: sheetLoading, 
     isSyncing,
     hasOAuthToken,
+    isAdmin,
     lastSyncReportData,
     connectSheet, 
     connectOAuth,
     disconnectSheet, 
     syncListings 
-  } = useSheetConnection();
+  } = useWorkspaceConnection();
   const { issues, loading: issuesLoading, refreshIssues } = useIssues();
 
   const activeListings = listings.filter(l => l.status === 'Active');
@@ -176,15 +177,30 @@ export default function Dashboard() {
           <div className="space-y-6">
             <OnboardingChecklist items={checklistItems} />
             
-            <SheetConnectionCard
-              connection={connection}
-              onConnect={connectSheet}
-              onSync={syncListings}
-              onDisconnect={disconnectSheet}
-              onConnectOAuth={connectOAuth}
-              isSyncing={isSyncing}
-              hasOAuthToken={hasOAuthToken}
-            />
+            {isAdmin && (
+              <SheetConnectionCard
+                connection={connection}
+                onConnect={connectSheet}
+                onSync={syncListings}
+                onDisconnect={disconnectSheet}
+                onConnectOAuth={connectOAuth}
+                isSyncing={isSyncing}
+                hasOAuthToken={hasOAuthToken}
+                isAdmin={isAdmin}
+              />
+            )}
+            
+            {!isAdmin && connection && (
+              <div className="bg-card border border-border rounded-xl p-5">
+                <h3 className="font-display font-semibold mb-2">Data Source</h3>
+                <p className="text-sm text-muted-foreground">
+                  Connected to: <span className="font-medium text-foreground">{connection.sheet_name}</span>
+                </p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Contact an admin to manage the data connection.
+                </p>
+              </div>
+            )}
 
             {/* Sync Report Summary */}
             {lastSyncReportData && (

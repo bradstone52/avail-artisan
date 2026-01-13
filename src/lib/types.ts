@@ -80,6 +80,8 @@ export interface SheetConnection {
   sheet_name: string;
   tab_name: string;
   connection_type: 'csv' | 'oauth';
+  google_sheet_id: string | null;
+  is_workspace_connection: boolean;
   last_synced_at: string | null;
   created_at: string;
   updated_at: string;

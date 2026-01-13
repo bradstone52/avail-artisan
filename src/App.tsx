@@ -10,6 +10,7 @@ import Dashboard from "./pages/Dashboard";
 import Listings from "./pages/Listings";
 import IssueBuilder from "./pages/IssueBuilder";
 import SharePage from "./pages/SharePage";
+import AdminUsers from "./pages/AdminUsers";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -28,6 +29,7 @@ const App = () => (
             <Route path="/listings" element={<Listings />} />
             <Route path="/issue-builder" element={<IssueBuilder />} />
             <Route path="/share/:token" element={<SharePage />} />
+            <Route path="/admin/users" element={<AdminUsers />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>
