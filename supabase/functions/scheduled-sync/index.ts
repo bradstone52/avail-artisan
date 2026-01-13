@@ -124,8 +124,8 @@ function shouldIncludeRow(
   return { include: true };
 }
 
-function mapRowToListing(row: string[], headers: string[], userId: string): Record<string, unknown> {
-  const listing: Record<string, unknown> = { user_id: userId };
+function mapRowToListing(row: string[], headers: string[], userId: string, orgId: string): Record<string, unknown> {
+  const listing: Record<string, unknown> = { user_id: userId, org_id: orgId };
 
   for (const mapping of FIELD_MAPPINGS) {
     const headerIdx = findHeaderIndex(headers, mapping.header);
@@ -320,6 +320,21 @@ serve(async (req) => {
     // Get the user_id from the connection (admin who set it up)
     const userId = connection.user_id;
 
+    // Get the org_id for the user who set up the connection
+    const { data: orgMemberData } = await supabase
+      .from('org_members')
+      .select('org_id')
+      .eq('user_id', userId)
+      .limit(1)
+      .maybeSingle();
+
+    if (!orgMemberData?.org_id) {
+      throw new Error('Connection owner is not a member of any organization');
+    }
+
+    const orgId = orgMemberData.org_id;
+    console.log(`[Scheduled Sync] Syncing for org: ${orgId}`);
+
     // Stage listings
     const stagedListings: Record<string, unknown>[] = [];
     const seenListingIds = new Set<string>();
@@ -360,7 +375,7 @@ serve(async (req) => {
         continue;
       }
 
-      const listing = mapRowToListing(row, headers, userId);
+      const listing = mapRowToListing(row, headers, userId, orgId);
       const listingId = (listing.listing_id as string)?.trim();
 
       if (!listingId) {
@@ -387,19 +402,21 @@ serve(async (req) => {
       throw new Error('No valid listings found after applying filters');
     }
 
-    // PHASE 2: Atomic swap
+    // PHASE 2: Atomic swap - delete only this org's listings
+    console.log(`[Scheduled Sync] Deleting existing listings for org: ${orgId}`);
     const { error: deleteError } = await supabase
       .from('listings')
       .delete()
-      .neq('id', '00000000-0000-0000-0000-000000000000');
+      .eq('org_id', orgId);
 
     if (deleteError) {
       throw new Error(`Failed to clear old listings: ${deleteError.message}`);
     }
 
+    console.log(`[Scheduled Sync] Inserting ${stagedListings.length} new listings`);
     const { error: insertError } = await supabase
       .from('listings')
-      .insert(stagedListings);
+      .upsert(stagedListings, { onConflict: 'org_id,listing_id' });
 
     if (insertError) {
       throw new Error(`Failed to insert new listings: ${insertError.message}`);
