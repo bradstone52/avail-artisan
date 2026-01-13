@@ -86,9 +86,19 @@ function parseNumber(value: string | undefined): number | undefined {
   return isNaN(num) ? undefined : Math.round(num);
 }
 
-function shouldIncludeRow(row: string[], headers: string[]): { include: boolean; reason?: string } {
+interface SizeThresholds {
+  min: number;
+  max: number;
+}
+
+function shouldIncludeRow(
+  row: string[], 
+  headers: string[], 
+  sizeThresholds?: SizeThresholds
+): { include: boolean; reason?: string } {
   const statusIdx = findHeaderIndex(headers, 'Status');
   const distributionIdx = findHeaderIndex(headers, 'Distribution Warehouse?');
+  const sizeIdx = findHeaderIndex(headers, 'Total SF');
   
   const statusValue = statusIdx !== -1 ? row[statusIdx]?.trim().toLowerCase() : '';
   if (statusValue !== 'active') {
@@ -99,6 +109,16 @@ function shouldIncludeRow(row: string[], headers: string[]): { include: boolean;
   const isTruthy = ['true', 'yes', 'y', '1', 'checked', 'x'].includes(distributionValue);
   if (!isTruthy) {
     return { include: false, reason: 'not_distribution' };
+  }
+  
+  // Size filtering
+  if (sizeThresholds && sizeIdx !== -1) {
+    const sizeValue = parseNumber(row[sizeIdx]);
+    if (sizeValue !== undefined) {
+      if (sizeValue < sizeThresholds.min || sizeValue > sizeThresholds.max) {
+        return { include: false, reason: 'outside_size_range' };
+      }
+    }
   }
   
   return { include: true };
@@ -306,19 +326,36 @@ serve(async (req) => {
     const skippedBreakdown = {
       inactive: 0,
       not_distribution: 0,
+      outside_size_range: 0,
       missing_fields: 0,
       duplicate_listing_id: 0,
     };
 
+    // Get sync settings for size thresholds
+    const { data: syncSettingsData } = await supabase
+      .from('sync_settings')
+      .select('size_threshold_min, size_threshold_max')
+      .limit(1)
+      .maybeSingle();
+
+    const sizeThresholds: SizeThresholds = {
+      min: syncSettingsData?.size_threshold_min ?? 100000,
+      max: syncSettingsData?.size_threshold_max ?? 500000,
+    };
+
+    console.log(`[Scheduled Sync] Size thresholds: ${sizeThresholds.min} - ${sizeThresholds.max} SF`);
+
     for (let i = 0; i < dataRows.length; i++) {
       const row = dataRows[i];
       
-      const filterResult = shouldIncludeRow(row, headers);
+      const filterResult = shouldIncludeRow(row, headers, sizeThresholds);
       if (!filterResult.include) {
         if (filterResult.reason === 'inactive') {
           skippedBreakdown.inactive++;
         } else if (filterResult.reason === 'not_distribution') {
           skippedBreakdown.not_distribution++;
+        } else if (filterResult.reason === 'outside_size_range') {
+          skippedBreakdown.outside_size_range++;
         }
         continue;
       }
@@ -341,7 +378,8 @@ serve(async (req) => {
     }
 
     const rowsSkipped = skippedBreakdown.inactive + skippedBreakdown.not_distribution + 
-                        skippedBreakdown.missing_fields + skippedBreakdown.duplicate_listing_id;
+                        skippedBreakdown.outside_size_range + skippedBreakdown.missing_fields + 
+                        skippedBreakdown.duplicate_listing_id;
 
     console.log(`[Scheduled Sync] Staged ${stagedListings.length} listings, skipped ${rowsSkipped}`);
 

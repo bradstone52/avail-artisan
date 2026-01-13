@@ -461,6 +461,8 @@ export type Database = {
           last_scheduled_run_status: string | null
           morning_sync_time: string
           scheduled_sync_enabled: boolean
+          size_threshold_max: number
+          size_threshold_min: number
           timezone: string
           updated_at: string
           updated_by: string | null
@@ -473,6 +475,8 @@ export type Database = {
           last_scheduled_run_status?: string | null
           morning_sync_time?: string
           scheduled_sync_enabled?: boolean
+          size_threshold_max?: number
+          size_threshold_min?: number
           timezone?: string
           updated_at?: string
           updated_by?: string | null
@@ -485,6 +489,8 @@ export type Database = {
           last_scheduled_run_status?: string | null
           morning_sync_time?: string
           scheduled_sync_enabled?: boolean
+          size_threshold_max?: number
+          size_threshold_min?: number
           timezone?: string
           updated_at?: string
           updated_by?: string | null
