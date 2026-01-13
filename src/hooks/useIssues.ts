@@ -106,6 +106,30 @@ export function useIssues() {
     await fetchIssues();
   };
 
+  const deleteAllIssues = async () => {
+    if (!user) throw new Error('Not authenticated');
+
+    // First delete all issue_listings
+    const { error: listingsError } = await supabase
+      .from('issue_listings')
+      .delete()
+      .in('issue_id', issues.map(i => i.id));
+
+    if (listingsError) {
+      console.error('Error deleting issue listings:', listingsError);
+    }
+
+    // Then delete all issues
+    const { error } = await supabase
+      .from('issues')
+      .delete()
+      .eq('user_id', user.id);
+
+    if (error) throw error;
+
+    await fetchIssues();
+  };
+
   const getLatestIssue = useCallback(() => {
     return issues.length > 0 ? issues[0] : null;
   }, [issues]);
@@ -115,6 +139,7 @@ export function useIssues() {
     loading,
     createIssue,
     updateIssue,
+    deleteAllIssues,
     getLatestIssue,
     refreshIssues: fetchIssues,
   };

@@ -11,6 +11,7 @@ interface StatCardProps {
     label: string;
   };
   variant?: 'default' | 'primary' | 'success' | 'warning';
+  action?: ReactNode;
 }
 
 export function StatCard({ 
@@ -19,7 +20,8 @@ export function StatCard({
   description, 
   icon, 
   trend,
-  variant = 'default' 
+  variant = 'default',
+  action
 }: StatCardProps) {
   return (
     <div className={cn(
@@ -30,7 +32,10 @@ export function StatCard({
     )}>
       <div className="flex items-start justify-between">
         <div className="flex-1">
-          <p className="text-sm font-medium text-muted-foreground">{title}</p>
+          <div className="flex items-center justify-between">
+            <p className="text-sm font-medium text-muted-foreground">{title}</p>
+            {action}
+          </div>
           <p className="mt-2 text-3xl font-display font-bold tracking-tight">
             {value}
           </p>
