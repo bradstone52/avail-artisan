@@ -46,7 +46,7 @@ export function SyncReportSummary({ report, className }: SyncReportSummaryProps)
           <h4 className="font-display font-semibold text-sm">
             {report.success ? 'Sync Complete' : 'Sync Failed'}
           </h4>
-          <p className="text-xs text-muted flex items-center gap-1">
+          <p className="text-xs text-ink/70 flex items-center gap-1">
             <Clock className="w-3 h-3" />
             {formattedTime}
           </p>
@@ -78,30 +78,30 @@ export function SyncReportSummary({ report, className }: SyncReportSummaryProps)
       {/* Skip Breakdown */}
       {report.rows_skipped > 0 && (
         <div className="space-y-2 mb-4">
-          <div className="text-xs font-medium text-muted uppercase tracking-wide">
+          <div className="text-xs font-medium text-ink/70 uppercase tracking-wide">
             Skip Reasons
           </div>
           <div className="grid grid-cols-2 gap-2 text-sm">
             {report.skipped_breakdown.inactive > 0 && (
-              <div className="flex items-center gap-2 text-muted">
+              <div className="flex items-center gap-2 text-ink/80">
                 <AlertTriangle className="w-3 h-3 text-yellow-500" />
                 <span>Inactive: {report.skipped_breakdown.inactive}</span>
               </div>
             )}
             {report.skipped_breakdown.not_distribution > 0 && (
-              <div className="flex items-center gap-2 text-muted">
+              <div className="flex items-center gap-2 text-ink/80">
                 <AlertTriangle className="w-3 h-3 text-yellow-500" />
                 <span>Not Distribution: {report.skipped_breakdown.not_distribution}</span>
               </div>
             )}
             {report.skipped_breakdown.missing_fields > 0 && (
-              <div className="flex items-center gap-2 text-muted">
+              <div className="flex items-center gap-2 text-ink/80">
                 <AlertTriangle className="w-3 h-3 text-orange-500" />
                 <span>Missing Fields: {report.skipped_breakdown.missing_fields}</span>
               </div>
             )}
             {report.skipped_breakdown.duplicate_listing_id > 0 && (
-              <div className="flex items-center gap-2 text-muted">
+              <div className="flex items-center gap-2 text-ink/80">
                 <AlertTriangle className="w-3 h-3 text-red-500" />
                 <span>Duplicates: {report.skipped_breakdown.duplicate_listing_id}</span>
               </div>
