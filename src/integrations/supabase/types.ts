@@ -457,6 +457,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      can_run_sync: { Args: { _user_id: string }; Returns: boolean }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
@@ -465,6 +466,7 @@ export type Database = {
         Returns: boolean
       }
       is_admin: { Args: { _user_id: string }; Returns: boolean }
+      is_sync_operator: { Args: { _user_id: string }; Returns: boolean }
       make_first_user_admin: { Args: never; Returns: undefined }
     }
     Enums: {
