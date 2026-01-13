@@ -1,5 +1,18 @@
 // Core application types
 
+export interface Org {
+  id: string;
+  name: string;
+  created_at: string;
+}
+
+export interface OrgMember {
+  org_id: string;
+  user_id: string;
+  role: string;
+  created_at: string;
+}
+
 export interface Listing {
   id: string;
   listing_id: string;
@@ -28,6 +41,7 @@ export interface Listing {
   office_percent: string | null;
   cross_dock: 'Yes' | 'No' | 'Unknown';
   trailer_parking: 'Yes' | 'No' | 'Unknown';
+  org_id: string | null;
   created_at: string;
   updated_at: string;
 }
