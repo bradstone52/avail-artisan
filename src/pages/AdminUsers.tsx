@@ -6,6 +6,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
   Table,
   TableBody,
@@ -21,16 +22,17 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Shield, Users, Loader2, ShieldAlert } from 'lucide-react';
+import { Shield, Users, Loader2, ShieldAlert, Clock, Zap } from 'lucide-react';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
+import { SyncScheduleSettings } from '@/components/admin/SyncScheduleSettings';
 
 interface UserWithRole {
   id: string;
   email: string;
   full_name: string | null;
   created_at: string;
-  role: 'admin' | 'member' | null;
+  role: 'admin' | 'sync_operator' | 'member' | null;
 }
 
 export default function AdminUsers() {
@@ -40,6 +42,7 @@ export default function AdminUsers() {
   const [users, setUsers] = useState<UserWithRole[]>([]);
   const [loading, setLoading] = useState(true);
   const [updating, setUpdating] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState('users');
 
   useEffect(() => {
     if (!roleLoading && !isAdmin) {
@@ -77,7 +80,7 @@ export default function AdminUsers() {
         const userRole = roles?.find((r) => r.user_id === profile.id);
         return {
           ...profile,
-          role: (userRole?.role as 'admin' | 'member') || null,
+          role: (userRole?.role as 'admin' | 'sync_operator' | 'member') || null,
         };
       });
 
@@ -90,7 +93,7 @@ export default function AdminUsers() {
     }
   };
 
-  const handleRoleChange = async (userId: string, newRole: 'admin' | 'member' | 'none') => {
+  const handleRoleChange = async (userId: string, newRole: 'admin' | 'sync_operator' | 'member' | 'none') => {
     if (userId === currentUser?.id) {
       toast.error("You can't change your own role");
       return;
@@ -107,22 +110,14 @@ export default function AdminUsers() {
 
         if (error) throw error;
       } else {
-        // Upsert the role
-        const { error } = await supabase
+        // Delete existing role first, then insert new one
+        await supabase.from('user_roles').delete().eq('user_id', userId);
+        
+        const { error: insertError } = await supabase
           .from('user_roles')
-          .upsert(
-            { user_id: userId, role: newRole },
-            { onConflict: 'user_id,role' }
-          );
-
-        if (error) {
-          // If upsert fails, try delete then insert
-          await supabase.from('user_roles').delete().eq('user_id', userId);
-          const { error: insertError } = await supabase
-            .from('user_roles')
-            .insert({ user_id: userId, role: newRole });
-          if (insertError) throw insertError;
-        }
+          .insert({ user_id: userId, role: newRole });
+        
+        if (insertError) throw insertError;
       }
 
       toast.success('Role updated');
@@ -132,6 +127,34 @@ export default function AdminUsers() {
       toast.error('Failed to update role');
     } finally {
       setUpdating(null);
+    }
+  };
+
+  const getRoleBadge = (role: string | null) => {
+    switch (role) {
+      case 'admin':
+        return (
+          <Badge variant="default" className="bg-primary">
+            <Shield className="w-3 h-3 mr-1" />
+            Admin
+          </Badge>
+        );
+      case 'sync_operator':
+        return (
+          <Badge variant="default" className="bg-blue-600">
+            <Zap className="w-3 h-3 mr-1" />
+            Sync Operator
+          </Badge>
+        );
+      case 'member':
+        return <Badge variant="secondary">Member</Badge>;
+      default:
+        return (
+          <Badge variant="outline" className="text-muted-foreground">
+            <ShieldAlert className="w-3 h-3 mr-1" />
+            No Role
+          </Badge>
+        );
     }
   };
 
@@ -158,103 +181,118 @@ export default function AdminUsers() {
             <Users className="w-6 h-6 text-primary" />
           </div>
           <div>
-            <h1 className="text-2xl font-display font-bold">User Management</h1>
-            <p className="text-muted-foreground">Manage user roles and permissions</p>
+            <h1 className="text-2xl font-display font-bold">Admin Settings</h1>
+            <p className="text-muted-foreground">Manage users, roles, and sync schedules</p>
           </div>
         </div>
 
-        {/* Role Legend */}
-        <div className="bg-muted/30 rounded-lg p-4 mb-6 flex flex-wrap gap-4">
-          <div className="flex items-center gap-2">
-            <Badge variant="default" className="bg-primary">
-              <Shield className="w-3 h-3 mr-1" />
-              Admin
-            </Badge>
-            <span className="text-sm text-muted-foreground">
-              Can connect Google Sheets, sync data, manage users
-            </span>
-          </div>
-          <div className="flex items-center gap-2">
-            <Badge variant="secondary">Member</Badge>
-            <span className="text-sm text-muted-foreground">
-              Can view listings, create issues, generate PDFs
-            </span>
-          </div>
-        </div>
+        <Tabs value={activeTab} onValueChange={setActiveTab}>
+          <TabsList className="mb-6">
+            <TabsTrigger value="users" className="flex items-center gap-2">
+              <Users className="w-4 h-4" />
+              Users & Roles
+            </TabsTrigger>
+            <TabsTrigger value="schedule" className="flex items-center gap-2">
+              <Clock className="w-4 h-4" />
+              Sync Schedule
+            </TabsTrigger>
+          </TabsList>
 
-        {/* Users Table */}
-        <div className="bg-card border border-border rounded-xl overflow-hidden">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>User</TableHead>
-                <TableHead>Email</TableHead>
-                <TableHead>Joined</TableHead>
-                <TableHead>Role</TableHead>
-                <TableHead className="w-[180px]">Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {users.map((user) => (
-                <TableRow key={user.id}>
-                  <TableCell className="font-medium">
-                    <div className="flex items-center gap-2">
-                      {user.full_name || 'No name'}
-                      {user.id === currentUser?.id && (
-                        <Badge variant="outline" className="text-xs">You</Badge>
-                      )}
-                    </div>
-                  </TableCell>
-                  <TableCell className="text-muted-foreground">{user.email}</TableCell>
-                  <TableCell className="text-muted-foreground">
-                    {format(new Date(user.created_at), 'MMM d, yyyy')}
-                  </TableCell>
-                  <TableCell>
-                    {user.role === 'admin' ? (
-                      <Badge variant="default" className="bg-primary">
-                        <Shield className="w-3 h-3 mr-1" />
-                        Admin
-                      </Badge>
-                    ) : user.role === 'member' ? (
-                      <Badge variant="secondary">Member</Badge>
-                    ) : (
-                      <Badge variant="outline" className="text-muted-foreground">
-                        <ShieldAlert className="w-3 h-3 mr-1" />
-                        No Role
-                      </Badge>
-                    )}
-                  </TableCell>
-                  <TableCell>
-                    {user.id === currentUser?.id ? (
-                      <span className="text-xs text-muted-foreground">Cannot edit self</span>
-                    ) : (
-                      <Select
-                        value={user.role || 'none'}
-                        onValueChange={(value) =>
-                          handleRoleChange(user.id, value as 'admin' | 'member' | 'none')
-                        }
-                        disabled={updating === user.id}
-                      >
-                        <SelectTrigger className="w-[140px]">
-                          {updating === user.id ? (
-                            <Loader2 className="w-4 h-4 animate-spin" />
-                          ) : (
-                            <SelectValue />
+          <TabsContent value="users">
+            {/* Role Legend */}
+            <div className="bg-muted/30 rounded-lg p-4 mb-6 space-y-2">
+              <div className="flex items-center gap-2">
+                <Badge variant="default" className="bg-primary">
+                  <Shield className="w-3 h-3 mr-1" />
+                  Admin
+                </Badge>
+                <span className="text-sm text-muted-foreground">
+                  Full access: connect Google, sync data, manage users, edit schedule
+                </span>
+              </div>
+              <div className="flex items-center gap-2">
+                <Badge variant="default" className="bg-blue-600">
+                  <Zap className="w-3 h-3 mr-1" />
+                  Sync Operator
+                </Badge>
+                <span className="text-sm text-muted-foreground">
+                  Can run manual sync and view sync logs
+                </span>
+              </div>
+              <div className="flex items-center gap-2">
+                <Badge variant="secondary">Member</Badge>
+                <span className="text-sm text-muted-foreground">
+                  View listings, create issues, generate PDFs
+                </span>
+              </div>
+            </div>
+
+            {/* Users Table */}
+            <div className="bg-card border border-border rounded-xl overflow-hidden">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>User</TableHead>
+                    <TableHead>Email</TableHead>
+                    <TableHead>Joined</TableHead>
+                    <TableHead>Role</TableHead>
+                    <TableHead className="w-[180px]">Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {users.map((user) => (
+                    <TableRow key={user.id}>
+                      <TableCell className="font-medium">
+                        <div className="flex items-center gap-2">
+                          {user.full_name || 'No name'}
+                          {user.id === currentUser?.id && (
+                            <Badge variant="outline" className="text-xs">You</Badge>
                           )}
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="admin">Admin</SelectItem>
-                          <SelectItem value="member">Member</SelectItem>
-                          <SelectItem value="none">No Role</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    )}
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </div>
+                        </div>
+                      </TableCell>
+                      <TableCell className="text-muted-foreground">{user.email}</TableCell>
+                      <TableCell className="text-muted-foreground">
+                        {format(new Date(user.created_at), 'MMM d, yyyy')}
+                      </TableCell>
+                      <TableCell>{getRoleBadge(user.role)}</TableCell>
+                      <TableCell>
+                        {user.id === currentUser?.id ? (
+                          <span className="text-xs text-muted-foreground">Cannot edit self</span>
+                        ) : (
+                          <Select
+                            value={user.role || 'none'}
+                            onValueChange={(value) =>
+                              handleRoleChange(user.id, value as 'admin' | 'sync_operator' | 'member' | 'none')
+                            }
+                            disabled={updating === user.id}
+                          >
+                            <SelectTrigger className="w-[140px]">
+                              {updating === user.id ? (
+                                <Loader2 className="w-4 h-4 animate-spin" />
+                              ) : (
+                                <SelectValue />
+                              )}
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="admin">Admin</SelectItem>
+                              <SelectItem value="sync_operator">Sync Operator</SelectItem>
+                              <SelectItem value="member">Member</SelectItem>
+                              <SelectItem value="none">No Role</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        )}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          </TabsContent>
+
+          <TabsContent value="schedule">
+            <SyncScheduleSettings />
+          </TabsContent>
+        </Tabs>
       </div>
     </AppLayout>
   );

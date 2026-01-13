@@ -17,17 +17,19 @@ import { toast } from 'sonner';
 /**
  * Hook for workspace-level sheet connection management.
  * All users can view the connection and listings.
- * Only admins can connect, disconnect, and sync.
+ * Admins can connect, disconnect, and sync.
+ * Sync operators can run manual sync.
  */
 export function useWorkspaceConnection() {
   const { user, session } = useAuth();
-  const { isAdmin, loading: roleLoading } = useUserRole();
+  const { isAdmin, canRunSync, loading: roleLoading } = useUserRole();
   
   const [connection, setConnection] = useState<SheetConnection | null>(null);
   const [listings, setListings] = useState<Listing[]>([]);
   const [loading, setLoading] = useState(true);
   const [isSyncing, setIsSyncing] = useState(false);
   const [hasOAuthToken, setHasOAuthToken] = useState(false);
+  const [googleCredentialsExpired, setGoogleCredentialsExpired] = useState(false);
   const [lastSyncReport, setLastSyncReport] = useState<string | null>(null);
   const [lastSyncReportData, setLastSyncReportData] = useState<SyncReportData | null>(null);
 
@@ -91,11 +93,28 @@ export function useWorkspaceConnection() {
     }
   }, [user]);
 
+  // Check for Google credentials expired
+  const checkCredentialsExpired = useCallback(async () => {
+    if (!user) return;
+
+    try {
+      const { data } = await supabase
+        .from('sync_settings')
+        .select('google_credentials_expired')
+        .limit(1)
+        .maybeSingle();
+
+      setGoogleCredentialsExpired(data?.google_credentials_expired || false);
+    } catch (err) {
+      console.error('Error checking credentials status:', err);
+    }
+  }, [user]);
+
   // Initial fetch
   useEffect(() => {
     const init = async () => {
       setLoading(true);
-      await Promise.all([fetchConnection(), fetchListings(), checkOAuthToken()]);
+      await Promise.all([fetchConnection(), fetchListings(), checkOAuthToken(), checkCredentialsExpired()]);
       setLoading(false);
     };
 
@@ -211,12 +230,15 @@ export function useWorkspaceConnection() {
     toast.success('Sheet disconnected');
   };
 
-  // Sync listings (admin only) - full refresh approach
+  // Sync listings (admin or sync_operator) - full refresh approach
   const syncListings = async () => {
-    if (!connection || !user || !isAdmin) {
-      if (!isAdmin) {
-        toast.error('Only admins can sync listings');
-      }
+    if (!connection || !user) {
+      toast.error('No sheet connection');
+      return null;
+    }
+    
+    if (!canRunSync) {
+      toast.error('You do not have permission to sync');
       return null;
     }
 
@@ -227,6 +249,19 @@ export function useWorkspaceConnection() {
 
     setIsSyncing(true);
     const syncStartTime = new Date().toISOString();
+
+    // Create sync log entry
+    const { data: syncLog } = await supabase
+      .from('sync_logs')
+      .insert({
+        run_type: 'manual',
+        triggered_by: user.id,
+        status: 'running',
+      })
+      .select()
+      .single();
+
+    const logId = syncLog?.id;
 
     // Initialize sync report data
     const reportData: SyncReportData = {
@@ -387,6 +422,18 @@ export function useWorkspaceConnection() {
         .update({ last_synced_at: new Date().toISOString() })
         .eq('id', connection.id);
 
+      // Update sync log as successful
+      if (logId) {
+        await supabase.from('sync_logs').update({
+          status: 'success',
+          completed_at: new Date().toISOString(),
+          rows_read: reportData.rows_read,
+          rows_imported: stagedListings.length,
+          rows_skipped: reportData.rows_skipped,
+          skipped_breakdown: reportData.skipped_breakdown,
+        }).eq('id', logId);
+      }
+
       await fetchListings();
       await fetchConnection();
 
@@ -402,11 +449,22 @@ export function useWorkspaceConnection() {
       return { success: true, reportData };
     } catch (error) {
       console.error('Sync error:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       reportData.success = false;
-      reportData.error_message = error instanceof Error ? error.message : 'Unknown error';
+      reportData.error_message = errorMessage;
       setLastSyncReportData(reportData);
-      toast.error(`Sync failed: ${reportData.error_message}`);
-      return { success: false, error: reportData.error_message };
+
+      // Update sync log as failed
+      if (logId) {
+        await supabase.from('sync_logs').update({
+          status: 'failed',
+          completed_at: new Date().toISOString(),
+          error_message: errorMessage,
+        }).eq('id', logId);
+      }
+
+      toast.error(`Sync failed: ${errorMessage}`);
+      return { success: false, error: errorMessage };
     } finally {
       setIsSyncing(false);
     }
@@ -423,6 +481,8 @@ export function useWorkspaceConnection() {
     isSyncing,
     hasOAuthToken,
     isAdmin,
+    canRunSync,
+    googleCredentialsExpired,
     roleLoading,
     lastSyncReport,
     lastSyncReportData,
