@@ -7,7 +7,7 @@ import { SelectListingsStep } from "@/components/issue-builder/SelectListingsSte
 import { GenerateContentStep } from "@/components/issue-builder/GenerateContentStep";
 import { PreviewStep } from "@/components/issue-builder/PreviewStep";
 import { ShareStep } from "@/components/issue-builder/ShareStep";
-import { useSheetConnection } from "@/hooks/useSheetConnection";
+import { useWorkspaceConnection } from "@/hooks/useWorkspaceConnection";
 import { useIssues } from "@/hooks/useIssues";
 import { IssueSettings, Issue } from "@/lib/types";
 import { Button } from "@/components/ui/button";
@@ -25,7 +25,7 @@ const WIZARD_STEPS = [
 
 export default function IssueBuilder() {
   const navigate = useNavigate();
-  const { listings, loading: listingsLoading } = useSheetConnection();
+  const { listings, loading: listingsLoading } = useWorkspaceConnection();
   const { createIssue, getLatestIssue } = useIssues();
 
   const [currentStep, setCurrentStep] = useState(0);
