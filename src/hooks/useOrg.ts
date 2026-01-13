@@ -5,6 +5,7 @@ import { useAuth } from '@/contexts/AuthContext';
 interface Org {
   id: string;
   name: string;
+  invite_code: string;
   created_at: string;
 }
 
@@ -85,6 +86,8 @@ export function useOrg() {
   return {
     org,
     orgId: org?.id || null,
+    orgName: org?.name || null,
+    inviteCode: org?.invite_code || null,
     orgRole,
     isOrgAdmin: orgRole === 'admin',
     loading,
