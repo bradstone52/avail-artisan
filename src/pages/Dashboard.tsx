@@ -5,7 +5,9 @@ import { StatCard } from '@/components/dashboard/StatCard';
 import { IssueCard } from '@/components/dashboard/IssueCard';
 import { SheetConnectionCard } from '@/components/dashboard/SheetConnectionCard';
 import { SyncReportSummary } from '@/components/dashboard/SyncReportSummary';
+import { InviteCodeCard } from '@/components/admin/InviteCodeCard';
 import { useWorkspaceConnection } from '@/hooks/useWorkspaceConnection';
+import { useOrg } from '@/hooks/useOrg';
 import { useIssues } from '@/hooks/useIssues';
 import { Button } from '@/components/ui/button';
 import { 
@@ -35,6 +37,7 @@ export default function Dashboard() {
     disconnectSheet, 
     syncListings 
   } = useWorkspaceConnection();
+  const { orgName, inviteCode, isOrgAdmin } = useOrg();
   const { issues, loading: issuesLoading, refreshIssues } = useIssues();
 
   const activeListings = listings.filter(l => l.status === 'Active');
@@ -220,6 +223,11 @@ export default function Dashboard() {
             {/* Sync Report Summary */}
             {lastSyncReportData && (
               <SyncReportSummary report={lastSyncReportData} />
+            )}
+
+            {/* Invite Code Card - Admin only */}
+            {isOrgAdmin && (
+              <InviteCodeCard inviteCode={inviteCode} orgName={orgName} />
             )}
 
             {/* Quick Actions */}
