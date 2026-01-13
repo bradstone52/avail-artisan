@@ -15,7 +15,8 @@ import {
   Building2, 
   FilePlus, 
   Download,
-  Sparkles
+  Sparkles,
+  Trash2
 } from 'lucide-react';
 import { generateTemplateCSV, generateSampleData, downloadCSV } from '@/lib/sheet-parser';
 import { toast } from 'sonner';
@@ -37,7 +38,21 @@ export default function Dashboard() {
     syncListings,
   } = useOrgIntegration();
   const { orgName, inviteCode } = useOrg();
-  const { issues, loading: issuesLoading, refreshIssues } = useIssues();
+  const { issues, loading: issuesLoading, refreshIssues, deleteAllIssues } = useIssues();
+
+  const handleClearIssues = async () => {
+    if (issues.length === 0) {
+      toast.info('No issues to clear');
+      return;
+    }
+    try {
+      await deleteAllIssues();
+      toast.success('All issues cleared');
+    } catch (error) {
+      console.error('Error clearing issues:', error);
+      toast.error('Failed to clear issues');
+    }
+  };
 
   const activeListings = listings.filter(l => l.status === 'Active');
 
@@ -142,6 +157,18 @@ export default function Dashboard() {
                 description="Market snapshots"
                 icon={<Sparkles className="w-5 h-5" />}
                 variant="success"
+                action={
+                  issues.length > 0 ? (
+                    <Button 
+                      variant="ghost" 
+                      size="sm" 
+                      onClick={handleClearIssues}
+                      className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </Button>
+                  ) : undefined
+                }
               />
             </div>
 
