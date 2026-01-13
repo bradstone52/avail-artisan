@@ -63,15 +63,15 @@ export function SyncReportSummary({ report, className }: SyncReportSummaryProps)
       <div className="grid grid-cols-3 gap-3 mb-4">
         <div className="bg-paper border border-ink/10 rounded-lg p-3 text-center">
           <div className="text-lg font-bold text-ink">{report.rows_read}</div>
-          <div className="text-xs text-muted">Rows Read</div>
+          <div className="text-xs text-ink/70">Rows Read</div>
         </div>
         <div className="bg-blue/10 border border-blue/20 rounded-lg p-3 text-center">
           <div className="text-lg font-bold text-blue">{report.rows_imported}</div>
-          <div className="text-xs text-muted">Imported</div>
+          <div className="text-xs text-ink/70">Imported</div>
         </div>
         <div className="bg-yellow/10 border border-yellow/20 rounded-lg p-3 text-center">
           <div className="text-lg font-bold text-yellow-600">{report.rows_skipped}</div>
-          <div className="text-xs text-muted">Skipped</div>
+          <div className="text-xs text-ink/70">Skipped</div>
         </div>
       </div>
 
