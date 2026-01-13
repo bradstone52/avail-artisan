@@ -24,6 +24,7 @@ interface SheetConnectionCardProps {
   onConnectOAuth: () => Promise<void>;
   isSyncing: boolean;
   hasOAuthToken: boolean;
+  isAdmin?: boolean;
 }
 
 export function SheetConnectionCard({
@@ -34,6 +35,7 @@ export function SheetConnectionCard({
   onConnectOAuth,
   isSyncing,
   hasOAuthToken,
+  isAdmin = true,
 }: SheetConnectionCardProps) {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [sheetUrl, setSheetUrl] = useState('');
