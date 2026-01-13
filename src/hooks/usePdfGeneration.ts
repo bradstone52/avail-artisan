@@ -11,6 +11,10 @@ interface IssueListingData {
   sort_order: number;
 }
 
+interface PdfGenerationOptions {
+  sizeThresholdMax?: number;
+}
+
 interface PdfGenerationResult {
   success: boolean;
   pdf_url: string;
@@ -25,7 +29,8 @@ export function usePdfGeneration() {
 
   const generatePdf = async (
     issueId: string,
-    issueListings?: IssueListingData[]
+    issueListings?: IssueListingData[],
+    options?: PdfGenerationOptions
   ): Promise<PdfGenerationResult | null> => {
     setIsGenerating(true);
     setError(null);
@@ -36,10 +41,14 @@ export function usePdfGeneration() {
         throw new Error('Not authenticated');
       }
 
+      // Default maxSF to 500000 if not provided
+      const sizeThresholdMax = options?.sizeThresholdMax ?? 500000;
+
       const response = await supabase.functions.invoke('generate-pdf', {
         body: {
           issue_id: issueId,
           issue_listings: issueListings,
+          size_threshold_max: sizeThresholdMax,
         },
       });
 

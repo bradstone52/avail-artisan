@@ -1,6 +1,10 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
+// Configurable cover image URL - can be set via environment variable
+const COVER_IMAGE_URL = Deno.env.get("PDF_COVER_IMAGE_URL") || 
+  "https://images.unsplash.com/photo-1586528116311-ad8dd3c8310d?w=1200&q=80";
+
 type YesNoUnknown = "Yes" | "No" | "Unknown";
 
 interface Listing {
@@ -16,7 +20,6 @@ interface Listing {
   clear_height_ft: number | null;
   dock_doors: number | null;
   drive_in_doors: number | null;
-  trailer_parking: YesNoUnknown | string | null;
   availability_date: string | null;
   asking_rate_psf: string | null;
   notes_public: string | null;
@@ -78,7 +81,13 @@ serve(async (req) => {
     if (!issueId) throw new Error("Missing issueId");
 
     const includeDetails: boolean = body.includeDetails ?? body.include_details ?? false;
-    const sizeThresholdMax: number = body.size_threshold_max ?? 500000;
+    
+    // Handle sizeThresholdMax with debug logging
+    let sizeThresholdMax: number = body.size_threshold_max ?? body.sizeThresholdMax ?? 500000;
+    if (sizeThresholdMax === undefined || sizeThresholdMax === null || isNaN(sizeThresholdMax)) {
+      console.log("maxSF missing; default applied");
+      sizeThresholdMax = 500000;
+    }
 
     const issueListingsPayload: IssueListingPayload[] | undefined = body.issue_listings;
 
@@ -98,6 +107,7 @@ serve(async (req) => {
           })
       : null;
 
+    // Removed trailer_parking from the select fields
     const listingSelectFields = [
       "id",
       "listing_id",
@@ -111,7 +121,6 @@ serve(async (req) => {
       "clear_height_ft",
       "dock_doors",
       "drive_in_doors",
-      "trailer_parking",
       "availability_date",
       "asking_rate_psf",
       "notes_public",
@@ -217,19 +226,17 @@ serve(async (req) => {
 });
 
 // ============ NEO-BRUTALIST PDF HTML TEMPLATE ============
-// Palette: White bg + black outlines + cobalt blue (#2563eb) + warm yellow (#facc15)
+// Redesigned cover with hero image, cleaner layout
 
 function buildPdfHtml(issue: any, listings: any[], opts?: { includeDetails?: boolean; sizeThresholdMax?: number }) {
   const includeDetails = opts?.includeDetails ?? false;
   const sizeThresholdMax = opts?.sizeThresholdMax ?? 500000;
 
-  const published = new Date().toLocaleDateString("en-US", {
-    year: "numeric",
-    month: "long",
-    day: "numeric",
-  });
+  // Format month/year for title
+  const now = new Date();
+  const monthYear = now.toLocaleDateString("en-US", { month: "long", year: "numeric" });
 
-  const title = issue.title || "Large-Format Distribution Availability";
+  const title = issue.title || `Large-Format Distribution Availability — ${monthYear}`;
   const market = issue.market || "Calgary Region";
   const sizeThreshold = issue.size_threshold ? Number(issue.size_threshold).toLocaleString() : "100,000";
   const sizeThresholdMaxStr = sizeThresholdMax.toLocaleString();
@@ -247,11 +254,11 @@ function buildPdfHtml(issue: any, listings: any[], opts?: { includeDetails?: boo
   };
 
   const total = listings.length;
-  const newCount = Number(issue.new_count || 0);
 
   // Sort by size descending
   const sorted = [...listings].sort((a, b) => (Number(b.size_sf || 0) - Number(a.size_sf || 0)));
 
+  // Summary table rows - NO trailer parking column
   const summaryRows = sorted.map((l, idx) => {
     const property = esc(l.property_name || l.display_address || l.address || "—");
     const submarket = esc(l.submarket || "");
@@ -260,7 +267,6 @@ function buildPdfHtml(issue: any, listings: any[], opts?: { includeDetails?: boo
     const clear = l.clear_height_ft ? `${l.clear_height_ft}'` : "—";
     const dock = l.dock_doors != null ? String(l.dock_doors) : "—";
     const drive = l.drive_in_doors != null ? String(l.drive_in_doors) : "—";
-    const trailer = yesNo(l.trailer_parking);
     const avail = esc(l.availability_date || "TBD");
     const rowClass = idx % 2 === 1 ? ' class="alt"' : '';
 
@@ -271,7 +277,6 @@ function buildPdfHtml(issue: any, listings: any[], opts?: { includeDetails?: boo
       <td class="col-num">${clear}</td>
       <td class="col-num">${dock}</td>
       <td class="col-num">${drive}</td>
-      <td class="col-mid">${trailer}</td>
       <td class="col-mid">${avail}</td>
     </tr>`;
   }).join("");
@@ -287,7 +292,6 @@ function buildPdfHtml(issue: any, listings: any[], opts?: { includeDetails?: boo
 <title>${esc(title)}</title>
 <style>
 /* ============ NEO-BRUTALIST PDF STYLES ============ */
-/* Palette: White bg + black ink + cobalt blue + warm yellow */
 
 :root {
   --bg: #ffffff;
@@ -313,6 +317,13 @@ function buildPdfHtml(issue: any, listings: any[], opts?: { includeDetails?: boo
   }
 }
 
+@page cover {
+  margin: 0;
+  @bottom-right {
+    content: none;
+  }
+}
+
 * { box-sizing: border-box; margin: 0; padding: 0; }
 
 body {
@@ -329,51 +340,31 @@ body {
 }
 .page:last-child { page-break-after: auto; }
 
-/* ============ TYPOGRAPHY ============ */
-.text-display {
-  font-size: 28pt;
-  font-weight: 900;
-  letter-spacing: -0.03em;
-  line-height: 1.1;
-  color: var(--ink);
-}
-
-.text-headline {
-  font-size: 16pt;
-  font-weight: 800;
-  letter-spacing: -0.02em;
-  color: var(--ink);
-}
-
-.text-subhead {
-  font-size: 12pt;
-  font-weight: 500;
-  color: var(--muted);
-}
-
-.text-micro {
-  font-size: 7pt;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  color: var(--muted);
-}
-
-/* ============ COVER PAGE ============ */
-.cover {
+.page-cover {
+  page: cover;
+  page-break-after: always;
+  min-height: 100vh;
   display: flex;
   flex-direction: column;
-  min-height: 100%;
 }
 
-.cover-header {
+/* ============ COVER PAGE STYLES ============ */
+.cover-hero {
+  width: 100%;
+  height: 40vh;
+  background-image: url('${COVER_IMAGE_URL}');
+  background-size: cover;
+  background-position: center;
+}
+
+.cover-content {
+  flex: 1;
+  padding: 40px 48px;
   display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  margin-bottom: 40px;
+  flex-direction: column;
 }
 
-.brand-badge {
+.cover-brand {
   display: inline-block;
   background: var(--ink);
   color: var(--bg);
@@ -382,79 +373,42 @@ body {
   text-transform: uppercase;
   letter-spacing: 0.05em;
   padding: 6px 12px;
-  border: 2px solid var(--ink);
-}
-
-.cover-date {
-  font-size: 7pt;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  color: var(--muted);
+  margin-bottom: 32px;
+  align-self: flex-start;
 }
 
 .cover-title {
-  font-size: 28pt;
+  font-size: 26pt;
   font-weight: 900;
   letter-spacing: -0.03em;
-  line-height: 1.1;
+  line-height: 1.15;
   color: var(--ink);
-  margin-bottom: 8px;
+  margin-bottom: 12px;
 }
 
 .cover-subtitle {
-  font-size: 12pt;
+  font-size: 11pt;
+  font-weight: 400;
+  color: var(--muted);
+  margin-bottom: auto;
+}
+
+.cover-count {
+  font-size: 10pt;
   font-weight: 500;
   color: var(--muted);
-  margin-bottom: 50px;
+  margin-bottom: 48px;
 }
 
-/* ============ BRUTALIST STAT BLOCKS ============ */
-.stats-row {
-  display: flex;
-  gap: 20px;
-  margin-bottom: 40px;
-}
-
-.stat-block {
-  flex: 1;
-  border: 3px solid var(--ink);
-  padding: 24px 28px;
-  background: var(--bg);
-}
-
-.stat-block.accent-blue {
-  border-color: var(--blue);
-}
-
-.stat-block.accent-yellow {
-  border-color: var(--yellow);
-  background: var(--yellow);
-}
-
-.stat-label {
-  font-size: 9pt;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  color: var(--blue);
-  margin-bottom: 8px;
-}
-
-.stat-block.accent-yellow .stat-label {
-  color: var(--ink);
-}
-
-.stat-value {
-  font-size: 36pt;
+.cover-count strong {
+  font-size: 24pt;
   font-weight: 900;
   color: var(--ink);
-  line-height: 1;
+  display: block;
+  margin-bottom: 4px;
 }
 
-/* ============ CONTACT FOOTER ============ */
-.contact-footer {
-  margin-top: auto;
+.cover-contacts {
   border-top: 3px solid var(--ink);
   padding-top: 24px;
   display: flex;
@@ -476,6 +430,22 @@ body {
   font-size: 11pt;
   color: var(--muted);
   margin-bottom: 3px;
+}
+
+/* ============ TYPOGRAPHY ============ */
+.text-headline {
+  font-size: 16pt;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  color: var(--ink);
+}
+
+.text-micro {
+  font-size: 7pt;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--muted);
 }
 
 /* ============ BRUTALIST TABLE ============ */
@@ -525,10 +495,10 @@ tbody tr:last-child td {
   border-bottom: none;
 }
 
-.col-prop { width: 24%; }
-.col-city { width: 12%; }
-.col-num { width: 9%; }
-.col-mid { width: 11%; }
+.col-prop { width: 28%; }
+.col-city { width: 14%; }
+.col-num { width: 10%; }
+.col-mid { width: 12%; }
 
 .prop-name {
   display: block;
@@ -644,36 +614,30 @@ tbody tr:last-child td {
 <body>
 
 <!-- PAGE 1: COVER -->
-<div class="page cover">
-  <div class="cover-header">
-    <div class="brand-badge">ClearView Commercial Realty Inc.</div>
-    <div class="cover-date">Published ${esc(published)}</div>
-  </div>
-
-  <h1 class="cover-title">${esc(title)}</h1>
-  <p class="cover-subtitle">${esc(market)} · ${esc(sizeThreshold)}–${esc(sizeThresholdMaxStr)} SF</p>
-
-  <div class="stats-row">
-    <div class="stat-block accent-blue">
-      <div class="stat-label">Tracked</div>
-      <div class="stat-value">${total}</div>
+<div class="page-cover">
+  <div class="cover-hero"></div>
+  <div class="cover-content">
+    <div class="cover-brand">ClearView Commercial Realty Inc.</div>
+    
+    <h1 class="cover-title">${esc(title)}</h1>
+    <p class="cover-subtitle">Curated snapshot of logistics-capable space in ${esc(market)}</p>
+    
+    <div class="cover-count">
+      <strong>${total}</strong>
+      tracked
     </div>
-    <div class="stat-block accent-yellow">
-      <div class="stat-label">New</div>
-      <div class="stat-value">${newCount}</div>
-    </div>
-  </div>
 
-  <div class="contact-footer">
-    <div class="contact-block">
-      <div class="contact-name">${esc(primary.name)}</div>
-      <div class="contact-detail">${esc(primary.email)}</div>
-      ${primary.phone ? `<div class="contact-detail">${esc(primary.phone)}</div>` : ""}
-    </div>
-    <div class="contact-block">
-      <div class="contact-name">${esc(secondary.name)}</div>
-      <div class="contact-detail">${esc(secondary.email)}</div>
-      ${secondary.phone ? `<div class="contact-detail">${esc(secondary.phone)}</div>` : ""}
+    <div class="cover-contacts">
+      <div class="contact-block">
+        <div class="contact-name">${esc(primary.name)}</div>
+        <div class="contact-detail">${esc(primary.email)}</div>
+        ${primary.phone ? `<div class="contact-detail">${esc(primary.phone)}</div>` : ""}
+      </div>
+      <div class="contact-block">
+        <div class="contact-name">${esc(secondary.name)}</div>
+        <div class="contact-detail">${esc(secondary.email)}</div>
+        ${secondary.phone ? `<div class="contact-detail">${esc(secondary.phone)}</div>` : ""}
+      </div>
     </div>
   </div>
 </div>
@@ -698,7 +662,6 @@ tbody tr:last-child td {
           <th class="col-num">Clear</th>
           <th class="col-num">Dock</th>
           <th class="col-num">Drive</th>
-          <th class="col-mid">Trailer</th>
           <th class="col-mid">Avail.</th>
         </tr>
       </thead>
@@ -719,6 +682,7 @@ ${detailPages}
 </html>`;
 }
 
+// Detail page - NO trailer parking
 function renderDetailPage(l: any, primary: any, secondary: any) {
   const title = esc(l.property_name || l.display_address || l.address || "Property");
   const loc = esc([l.city, l.submarket].filter(Boolean).join(" · "));
@@ -726,7 +690,6 @@ function renderDetailPage(l: any, primary: any, secondary: any) {
   const clear = l.clear_height_ft ? `${l.clear_height_ft}'` : "—";
   const dock = l.dock_doors != null ? String(l.dock_doors) : "—";
   const drive = l.drive_in_doors != null ? String(l.drive_in_doors) : "—";
-  const trailer = yesNo(l.trailer_parking);
   const avail = esc(l.availability_date || "TBD");
   const notes = (l.notes_public || "").trim();
 
@@ -754,10 +717,6 @@ function renderDetailPage(l: any, primary: any, secondary: any) {
     <div class="spec-block">
       <div class="spec-label">Drive-In Doors</div>
       <div class="spec-value">${drive}</div>
-    </div>
-    <div class="spec-block">
-      <div class="spec-label">Trailer Parking</div>
-      <div class="spec-value">${trailer}</div>
     </div>
     <div class="spec-block">
       <div class="spec-label">Availability</div>
@@ -801,15 +760,6 @@ function esc(s: any): string {
     .replace(/</g, "&lt;")
     .replace(/>/g, "&gt;")
     .replace(/"/g, "&quot;");
-}
-
-function yesNo(v: any): string {
-  const s = String(v ?? "").trim().toLowerCase();
-  if (!s) return "—";
-  if (["yes", "y", "true", "1"].includes(s)) return "Yes";
-  if (["no", "n", "false", "0"].includes(s)) return "No";
-  if (["unknown", "tbd"].includes(s)) return "—";
-  return esc(v);
 }
 
 // ============ PDF CONVERSION ============
