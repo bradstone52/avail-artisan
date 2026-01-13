@@ -4,6 +4,7 @@ import { OnboardingChecklist } from '@/components/dashboard/OnboardingChecklist'
 import { StatCard } from '@/components/dashboard/StatCard';
 import { IssueCard } from '@/components/dashboard/IssueCard';
 import { SheetConnectionCard } from '@/components/dashboard/SheetConnectionCard';
+import { SyncReportSummary } from '@/components/dashboard/SyncReportSummary';
 import { useSheetConnection } from '@/hooks/useSheetConnection';
 import { useIssues } from '@/hooks/useIssues';
 import { Button } from '@/components/ui/button';
@@ -25,6 +26,7 @@ export default function Dashboard() {
     loading: sheetLoading, 
     isSyncing,
     hasOAuthToken,
+    lastSyncReportData,
     connectSheet, 
     connectOAuth,
     disconnectSheet, 
@@ -170,7 +172,7 @@ export default function Dashboard() {
             </div>
           </div>
 
-          {/* Right Column - Checklist and Connection */}
+          {/* Right Column - Checklist, Connection, and Sync Report */}
           <div className="space-y-6">
             <OnboardingChecklist items={checklistItems} />
             
@@ -183,6 +185,11 @@ export default function Dashboard() {
               isSyncing={isSyncing}
               hasOAuthToken={hasOAuthToken}
             />
+
+            {/* Sync Report Summary */}
+            {lastSyncReportData && (
+              <SyncReportSummary report={lastSyncReportData} />
+            )}
 
             {/* Quick Actions */}
             <div className="bg-card border border-border rounded-xl p-5">
