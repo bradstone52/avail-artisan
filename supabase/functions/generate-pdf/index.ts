@@ -1,10 +1,10 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
-// Configurable cover image URL - modern distribution warehouse exterior
-// Using a reliable, fast-loading image URL
+// Configurable cover image URL - exterior photo of modern distribution warehouse
+// Using a reliable, fast-loading exterior warehouse image
 const COVER_IMAGE_URL = Deno.env.get("PDF_COVER_IMAGE_URL") || 
-  "https://images.unsplash.com/photo-1553413077-190dd305871c?w=1200&q=70&auto=format";
+  "https://images.unsplash.com/photo-1586528116311-ad8dd3c8310d?w=1200&q=70&auto=format";
 
 type YesNoUnknown = "Yes" | "No" | "Unknown";
 
@@ -260,6 +260,7 @@ function buildPdfHtml(issue: any, listings: any[], opts?: { includeDetails?: boo
   const sorted = [...listings].sort((a, b) => (Number(b.size_sf || 0) - Number(a.size_sf || 0)));
 
   // Summary table rows - NO trailer parking column
+  // Ceiling Ht, Docks, Drive-In are center-aligned
   const summaryRows = sorted.map((l, idx) => {
     const property = esc(l.property_name || l.display_address || l.address || "—");
     const submarket = esc(l.submarket || "");
@@ -275,9 +276,9 @@ function buildPdfHtml(issue: any, listings: any[], opts?: { includeDetails?: boo
       <td class="col-prop"><span class="prop-name">${property}</span><span class="prop-sub">${submarket}</span></td>
       <td class="col-city">${city}</td>
       <td class="col-num">${size}</td>
-      <td class="col-num">${clear}</td>
-      <td class="col-num">${dock}</td>
-      <td class="col-num">${drive}</td>
+      <td class="col-center">${clear}</td>
+      <td class="col-center">${dock}</td>
+      <td class="col-center">${drive}</td>
       <td class="col-mid">${avail}</td>
     </tr>`;
   }).join("");
@@ -424,19 +425,29 @@ body {
   margin-bottom: auto;
 }
 
+/* Black boxed KPI for listings tracked */
 .cover-count {
-  font-size: 10pt;
-  font-weight: 500;
-  color: var(--muted);
+  display: inline-block;
+  border: 3px solid var(--ink);
+  padding: 16px 24px;
   margin-bottom: 48px;
+  background: var(--bg);
 }
 
 .cover-count strong {
-  font-size: 24pt;
+  font-size: 28pt;
   font-weight: 900;
   color: var(--ink);
   display: block;
   margin-bottom: 4px;
+}
+
+.cover-count span {
+  font-size: 9pt;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--muted);
 }
 
 .cover-contacts {
@@ -515,6 +526,11 @@ thead th.col-num {
   text-align: right;
 }
 
+/* Center-aligned columns: Ceiling Ht, Docks, Drive-In */
+thead th.col-center {
+  text-align: center;
+}
+
 tbody td {
   padding: 10px 8px;
   border-bottom: 1px solid #d1d5db;
@@ -524,6 +540,11 @@ tbody td {
 
 tbody td.col-num {
   text-align: right;
+  font-weight: 600;
+}
+
+tbody td.col-center {
+  text-align: center;
   font-weight: 600;
 }
 
@@ -673,11 +694,11 @@ tbody tr:last-child td {
     <div class="cover-brand">ClearView Commercial Realty Inc.</div>
     
     <h1 class="cover-title">${esc(title)}</h1>
-    <p class="cover-subtitle">Curated snapshot of logistics-capable space in ${esc(market)}</p>
+    <p class="cover-subtitle">Curated snapshot of logistics space: Calgary &amp; Area</p>
     
     <div class="cover-count">
       <strong>${total}</strong>
-      Listings tracked
+      <span>Tracked listings</span>
     </div>
 
     <div class="cover-contacts">
@@ -714,9 +735,9 @@ tbody tr:last-child td {
           <th class="col-prop">Property / Submarket</th>
           <th class="col-city">City</th>
           <th class="col-num">Size (SF)</th>
-          <th class="col-num">Ceiling Ht</th>
-          <th class="col-num">Docks</th>
-          <th class="col-num">Drive-In</th>
+          <th class="col-center">Ceiling Ht</th>
+          <th class="col-center">Docks</th>
+          <th class="col-center">Drive-In</th>
           <th class="col-mid">Avail.</th>
         </tr>
       </thead>
