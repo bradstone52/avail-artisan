@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import { Listing, IssueSettings } from '@/lib/types';
 import { format } from 'date-fns';
-import { FALLBACK_IMAGE } from './CoverImageUpload';
 
 interface PreviewStepProps {
   settings: IssueSettings;
@@ -45,10 +44,8 @@ export function PreviewStep({
   
   const newCount = Object.values(changeStatus).filter(s => s === 'new').length;
 
-  // Use uploaded cover image if available, otherwise fallback
-  const coverImageUrl = (coverImageError || !settings.coverImageUrl) 
-    ? FALLBACK_IMAGE 
-    : settings.coverImageUrl;
+  // Cover image: only use if uploaded and valid, otherwise null (no image)
+  const hasCoverImage = settings.coverImageUrl && !coverImageError;
 
   const primary = {
     name: settings.primaryContactName || DEFAULT_PRIMARY.name,
@@ -76,32 +73,37 @@ export function PreviewStep({
         
         {/* PAGE 1: COVER */}
         <div className="document-page" style={{ padding: 0, overflow: 'hidden' }}>
-        {/* Cover Hero Image - Top, full width, uses uploaded or fallback */}
-          <div 
-            className="w-full"
-            style={{ 
-              height: '38%',
-              backgroundImage: `url(${coverImageUrl})`,
-              backgroundSize: 'cover',
-              backgroundPosition: 'center',
-            }}
-          >
-            {/* Hidden image to detect load errors */}
-            <img 
-              src={settings.coverImageUrl || FALLBACK_IMAGE} 
-              alt="" 
-              style={{ display: 'none' }}
-              onError={() => {
-                if (!coverImageError && settings.coverImageUrl) {
-                  console.error('Cover image failed to load:', settings.coverImageUrl);
-                  setCoverImageError(true);
-                }
+          {/* Cover Hero Image - Only render if image exists */}
+          {hasCoverImage && (
+            <div 
+              className="w-full"
+              style={{ 
+                height: '38%',
+                backgroundImage: `url(${settings.coverImageUrl})`,
+                backgroundSize: 'cover',
+                backgroundPosition: 'center',
               }}
-            />
-          </div>
+            >
+              {/* Hidden image to detect load errors */}
+              <img 
+                src={settings.coverImageUrl!} 
+                alt="" 
+                style={{ display: 'none' }}
+                onError={() => {
+                  if (!coverImageError) {
+                    console.error('Cover image failed to load:', settings.coverImageUrl);
+                    setCoverImageError(true);
+                  }
+                }}
+              />
+            </div>
+          )}
           
-          {/* Cover Content */}
-          <div className="p-8 flex flex-col" style={{ height: '62%' }}>
+          {/* Cover Content - adjusts height based on whether image exists */}
+          <div 
+            className="p-8 flex flex-col" 
+            style={{ height: hasCoverImage ? '62%' : '100%' }}
+          >
             {/* Brand Badge */}
             <div className="brutalist-badge mb-6">
               ClearView Commercial Realty Inc.
