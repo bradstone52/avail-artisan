@@ -1,89 +1,43 @@
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-
 /**
- * PDF Generation Edge Function
+ * Shared Print Template for PDF Generation
  * 
- * Uses the same HTML + CSS template as the web preview.
- * The template is embedded here but mirrors src/lib/print-template.ts exactly.
+ * This module provides a single source of truth for the HTML + CSS used by:
+ * 1. The in-app /print-preview route
+ * 2. The DocRaptor edge function
+ * 
+ * DO NOT duplicate print CSS elsewhere. All print styling should be defined here.
  */
 
-// Configurable cover image URL - can be set via environment variable
-const COVER_IMAGE_URL = Deno.env.get("PDF_COVER_IMAGE_URL") || 
-  "https://images.unsplash.com/photo-1586528116311-ad8dd3c8310d?w=1200&q=80";
-
-interface Listing {
+// Types for template data
+export interface PrintTemplateListing {
   id?: string;
   listing_id: string;
-  display_address: string | null;
   property_name: string | null;
+  display_address?: string | null;
   address: string;
   city: string;
   submarket: string;
-  status: string;
-  size_sf: number | null;
+  size_sf: number;
   clear_height_ft: number | null;
   dock_doors: number | null;
   drive_in_doors: number | null;
   availability_date: string | null;
-  asking_rate_psf: string | null;
   notes_public: string | null;
-  link: string | null;
-  photo_url?: string | null;
   trailer_parking?: string | null;
 }
 
-interface Issue {
-  id: string;
-  user_id: string;
-  title: string;
-  market: string;
-  size_threshold: number;
-  total_listings: number;
-  new_count: number;
-  logo_url: string | null;
-  brokerage_name: string | null;
-  primary_contact_name: string | null;
-  primary_contact_email: string | null;
-  primary_contact_phone: string | null;
-  secondary_contact_name: string | null;
-  secondary_contact_email: string | null;
-  secondary_contact_phone: string | null;
-  pdf_share_token: string | null;
-}
-
-interface IssueListingPayload {
-  issue_id: string;
-  listing_id: string;
-  change_status: string | null;
-  executive_note: string | null;
-  sort_order: number;
-}
-
-interface PdfGenerationResult {
-  success: boolean;
-  pdf_url: string;
-  pdf_filename: string;
-  pdf_filesize: number;
-  pdf_share_token: string;
-  debug_info?: {
-    html_length: number;
-    html_hash: string;
-  };
-}
-
-interface PrintTemplateContact {
+export interface PrintTemplateContact {
   name: string;
   email: string;
   phone: string;
 }
 
-interface PrintTemplateData {
+export interface PrintTemplateData {
   title: string;
   market: string;
   sizeThreshold: number;
   sizeThresholdMax: number;
-  listings: Listing[];
+  listings: PrintTemplateListing[];
   primary: PrintTemplateContact;
   secondary: PrintTemplateContact;
   newCount: number;
@@ -93,236 +47,72 @@ interface PrintTemplateData {
   debugMode?: boolean;
 }
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-};
-
-// Default contacts - must match src/lib/print-template.ts
-const DEFAULT_PRIMARY_CONTACT: PrintTemplateContact = {
+// Default contacts
+export const DEFAULT_PRIMARY_CONTACT: PrintTemplateContact = {
   name: "Brad Stone",
   email: "brad@cvpartners.ca",
   phone: "(403) 613-2898",
 };
 
-const DEFAULT_SECONDARY_CONTACT: PrintTemplateContact = {
+export const DEFAULT_SECONDARY_CONTACT: PrintTemplateContact = {
   name: "Doug Johannson",
   email: "doug@cvpartners.ca",
   phone: "(403) 470-8875",
 };
 
-serve(async (req) => {
-  if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
+// Default cover image
+const DEFAULT_COVER_IMAGE = "https://images.unsplash.com/photo-1586528116311-ad8dd3c8310d?w=1200&q=80";
 
-  try {
-    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-    const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-    const supabase = createClient(supabaseUrl, supabaseServiceKey);
+/**
+ * Escape HTML special characters
+ */
+function esc(s: unknown): string {
+  return String(s ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
+}
 
-    const body = await req.json().catch(() => ({}));
+/**
+ * Format number with thousand separators
+ */
+function fmtNum(v: unknown): string {
+  const n = Number(v);
+  if (!Number.isFinite(n) || n <= 0) return "—";
+  return Math.round(n).toLocaleString();
+}
 
-    const issueId: string | undefined = body.issueId || body.issue_id;
-    if (!issueId) throw new Error("Missing issueId");
+/**
+ * Normalize yes/no values
+ */
+function normalizeYesNo(v: string | null | undefined): string {
+  const s = String(v ?? '').trim().toLowerCase();
+  if (!s) return '—';
+  if (['yes', 'y', 'true', '1'].includes(s)) return 'Yes';
+  if (['no', 'n', 'false', '0'].includes(s)) return 'No';
+  if (['unknown', 'tbd'].includes(s)) return '—';
+  return v || '—';
+}
 
-    const includeDetails: boolean = body.includeDetails ?? body.include_details ?? false;
-    const debugMode: boolean = body.debug ?? body.debugMode ?? false;
-    
-    // Handle sizeThresholdMax with debug logging
-    let sizeThresholdMax: number = body.size_threshold_max ?? body.sizeThresholdMax ?? 500000;
-    if (sizeThresholdMax === undefined || sizeThresholdMax === null || isNaN(sizeThresholdMax)) {
-      console.log("maxSF missing; default applied");
-      sizeThresholdMax = 500000;
-    }
-
-    const issueListingsPayload: IssueListingPayload[] | undefined = body.issue_listings;
-
-    const { data: issue, error: issueErr } = await supabase.from("issues").select("*").eq("id", issueId).single();
-    if (issueErr || !issue) throw new Error("Issue not found");
-
-    const safeIssue = issue as Issue;
-
-    const noteByListingId = new Map<string, string>();
-    const orderedListingIds: string[] | null = Array.isArray(issueListingsPayload) && issueListingsPayload.length > 0
-      ? issueListingsPayload
-          .slice()
-          .sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0))
-          .map((x) => {
-            if (x.listing_id && x.executive_note) noteByListingId.set(x.listing_id, x.executive_note);
-            return x.listing_id;
-          })
-      : null;
-
-    // Count new listings from payload
-    const newCount = issueListingsPayload?.filter(il => il.change_status === 'new').length ?? safeIssue.new_count ?? 0;
-
-    // Listing fields to select - includes trailer_parking
-    const listingSelectFields = [
-      "id",
-      "listing_id",
-      "display_address",
-      "property_name",
-      "address",
-      "city",
-      "submarket",
-      "status",
-      "size_sf",
-      "clear_height_ft",
-      "dock_doors",
-      "drive_in_doors",
-      "availability_date",
-      "asking_rate_psf",
-      "notes_public",
-      "link",
-      "photo_url",
-      "trailer_parking",
-    ].join(",");
-
-    let safeListings: Listing[] = [];
-
-    if (orderedListingIds && orderedListingIds.length > 0) {
-      const { data: listings, error: listingsErr } = await supabase
-        .from("listings")
-        .select(listingSelectFields)
-        .eq("user_id", safeIssue.user_id)
-        .in("id", orderedListingIds);
-
-      if (listingsErr) throw new Error("Failed to load listings");
-
-      const byId = new Map<string, Listing>();
-      (listings || []).forEach((l: any) => {
-        if (l?.id) byId.set(String(l.id), l as Listing);
-      });
-
-      safeListings = orderedListingIds
-        .map((id) => byId.get(id))
-        .filter(Boolean) as Listing[];
-    } else {
-      const { data: listings, error: listingsErr } = await supabase
-        .from("listings")
-        .select(listingSelectFields)
-        .eq("user_id", safeIssue.user_id)
-        .eq("include_in_issue", true)
-        .eq("status", "Active")
-        .gte("size_sf", safeIssue.size_threshold)
-        .lte("size_sf", sizeThresholdMax)
-        .order("size_sf", { ascending: false });
-
-      if (listingsErr) throw new Error("Failed to load listings");
-      safeListings = (listings || []) as unknown as Listing[];
-    }
-
-    // Build executive notes map
-    const executiveNotes: Record<string, string> = {};
-    noteByListingId.forEach((note, id) => {
-      executiveNotes[id] = note;
-    });
-
-    // Build template data using the shared format
-    const templateData: PrintTemplateData = {
-      title: safeIssue.title,
-      market: safeIssue.market,
-      sizeThreshold: safeIssue.size_threshold,
-      sizeThresholdMax,
-      listings: safeListings,
-      primary: {
-        name: safeIssue.primary_contact_name || DEFAULT_PRIMARY_CONTACT.name,
-        email: safeIssue.primary_contact_email || DEFAULT_PRIMARY_CONTACT.email,
-        phone: safeIssue.primary_contact_phone || DEFAULT_PRIMARY_CONTACT.phone,
-      },
-      secondary: {
-        name: safeIssue.secondary_contact_name || DEFAULT_SECONDARY_CONTACT.name,
-        email: safeIssue.secondary_contact_email || DEFAULT_SECONDARY_CONTACT.email,
-        phone: safeIssue.secondary_contact_phone || DEFAULT_SECONDARY_CONTACT.phone,
-      },
-      newCount,
-      includeDetails,
-      executiveNotes,
-      coverImageUrl: COVER_IMAGE_URL,
-      debugMode,
-    };
-
-    const html = buildPrintHtml(templateData);
-    
-    // Debug logging
-    const htmlHash = generateHash(html);
-    console.log(`[generate-pdf] HTML Length: ${html.length}, Hash: ${htmlHash}`);
-
-    const pdfBytes = await convertHtmlToPdf(html);
-
-    const generatedAtIso = new Date().toISOString();
-    const ymd = generatedAtIso.slice(0, 10);
-    const safeName = (safeIssue.title || "distribution_snapshot")
-      .toLowerCase()
-      .replace(/[^a-z0-9]+/g, "-")
-      .replace(/(^-|-$)/g, "")
-      .slice(0, 60);
-
-    const pdfFilename = `${safeName || "distribution_snapshot"}-${ymd}.pdf`;
-    const storagePath = `${safeIssue.user_id}/${safeIssue.id}/${pdfFilename}`;
-
-    const uploadRes = await supabase.storage
-      .from("issue-pdfs")
-      .upload(storagePath, pdfBytes.buffer as ArrayBuffer, {
-        contentType: "application/pdf",
-        upsert: true,
-      });
-
-    if (uploadRes.error) throw new Error(`Failed to upload PDF: ${uploadRes.error.message}`);
-
-    const publicUrl = supabase.storage.from("issue-pdfs").getPublicUrl(storagePath).data.publicUrl;
-
-    const shareToken = safeIssue.pdf_share_token || crypto.randomUUID().replace(/-/g, "");
-
-    const { error: updateErr } = await supabase
-      .from("issues")
-      .update({
-        pdf_url: publicUrl,
-        pdf_filename: pdfFilename,
-        pdf_filesize: pdfBytes.byteLength,
-        pdf_generated_at: generatedAtIso,
-        pdf_share_token: shareToken,
-      })
-      .eq("id", safeIssue.id);
-
-    if (updateErr) throw new Error(`Failed to update issue: ${updateErr.message}`);
-
-    const result: PdfGenerationResult = {
-      success: true,
-      pdf_url: publicUrl,
-      pdf_filename: pdfFilename,
-      pdf_filesize: pdfBytes.byteLength,
-      pdf_share_token: shareToken,
-      ...(debugMode && {
-        debug_info: {
-          html_length: html.length,
-          html_hash: htmlHash,
-        }
-      }),
-    };
-
-    return new Response(JSON.stringify(result), {
-      headers: {
-        ...corsHeaders,
-        "Content-Type": "application/json",
-      },
-    });
-  } catch (e) {
-    const msg = e instanceof Error ? e.message : "Unknown error";
-    return new Response(JSON.stringify({ error: msg }), {
-      status: 500,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+/**
+ * Generate a simple hash for debug comparison
+ */
+export function generateHash(content: string): string {
+  let hash = 0;
+  for (let i = 0; i < content.length; i++) {
+    const char = content.charCodeAt(i);
+    hash = ((hash << 5) - hash) + char;
+    hash = hash & hash; // Convert to 32-bit integer
   }
-});
-
-// ============ SHARED PRINT TEMPLATE ============
-// This must be kept in sync with src/lib/print-template.ts
+  return Math.abs(hash).toString(16).padStart(8, '0');
+}
 
 /**
  * The complete CSS for print styling
- * SINGLE SOURCE OF TRUTH - must match src/lib/print-template.ts
+ * This is the SINGLE source of truth for all print styles
  */
-const PRINT_STYLES = `
+export const PRINT_STYLES = `
 /* ============ NEO-BRUTALIST PDF STYLES ============ */
 /* Single source of truth - used by both preview and DocRaptor */
 
@@ -668,44 +458,10 @@ tbody tr:last-child td {
 }
 `;
 
-// ============ HELPER FUNCTIONS ============
-
-function esc(s: unknown): string {
-  return String(s ?? "")
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;");
-}
-
-function fmtNum(v: unknown): string {
-  const n = Number(v);
-  if (!Number.isFinite(n) || n <= 0) return "—";
-  return Math.round(n).toLocaleString();
-}
-
-function normalizeYesNo(v: string | null | undefined): string {
-  const s = String(v ?? '').trim().toLowerCase();
-  if (!s) return '—';
-  if (['yes', 'y', 'true', '1'].includes(s)) return 'Yes';
-  if (['no', 'n', 'false', '0'].includes(s)) return 'No';
-  if (['unknown', 'tbd'].includes(s)) return '—';
-  return v || '—';
-}
-
-function generateHash(content: string): string {
-  let hash = 0;
-  for (let i = 0; i < content.length; i++) {
-    const char = content.charCodeAt(i);
-    hash = ((hash << 5) - hash) + char;
-    hash = hash & hash;
-  }
-  return Math.abs(hash).toString(16).padStart(8, '0');
-}
-
-// ============ BUILD FUNCTIONS ============
-
-function buildSummaryRow(listing: Listing, index: number): string {
+/**
+ * Build a summary table row for a listing
+ */
+function buildSummaryRow(listing: PrintTemplateListing, index: number): string {
   const property = esc(listing.property_name || listing.display_address || listing.address || "—");
   const submarket = esc(listing.submarket || "");
   const city = esc(listing.city || "—");
@@ -729,8 +485,11 @@ function buildSummaryRow(listing: Listing, index: number): string {
   </tr>`;
 }
 
+/**
+ * Build a detail page for a listing
+ */
 function buildDetailPage(
-  listing: Listing, 
+  listing: PrintTemplateListing, 
   primary: PrintTemplateContact, 
   secondary: PrintTemplateContact,
   executiveNote?: string
@@ -804,9 +563,9 @@ function buildDetailPage(
 
 /**
  * Build the complete HTML document for print/PDF
- * MUST BE KEPT IN SYNC with src/lib/print-template.ts
+ * This is the SINGLE source of truth for the print template
  */
-function buildPrintHtml(data: PrintTemplateData): string {
+export function buildPrintHtml(data: PrintTemplateData): string {
   const {
     title,
     market,
@@ -818,7 +577,7 @@ function buildPrintHtml(data: PrintTemplateData): string {
     newCount,
     includeDetails = false,
     executiveNotes = {},
-    coverImageUrl = COVER_IMAGE_URL,
+    coverImageUrl = DEFAULT_COVER_IMAGE,
     debugMode = false,
   } = data;
 
@@ -934,33 +693,10 @@ ${detailPages}
   return html;
 }
 
-// ============ PDF CONVERSION ============
-
-async function convertHtmlToPdf(html: string): Promise<Uint8Array> {
-  const apiKey = Deno.env.get("DOCRAPTOR_API_KEY");
-  if (!apiKey) throw new Error("DOCRAPTOR_API_KEY not configured");
-
-  const response = await fetch("https://docraptor.com/docs", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Basic ${btoa(apiKey + ":")}`,
-    },
-    body: JSON.stringify({
-      test: false,
-      document_type: "pdf",
-      document_content: html,
-      prince_options: {
-        profile: "PDF/A-1b",
-      },
-    }),
-  });
-
-  if (!response.ok) {
-    const errorText = await response.text();
-    throw new Error(`DocRaptor error: ${response.status} - ${errorText}`);
-  }
-
-  const arrayBuffer = await response.arrayBuffer();
-  return new Uint8Array(arrayBuffer);
+/**
+ * Debug helper to log template info
+ */
+export function logTemplateDebug(context: string, html: string): void {
+  const hash = generateHash(html);
+  console.log(`[PrintTemplate:${context}] HTML Length: ${html.length}, Hash: ${hash}`);
 }
