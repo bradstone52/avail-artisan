@@ -138,12 +138,22 @@ export function PreviewStep({
               </thead>
               <tbody>
                 {sortedListings.slice(0, 12).map((listing) => (
-                  <tr key={listing.id}>
+                  <tr key={listing.id} style={{ breakInside: 'avoid', pageBreakInside: 'avoid' }}>
                     <td>
                       <div className="font-bold text-sm">
                         {listing.property_name || listing.address}
                       </div>
-                      <div className="text-xs text-muted-foreground mt-0.5">
+                      {/* Submarket: no truncation, wrap to 2 lines max */}
+                      <div 
+                        className="text-xs text-muted-foreground mt-0.5"
+                        style={{ 
+                          whiteSpace: 'normal', 
+                          overflow: 'visible', 
+                          textOverflow: 'clip',
+                          wordBreak: 'normal',
+                          overflowWrap: 'anywhere'
+                        }}
+                      >
                         {listing.submarket}
                       </div>
                     </td>
