@@ -66,48 +66,53 @@ export function PreviewStep({
       <div className="document-wrapper">
         
         {/* PAGE 1: COVER */}
-        <div className="document-page">
-          {/* Header */}
-          <div className="flex justify-between items-start mb-10">
-            <div className="brutalist-badge">
+        <div className="document-page" style={{ padding: 0, overflow: 'hidden' }}>
+          {/* Cover Hero Image - Top, full width */}
+          <div 
+            className="w-full"
+            style={{ 
+              height: '38%',
+              backgroundImage: 'url(https://images.unsplash.com/photo-1553413077-190dd305871c?w=1600&q=85)',
+              backgroundSize: 'cover',
+              backgroundPosition: 'center',
+            }}
+          />
+          
+          {/* Cover Content */}
+          <div className="p-8 flex flex-col" style={{ height: '62%' }}>
+            {/* Brand Badge */}
+            <div className="brutalist-badge mb-6">
               ClearView Commercial Realty Inc.
             </div>
-            <div className="text-micro">
-              Published {format(new Date(), 'MMMM d, yyyy')}
-            </div>
-          </div>
 
-          {/* Title */}
-          <div className="mb-10">
-            <h1 className="text-display mb-3">{issueTitle}</h1>
-            <p className="text-subhead text-muted-foreground">
-              {market} · {sizeThreshold}–{sizeThresholdMax} SF
-            </p>
-          </div>
+            {/* Title */}
+            <div className="mb-6">
+              <h1 className="text-display mb-2">{issueTitle}</h1>
+              <p className="text-subhead text-muted-foreground">
+                Curated snapshot of logistics-capable space in {market}
+              </p>
+            </div>
 
-          {/* Stats Row - Only 2 stats: Tracked and New */}
-          <div className="grid grid-cols-2 gap-4 mb-10">
-            <div className="brutalist-stat" style={{ padding: '20px 24px' }}>
-              <div className="brutalist-stat-label">Tracked</div>
-              <div className="brutalist-stat-value text-4xl">{selectedListings.length}</div>
+            {/* Stats - Listings tracked + New */}
+            <div className="mb-6">
+              <div className="text-4xl font-black">{selectedListings.length}</div>
+              <div className="text-sm text-muted-foreground">Listings tracked</div>
             </div>
-            <div className="brutalist-stat" style={{ padding: '20px 24px' }}>
-              <div className="brutalist-stat-label">New</div>
-              <div className="brutalist-stat-value text-4xl">{newCount}</div>
-            </div>
-          </div>
 
-          {/* Contacts - Two distinct columns with clear spacing */}
-          <div className="grid grid-cols-2 gap-8 pt-8 border-t-2 border-foreground mt-auto">
-            <div className="contact-block">
-              <div className="contact-name text-base font-bold mb-1">{primary.name}</div>
-              <div className="contact-detail text-sm">{primary.email}</div>
-              {primary.phone && <div className="contact-detail text-sm">{primary.phone}</div>}
-            </div>
-            <div className="contact-block">
-              <div className="contact-name text-base font-bold mb-1">{secondary.name}</div>
-              <div className="contact-detail text-sm">{secondary.email}</div>
-              {secondary.phone && <div className="contact-detail text-sm">{secondary.phone}</div>}
+            {/* Contacts - Doug LEFT, Brad RIGHT with titles */}
+            <div className="grid grid-cols-2 gap-8 pt-6 border-t-2 border-foreground mt-auto">
+              <div className="contact-block">
+                <div className="text-lg font-bold mb-1">{secondary.name}</div>
+                <div className="text-sm text-muted-foreground mb-2">Partner, Vice President</div>
+                <div className="text-sm">{secondary.email}</div>
+                {secondary.phone && <div className="text-sm">{secondary.phone}</div>}
+              </div>
+              <div className="contact-block">
+                <div className="text-lg font-bold mb-1">{primary.name}</div>
+                <div className="text-sm text-muted-foreground mb-2">Partner, Associate Broker</div>
+                <div className="text-sm">{primary.email}</div>
+                {primary.phone && <div className="text-sm">{primary.phone}</div>}
+              </div>
             </div>
           </div>
         </div>
@@ -252,14 +257,16 @@ export function PreviewStep({
 
             <div className="grid grid-cols-2 gap-8 pt-6 border-t-2 border-foreground mt-auto">
               <div className="contact-block">
-                <div className="contact-name text-base font-bold mb-1">{primary.name}</div>
-                <div className="contact-detail text-sm">{primary.email}</div>
-                {primary.phone && <div className="contact-detail text-sm">{primary.phone}</div>}
+                <div className="text-lg font-bold mb-1">{secondary.name}</div>
+                <div className="text-sm text-muted-foreground mb-2">Partner, Vice President</div>
+                <div className="text-sm">{secondary.email}</div>
+                {secondary.phone && <div className="text-sm">{secondary.phone}</div>}
               </div>
               <div className="contact-block">
-                <div className="contact-name text-base font-bold mb-1">{secondary.name}</div>
-                <div className="contact-detail text-sm">{secondary.email}</div>
-                {secondary.phone && <div className="contact-detail text-sm">{secondary.phone}</div>}
+                <div className="text-lg font-bold mb-1">{primary.name}</div>
+                <div className="text-sm text-muted-foreground mb-2">Partner, Associate Broker</div>
+                <div className="text-sm">{primary.email}</div>
+                {primary.phone && <div className="text-sm">{primary.phone}</div>}
               </div>
             </div>
           </div>
