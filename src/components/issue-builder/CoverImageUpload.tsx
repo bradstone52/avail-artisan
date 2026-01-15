@@ -3,9 +3,8 @@ import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { Upload, X, Image as ImageIcon, Loader2 } from 'lucide-react';
+import { Upload, X, Loader2 } from 'lucide-react';
 
-const FALLBACK_IMAGE = 'https://images.unsplash.com/photo-1565610222536-ef125c59da2e?w=1200&q=70&auto=format';
 const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
 const ACCEPTED_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
 
@@ -77,26 +76,29 @@ export function CoverImageUpload({ value, onChange }: CoverImageUploadProps) {
     setImageError(false);
   };
 
-  const displayUrl = value || FALLBACK_IMAGE;
-
   return (
     <div className="space-y-3">
-      <Label>Cover Image</Label>
+      <Label>Cover Image (Optional)</Label>
       
-      {/* Thumbnail preview */}
-      <div className="relative w-full h-32 rounded-lg overflow-hidden border border-border bg-muted">
-        <img
-          src={imageError ? FALLBACK_IMAGE : displayUrl}
-          alt="Cover preview"
-          className="w-full h-full object-cover"
-          onError={() => {
-            if (!imageError) {
-              setImageError(true);
-              console.error('Cover image failed to load:', displayUrl);
-            }
-          }}
-        />
-        {value && (
+      {/* Thumbnail preview - only show if there's an uploaded image */}
+      {value && (
+        <div className="relative w-full h-32 rounded-lg overflow-hidden border border-border bg-muted">
+          <img
+            src={imageError ? '' : value}
+            alt="Cover preview"
+            className="w-full h-full object-cover"
+            onError={() => {
+              if (!imageError) {
+                setImageError(true);
+                console.error('Cover image failed to load:', value);
+              }
+            }}
+          />
+          {imageError && (
+            <div className="absolute inset-0 flex items-center justify-center bg-destructive/10 text-destructive text-sm">
+              Image failed to load
+            </div>
+          )}
           <div className="absolute inset-0 bg-black/40 opacity-0 hover:opacity-100 transition-opacity flex items-center justify-center">
             <Button
               type="button"
@@ -108,13 +110,13 @@ export function CoverImageUpload({ value, onChange }: CoverImageUploadProps) {
               Remove
             </Button>
           </div>
-        )}
-        {isUploading && (
-          <div className="absolute inset-0 bg-background/80 flex items-center justify-center">
-            <Loader2 className="w-6 h-6 animate-spin text-primary" />
-          </div>
-        )}
-      </div>
+          {isUploading && (
+            <div className="absolute inset-0 bg-background/80 flex items-center justify-center">
+              <Loader2 className="w-6 h-6 animate-spin text-primary" />
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Upload button */}
       <div className="flex items-center gap-3">
@@ -133,14 +135,13 @@ export function CoverImageUpload({ value, onChange }: CoverImageUploadProps) {
           ) : (
             <>
               <Upload className="w-4 h-4 mr-2" />
-              Upload Cover Image
+              {value ? 'Replace Cover Image' : 'Upload Cover Image'}
             </>
           )}
         </Button>
         {!value && (
-          <span className="text-xs text-muted-foreground flex items-center gap-1">
-            <ImageIcon className="w-3 h-3" />
-            Using default warehouse exterior
+          <span className="text-xs text-muted-foreground">
+            No cover image — section will be hidden
           </span>
         )}
       </div>
@@ -154,10 +155,8 @@ export function CoverImageUpload({ value, onChange }: CoverImageUploadProps) {
       />
 
       <p className="text-xs text-muted-foreground">
-        JPG, PNG, or WEBP. Max 10MB. Exterior warehouse photos recommended.
+        JPG, PNG, or WEBP. Max 10MB. If no image is uploaded, the cover image section will not appear.
       </p>
     </div>
   );
 }
-
-export { FALLBACK_IMAGE };

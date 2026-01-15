@@ -1,11 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
-// Default fallback cover image URL - EXTERIOR photo of modern distribution warehouse
-// Industrial tilt-up concrete, visible dock doors, truck court
-const FALLBACK_COVER_IMAGE_URL = Deno.env.get("PDF_COVER_IMAGE_URL") || 
-  "https://images.unsplash.com/photo-1565610222536-ef125c59da2e?w=1200&q=70&auto=format";
-
 type YesNoUnknown = "Yes" | "No" | "Unknown";
 
 interface Listing {
@@ -233,8 +228,11 @@ function buildPdfHtml(issue: any, listings: any[], opts?: { includeDetails?: boo
   const sizeThresholdMax = opts?.sizeThresholdMax ?? 500000;
   const generatedDate = opts?.generatedDate ?? new Date();
 
-  // Use uploaded cover image if available, otherwise fallback
-  const coverImageUrl = issue.cover_image_url || FALLBACK_COVER_IMAGE_URL;
+  // Cover image: use uploaded image or null (no fallback)
+  const coverImageUrl: string | null = issue.cover_image_url || null;
+  
+  // Log cover image for debugging
+  console.log(`[generate-pdf] Cover image URL: ${coverImageUrl || '(none - section will be hidden)'}`);
 
   // Format month/year for title
   const monthYear = generatedDate.toLocaleDateString("en-US", { month: "long", year: "numeric" });
@@ -389,7 +387,6 @@ body {
 .cover-hero-top {
   width: 100%;
   height: 38vh;
-  background-image: url('${coverImageUrl}');
   background-size: cover;
   background-position: center;
   border-radius: 0;
@@ -400,6 +397,10 @@ body {
   display: flex;
   flex-direction: column;
   flex: 1;
+}
+
+.cover-content.no-image {
+  padding-top: 64px;
 }
 
 .cover-brand {
@@ -692,8 +693,8 @@ tbody tr:last-child td {
 
 <!-- PAGE 1: COVER -->
 <div class="page-cover">
-  <div class="cover-hero-top"></div>
-  <div class="cover-content">
+  ${coverImageUrl ? `<div class="cover-hero-top" style="background-image: url('${coverImageUrl}');"></div>` : ``}
+  <div class="cover-content${coverImageUrl ? `` : ` no-image`}">
     <div class="cover-brand">ClearView Commercial Realty Inc.</div>
     
     <h1 class="cover-title">Large-Format Distribution Availabilities —<br/>January 2026, Calgary &amp; Area</h1>
