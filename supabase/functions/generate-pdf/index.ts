@@ -1,10 +1,10 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
-// Configurable cover image URL - exterior photo of modern distribution warehouse
-// Using a reliable, fast-loading exterior warehouse image
+// Configurable cover image URL - EXTERIOR photo of modern distribution warehouse
+// Industrial tilt-up concrete, visible dock doors, truck court
 const COVER_IMAGE_URL = Deno.env.get("PDF_COVER_IMAGE_URL") || 
-  "https://images.unsplash.com/photo-1586528116311-ad8dd3c8310d?w=1200&q=70&auto=format";
+  "https://images.unsplash.com/photo-1565610222536-ef125c59da2e?w=1200&q=70&auto=format";
 
 type YesNoUnknown = "Yes" | "No" | "Unknown";
 
@@ -268,7 +268,9 @@ function buildPdfHtml(issue: any, listings: any[], opts?: { includeDetails?: boo
     const size = fmtNum(l.size_sf);
     const clear = l.clear_height_ft ? `${l.clear_height_ft}'` : "—";
     const dock = l.dock_doors != null ? String(l.dock_doors) : "—";
-    const drive = l.drive_in_doors != null ? String(l.drive_in_doors) : "—";
+    // Drive-In: show "—" for 0, null, or undefined
+    const driveVal = l.drive_in_doors;
+    const drive = (driveVal == null || driveVal === 0) ? "—" : String(driveVal);
     const avail = esc(l.availability_date || "TBD");
     const rowClass = idx % 2 === 1 ? ' class="alt"' : '';
 
@@ -425,13 +427,10 @@ body {
   margin-bottom: auto;
 }
 
-/* Black boxed KPI for listings tracked */
+/* Clean unboxed KPI for listings tracked */
 .cover-count {
-  display: inline-block;
-  border: 3px solid var(--ink);
-  padding: 16px 24px;
+  display: block;
   margin-bottom: 48px;
-  background: var(--bg);
 }
 
 .cover-count strong {
@@ -693,8 +692,8 @@ tbody tr:last-child td {
   <div class="cover-content">
     <div class="cover-brand">ClearView Commercial Realty Inc.</div>
     
-    <h1 class="cover-title">${esc(title)}</h1>
-    <p class="cover-subtitle">Curated snapshot of logistics space: Calgary &amp; Area</p>
+    <h1 class="cover-title">Large-Format Distribution Availabilities —<br/>January 2026, Calgary &amp; Area</h1>
+    <p class="cover-subtitle">Curated snapshot of logistics-capable space in Calgary and surrounding areas</p>
     
     <div class="cover-count">
       <strong>${total}</strong>
@@ -765,7 +764,9 @@ function renderDetailPage(l: any, primary: any, secondary: any) {
   const size = fmtNum(l.size_sf);
   const clear = l.clear_height_ft ? `${l.clear_height_ft}'` : "—";
   const dock = l.dock_doors != null ? String(l.dock_doors) : "—";
-  const drive = l.drive_in_doors != null ? String(l.drive_in_doors) : "—";
+  // Drive-In: show "—" for 0, null, or undefined
+  const driveVal = l.drive_in_doors;
+  const drive = (driveVal == null || driveVal === 0) ? "—" : String(driveVal);
   const avail = esc(l.availability_date || "TBD");
   const notes = (l.notes_public || "").trim();
 

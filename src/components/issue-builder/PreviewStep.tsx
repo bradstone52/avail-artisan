@@ -67,12 +67,12 @@ export function PreviewStep({
         
         {/* PAGE 1: COVER */}
         <div className="document-page" style={{ padding: 0, overflow: 'hidden' }}>
-          {/* Cover Hero Image - Top, full width, EXTERIOR warehouse */}
+        {/* Cover Hero Image - Top, full width, EXTERIOR warehouse */}
           <div 
             className="w-full"
             style={{ 
               height: '38%',
-              backgroundImage: 'url(https://images.unsplash.com/photo-1586528116311-ad8dd3c8310d?w=1600&q=85)',
+              backgroundImage: 'url(https://images.unsplash.com/photo-1565610222536-ef125c59da2e?w=1600&q=85)',
               backgroundSize: 'cover',
               backgroundPosition: 'center',
             }}
@@ -87,21 +87,16 @@ export function PreviewStep({
 
             {/* Title */}
             <div className="mb-6">
-              <h1 className="text-display mb-2">{issueTitle}</h1>
+              <h1 className="text-display mb-2">
+                Large-Format Distribution Availabilities —<br/>January 2026, Calgary & Area
+              </h1>
               <p className="text-subhead text-muted-foreground">
-                Curated snapshot of logistics space: Calgary & Area
+                Curated snapshot of logistics-capable space in Calgary and surrounding areas
               </p>
             </div>
 
-            {/* Stats - Black boxed KPI */}
-            <div 
-              className="mb-6 inline-block"
-              style={{
-                border: '3px solid hsl(var(--foreground))',
-                padding: '16px 24px',
-                display: 'inline-block',
-              }}
-            >
+            {/* Stats - Clean unboxed KPI */}
+            <div className="mb-6">
               <div className="text-4xl font-black">{selectedListings.length}</div>
               <div className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Tracked listings</div>
             </div>
@@ -181,7 +176,7 @@ export function PreviewStep({
                       {listing.dock_doors ?? '—'}
                     </td>
                     <td style={{ textAlign: 'center' }}>
-                      {listing.drive_in_doors ?? '—'}
+                      {(listing.drive_in_doors == null || listing.drive_in_doors === 0) ? '—' : listing.drive_in_doors}
                     </td>
                     <td>
                       {listing.availability_date || '—'}
@@ -233,7 +228,7 @@ export function PreviewStep({
               </div>
               <div className="brutalist-stat">
                 <div className="brutalist-stat-label">Drive-In Doors</div>
-                <div className="text-2xl font-black">{listing.drive_in_doors ?? '—'}</div>
+                <div className="text-2xl font-black">{(listing.drive_in_doors == null || listing.drive_in_doors === 0) ? '—' : listing.drive_in_doors}</div>
               </div>
               <div className="brutalist-stat">
                 <div className="brutalist-stat-label">Trailer Parking</div>
