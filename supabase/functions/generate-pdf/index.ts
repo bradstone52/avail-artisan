@@ -1,9 +1,9 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
-// Configurable cover image URL - can be set via environment variable
+// Configurable cover image URL - modern distribution warehouse exterior
 const COVER_IMAGE_URL = Deno.env.get("PDF_COVER_IMAGE_URL") || 
-  "https://images.unsplash.com/photo-1586528116311-ad8dd3c8310d?w=1200&q=80";
+  "https://images.unsplash.com/photo-1553413077-190dd305871c?w=1600&q=85";
 
 type YesNoUnknown = "Yes" | "No" | "Unknown";
 
@@ -378,20 +378,20 @@ body {
 }
 
 /* ============ COVER PAGE STYLES ============ */
-.cover-content {
-  padding: 40px 48px 24px;
-  display: flex;
-  flex-direction: column;
-}
-
-.cover-hero {
-  width: calc(100% - 96px);
-  height: 20vh;
-  margin: 0 48px 24px;
+.cover-hero-top {
+  width: 100%;
+  height: 38vh;
   background-image: url('${COVER_IMAGE_URL}');
   background-size: cover;
   background-position: center;
-  border-radius: 8px;
+  border-radius: 0;
+}
+
+.cover-content {
+  padding: 32px 48px 24px;
+  display: flex;
+  flex-direction: column;
+  flex: 1;
 }
 
 .cover-brand {
@@ -403,7 +403,7 @@ body {
   text-transform: uppercase;
   letter-spacing: 0.05em;
   padding: 6px 12px;
-  margin-bottom: 32px;
+  margin-bottom: 24px;
   align-self: flex-start;
 }
 
@@ -442,7 +442,8 @@ body {
   border-top: 3px solid var(--ink);
   padding-top: 20px;
   display: flex;
-  gap: 48px;
+  gap: 64px;
+  margin-top: auto;
 }
 
 .contact-block {
@@ -451,23 +452,23 @@ body {
 }
 
 .contact-block .contact-name {
-  font-size: 9pt;
+  font-size: 11pt;
   font-weight: 700;
   color: var(--ink);
-  margin-bottom: 2px;
+  margin-bottom: 3px;
 }
 
 .contact-block .contact-title {
-  font-size: 8pt;
+  font-size: 9pt;
   font-weight: 400;
   color: var(--muted);
-  margin-bottom: 6px;
+  margin-bottom: 8px;
 }
 
 .contact-block .contact-detail {
-  font-size: 8pt;
+  font-size: 9pt;
   color: var(--muted);
-  margin-bottom: 2px;
+  margin-bottom: 3px;
 }
 
 /* ============ TYPOGRAPHY ============ */
@@ -666,13 +667,12 @@ tbody tr:last-child td {
 
 <!-- PAGE 1: COVER -->
 <div class="page-cover">
+  <div class="cover-hero-top"></div>
   <div class="cover-content">
     <div class="cover-brand">ClearView Commercial Realty Inc.</div>
     
     <h1 class="cover-title">${esc(title)}</h1>
     <p class="cover-subtitle">Curated snapshot of logistics-capable space in ${esc(market)}</p>
-    
-    <div class="cover-hero"></div>
     
     <div class="cover-count">
       <strong>${total}</strong>
@@ -681,16 +681,16 @@ tbody tr:last-child td {
 
     <div class="cover-contacts">
       <div class="contact-block">
-        <div class="contact-name">${esc(primary.name)}</div>
-        <div class="contact-title">${esc(primary.title)}</div>
-        <div class="contact-detail">${esc(primary.email)}</div>
-        ${primary.phone ? `<div class="contact-detail">${esc(primary.phone)}</div>` : ""}
-      </div>
-      <div class="contact-block">
         <div class="contact-name">${esc(secondary.name)}</div>
         <div class="contact-title">${esc(secondary.title)}</div>
         <div class="contact-detail">${esc(secondary.email)}</div>
         ${secondary.phone ? `<div class="contact-detail">${esc(secondary.phone)}</div>` : ""}
+      </div>
+      <div class="contact-block">
+        <div class="contact-name">${esc(primary.name)}</div>
+        <div class="contact-title">${esc(primary.title)}</div>
+        <div class="contact-detail">${esc(primary.email)}</div>
+        ${primary.phone ? `<div class="contact-detail">${esc(primary.phone)}</div>` : ""}
       </div>
     </div>
   </div>
@@ -787,14 +787,14 @@ function renderDetailPage(l: any, primary: any, secondary: any) {
 
   <div class="detail-contact-footer">
     <div class="contact-block">
-      <div class="contact-name">${esc(primary.name)}</div>
-      <div class="contact-detail">${esc(primary.email)}</div>
-      ${primary.phone ? `<div class="contact-detail">${esc(primary.phone)}</div>` : ""}
-    </div>
-    <div class="contact-block">
       <div class="contact-name">${esc(secondary.name)}</div>
       <div class="contact-detail">${esc(secondary.email)}</div>
       ${secondary.phone ? `<div class="contact-detail">${esc(secondary.phone)}</div>` : ""}
+    </div>
+    <div class="contact-block">
+      <div class="contact-name">${esc(primary.name)}</div>
+      <div class="contact-detail">${esc(primary.email)}</div>
+      ${primary.phone ? `<div class="contact-detail">${esc(primary.phone)}</div>` : ""}
     </div>
   </div>
 </div>`;
