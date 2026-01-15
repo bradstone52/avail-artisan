@@ -11,6 +11,7 @@ import {
 } from '@/components/ui/select';
 import { format } from 'date-fns';
 import { UserPlus, Building2 } from 'lucide-react';
+import { CoverImageUpload } from './CoverImageUpload';
 
 interface IssueSettingsStepProps {
   settings: IssueSettings;
@@ -108,6 +109,12 @@ export function IssueSettingsStep({ settings, onChange }: IssueSettingsStepProps
             </SelectContent>
           </Select>
         </div>
+
+        {/* Cover Image Upload */}
+        <CoverImageUpload
+          value={settings.coverImageUrl}
+          onChange={(url) => updateField('coverImageUrl', url)}
+        />
       </div>
 
       {/* Branding */}

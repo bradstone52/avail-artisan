@@ -55,6 +55,7 @@ export interface Issue {
   sort_order: string;
   brokerage_name: string | null;
   logo_url: string | null;
+  cover_image_url: string | null;
   primary_contact_name: string | null;
   primary_contact_email: string | null;
   primary_contact_phone: string | null;
@@ -109,6 +110,7 @@ export interface IssueSettings {
   sortOrder: 'size_desc' | 'size_asc' | 'availability_asc' | 'availability_desc';
   brokerageName: string;
   logoUrl: string;
+  coverImageUrl: string | null;
   primaryContactName: string;
   primaryContactEmail: string;
   primaryContactPhone: string;

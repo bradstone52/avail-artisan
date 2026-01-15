@@ -1,5 +1,7 @@
+import { useState } from 'react';
 import { Listing, IssueSettings } from '@/lib/types';
 import { format } from 'date-fns';
+import { FALLBACK_IMAGE } from './CoverImageUpload';
 
 interface PreviewStepProps {
   settings: IssueSettings;
@@ -31,6 +33,8 @@ export function PreviewStep({
   changeStatus,
   includeDetails = false,
 }: PreviewStepProps) {
+  const [coverImageError, setCoverImageError] = useState(false);
+  
   const selectedListings = listings.filter(l => selectedIds.includes(l.id));
   const sortedListings = [...selectedListings].sort((a, b) => b.size_sf - a.size_sf);
   
@@ -40,6 +44,11 @@ export function PreviewStep({
   const sizeThresholdMax = settings.sizeThresholdMax?.toLocaleString() || "500,000";
   
   const newCount = Object.values(changeStatus).filter(s => s === 'new').length;
+
+  // Use uploaded cover image if available, otherwise fallback
+  const coverImageUrl = (coverImageError || !settings.coverImageUrl) 
+    ? FALLBACK_IMAGE 
+    : settings.coverImageUrl;
 
   const primary = {
     name: settings.primaryContactName || DEFAULT_PRIMARY.name,
@@ -67,16 +76,29 @@ export function PreviewStep({
         
         {/* PAGE 1: COVER */}
         <div className="document-page" style={{ padding: 0, overflow: 'hidden' }}>
-        {/* Cover Hero Image - Top, full width, EXTERIOR warehouse */}
+        {/* Cover Hero Image - Top, full width, uses uploaded or fallback */}
           <div 
             className="w-full"
             style={{ 
               height: '38%',
-              backgroundImage: 'url(https://images.unsplash.com/photo-1565610222536-ef125c59da2e?w=1600&q=85)',
+              backgroundImage: `url(${coverImageUrl})`,
               backgroundSize: 'cover',
               backgroundPosition: 'center',
             }}
-          />
+          >
+            {/* Hidden image to detect load errors */}
+            <img 
+              src={settings.coverImageUrl || FALLBACK_IMAGE} 
+              alt="" 
+              style={{ display: 'none' }}
+              onError={() => {
+                if (!coverImageError && settings.coverImageUrl) {
+                  console.error('Cover image failed to load:', settings.coverImageUrl);
+                  setCoverImageError(true);
+                }
+              }}
+            />
+          </div>
           
           {/* Cover Content */}
           <div className="p-8 flex flex-col" style={{ height: '62%' }}>

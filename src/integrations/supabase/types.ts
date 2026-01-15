@@ -99,6 +99,7 @@ export type Database = {
         Row: {
           brokerage_name: string | null
           changed_count: number
+          cover_image_url: string | null
           created_at: string
           id: string
           is_public: boolean
@@ -129,6 +130,7 @@ export type Database = {
         Insert: {
           brokerage_name?: string | null
           changed_count?: number
+          cover_image_url?: string | null
           created_at?: string
           id?: string
           is_public?: boolean
@@ -159,6 +161,7 @@ export type Database = {
         Update: {
           brokerage_name?: string | null
           changed_count?: number
+          cover_image_url?: string | null
           created_at?: string
           id?: string
           is_public?: boolean
