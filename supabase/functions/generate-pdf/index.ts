@@ -1,16 +1,11 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
-/**
- * PDF Generation Edge Function
- * 
- * Uses the same HTML + CSS template as the web preview.
- * The template is embedded here but mirrors src/lib/print-template.ts exactly.
- */
-
 // Configurable cover image URL - can be set via environment variable
 const COVER_IMAGE_URL = Deno.env.get("PDF_COVER_IMAGE_URL") || 
   "https://images.unsplash.com/photo-1586528116311-ad8dd3c8310d?w=1200&q=80";
+
+type YesNoUnknown = "Yes" | "No" | "Unknown";
 
 interface Listing {
   id?: string;
@@ -30,7 +25,6 @@ interface Listing {
   notes_public: string | null;
   link: string | null;
   photo_url?: string | null;
-  trailer_parking?: string | null;
 }
 
 interface Issue {
@@ -66,49 +60,11 @@ interface PdfGenerationResult {
   pdf_filename: string;
   pdf_filesize: number;
   pdf_share_token: string;
-  debug_info?: {
-    html_length: number;
-    html_hash: string;
-  };
-}
-
-interface PrintTemplateContact {
-  name: string;
-  email: string;
-  phone: string;
-}
-
-interface PrintTemplateData {
-  title: string;
-  market: string;
-  sizeThreshold: number;
-  sizeThresholdMax: number;
-  listings: Listing[];
-  primary: PrintTemplateContact;
-  secondary: PrintTemplateContact;
-  newCount: number;
-  includeDetails?: boolean;
-  executiveNotes?: Record<string, string>;
-  coverImageUrl?: string;
-  debugMode?: boolean;
 }
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-};
-
-// Default contacts - must match src/lib/print-template.ts
-const DEFAULT_PRIMARY_CONTACT: PrintTemplateContact = {
-  name: "Brad Stone",
-  email: "brad@cvpartners.ca",
-  phone: "(403) 613-2898",
-};
-
-const DEFAULT_SECONDARY_CONTACT: PrintTemplateContact = {
-  name: "Doug Johannson",
-  email: "doug@cvpartners.ca",
-  phone: "(403) 470-8875",
 };
 
 serve(async (req) => {
@@ -125,7 +81,6 @@ serve(async (req) => {
     if (!issueId) throw new Error("Missing issueId");
 
     const includeDetails: boolean = body.includeDetails ?? body.include_details ?? false;
-    const debugMode: boolean = body.debug ?? body.debugMode ?? false;
     
     // Handle sizeThresholdMax with debug logging
     let sizeThresholdMax: number = body.size_threshold_max ?? body.sizeThresholdMax ?? 500000;
@@ -152,10 +107,7 @@ serve(async (req) => {
           })
       : null;
 
-    // Count new listings from payload
-    const newCount = issueListingsPayload?.filter(il => il.change_status === 'new').length ?? safeIssue.new_count ?? 0;
-
-    // Listing fields to select - includes trailer_parking
+    // Removed trailer_parking from the select fields
     const listingSelectFields = [
       "id",
       "listing_id",
@@ -174,7 +126,6 @@ serve(async (req) => {
       "notes_public",
       "link",
       "photo_url",
-      "trailer_parking",
     ].join(",");
 
     let safeListings: Listing[] = [];
@@ -211,42 +162,7 @@ serve(async (req) => {
       safeListings = (listings || []) as unknown as Listing[];
     }
 
-    // Build executive notes map
-    const executiveNotes: Record<string, string> = {};
-    noteByListingId.forEach((note, id) => {
-      executiveNotes[id] = note;
-    });
-
-    // Build template data using the shared format
-    const templateData: PrintTemplateData = {
-      title: safeIssue.title,
-      market: safeIssue.market,
-      sizeThreshold: safeIssue.size_threshold,
-      sizeThresholdMax,
-      listings: safeListings,
-      primary: {
-        name: safeIssue.primary_contact_name || DEFAULT_PRIMARY_CONTACT.name,
-        email: safeIssue.primary_contact_email || DEFAULT_PRIMARY_CONTACT.email,
-        phone: safeIssue.primary_contact_phone || DEFAULT_PRIMARY_CONTACT.phone,
-      },
-      secondary: {
-        name: safeIssue.secondary_contact_name || DEFAULT_SECONDARY_CONTACT.name,
-        email: safeIssue.secondary_contact_email || DEFAULT_SECONDARY_CONTACT.email,
-        phone: safeIssue.secondary_contact_phone || DEFAULT_SECONDARY_CONTACT.phone,
-      },
-      newCount,
-      includeDetails,
-      executiveNotes,
-      coverImageUrl: COVER_IMAGE_URL,
-      debugMode,
-    };
-
-    const html = buildPrintHtml(templateData);
-    
-    // Debug logging
-    const htmlHash = generateHash(html);
-    console.log(`[generate-pdf] HTML Length: ${html.length}, Hash: ${htmlHash}`);
-
+    const html = buildPdfHtml(safeIssue, safeListings, { includeDetails, sizeThresholdMax });
     const pdfBytes = await convertHtmlToPdf(html);
 
     const generatedAtIso = new Date().toISOString();
@@ -292,12 +208,6 @@ serve(async (req) => {
       pdf_filename: pdfFilename,
       pdf_filesize: pdfBytes.byteLength,
       pdf_share_token: shareToken,
-      ...(debugMode && {
-        debug_info: {
-          html_length: html.length,
-          html_hash: htmlHash,
-        }
-      }),
     };
 
     return new Response(JSON.stringify(result), {
@@ -315,16 +225,73 @@ serve(async (req) => {
   }
 });
 
-// ============ SHARED PRINT TEMPLATE ============
-// This must be kept in sync with src/lib/print-template.ts
+// ============ NEO-BRUTALIST PDF HTML TEMPLATE ============
+// Redesigned cover with hero image, cleaner layout
 
-/**
- * The complete CSS for print styling
- * SINGLE SOURCE OF TRUTH - must match src/lib/print-template.ts
- */
-const PRINT_STYLES = `
+function buildPdfHtml(issue: any, listings: any[], opts?: { includeDetails?: boolean; sizeThresholdMax?: number }) {
+  const includeDetails = opts?.includeDetails ?? false;
+  const sizeThresholdMax = opts?.sizeThresholdMax ?? 500000;
+
+  // Format month/year for title
+  const now = new Date();
+  const monthYear = now.toLocaleDateString("en-US", { month: "long", year: "numeric" });
+
+  const title = issue.title || `Large-Format Distribution Availability — ${monthYear}`;
+  const market = issue.market || "Calgary Region";
+  const sizeThreshold = issue.size_threshold ? Number(issue.size_threshold).toLocaleString() : "100,000";
+  const sizeThresholdMaxStr = sizeThresholdMax.toLocaleString();
+
+  const primary = {
+    name: issue.primary_contact_name || "Brad Stone",
+    email: issue.primary_contact_email || "brad@cvpartners.ca",
+    phone: issue.primary_contact_phone || "(403) 613-2898",
+  };
+
+  const secondary = {
+    name: issue.secondary_contact_name || "Doug Johannson",
+    email: issue.secondary_contact_email || "doug@cvpartners.ca",
+    phone: issue.secondary_contact_phone || "(403) 470-8875",
+  };
+
+  const total = listings.length;
+
+  // Sort by size descending
+  const sorted = [...listings].sort((a, b) => (Number(b.size_sf || 0) - Number(a.size_sf || 0)));
+
+  // Summary table rows - NO trailer parking column
+  const summaryRows = sorted.map((l, idx) => {
+    const property = esc(l.property_name || l.display_address || l.address || "—");
+    const submarket = esc(l.submarket || "");
+    const city = esc(l.city || "—");
+    const size = fmtNum(l.size_sf);
+    const clear = l.clear_height_ft ? `${l.clear_height_ft}'` : "—";
+    const dock = l.dock_doors != null ? String(l.dock_doors) : "—";
+    const drive = l.drive_in_doors != null ? String(l.drive_in_doors) : "—";
+    const avail = esc(l.availability_date || "TBD");
+    const rowClass = idx % 2 === 1 ? ' class="alt"' : '';
+
+    return `<tr${rowClass}>
+      <td class="col-prop"><span class="prop-name">${property}</span><span class="prop-sub">${submarket}</span></td>
+      <td class="col-city">${city}</td>
+      <td class="col-num">${size}</td>
+      <td class="col-num">${clear}</td>
+      <td class="col-num">${dock}</td>
+      <td class="col-num">${drive}</td>
+      <td class="col-mid">${avail}</td>
+    </tr>`;
+  }).join("");
+
+  const detailPages = includeDetails
+    ? sorted.map((l) => renderDetailPage(l, primary, secondary)).join("")
+    : "";
+
+  return `<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>${esc(title)}</title>
+<style>
 /* ============ NEO-BRUTALIST PDF STYLES ============ */
-/* Single source of truth - used by both preview and DocRaptor */
 
 :root {
   --bg: #ffffff;
@@ -385,6 +352,7 @@ body {
 .cover-hero {
   width: 100%;
   height: 40vh;
+  background-image: url('${COVER_IMAGE_URL}');
   background-size: cover;
   background-position: center;
 }
@@ -425,29 +393,19 @@ body {
   margin-bottom: auto;
 }
 
-.cover-stats {
-  display: flex;
-  gap: 48px;
-  margin-bottom: 48px;
-}
-
-.cover-stat {
-  display: flex;
-  flex-direction: column;
-}
-
-.cover-stat-value {
-  font-size: 32pt;
-  font-weight: 900;
-  color: var(--ink);
-  line-height: 1;
-}
-
-.cover-stat-label {
+.cover-count {
   font-size: 10pt;
   font-weight: 500;
   color: var(--muted);
-  margin-top: 4px;
+  margin-bottom: 48px;
+}
+
+.cover-count strong {
+  font-size: 24pt;
+  font-weight: 900;
+  color: var(--ink);
+  display: block;
+  margin-bottom: 4px;
 }
 
 .cover-contacts {
@@ -537,12 +495,10 @@ tbody tr:last-child td {
   border-bottom: none;
 }
 
-.col-prop { width: 26%; }
-.col-city { width: 12%; }
+.col-prop { width: 28%; }
+.col-city { width: 14%; }
 .col-num { width: 10%; }
-.col-mid { width: 10%; }
-.col-trailer { width: 10%; }
-.col-avail { width: 12%; }
+.col-mid { width: 12%; }
 
 .prop-name {
   display: block;
@@ -653,104 +609,96 @@ tbody tr:last-child td {
   display: flex;
   gap: 60px;
 }
+</style>
+</head>
+<body>
 
-/* ============ DEBUG INFO ============ */
-.debug-info {
-  position: fixed;
-  top: 0;
-  left: 0;
-  background: #fef08a;
-  border: 2px solid #000;
-  padding: 8px 12px;
-  font-size: 10px;
-  font-family: monospace;
-  z-index: 9999;
-}
-`;
+<!-- PAGE 1: COVER -->
+<div class="page-cover">
+  <div class="cover-hero"></div>
+  <div class="cover-content">
+    <div class="cover-brand">ClearView Commercial Realty Inc.</div>
+    
+    <h1 class="cover-title">${esc(title)}</h1>
+    <p class="cover-subtitle">Curated snapshot of logistics-capable space in ${esc(market)}</p>
+    
+    <div class="cover-count">
+      <strong>${total}</strong>
+      tracked
+    </div>
 
-// ============ HELPER FUNCTIONS ============
+    <div class="cover-contacts">
+      <div class="contact-block">
+        <div class="contact-name">${esc(primary.name)}</div>
+        <div class="contact-detail">${esc(primary.email)}</div>
+        ${primary.phone ? `<div class="contact-detail">${esc(primary.phone)}</div>` : ""}
+      </div>
+      <div class="contact-block">
+        <div class="contact-name">${esc(secondary.name)}</div>
+        <div class="contact-detail">${esc(secondary.email)}</div>
+        ${secondary.phone ? `<div class="contact-detail">${esc(secondary.phone)}</div>` : ""}
+      </div>
+    </div>
+  </div>
+</div>
 
-function esc(s: unknown): string {
-  return String(s ?? "")
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;");
-}
+<!-- PAGE 2: SUMMARY TABLE -->
+<div class="page">
+  <div style="display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 16px;">
+    <div>
+      <h2 class="text-headline">Availability Summary</h2>
+      <p style="font-size: 8pt; color: var(--muted); margin-top: 4px;">${esc(market)} · ${esc(sizeThreshold)}–${esc(sizeThresholdMaxStr)} SF</p>
+    </div>
+    <div class="text-micro" style="color: var(--blue);">${total} Properties</div>
+  </div>
 
-function fmtNum(v: unknown): string {
-  const n = Number(v);
-  if (!Number.isFinite(n) || n <= 0) return "—";
-  return Math.round(n).toLocaleString();
-}
+  <div class="brutalist-table-wrapper">
+    <table>
+      <thead>
+        <tr>
+          <th class="col-prop">Property / Submarket</th>
+          <th class="col-city">City</th>
+          <th class="col-num">Size (SF)</th>
+          <th class="col-num">Clear</th>
+          <th class="col-num">Dock</th>
+          <th class="col-num">Drive</th>
+          <th class="col-mid">Avail.</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${summaryRows}
+      </tbody>
+    </table>
+  </div>
 
-function normalizeYesNo(v: string | null | undefined): string {
-  const s = String(v ?? '').trim().toLowerCase();
-  if (!s) return '—';
-  if (['yes', 'y', 'true', '1'].includes(s)) return 'Yes';
-  if (['no', 'n', 'false', '0'].includes(s)) return 'No';
-  if (['unknown', 'tbd'].includes(s)) return '—';
-  return v || '—';
-}
+  <p class="table-note">
+    Information believed reliable but not guaranteed. Availability subject to change.
+  </p>
+</div>
 
-function generateHash(content: string): string {
-  let hash = 0;
-  for (let i = 0; i < content.length; i++) {
-    const char = content.charCodeAt(i);
-    hash = ((hash << 5) - hash) + char;
-    hash = hash & hash;
-  }
-  return Math.abs(hash).toString(16).padStart(8, '0');
-}
+${detailPages}
 
-// ============ BUILD FUNCTIONS ============
-
-function buildSummaryRow(listing: Listing, index: number): string {
-  const property = esc(listing.property_name || listing.display_address || listing.address || "—");
-  const submarket = esc(listing.submarket || "");
-  const city = esc(listing.city || "—");
-  const size = fmtNum(listing.size_sf);
-  const clear = listing.clear_height_ft ? `${listing.clear_height_ft}'` : "—";
-  const dock = listing.dock_doors != null ? String(listing.dock_doors) : "—";
-  const drive = listing.drive_in_doors != null ? String(listing.drive_in_doors) : "—";
-  const trailer = normalizeYesNo(listing.trailer_parking);
-  const avail = esc(listing.availability_date || "TBD");
-  const rowClass = index % 2 === 1 ? ' class="alt"' : '';
-
-  return `<tr${rowClass}>
-    <td class="col-prop"><span class="prop-name">${property}</span><span class="prop-sub">${submarket}</span></td>
-    <td class="col-city">${city}</td>
-    <td class="col-num">${size}</td>
-    <td class="col-num">${clear}</td>
-    <td class="col-num">${dock}</td>
-    <td class="col-num">${drive}</td>
-    <td class="col-trailer">${trailer}</td>
-    <td class="col-avail">${avail}</td>
-  </tr>`;
+</body>
+</html>`;
 }
 
-function buildDetailPage(
-  listing: Listing, 
-  primary: PrintTemplateContact, 
-  secondary: PrintTemplateContact,
-  executiveNote?: string
-): string {
-  const title = esc(listing.property_name || listing.display_address || listing.address || "Property");
-  const loc = esc([listing.city, listing.submarket].filter(Boolean).join(" · "));
-  const size = fmtNum(listing.size_sf);
-  const clear = listing.clear_height_ft ? `${listing.clear_height_ft}'` : "—";
-  const dock = listing.dock_doors != null ? String(listing.dock_doors) : "—";
-  const drive = listing.drive_in_doors != null ? String(listing.drive_in_doors) : "—";
-  const trailer = normalizeYesNo(listing.trailer_parking);
-  const avail = esc(listing.availability_date || "TBD");
-  const notes = executiveNote || (listing.notes_public || "").trim();
+// Detail page - NO trailer parking
+function renderDetailPage(l: any, primary: any, secondary: any) {
+  const title = esc(l.property_name || l.display_address || l.address || "Property");
+  const loc = esc([l.city, l.submarket].filter(Boolean).join(" · "));
+  const size = fmtNum(l.size_sf);
+  const clear = l.clear_height_ft ? `${l.clear_height_ft}'` : "—";
+  const dock = l.dock_doors != null ? String(l.dock_doors) : "—";
+  const drive = l.drive_in_doors != null ? String(l.drive_in_doors) : "—";
+  const avail = esc(l.availability_date || "TBD");
+  const notes = (l.notes_public || "").trim();
 
   return `
 <div class="page">
   <div class="detail-header">
     <h2 class="detail-title">${title}</h2>
     <p class="detail-location">${loc}</p>
-    ${listing.listing_id ? `<p class="detail-id">ID: ${esc(listing.listing_id)}</p>` : ""}
+    ${l.listing_id ? `<p class="detail-id">ID: ${esc(l.listing_id)}</p>` : ""}
   </div>
 
   <div class="specs-grid">
@@ -769,10 +717,6 @@ function buildDetailPage(
     <div class="spec-block">
       <div class="spec-label">Drive-In Doors</div>
       <div class="spec-value">${drive}</div>
-    </div>
-    <div class="spec-block">
-      <div class="spec-label">Trailer Parking</div>
-      <div class="spec-value">${trailer}</div>
     </div>
     <div class="spec-block">
       <div class="spec-label">Availability</div>
@@ -802,136 +746,20 @@ function buildDetailPage(
 </div>`;
 }
 
-/**
- * Build the complete HTML document for print/PDF
- * MUST BE KEPT IN SYNC with src/lib/print-template.ts
- */
-function buildPrintHtml(data: PrintTemplateData): string {
-  const {
-    title,
-    market,
-    sizeThreshold,
-    sizeThresholdMax,
-    listings,
-    primary,
-    secondary,
-    newCount,
-    includeDetails = false,
-    executiveNotes = {},
-    coverImageUrl = COVER_IMAGE_URL,
-    debugMode = false,
-  } = data;
+// ============ HELPER FUNCTIONS ============
 
-  const sizeThresholdStr = sizeThreshold.toLocaleString();
-  const sizeThresholdMaxStr = sizeThresholdMax.toLocaleString();
-  const total = listings.length;
+function fmtNum(v: any): string {
+  const n = Number(v);
+  if (!Number.isFinite(n) || n <= 0) return "—";
+  return Math.round(n).toLocaleString();
+}
 
-  // Sort listings by size descending
-  const sorted = [...listings].sort((a, b) => (Number(b.size_sf || 0) - Number(a.size_sf || 0)));
-
-  // Build summary rows
-  const summaryRows = sorted.map((l, idx) => buildSummaryRow(l, idx)).join("");
-
-  // Build detail pages if requested
-  const detailPages = includeDetails
-    ? sorted.map((l) => buildDetailPage(l, primary, secondary, executiveNotes[l.id || l.listing_id])).join("")
-    : "";
-
-  const html = `<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="UTF-8" />
-<title>${esc(title)}</title>
-<style>
-${PRINT_STYLES}
-</style>
-</head>
-<body>
-
-${debugMode ? `<div class="debug-info">Debug: HTML Length=${0} Hash=PENDING</div>` : ''}
-
-<!-- PAGE 1: COVER -->
-<div class="page-cover">
-  <div class="cover-hero" style="background-image: url('${coverImageUrl}');"></div>
-  <div class="cover-content">
-    <div class="cover-brand">ClearView Commercial Realty Inc.</div>
-    
-    <h1 class="cover-title">${esc(title)}</h1>
-    <p class="cover-subtitle">${esc(market)} · ${esc(sizeThresholdStr)}–${esc(sizeThresholdMaxStr)} SF</p>
-    
-    <div class="cover-stats">
-      <div class="cover-stat">
-        <div class="cover-stat-value">${total}</div>
-        <div class="cover-stat-label">Tracked</div>
-      </div>
-      <div class="cover-stat">
-        <div class="cover-stat-value">${newCount}</div>
-        <div class="cover-stat-label">New</div>
-      </div>
-    </div>
-
-    <div class="cover-contacts">
-      <div class="contact-block">
-        <div class="contact-name">${esc(primary.name)}</div>
-        <div class="contact-detail">${esc(primary.email)}</div>
-        ${primary.phone ? `<div class="contact-detail">${esc(primary.phone)}</div>` : ""}
-      </div>
-      <div class="contact-block">
-        <div class="contact-name">${esc(secondary.name)}</div>
-        <div class="contact-detail">${esc(secondary.email)}</div>
-        ${secondary.phone ? `<div class="contact-detail">${esc(secondary.phone)}</div>` : ""}
-      </div>
-    </div>
-  </div>
-</div>
-
-<!-- PAGE 2: SUMMARY TABLE -->
-<div class="page">
-  <div style="display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 16px;">
-    <div>
-      <h2 class="text-headline">Availability Summary</h2>
-      <p style="font-size: 8pt; color: var(--muted); margin-top: 4px;">${esc(market)} · ${esc(sizeThresholdStr)}–${esc(sizeThresholdMaxStr)} SF</p>
-    </div>
-    <div class="text-micro" style="color: var(--blue);">${total} Properties</div>
-  </div>
-
-  <div class="brutalist-table-wrapper">
-    <table>
-      <thead>
-        <tr>
-          <th class="col-prop">Property / Submarket</th>
-          <th class="col-city">City</th>
-          <th class="col-num">Size (SF)</th>
-          <th class="col-num">Clear</th>
-          <th class="col-num">Dock</th>
-          <th class="col-num">Drive</th>
-          <th class="col-trailer">Trailer</th>
-          <th class="col-avail">Avail.</th>
-        </tr>
-      </thead>
-      <tbody>
-        ${summaryRows}
-      </tbody>
-    </table>
-  </div>
-
-  <p class="table-note">
-    Information believed reliable but not guaranteed. Availability subject to change.
-  </p>
-</div>
-
-${detailPages}
-
-</body>
-</html>`;
-
-  // If debug mode, update with actual values
-  if (debugMode) {
-    const hash = generateHash(html);
-    return html.replace('Hash=PENDING', `Hash=${hash}`).replace('HTML Length=0', `HTML Length=${html.length}`);
-  }
-
-  return html;
+function esc(s: any): string {
+  return String(s ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
 }
 
 // ============ PDF CONVERSION ============
