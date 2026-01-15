@@ -2,8 +2,9 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 // Configurable cover image URL - modern distribution warehouse exterior
+// Using a reliable, fast-loading image URL
 const COVER_IMAGE_URL = Deno.env.get("PDF_COVER_IMAGE_URL") || 
-  "https://images.unsplash.com/photo-1553413077-190dd305871c?w=1600&q=85";
+  "https://images.unsplash.com/photo-1553413077-190dd305871c?w=1200&q=70&auto=format";
 
 type YesNoUnknown = "Yes" | "No" | "Unknown";
 
@@ -832,30 +833,50 @@ async function convertHtmlToPdf(html: string, generatedDate?: Date): Promise<Uin
   const htmlHash = await hashString(html);
   console.log(`[generate-pdf] HTML Length: ${html.length}, Hash: ${htmlHash}`);
 
-  const response = await fetch("https://docraptor.com/docs", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Basic ${btoa(apiKey + ":")}`,
-    },
-    body: JSON.stringify({
-      test: false,
-      document_type: "pdf",
-      document_content: html,
-      name: documentName,
-      prince_options: {
-        profile: "PDF/A-1b",
+  // Create abort controller for timeout
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 60000); // 60 second timeout
+
+  try {
+    const response = await fetch("https://docraptor.com/docs", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Basic ${btoa(apiKey + ":")}`,
       },
-    }),
-  });
+      body: JSON.stringify({
+        test: false,
+        document_type: "pdf",
+        document_content: html,
+        name: documentName,
+        prince_options: {
+          profile: "PDF/A-1b",
+          network_timeout: 30, // 30 seconds for external resources
+        },
+      }),
+      signal: controller.signal,
+    });
 
-  if (!response.ok) {
-    const errorText = await response.text();
-    throw new Error(`DocRaptor error: ${response.status} - ${errorText}`);
+    clearTimeout(timeoutId);
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error(`[generate-pdf] DocRaptor error: ${response.status} - ${errorText}`);
+      throw new Error(`DocRaptor error: ${response.status} - ${errorText}`);
+    }
+
+    const arrayBuffer = await response.arrayBuffer();
+    console.log(`[generate-pdf] PDF generated successfully, size: ${arrayBuffer.byteLength} bytes`);
+    return new Uint8Array(arrayBuffer);
+  } catch (err: unknown) {
+    clearTimeout(timeoutId);
+    const error = err as Error;
+    if (error.name === 'AbortError') {
+      console.error(`[generate-pdf] Request timed out after 60 seconds`);
+      throw new Error('PDF generation timed out');
+    }
+    throw error;
   }
-
-  const arrayBuffer = await response.arrayBuffer();
-  return new Uint8Array(arrayBuffer);
 }
 
 // Simple hash function for debug logging
