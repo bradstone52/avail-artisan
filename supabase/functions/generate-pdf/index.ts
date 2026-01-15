@@ -1,9 +1,9 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
-// Configurable cover image URL - EXTERIOR photo of modern distribution warehouse
+// Default fallback cover image URL - EXTERIOR photo of modern distribution warehouse
 // Industrial tilt-up concrete, visible dock doors, truck court
-const COVER_IMAGE_URL = Deno.env.get("PDF_COVER_IMAGE_URL") || 
+const FALLBACK_COVER_IMAGE_URL = Deno.env.get("PDF_COVER_IMAGE_URL") || 
   "https://images.unsplash.com/photo-1565610222536-ef125c59da2e?w=1200&q=70&auto=format";
 
 type YesNoUnknown = "Yes" | "No" | "Unknown";
@@ -38,6 +38,7 @@ interface Issue {
   new_count: number;
   logo_url: string | null;
   brokerage_name: string | null;
+  cover_image_url: string | null;
   primary_contact_name: string | null;
   primary_contact_email: string | null;
   primary_contact_phone: string | null;
@@ -232,6 +233,9 @@ function buildPdfHtml(issue: any, listings: any[], opts?: { includeDetails?: boo
   const sizeThresholdMax = opts?.sizeThresholdMax ?? 500000;
   const generatedDate = opts?.generatedDate ?? new Date();
 
+  // Use uploaded cover image if available, otherwise fallback
+  const coverImageUrl = issue.cover_image_url || FALLBACK_COVER_IMAGE_URL;
+
   // Format month/year for title
   const monthYear = generatedDate.toLocaleDateString("en-US", { month: "long", year: "numeric" });
 
@@ -385,7 +389,7 @@ body {
 .cover-hero-top {
   width: 100%;
   height: 38vh;
-  background-image: url('${COVER_IMAGE_URL}');
+  background-image: url('${coverImageUrl}');
   background-size: cover;
   background-position: center;
   border-radius: 0;
