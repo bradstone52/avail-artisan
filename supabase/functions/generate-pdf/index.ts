@@ -162,18 +162,16 @@ serve(async (req) => {
       safeListings = (listings || []) as unknown as Listing[];
     }
 
-    const html = buildPdfHtml(safeIssue, safeListings, { includeDetails, sizeThresholdMax });
-    const pdfBytes = await convertHtmlToPdf(html);
-
     const generatedAtIso = new Date().toISOString();
-    const ymd = generatedAtIso.slice(0, 10);
-    const safeName = (safeIssue.title || "distribution_snapshot")
-      .toLowerCase()
-      .replace(/[^a-z0-9]+/g, "-")
-      .replace(/(^-|-$)/g, "")
-      .slice(0, 60);
+    const generatedDate = new Date(generatedAtIso);
+    
+    const html = buildPdfHtml(safeIssue, safeListings, { includeDetails, sizeThresholdMax, generatedDate });
+    const pdfBytes = await convertHtmlToPdf(html, generatedDate);
 
-    const pdfFilename = `${safeName || "distribution_snapshot"}-${ymd}.pdf`;
+    // Format filename as Distribution_Availabilities_MonYYYY.pdf
+    const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+    const monYYYY = `${monthNames[generatedDate.getMonth()]}${generatedDate.getFullYear()}`;
+    const pdfFilename = `Distribution_Availabilities_${monYYYY}.pdf`;
     const storagePath = `${safeIssue.user_id}/${safeIssue.id}/${pdfFilename}`;
 
     const uploadRes = await supabase.storage
@@ -228,13 +226,13 @@ serve(async (req) => {
 // ============ NEO-BRUTALIST PDF HTML TEMPLATE ============
 // Redesigned cover with hero image, cleaner layout
 
-function buildPdfHtml(issue: any, listings: any[], opts?: { includeDetails?: boolean; sizeThresholdMax?: number }) {
+function buildPdfHtml(issue: any, listings: any[], opts?: { includeDetails?: boolean; sizeThresholdMax?: number; generatedDate?: Date }) {
   const includeDetails = opts?.includeDetails ?? false;
   const sizeThresholdMax = opts?.sizeThresholdMax ?? 500000;
+  const generatedDate = opts?.generatedDate ?? new Date();
 
   // Format month/year for title
-  const now = new Date();
-  const monthYear = now.toLocaleDateString("en-US", { month: "long", year: "numeric" });
+  const monthYear = generatedDate.toLocaleDateString("en-US", { month: "long", year: "numeric" });
 
   const title = issue.title || `Large-Format Distribution Availability — ${monthYear}`;
   const market = issue.market || "Calgary Region";
@@ -243,12 +241,14 @@ function buildPdfHtml(issue: any, listings: any[], opts?: { includeDetails?: boo
 
   const primary = {
     name: issue.primary_contact_name || "Brad Stone",
+    title: "Partner, Associate Broker",
     email: issue.primary_contact_email || "brad@cvpartners.ca",
     phone: issue.primary_contact_phone || "(403) 613-2898",
   };
 
   const secondary = {
     name: issue.secondary_contact_name || "Doug Johannson",
+    title: "Partner, Vice President",
     email: issue.secondary_contact_email || "doug@cvpartners.ca",
     phone: issue.secondary_contact_phone || "(403) 470-8875",
   };
@@ -326,6 +326,20 @@ function buildPdfHtml(issue: any, listings: any[], opts?: { includeDetails?: boo
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
 
+/* ============ PAGE BREAK SAFETY ============ */
+tr, .listing-row {
+  break-inside: avoid;
+  page-break-inside: avoid;
+}
+
+tbody {
+  break-inside: auto;
+}
+
+table {
+  break-inside: auto;
+}
+
 body {
   font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   font-size: 9pt;
@@ -349,19 +363,20 @@ body {
 }
 
 /* ============ COVER PAGE STYLES ============ */
+.cover-content {
+  padding: 40px 48px 24px;
+  display: flex;
+  flex-direction: column;
+}
+
 .cover-hero {
-  width: 100%;
-  height: 40vh;
+  width: calc(100% - 96px);
+  height: 20vh;
+  margin: 0 48px 24px;
   background-image: url('${COVER_IMAGE_URL}');
   background-size: cover;
   background-position: center;
-}
-
-.cover-content {
-  flex: 1;
-  padding: 40px 48px;
-  display: flex;
-  flex-direction: column;
+  border-radius: 8px;
 }
 
 .cover-brand {
@@ -410,26 +425,34 @@ body {
 
 .cover-contacts {
   border-top: 3px solid var(--ink);
-  padding-top: 24px;
+  padding-top: 20px;
   display: flex;
-  gap: 60px;
+  gap: 48px;
 }
 
 .contact-block {
   flex: 1;
+  min-width: 0;
 }
 
 .contact-block .contact-name {
-  font-size: 13pt;
-  font-weight: 800;
+  font-size: 9pt;
+  font-weight: 700;
   color: var(--ink);
+  margin-bottom: 2px;
+}
+
+.contact-block .contact-title {
+  font-size: 8pt;
+  font-weight: 400;
+  color: var(--muted);
   margin-bottom: 6px;
 }
 
 .contact-block .contact-detail {
-  font-size: 11pt;
+  font-size: 8pt;
   color: var(--muted);
-  margin-bottom: 3px;
+  margin-bottom: 2px;
 }
 
 /* ============ TYPOGRAPHY ============ */
@@ -615,26 +638,29 @@ tbody tr:last-child td {
 
 <!-- PAGE 1: COVER -->
 <div class="page-cover">
-  <div class="cover-hero"></div>
   <div class="cover-content">
     <div class="cover-brand">ClearView Commercial Realty Inc.</div>
     
     <h1 class="cover-title">${esc(title)}</h1>
     <p class="cover-subtitle">Curated snapshot of logistics-capable space in ${esc(market)}</p>
     
+    <div class="cover-hero"></div>
+    
     <div class="cover-count">
       <strong>${total}</strong>
-      tracked
+      Listings tracked
     </div>
 
     <div class="cover-contacts">
       <div class="contact-block">
         <div class="contact-name">${esc(primary.name)}</div>
+        <div class="contact-title">${esc(primary.title)}</div>
         <div class="contact-detail">${esc(primary.email)}</div>
         ${primary.phone ? `<div class="contact-detail">${esc(primary.phone)}</div>` : ""}
       </div>
       <div class="contact-block">
         <div class="contact-name">${esc(secondary.name)}</div>
+        <div class="contact-title">${esc(secondary.title)}</div>
         <div class="contact-detail">${esc(secondary.email)}</div>
         ${secondary.phone ? `<div class="contact-detail">${esc(secondary.phone)}</div>` : ""}
       </div>
@@ -659,9 +685,9 @@ tbody tr:last-child td {
           <th class="col-prop">Property / Submarket</th>
           <th class="col-city">City</th>
           <th class="col-num">Size (SF)</th>
-          <th class="col-num">Clear</th>
-          <th class="col-num">Dock</th>
-          <th class="col-num">Drive</th>
+          <th class="col-num">Ceiling Ht</th>
+          <th class="col-num">Docks</th>
+          <th class="col-num">Drive-In</th>
           <th class="col-mid">Avail.</th>
         </tr>
       </thead>
@@ -764,9 +790,19 @@ function esc(s: any): string {
 
 // ============ PDF CONVERSION ============
 
-async function convertHtmlToPdf(html: string): Promise<Uint8Array> {
+async function convertHtmlToPdf(html: string, generatedDate?: Date): Promise<Uint8Array> {
   const apiKey = Deno.env.get("DOCRAPTOR_API_KEY");
   if (!apiKey) throw new Error("DOCRAPTOR_API_KEY not configured");
+
+  // Format document name as Distribution_Availabilities_MonYYYY
+  const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+  const date = generatedDate ?? new Date();
+  const monYYYY = `${monthNames[date.getMonth()]}${date.getFullYear()}`;
+  const documentName = `Distribution_Availabilities_${monYYYY}`;
+
+  // Debug logging
+  const htmlHash = await hashString(html);
+  console.log(`[generate-pdf] HTML Length: ${html.length}, Hash: ${htmlHash}`);
 
   const response = await fetch("https://docraptor.com/docs", {
     method: "POST",
@@ -778,6 +814,7 @@ async function convertHtmlToPdf(html: string): Promise<Uint8Array> {
       test: false,
       document_type: "pdf",
       document_content: html,
+      name: documentName,
       prince_options: {
         profile: "PDF/A-1b",
       },
@@ -791,4 +828,13 @@ async function convertHtmlToPdf(html: string): Promise<Uint8Array> {
 
   const arrayBuffer = await response.arrayBuffer();
   return new Uint8Array(arrayBuffer);
+}
+
+// Simple hash function for debug logging
+async function hashString(str: string): Promise<string> {
+  const encoder = new TextEncoder();
+  const data = encoder.encode(str);
+  const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+  const hashArray = Array.from(new Uint8Array(hashBuffer));
+  return hashArray.slice(0, 4).map(b => b.toString(16).padStart(2, '0')).join('');
 }
