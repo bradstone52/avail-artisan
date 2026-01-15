@@ -326,18 +326,33 @@ function buildPdfHtml(issue: any, listings: any[], opts?: { includeDetails?: boo
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
 
-/* ============ PAGE BREAK SAFETY ============ */
-tr, .listing-row {
-  break-inside: avoid;
-  page-break-inside: avoid;
+/* ============ PAGE BREAK SAFETY (Prince/DocRaptor hardening) ============ */
+tr, .listing-row, .property-row {
+  break-inside: avoid !important;
+  page-break-inside: avoid !important;
+  -webkit-column-break-inside: avoid !important;
+}
+
+/* Ensure property + submarket never split */
+td.col-prop {
+  break-inside: avoid !important;
+  page-break-inside: avoid !important;
 }
 
 tbody {
   break-inside: auto;
+  page-break-inside: auto;
 }
 
 table {
   break-inside: auto;
+  page-break-inside: auto;
+}
+
+/* Prince-specific: orphans/widows for better row control */
+tr {
+  orphans: 2;
+  widows: 2;
 }
 
 body {
@@ -528,13 +543,26 @@ tbody tr:last-child td {
   font-weight: 700;
   color: var(--ink);
   font-size: 8pt;
+  white-space: normal;
+  overflow: visible;
+  text-overflow: clip;
+  word-break: normal;
+  overflow-wrap: anywhere;
 }
 
+/* Submarket: NO truncation, wrap to max 2 lines */
 .prop-sub {
   display: block;
   font-size: 7pt;
   color: var(--muted);
   margin-top: 2px;
+  white-space: normal;
+  overflow: visible;
+  text-overflow: clip;
+  word-break: normal;
+  overflow-wrap: anywhere;
+  max-height: none;
+  -webkit-line-clamp: unset;
 }
 
 .table-note {
