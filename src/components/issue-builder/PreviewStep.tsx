@@ -67,12 +67,12 @@ export function PreviewStep({
         
         {/* PAGE 1: COVER */}
         <div className="document-page" style={{ padding: 0, overflow: 'hidden' }}>
-          {/* Cover Hero Image - Top, full width */}
+          {/* Cover Hero Image - Top, full width, EXTERIOR warehouse */}
           <div 
             className="w-full"
             style={{ 
               height: '38%',
-              backgroundImage: 'url(https://images.unsplash.com/photo-1553413077-190dd305871c?w=1600&q=85)',
+              backgroundImage: 'url(https://images.unsplash.com/photo-1586528116311-ad8dd3c8310d?w=1600&q=85)',
               backgroundSize: 'cover',
               backgroundPosition: 'center',
             }}
@@ -89,14 +89,21 @@ export function PreviewStep({
             <div className="mb-6">
               <h1 className="text-display mb-2">{issueTitle}</h1>
               <p className="text-subhead text-muted-foreground">
-                Curated snapshot of logistics-capable space in {market}
+                Curated snapshot of logistics space: Calgary & Area
               </p>
             </div>
 
-            {/* Stats - Listings tracked + New */}
-            <div className="mb-6">
+            {/* Stats - Black boxed KPI */}
+            <div 
+              className="mb-6 inline-block"
+              style={{
+                border: '3px solid hsl(var(--foreground))',
+                padding: '16px 24px',
+                display: 'inline-block',
+              }}
+            >
               <div className="text-4xl font-black">{selectedListings.length}</div>
-              <div className="text-sm text-muted-foreground">Listings tracked</div>
+              <div className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Tracked listings</div>
             </div>
 
             {/* Contacts - Doug LEFT, Brad RIGHT with titles */}
@@ -131,14 +138,13 @@ export function PreviewStep({
             <table className="brutalist-table">
               <thead>
                 <tr>
-                  <th style={{ width: '26%' }}>Property / Submarket</th>
-                  <th style={{ width: '12%' }}>City</th>
+                  <th style={{ width: '28%' }}>Property / Submarket</th>
+                  <th style={{ width: '14%' }}>City</th>
                   <th className="num" style={{ width: '10%' }}>Size (SF)</th>
-                  <th className="num" style={{ width: '9%' }}>Clear</th>
-                  <th className="num" style={{ width: '9%' }}>Dock</th>
-                  <th className="num" style={{ width: '9%' }}>Drive</th>
-                  <th style={{ width: '10%' }}>Trailer</th>
-                  <th style={{ width: '15%' }}>Avail.</th>
+                  <th style={{ width: '10%', textAlign: 'center' }}>Ceiling Ht</th>
+                  <th style={{ width: '10%', textAlign: 'center' }}>Docks</th>
+                  <th style={{ width: '10%', textAlign: 'center' }}>Drive-In</th>
+                  <th style={{ width: '12%' }}>Avail.</th>
                 </tr>
               </thead>
               <tbody>
@@ -168,17 +174,14 @@ export function PreviewStep({
                     <td className="num font-medium">
                       {listing.size_sf.toLocaleString()}
                     </td>
-                    <td className="num">
+                    <td style={{ textAlign: 'center' }}>
                       {listing.clear_height_ft ? `${listing.clear_height_ft}'` : '—'}
                     </td>
-                    <td className="num">
+                    <td style={{ textAlign: 'center' }}>
                       {listing.dock_doors ?? '—'}
                     </td>
-                    <td className="num">
+                    <td style={{ textAlign: 'center' }}>
                       {listing.drive_in_doors ?? '—'}
-                    </td>
-                    <td>
-                      {normalizeYesNo(listing.trailer_parking)}
                     </td>
                     <td>
                       {listing.availability_date || '—'}
