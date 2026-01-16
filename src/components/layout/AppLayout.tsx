@@ -14,7 +14,8 @@ import {
   X,
   ChevronRight,
   Users,
-  Shield
+  Shield,
+  Mail
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -30,6 +31,7 @@ const navigation = [
 
 const adminNavigation = [
   { name: 'User Management', href: '/admin/users', icon: Users },
+  { name: 'Recipients', href: '/recipients', icon: Mail },
 ];
 
 export function AppLayout({ children }: AppLayoutProps) {
