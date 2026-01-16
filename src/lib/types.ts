@@ -27,6 +27,7 @@ export interface Listing {
   yard: 'Yes' | 'No' | 'Unknown';
   availability_date: string | null;
   asking_rate_psf: string | null;
+  op_costs: string | null;
   status: 'Active' | 'Leased' | 'Removed' | 'OnHold';
   include_in_issue: boolean;
   landlord: string | null;

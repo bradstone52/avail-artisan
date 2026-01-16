@@ -161,13 +161,14 @@ export function PreviewStep({
             <table className="brutalist-table">
               <thead>
                 <tr>
-                  <th style={{ width: '28%' }}>Property / Submarket</th>
-                  <th style={{ width: '14%' }}>City</th>
-                  <th className="num" style={{ width: '10%' }}>Size (SF)</th>
-                  <th style={{ width: '10%', textAlign: 'center' }}>Ceiling Ht</th>
-                  <th style={{ width: '10%', textAlign: 'center' }}>Docks</th>
-                  <th style={{ width: '10%', textAlign: 'center' }}>Drive-In</th>
-                  <th style={{ width: '12%' }}>Avail.</th>
+                  <th style={{ width: '24%' }}>Property / Submarket</th>
+                  <th style={{ width: '12%' }}>City</th>
+                  <th className="num" style={{ width: '9%' }}>Size (SF)</th>
+                  <th style={{ width: '9%', textAlign: 'center' }}>Ceiling Ht</th>
+                  <th style={{ width: '8%', textAlign: 'center' }}>Docks</th>
+                  <th style={{ width: '8%', textAlign: 'center' }}>Drive-In</th>
+                  <th style={{ width: '10%', textAlign: 'center' }}>Op Costs</th>
+                  <th style={{ width: '10%' }}>Avail.</th>
                 </tr>
               </thead>
               <tbody>
@@ -205,6 +206,9 @@ export function PreviewStep({
                     </td>
                     <td style={{ textAlign: 'center' }}>
                       {(listing.drive_in_doors == null || listing.drive_in_doors === 0) ? '—' : listing.drive_in_doors}
+                    </td>
+                    <td style={{ textAlign: 'center' }}>
+                      {listing.op_costs && String(listing.op_costs).trim() ? listing.op_costs : '—'}
                     </td>
                     <td>
                       {listing.availability_date || '—'}

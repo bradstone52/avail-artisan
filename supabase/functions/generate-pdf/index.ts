@@ -120,7 +120,6 @@ serve(async (req) => {
           })
       : null;
 
-    // Removed trailer_parking from the select fields
     const listingSelectFields = [
       "id",
       "listing_id",
@@ -134,6 +133,7 @@ serve(async (req) => {
       "clear_height_ft",
       "dock_doors",
       "drive_in_doors",
+      "op_costs",
       "availability_date",
       "asking_rate_psf",
       "notes_public",
@@ -283,7 +283,7 @@ function buildPdfHtml(issue: any, listings: any[], opts?: { includeDetails?: boo
   // Sort by size descending
   const sorted = [...listings].sort((a, b) => (Number(b.size_sf || 0) - Number(a.size_sf || 0)));
 
-  // Summary table rows - NO trailer parking column
+  // Summary table rows with Op Costs column
   // Ceiling Ht, Docks, Drive-In are center-aligned
   const summaryRows = sorted.map((l, idx) => {
     const property = esc(l.property_name || l.display_address || l.address || "—");
@@ -295,6 +295,8 @@ function buildPdfHtml(issue: any, listings: any[], opts?: { includeDetails?: boo
     // Drive-In: show "—" for 0, null, or undefined
     const driveVal = l.drive_in_doors;
     const drive = (driveVal == null || driveVal === 0) ? "—" : String(driveVal);
+    // Op Costs: display exactly as entered, or "—" if empty
+    const opCosts = l.op_costs && String(l.op_costs).trim() ? esc(l.op_costs) : "—";
     const avail = esc(l.availability_date || "TBD");
     const rowClass = idx % 2 === 1 ? ' class="alt"' : '';
 
@@ -305,6 +307,7 @@ function buildPdfHtml(issue: any, listings: any[], opts?: { includeDetails?: boo
       <td class="col-center">${clear}</td>
       <td class="col-center">${dock}</td>
       <td class="col-center">${drive}</td>
+      <td class="col-center">${opCosts}</td>
       <td class="col-mid">${avail}</td>
     </tr>`;
   }).join("");
@@ -582,10 +585,10 @@ tbody tr:last-child td {
   border-bottom: none;
 }
 
-.col-prop { width: 28%; }
-.col-city { width: 14%; }
+.col-prop { width: 26%; }
+.col-city { width: 12%; }
 .col-num { width: 10%; }
-.col-mid { width: 12%; }
+.col-mid { width: 10%; }
 
 .prop-name {
   display: block;
@@ -772,6 +775,7 @@ tbody tr:last-child td {
           <th class="col-center">Ceiling Ht</th>
           <th class="col-center">Docks</th>
           <th class="col-center">Drive-In</th>
+          <th class="col-center">Op Costs</th>
           <th class="col-mid">Avail.</th>
         </tr>
       </thead>
