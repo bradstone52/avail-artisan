@@ -14,12 +14,14 @@ interface PreviewStepProps {
 // Default contacts
 const DEFAULT_PRIMARY = {
   name: "Brad Stone",
+  title: "Partner, Associate Broker",
   email: "brad@cvpartners.ca",
   phone: "(403) 613-2898",
 };
 
 const DEFAULT_SECONDARY = {
   name: "Doug Johannson",
+  title: "Partner, Senior Vice President",
   email: "doug@cvpartners.ca",
   phone: "(403) 470-8875",
 };
@@ -49,12 +51,14 @@ export function PreviewStep({
 
   const primary = {
     name: settings.primaryContactName || DEFAULT_PRIMARY.name,
+    title: settings.primaryContactTitle || DEFAULT_PRIMARY.title,
     email: settings.primaryContactEmail || DEFAULT_PRIMARY.email,
     phone: settings.primaryContactPhone || DEFAULT_PRIMARY.phone,
   };
 
   const secondary = {
     name: settings.secondaryContactName || DEFAULT_SECONDARY.name,
+    title: settings.secondaryContactTitle || DEFAULT_SECONDARY.title,
     email: settings.secondaryContactEmail || DEFAULT_SECONDARY.email,
     phone: settings.secondaryContactPhone || DEFAULT_SECONDARY.phone,
   };
@@ -129,13 +133,13 @@ export function PreviewStep({
             <div className="grid grid-cols-2 gap-8 pt-6 border-t-2 border-foreground mt-auto">
               <div className="contact-block">
                 <div className="text-lg font-bold mb-1">{secondary.name}</div>
-                <div className="text-sm text-muted-foreground mb-2">Partner, Senior Vice President</div>
+                <div className="text-sm text-muted-foreground mb-2">{secondary.title}</div>
                 <div className="text-sm">{secondary.email}</div>
                 {secondary.phone && <div className="text-sm">{secondary.phone}</div>}
               </div>
               <div className="contact-block">
                 <div className="text-lg font-bold mb-1">{primary.name}</div>
-                <div className="text-sm text-muted-foreground mb-2">Partner, Associate Broker</div>
+                <div className="text-sm text-muted-foreground mb-2">{primary.title}</div>
                 <div className="text-sm">{primary.email}</div>
                 {primary.phone && <div className="text-sm">{primary.phone}</div>}
               </div>
@@ -280,13 +284,13 @@ export function PreviewStep({
             <div className="grid grid-cols-2 gap-8 pt-6 border-t-2 border-foreground mt-auto">
               <div className="contact-block">
                 <div className="text-lg font-bold mb-1">{secondary.name}</div>
-                <div className="text-sm text-muted-foreground mb-2">Partner, Senior Vice President</div>
+                <div className="text-sm text-muted-foreground mb-2">{secondary.title}</div>
                 <div className="text-sm">{secondary.email}</div>
                 {secondary.phone && <div className="text-sm">{secondary.phone}</div>}
               </div>
               <div className="contact-block">
                 <div className="text-lg font-bold mb-1">{primary.name}</div>
-                <div className="text-sm text-muted-foreground mb-2">Partner, Associate Broker</div>
+                <div className="text-sm text-muted-foreground mb-2">{primary.title}</div>
                 <div className="text-sm">{primary.email}</div>
                 {primary.phone && <div className="text-sm">{primary.phone}</div>}
               </div>

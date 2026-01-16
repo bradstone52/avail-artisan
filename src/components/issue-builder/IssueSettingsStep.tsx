@@ -173,9 +173,11 @@ export function IssueSettingsStep({ settings, onChange }: IssueSettingsStepProps
               onChange({
                 ...settings,
                 primaryContactName: 'Brad Stone',
+                primaryContactTitle: 'Partner, Associate Broker',
                 primaryContactEmail: 'brad@cvpartners.ca',
                 primaryContactPhone: '(403) 613-2898',
                 secondaryContactName: 'Doug Johannson',
+                secondaryContactTitle: 'Partner, Senior Vice President',
                 secondaryContactEmail: 'doug@cvpartners.ca',
                 secondaryContactPhone: '(403) 470-8875',
               });
@@ -189,7 +191,7 @@ export function IssueSettingsStep({ settings, onChange }: IssueSettingsStepProps
         {/* Primary Contact */}
         <div className="mb-6">
           <p className="text-sm text-muted-foreground mb-3">Primary Contact</p>
-          <div className="grid gap-4 sm:grid-cols-3">
+          <div className="grid gap-4 sm:grid-cols-2">
             <div className="space-y-2">
               <Label htmlFor="primaryContactName">Name</Label>
               <Input
@@ -197,6 +199,16 @@ export function IssueSettingsStep({ settings, onChange }: IssueSettingsStepProps
                 placeholder="Brad Stone"
                 value={settings.primaryContactName}
                 onChange={(e) => updateField('primaryContactName', e.target.value)}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="primaryContactTitle">Title</Label>
+              <Input
+                id="primaryContactTitle"
+                placeholder="Partner, Associate Broker"
+                value={settings.primaryContactTitle}
+                onChange={(e) => updateField('primaryContactTitle', e.target.value)}
               />
             </div>
 
@@ -227,7 +239,7 @@ export function IssueSettingsStep({ settings, onChange }: IssueSettingsStepProps
         {/* Secondary Contact */}
         <div>
           <p className="text-sm text-muted-foreground mb-3">Secondary Contact (optional)</p>
-          <div className="grid gap-4 sm:grid-cols-3">
+          <div className="grid gap-4 sm:grid-cols-2">
             <div className="space-y-2">
               <Label htmlFor="secondaryContactName">Name</Label>
               <Input
@@ -235,6 +247,16 @@ export function IssueSettingsStep({ settings, onChange }: IssueSettingsStepProps
                 placeholder="Doug Johannson"
                 value={settings.secondaryContactName}
                 onChange={(e) => updateField('secondaryContactName', e.target.value)}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="secondaryContactTitle">Title</Label>
+              <Input
+                id="secondaryContactTitle"
+                placeholder="Partner, Senior Vice President"
+                value={settings.secondaryContactTitle}
+                onChange={(e) => updateField('secondaryContactTitle', e.target.value)}
               />
             </div>
 
