@@ -4,7 +4,6 @@ import { OnboardingChecklist } from '@/components/dashboard/OnboardingChecklist'
 import { StatCard } from '@/components/dashboard/StatCard';
 import { IssueCard } from '@/components/dashboard/IssueCard';
 import { SyncReportSummary } from '@/components/dashboard/SyncReportSummary';
-import { InviteCodeCard } from '@/components/admin/InviteCodeCard';
 import { OrgIntegrationCard } from '@/components/admin/OrgIntegrationCard';
 import { useOrgIntegration } from '@/hooks/useOrgIntegration';
 import { useOrg } from '@/hooks/useOrg';
@@ -37,7 +36,7 @@ export default function Dashboard() {
     updateSheetSettings,
     syncListings,
   } = useOrgIntegration();
-  const { orgName, inviteCode } = useOrg();
+  const { orgName } = useOrg();
   const { issues, loading: issuesLoading, refreshIssues, deleteAllIssues } = useIssues();
 
   const handleClearIssues = async () => {
@@ -234,10 +233,6 @@ export default function Dashboard() {
               }} />
             )}
 
-            {/* Invite Code Card - Admin only */}
-            {isOrgAdmin && (
-              <InviteCodeCard inviteCode={inviteCode} orgName={orgName} />
-            )}
 
             {/* Quick Actions */}
             <div className="bg-card border border-border rounded-xl p-5">
