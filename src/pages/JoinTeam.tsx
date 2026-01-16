@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
-import { useInvites } from '@/hooks/useInvites';
+import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -9,14 +9,37 @@ import { toast } from 'sonner';
 import { Users, ArrowRight, Loader2, CheckCircle } from 'lucide-react';
 
 export default function JoinTeam() {
-  const { user } = useAuth();
+  const { user, session } = useAuth();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const { redeemInvite } = useInvites();
   
   const [inviteCode, setInviteCode] = useState('');
   const [isJoining, setIsJoining] = useState(false);
   const [success, setSuccess] = useState<{ orgName?: string; role?: string } | null>(null);
+
+  // Redeem invite function - standalone, doesn't need org context
+  const redeemInvite = async (code: string) => {
+    if (!session?.access_token) {
+      return { success: false, error: 'Not authenticated' };
+    }
+
+    try {
+      const { data, error } = await supabase.functions.invoke('redeem-invite', {
+        headers: {
+          Authorization: `Bearer ${session.access_token}`,
+        },
+        body: { inviteCode: code.trim() },
+      });
+
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+
+      return { success: true, data };
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Failed to redeem invite';
+      return { success: false, error: message };
+    }
+  };
 
   // Auto-fill code from URL
   useEffect(() => {
