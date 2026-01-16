@@ -15,8 +15,8 @@ interface WizardStepsProps {
 
 export function WizardSteps({ steps, currentStep, onStepClick }: WizardStepsProps) {
   return (
-    <nav aria-label="Progress" className="mb-8">
-      <ol className="flex items-center justify-between">
+    <nav aria-label="Progress" className="mb-10">
+      <ol className="flex items-center justify-between gap-4 lg:gap-8">
         {steps.map((step, index) => {
           const isComplete = index < currentStep;
           const isCurrent = index === currentStep;
@@ -26,16 +26,16 @@ export function WizardSteps({ steps, currentStep, onStepClick }: WizardStepsProp
             <li 
               key={step.id} 
               className={cn(
-                "flex-1 relative",
-                index !== steps.length - 1 && "pr-8"
+                "flex-1 relative min-w-0",
+                index !== steps.length - 1 && "pr-4 lg:pr-6"
               )}
             >
               {/* Connector line */}
               {index !== steps.length - 1 && (
                 <div 
                   className={cn(
-                    "absolute top-4 left-8 right-0 h-0.5",
-                    isComplete ? "bg-primary" : "bg-border"
+                    "absolute top-4 left-8 right-0 h-px",
+                    isComplete ? "bg-primary/60" : "bg-border/50"
                   )}
                   aria-hidden="true"
                 />
@@ -45,17 +45,17 @@ export function WizardSteps({ steps, currentStep, onStepClick }: WizardStepsProp
                 onClick={() => onStepClick?.(index)}
                 disabled={isPending}
                 className={cn(
-                  "group relative flex items-start",
-                  isPending ? "cursor-not-allowed" : "cursor-pointer"
+                  "group relative flex items-start w-full",
+                  isPending ? "cursor-not-allowed opacity-60" : "cursor-pointer"
                 )}
               >
-                <span className="flex items-center h-8">
+                <span className="flex-shrink-0 flex items-center h-8">
                   <span
                     className={cn(
-                      "relative z-10 w-8 h-8 flex items-center justify-center rounded-full text-sm font-medium transition-colors",
-                      isComplete && "bg-primary text-primary-foreground",
-                      isCurrent && "bg-primary text-primary-foreground ring-4 ring-primary/20",
-                      isPending && "bg-muted text-muted-foreground"
+                      "relative z-10 w-8 h-8 flex items-center justify-center rounded-full text-sm font-medium transition-all duration-200",
+                      isComplete && "bg-primary text-primary-foreground shadow-sm",
+                      isCurrent && "bg-primary text-primary-foreground ring-4 ring-primary/15 shadow-sm",
+                      isPending && "bg-muted/80 text-muted-foreground/70"
                     )}
                   >
                     {isComplete ? (
@@ -65,16 +65,23 @@ export function WizardSteps({ steps, currentStep, onStepClick }: WizardStepsProp
                     )}
                   </span>
                 </span>
-                <span className="ml-3 min-w-0 flex flex-col">
+                <span className="ml-3 min-w-0 flex flex-col gap-0.5">
                   <span
                     className={cn(
-                      "text-sm font-medium",
-                      (isComplete || isCurrent) ? "text-foreground" : "text-muted-foreground"
+                      "text-sm font-medium leading-tight truncate",
+                      isCurrent && "text-foreground",
+                      isComplete && "text-foreground/80",
+                      isPending && "text-muted-foreground/70"
                     )}
                   >
                     {step.title}
                   </span>
-                  <span className="text-xs text-muted-foreground hidden sm:block">
+                  <span 
+                    className={cn(
+                      "text-[11px] leading-snug hidden sm:block truncate",
+                      isCurrent ? "text-muted-foreground/80" : "text-muted-foreground/60"
+                    )}
+                  >
                     {step.description}
                   </span>
                 </span>
