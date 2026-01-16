@@ -14,6 +14,41 @@ export type Database = {
   }
   public: {
     Tables: {
+      distribution_events: {
+        Row: {
+          event_type: string
+          id: string
+          ip_address: string | null
+          send_id: string
+          timestamp: string
+          user_agent: string | null
+        }
+        Insert: {
+          event_type?: string
+          id?: string
+          ip_address?: string | null
+          send_id: string
+          timestamp?: string
+          user_agent?: string | null
+        }
+        Update: {
+          event_type?: string
+          id?: string
+          ip_address?: string | null
+          send_id?: string
+          timestamp?: string
+          user_agent?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "distribution_events_send_id_fkey"
+            columns: ["send_id"]
+            isOneToOne: false
+            referencedRelation: "distribution_sends"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       distribution_recipients: {
         Row: {
           company_name: string
