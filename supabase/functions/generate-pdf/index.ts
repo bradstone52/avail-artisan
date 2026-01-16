@@ -273,7 +273,7 @@ function buildPdfHtml(issue: any, listings: any[], opts?: { includeDetails?: boo
 
   const secondary = {
     name: issue.secondary_contact_name || "Doug Johannson",
-    title: "Partner, Vice President",
+    title: "Partner, Senior Vice President",
     email: issue.secondary_contact_email || "doug@cvpartners.ca",
     phone: issue.secondary_contact_phone || "(403) 470-8875",
   };
