@@ -266,14 +266,14 @@ function buildPdfHtml(issue: any, listings: any[], opts?: { includeDetails?: boo
 
   const primary = {
     name: issue.primary_contact_name || "Brad Stone",
-    title: "Partner, Associate Broker",
+    title: issue.primary_contact_title || "Partner, Associate Broker",
     email: issue.primary_contact_email || "brad@cvpartners.ca",
     phone: issue.primary_contact_phone || "(403) 613-2898",
   };
 
   const secondary = {
     name: issue.secondary_contact_name || "Doug Johannson",
-    title: "Partner, Senior Vice President",
+    title: issue.secondary_contact_title || "Partner, Senior Vice President",
     email: issue.secondary_contact_email || "doug@cvpartners.ca",
     phone: issue.secondary_contact_phone || "(403) 470-8875",
   };

@@ -207,11 +207,13 @@ export type Database = {
           primary_contact_email: string | null
           primary_contact_name: string | null
           primary_contact_phone: string | null
+          primary_contact_title: string | null
           published_at: string | null
           removed_count: number
           secondary_contact_email: string | null
           secondary_contact_name: string | null
           secondary_contact_phone: string | null
+          secondary_contact_title: string | null
           size_threshold: number
           sort_order: string
           title: string
@@ -238,11 +240,13 @@ export type Database = {
           primary_contact_email?: string | null
           primary_contact_name?: string | null
           primary_contact_phone?: string | null
+          primary_contact_title?: string | null
           published_at?: string | null
           removed_count?: number
           secondary_contact_email?: string | null
           secondary_contact_name?: string | null
           secondary_contact_phone?: string | null
+          secondary_contact_title?: string | null
           size_threshold?: number
           sort_order?: string
           title: string
@@ -269,11 +273,13 @@ export type Database = {
           primary_contact_email?: string | null
           primary_contact_name?: string | null
           primary_contact_phone?: string | null
+          primary_contact_title?: string | null
           published_at?: string | null
           removed_count?: number
           secondary_contact_email?: string | null
           secondary_contact_name?: string | null
           secondary_contact_phone?: string | null
+          secondary_contact_title?: string | null
           size_threshold?: number
           sort_order?: string
           title?: string
