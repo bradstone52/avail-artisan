@@ -129,7 +129,7 @@ export function PreviewStep({
             <div className="grid grid-cols-2 gap-8 pt-6 border-t-2 border-foreground mt-auto">
               <div className="contact-block">
                 <div className="text-lg font-bold mb-1">{secondary.name}</div>
-                <div className="text-sm text-muted-foreground mb-2">Partner, Vice President</div>
+                <div className="text-sm text-muted-foreground mb-2">Partner, Senior Vice President</div>
                 <div className="text-sm">{secondary.email}</div>
                 {secondary.phone && <div className="text-sm">{secondary.phone}</div>}
               </div>
@@ -280,7 +280,7 @@ export function PreviewStep({
             <div className="grid grid-cols-2 gap-8 pt-6 border-t-2 border-foreground mt-auto">
               <div className="contact-block">
                 <div className="text-lg font-bold mb-1">{secondary.name}</div>
-                <div className="text-sm text-muted-foreground mb-2">Partner, Vice President</div>
+                <div className="text-sm text-muted-foreground mb-2">Partner, Senior Vice President</div>
                 <div className="text-sm">{secondary.email}</div>
                 {secondary.phone && <div className="text-sm">{secondary.phone}</div>}
               </div>
