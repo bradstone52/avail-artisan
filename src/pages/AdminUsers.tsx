@@ -1,8 +1,9 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { useUserRole } from '@/hooks/useUserRole';
 import { useAuth } from '@/contexts/AuthContext';
+import { useOrg } from '@/hooks/useOrg';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -22,7 +23,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Shield, Users, Loader2, ShieldAlert, Clock, Zap } from 'lucide-react';
+import { Shield, Users, Loader2, ShieldAlert, Clock, Zap, RefreshCw } from 'lucide-react';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { SyncScheduleSettings } from '@/components/admin/SyncScheduleSettings';
@@ -32,6 +33,7 @@ interface UserWithRole {
   email: string;
   full_name: string | null;
   created_at: string;
+  org_role: string;
   role: 'admin' | 'sync_operator' | 'member' | null;
 }
 
@@ -39,6 +41,7 @@ export default function AdminUsers() {
   const navigate = useNavigate();
   const { user: currentUser } = useAuth();
   const { isAdmin, loading: roleLoading } = useUserRole();
+  const { org } = useOrg();
   const [users, setUsers] = useState<UserWithRole[]>([]);
   const [loading, setLoading] = useState(true);
   const [updating, setUpdating] = useState<string | null>(null);
@@ -52,37 +55,63 @@ export default function AdminUsers() {
   }, [isAdmin, roleLoading, navigate]);
 
   useEffect(() => {
-    if (isAdmin) {
+    if (isAdmin && org?.id) {
       fetchUsers();
     }
-  }, [isAdmin]);
+  }, [isAdmin, org?.id]);
 
-  const fetchUsers = async () => {
+  const fetchUsers = useCallback(async () => {
+    if (!org?.id) return;
+    
     setLoading(true);
     try {
-      // Fetch all profiles
+      // Fetch org members with their profiles
+      const { data: members, error: membersError } = await supabase
+        .from('org_members')
+        .select('user_id, role, created_at')
+        .eq('org_id', org.id);
+
+      if (membersError) throw membersError;
+
+      if (!members || members.length === 0) {
+        setUsers([]);
+        return;
+      }
+
+      // Fetch profiles for these members
+      const userIds = members.map(m => m.user_id);
       const { data: profiles, error: profilesError } = await supabase
         .from('profiles')
         .select('id, email, full_name, created_at')
-        .order('created_at', { ascending: true });
+        .in('id', userIds);
 
       if (profilesError) throw profilesError;
 
-      // Fetch all roles
-      const { data: roles, error: rolesError } = await supabase
+      // Fetch app-level roles (admin, sync_operator)
+      const { data: appRoles, error: rolesError } = await supabase
         .from('user_roles')
         .select('user_id, role');
 
       if (rolesError) throw rolesError;
 
-      // Combine profiles with roles
-      const usersWithRoles: UserWithRole[] = (profiles || []).map((profile) => {
-        const userRole = roles?.find((r) => r.user_id === profile.id);
+      // Combine data
+      const usersWithRoles: UserWithRole[] = members.map((member) => {
+        const profile = profiles?.find((p) => p.id === member.user_id);
+        const appRole = appRoles?.find((r) => r.user_id === member.user_id);
         return {
-          ...profile,
-          role: (userRole?.role as 'admin' | 'sync_operator' | 'member') || null,
+          id: member.user_id,
+          email: profile?.email || 'Unknown',
+          full_name: profile?.full_name || null,
+          created_at: profile?.created_at || member.created_at,
+          org_role: member.role,
+          role: (appRole?.role as 'admin' | 'sync_operator' | 'member') || null,
         };
       });
+
+      // Sort by created_at
+      usersWithRoles.sort((a, b) => 
+        new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+      );
 
       setUsers(usersWithRoles);
     } catch (error) {
@@ -91,7 +120,7 @@ export default function AdminUsers() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [org?.id]);
 
   const handleRoleChange = async (userId: string, newRole: 'admin' | 'sync_operator' | 'member' | 'none') => {
     if (userId === currentUser?.id) {
@@ -199,6 +228,23 @@ export default function AdminUsers() {
           </TabsList>
 
           <TabsContent value="users">
+            {/* Actions Bar */}
+            <div className="flex items-center justify-between mb-4">
+              <div className="text-sm text-muted-foreground">
+                {users.length} {users.length === 1 ? 'member' : 'members'} in {org?.name || 'organization'}
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={fetchUsers}
+                disabled={loading}
+                className="gap-2"
+              >
+                <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+                Refresh
+              </Button>
+            </div>
+
             {/* Role Legend */}
             <div className="bg-muted/30 rounded-lg p-4 mb-6 space-y-2">
               <div className="flex items-center gap-2">
