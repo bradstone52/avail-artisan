@@ -14,6 +14,68 @@ export type Database = {
   }
   public: {
     Tables: {
+      distribution_recipients: {
+        Row: {
+          company_name: string
+          contact_name: string
+          created_at: string
+          email: string
+          id: string
+          notes: string | null
+          title: string | null
+        }
+        Insert: {
+          company_name: string
+          contact_name: string
+          created_at?: string
+          email: string
+          id?: string
+          notes?: string | null
+          title?: string | null
+        }
+        Update: {
+          company_name?: string
+          contact_name?: string
+          created_at?: string
+          email?: string
+          id?: string
+          notes?: string | null
+          title?: string | null
+        }
+        Relationships: []
+      }
+      distribution_sends: {
+        Row: {
+          id: string
+          recipient_id: string
+          report_id: string
+          sent_at: string
+          tracking_token: string
+        }
+        Insert: {
+          id?: string
+          recipient_id: string
+          report_id: string
+          sent_at?: string
+          tracking_token?: string
+        }
+        Update: {
+          id?: string
+          recipient_id?: string
+          report_id?: string
+          sent_at?: string
+          tracking_token?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "distribution_sends_recipient_id_fkey"
+            columns: ["recipient_id"]
+            isOneToOne: false
+            referencedRelation: "distribution_recipients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       google_oauth_tokens: {
         Row: {
           access_token: string
