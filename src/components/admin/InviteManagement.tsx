@@ -256,7 +256,7 @@ export function InviteManagement() {
                 return (
                   <TableRow key={invite.id}>
                     <TableCell>
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-1">
                         <code className="font-mono text-sm bg-muted px-2 py-1 rounded">
                           {invite.code}
                         </code>
@@ -265,12 +265,22 @@ export function InviteManagement() {
                           size="icon"
                           className="h-7 w-7"
                           onClick={() => handleCopyCode(invite.code, invite.id)}
+                          title="Copy code"
                         >
                           {copiedId === invite.id ? (
                             <Check className="w-3.5 h-3.5 text-green-600" />
                           ) : (
                             <Copy className="w-3.5 h-3.5" />
                           )}
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-7 w-7"
+                          onClick={() => handleCopyLink(invite.code)}
+                          title="Copy invite URL"
+                        >
+                          <Link className="w-3.5 h-3.5" />
                         </Button>
                       </div>
                     </TableCell>
