@@ -4,6 +4,7 @@ import { useRecipients, Recipient, RecipientInsert } from "@/hooks/useRecipients
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Table,
   TableBody,
@@ -20,7 +21,7 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
-import { Plus, Pencil, Trash2, Users } from "lucide-react";
+import { Plus, Pencil, Trash2, Users, Send, History } from "lucide-react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -31,6 +32,8 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { SendHistoryTable } from "@/components/recipients/SendHistoryTable";
+import { LogSendDialog } from "@/components/recipients/LogSendDialog";
 
 const emptyForm: RecipientInsert = {
   company_name: "",
@@ -44,6 +47,7 @@ export default function Recipients() {
   const { recipients, isLoading, createRecipient, updateRecipient, deleteRecipient } = useRecipients();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [logSendOpen, setLogSendOpen] = useState(false);
   const [editingRecipient, setEditingRecipient] = useState<Recipient | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [form, setForm] = useState<RecipientInsert>(emptyForm);
@@ -95,57 +99,84 @@ export default function Recipients() {
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
             <Users className="h-6 w-6 text-primary" />
-            <h1 className="text-2xl font-bold">Distribution Recipients</h1>
+            <h1 className="text-2xl font-bold">Distribution</h1>
           </div>
-          <Button onClick={openCreate}>
-            <Plus className="h-4 w-4 mr-2" />
-            Add Recipient
-          </Button>
         </div>
 
-        {isLoading ? (
-          <div className="text-muted-foreground">Loading...</div>
-        ) : recipients.length === 0 ? (
-          <div className="border rounded-lg p-8 text-center text-muted-foreground">
-            No recipients yet. Add your first recipient to get started.
+        <Tabs defaultValue="recipients" className="space-y-4">
+          <div className="flex items-center justify-between">
+            <TabsList>
+              <TabsTrigger value="recipients" className="gap-2">
+                <Users className="h-4 w-4" />
+                Recipients
+              </TabsTrigger>
+              <TabsTrigger value="sends" className="gap-2">
+                <History className="h-4 w-4" />
+                Send History
+              </TabsTrigger>
+            </TabsList>
+            <div className="flex gap-2">
+              <Button variant="outline" onClick={() => setLogSendOpen(true)}>
+                <Send className="h-4 w-4 mr-2" />
+                Log Send
+              </Button>
+              <Button onClick={openCreate}>
+                <Plus className="h-4 w-4 mr-2" />
+                Add Recipient
+              </Button>
+            </div>
           </div>
-        ) : (
-          <div className="border rounded-lg overflow-hidden">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Company</TableHead>
-                  <TableHead>Contact</TableHead>
-                  <TableHead>Title</TableHead>
-                  <TableHead>Email</TableHead>
-                  <TableHead className="w-[100px]">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {recipients.map((recipient) => (
-                  <TableRow key={recipient.id}>
-                    <TableCell className="font-medium">{recipient.company_name}</TableCell>
-                    <TableCell>{recipient.contact_name}</TableCell>
-                    <TableCell className="text-muted-foreground">{recipient.title || "—"}</TableCell>
-                    <TableCell>{recipient.email}</TableCell>
-                    <TableCell>
-                      <div className="flex gap-1">
-                        <Button variant="ghost" size="icon" onClick={() => openEdit(recipient)}>
-                          <Pencil className="h-4 w-4" />
-                        </Button>
-                        <Button variant="ghost" size="icon" onClick={() => openDelete(recipient.id)}>
-                          <Trash2 className="h-4 w-4 text-destructive" />
-                        </Button>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </div>
-        )}
 
-        {/* Add/Edit Dialog */}
+          <TabsContent value="recipients">
+            {isLoading ? (
+              <div className="text-muted-foreground">Loading...</div>
+            ) : recipients.length === 0 ? (
+              <div className="border rounded-lg p-8 text-center text-muted-foreground">
+                No recipients yet. Add your first recipient to get started.
+              </div>
+            ) : (
+              <div className="border rounded-lg overflow-hidden">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Company</TableHead>
+                      <TableHead>Contact</TableHead>
+                      <TableHead>Title</TableHead>
+                      <TableHead>Email</TableHead>
+                      <TableHead className="w-[100px]">Actions</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {recipients.map((recipient) => (
+                      <TableRow key={recipient.id}>
+                        <TableCell className="font-medium">{recipient.company_name}</TableCell>
+                        <TableCell>{recipient.contact_name}</TableCell>
+                        <TableCell className="text-muted-foreground">{recipient.title || "—"}</TableCell>
+                        <TableCell>{recipient.email}</TableCell>
+                        <TableCell>
+                          <div className="flex gap-1">
+                            <Button variant="ghost" size="icon" onClick={() => openEdit(recipient)}>
+                              <Pencil className="h-4 w-4" />
+                            </Button>
+                            <Button variant="ghost" size="icon" onClick={() => openDelete(recipient.id)}>
+                              <Trash2 className="h-4 w-4 text-destructive" />
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            )}
+          </TabsContent>
+
+          <TabsContent value="sends">
+            <SendHistoryTable />
+          </TabsContent>
+        </Tabs>
+
+        {/* Add/Edit Recipient Dialog */}
         <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
           <DialogContent>
             <DialogHeader>
@@ -226,6 +257,9 @@ export default function Recipients() {
             </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>
+
+        {/* Log Send Dialog */}
+        <LogSendDialog open={logSendOpen} onOpenChange={setLogSendOpen} />
       </div>
     </AppLayout>
   );

@@ -13,6 +13,7 @@ import SharePage from "./pages/SharePage";
 import AdminUsers from "./pages/AdminUsers";
 import JoinTeam from "./pages/JoinTeam";
 import Recipients from "./pages/Recipients";
+import TrackingRedirect from "./pages/TrackingRedirect";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -31,6 +32,7 @@ const App = () => (
             <Route path="/listings" element={<Listings />} />
             <Route path="/issue-builder" element={<IssueBuilder />} />
             <Route path="/share/:token" element={<SharePage />} />
+            <Route path="/r/:trackingToken" element={<TrackingRedirect />} />
             <Route path="/admin/users" element={<AdminUsers />} />
             <Route path="/join-team" element={<JoinTeam />} />
             <Route path="/join" element={<JoinTeam />} />
