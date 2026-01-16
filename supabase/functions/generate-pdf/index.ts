@@ -93,6 +93,22 @@ serve(async (req) => {
 
     const safeIssue = issue as Issue;
 
+    // Debug: verify cover image URL is publicly fetchable (DocRaptor must fetch it unauthenticated)
+    if (safeIssue.cover_image_url) {
+      try {
+        const url = safeIssue.cover_image_url;
+        console.log(`[generate-pdf] cover_image_url from DB: ${url}`);
+        const res = await fetch(url, { method: "GET" });
+        console.log(
+          `[generate-pdf] cover_image_url fetch test: ${res.status} ${res.statusText} content-type=${res.headers.get("content-type") ?? "(none)"}`,
+        );
+      } catch (err) {
+        console.log(`[generate-pdf] cover_image_url fetch test failed: ${err instanceof Error ? err.message : String(err)}`);
+      }
+    } else {
+      console.log(`[generate-pdf] cover_image_url from DB: (none)`);
+    }
+
     const noteByListingId = new Map<string, string>();
     const orderedListingIds: string[] | null = Array.isArray(issueListingsPayload) && issueListingsPayload.length > 0
       ? issueListingsPayload
@@ -161,8 +177,14 @@ serve(async (req) => {
 
     const generatedAtIso = new Date().toISOString();
     const generatedDate = new Date(generatedAtIso);
-    
+
     const html = buildPdfHtml(safeIssue, safeListings, { includeDetails, sizeThresholdMax, generatedDate });
+
+    // Debug: confirm HTML contains the cover image URL
+    if (safeIssue.cover_image_url) {
+      console.log(`[generate-pdf] HTML contains cover_image_url: ${html.includes(safeIssue.cover_image_url)}`);
+    }
+
     const pdfBytes = await convertHtmlToPdf(html, generatedDate);
 
     // Format filename as Distribution_Availabilities_MonYYYY.pdf
@@ -384,12 +406,12 @@ body {
 }
 
 /* ============ COVER PAGE STYLES ============ */
-.cover-hero-top {
+.cover-hero-img {
   width: 100%;
   height: 38vh;
-  background-size: cover;
-  background-position: center;
-  border-radius: 0;
+  object-fit: cover;
+  object-position: top;
+  display: block;
 }
 
 .cover-content {
@@ -693,7 +715,15 @@ tbody tr:last-child td {
 
 <!-- PAGE 1: COVER -->
 <div class="page-cover">
-  ${coverImageUrl ? `<div class="cover-hero-top" style="background-image: url('${coverImageUrl}');"></div>` : ``}
+  ${coverImageUrl ? `
+    <img
+      class="cover-hero-img"
+      src="${coverImageUrl}"
+      alt="Cover image"
+      referrerpolicy="no-referrer"
+      crossorigin="anonymous"
+    />
+  ` : ``}
   <div class="cover-content${coverImageUrl ? `` : ` no-image`}">
     <div class="cover-brand">ClearView Commercial Realty Inc.</div>
     
