@@ -50,6 +50,7 @@ export function useIssues() {
       sort_order: issueData.sort_order || 'size_desc',
       brokerage_name: issueData.brokerage_name,
       logo_url: issueData.logo_url,
+      cover_image_url: issueData.cover_image_url,
       primary_contact_name: issueData.primary_contact_name,
       primary_contact_email: issueData.primary_contact_email,
       primary_contact_phone: issueData.primary_contact_phone,
