@@ -50,6 +50,98 @@ export type Database = {
         }
         Relationships: []
       }
+      invite_redemption_attempts: {
+        Row: {
+          attempted_code: string
+          created_at: string
+          email_entered: string | null
+          error_message: string | null
+          id: string
+          ip_address: string | null
+          status: string
+          user_agent: string | null
+          user_id: string | null
+        }
+        Insert: {
+          attempted_code: string
+          created_at?: string
+          email_entered?: string | null
+          error_message?: string | null
+          id?: string
+          ip_address?: string | null
+          status: string
+          user_agent?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          attempted_code?: string
+          created_at?: string
+          email_entered?: string | null
+          error_message?: string | null
+          id?: string
+          ip_address?: string | null
+          status?: string
+          user_agent?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
+      invites: {
+        Row: {
+          code: string
+          created_at: string
+          created_by_user_id: string
+          expires_at: string | null
+          id: string
+          invited_domain: string | null
+          invited_email: string | null
+          org_id: string
+          revoked_at: string | null
+          role: string
+          used_at: string | null
+          used_by_email: string | null
+          used_by_user_id: string | null
+        }
+        Insert: {
+          code?: string
+          created_at?: string
+          created_by_user_id: string
+          expires_at?: string | null
+          id?: string
+          invited_domain?: string | null
+          invited_email?: string | null
+          org_id: string
+          revoked_at?: string | null
+          role?: string
+          used_at?: string | null
+          used_by_email?: string | null
+          used_by_user_id?: string | null
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          created_by_user_id?: string
+          expires_at?: string | null
+          id?: string
+          invited_domain?: string | null
+          invited_email?: string | null
+          org_id?: string
+          revoked_at?: string | null
+          role?: string
+          used_at?: string | null
+          used_by_email?: string | null
+          used_by_user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "invites_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "orgs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       issue_listings: {
         Row: {
           change_status: string | null
@@ -662,8 +754,13 @@ export type Database = {
     }
     Functions: {
       can_run_sync: { Args: { _user_id: string }; Returns: boolean }
+      check_invite_rate_limit: {
+        Args: { _ip_address: string }
+        Returns: boolean
+      }
       ensure_user_org: { Args: { _user_id: string }; Returns: string }
       generate_invite_code: { Args: never; Returns: string }
+      generate_invite_code_v2: { Args: never; Returns: string }
       get_user_org_ids: { Args: { _user_id: string }; Returns: string[] }
       has_role: {
         Args: {

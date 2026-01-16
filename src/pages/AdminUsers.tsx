@@ -23,10 +23,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Shield, Users, Loader2, ShieldAlert, Clock, Zap, RefreshCw } from 'lucide-react';
+import { Shield, Users, Loader2, ShieldAlert, Clock, Zap, RefreshCw, Mail } from 'lucide-react';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { SyncScheduleSettings } from '@/components/admin/SyncScheduleSettings';
+import { InviteManagement } from '@/components/admin/InviteManagement';
 
 interface UserWithRole {
   id: string;
@@ -221,6 +222,10 @@ export default function AdminUsers() {
               <Users className="w-4 h-4" />
               Users & Roles
             </TabsTrigger>
+            <TabsTrigger value="invites" className="flex items-center gap-2">
+              <Mail className="w-4 h-4" />
+              Invites
+            </TabsTrigger>
             <TabsTrigger value="schedule" className="flex items-center gap-2">
               <Clock className="w-4 h-4" />
               Sync Schedule
@@ -333,6 +338,10 @@ export default function AdminUsers() {
                 </TableBody>
               </Table>
             </div>
+          </TabsContent>
+
+          <TabsContent value="invites">
+            <InviteManagement />
           </TabsContent>
 
           <TabsContent value="schedule">
