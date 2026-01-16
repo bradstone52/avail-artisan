@@ -32,6 +32,7 @@ const App = () => (
             <Route path="/share/:token" element={<SharePage />} />
             <Route path="/admin/users" element={<AdminUsers />} />
             <Route path="/join-team" element={<JoinTeam />} />
+            <Route path="/join" element={<JoinTeam />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>

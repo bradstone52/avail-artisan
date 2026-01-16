@@ -1,18 +1,30 @@
-import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
-import { supabase } from '@/integrations/supabase/client';
+import { useInvites } from '@/hooks/useInvites';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { toast } from 'sonner';
-import { Users, ArrowRight, Loader2 } from 'lucide-react';
+import { Users, ArrowRight, Loader2, CheckCircle } from 'lucide-react';
 
 export default function JoinTeam() {
-  const { user, session } = useAuth();
+  const { user } = useAuth();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const { redeemInvite } = useInvites();
+  
   const [inviteCode, setInviteCode] = useState('');
   const [isJoining, setIsJoining] = useState(false);
+  const [success, setSuccess] = useState<{ orgName?: string; role?: string } | null>(null);
+
+  // Auto-fill code from URL
+  useEffect(() => {
+    const codeFromUrl = searchParams.get('code');
+    if (codeFromUrl) {
+      setInviteCode(codeFromUrl.toUpperCase());
+    }
+  }, [searchParams]);
 
   const handleJoin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -22,8 +34,9 @@ export default function JoinTeam() {
       return;
     }
 
-    if (!session?.access_token) {
-      toast.error('Please sign in first');
+    if (!user) {
+      // Save code and redirect to auth
+      sessionStorage.setItem('pendingInviteCode', inviteCode.trim());
       navigate('/auth');
       return;
     }
@@ -31,18 +44,24 @@ export default function JoinTeam() {
     setIsJoining(true);
 
     try {
-      const { data, error } = await supabase.functions.invoke('join-org', {
-        headers: {
-          Authorization: `Bearer ${session.access_token}`,
-        },
-        body: { inviteCode: inviteCode.trim() },
+      const result = await redeemInvite(inviteCode);
+      
+      if (!result.success) {
+        toast.error(result.error || 'Failed to join');
+        return;
+      }
+
+      setSuccess({
+        orgName: result.data?.org?.name,
+        role: result.data?.role,
       });
-
-      if (error) throw error;
-      if (data?.error) throw new Error(data.error);
-
-      toast.success(`Joined ${data.org?.name || 'organization'} successfully!`);
-      navigate('/listings');
+      
+      toast.success(result.data?.message || 'Successfully joined!');
+      
+      // Redirect after delay
+      setTimeout(() => {
+        navigate('/listings');
+      }, 2000);
     } catch (err) {
       console.error('Join error:', err);
       toast.error(err instanceof Error ? err.message : 'Failed to join organization');
@@ -50,6 +69,36 @@ export default function JoinTeam() {
       setIsJoining(false);
     }
   };
+
+  // Check for pending invite code after login
+  useEffect(() => {
+    if (user) {
+      const pendingCode = sessionStorage.getItem('pendingInviteCode');
+      if (pendingCode) {
+        sessionStorage.removeItem('pendingInviteCode');
+        setInviteCode(pendingCode.toUpperCase());
+      }
+    }
+  }, [user]);
+
+  if (success) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background p-4">
+        <Card className="w-full max-w-md">
+          <CardHeader className="text-center">
+            <CheckCircle className="h-12 w-12 mx-auto text-green-600 mb-2" />
+            <CardTitle>Welcome to {success.orgName || 'the team'}!</CardTitle>
+            <CardDescription>
+              You've joined as a {success.role || 'member'}. Redirecting...
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="flex justify-center">
+            <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   if (!user) {
     return (
@@ -60,9 +109,20 @@ export default function JoinTeam() {
             <CardTitle>Join a Team</CardTitle>
             <CardDescription>Please sign in to join an organization</CardDescription>
           </CardHeader>
-          <CardContent>
-            <Button onClick={() => navigate('/auth')} className="w-full">
-              Sign In
+          <CardContent className="space-y-4">
+            {inviteCode && (
+              <div className="bg-muted/50 rounded-lg p-3 text-center">
+                <p className="text-xs text-muted-foreground mb-1">Invite code</p>
+                <code className="font-mono text-lg">{inviteCode}</code>
+              </div>
+            )}
+            <Button onClick={() => {
+              if (inviteCode) {
+                sessionStorage.setItem('pendingInviteCode', inviteCode.trim());
+              }
+              navigate('/auth');
+            }} className="w-full">
+              Sign In to Continue
             </Button>
           </CardContent>
         </Card>
@@ -85,11 +145,11 @@ export default function JoinTeam() {
             <div>
               <Input
                 type="text"
-                placeholder="Enter invite code (e.g., ABC12345)"
+                placeholder="Enter invite code"
                 value={inviteCode}
                 onChange={(e) => setInviteCode(e.target.value.toUpperCase())}
                 className="text-center text-lg font-mono tracking-wider"
-                maxLength={8}
+                maxLength={12}
                 disabled={isJoining}
               />
             </div>
