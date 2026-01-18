@@ -35,6 +35,8 @@ const FIELD_MAPPINGS = [
   { header: 'Notes', dbColumn: 'notes_public', type: 'string' },
 ];
 
+const GEOCODE_BATCH_LIMIT = 50; // Max listings to geocode per sync
+
 function normalizeHeader(header: string): string {
   return header.trim().toLowerCase();
 }
@@ -125,6 +127,43 @@ async function refreshAccessToken(refreshToken: string): Promise<{ access_token?
   });
 
   return response.json();
+}
+
+// Geocode an address using Mapbox API
+async function geocodeAddress(address: string, city: string): Promise<{ lat: number; lng: number } | null> {
+  const mapboxToken = Deno.env.get('MAPBOX_ACCESS_TOKEN');
+  if (!mapboxToken) {
+    console.log('[Geocode] No MAPBOX_ACCESS_TOKEN available');
+    return null;
+  }
+
+  const query = `${address}, ${city}, Alberta, Canada`;
+  const encodedQuery = encodeURIComponent(query);
+  
+  try {
+    const response = await fetch(
+      `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodedQuery}.json?access_token=${mapboxToken}&limit=1&types=address,poi`
+    );
+    
+    if (!response.ok) {
+      console.error(`[Geocode] Mapbox API error: ${response.status}`);
+      return null;
+    }
+
+    const data = await response.json();
+    
+    if (data.features && data.features.length > 0) {
+      const [lng, lat] = data.features[0].center;
+      console.log(`[Geocode] Success: "${query}" -> [${lat}, ${lng}]`);
+      return { lat, lng };
+    }
+    
+    console.log(`[Geocode] No results for: "${query}"`);
+    return null;
+  } catch (error) {
+    console.error('[Geocode] Error:', error);
+    return null;
+  }
 }
 
 serve(async (req) => {
@@ -312,6 +351,25 @@ serve(async (req) => {
     
     console.log(`[Org Sync] Found ${dataRows.length} data rows`);
 
+    // Get existing listings for this org to preserve geocoding
+    const { data: existingListings } = await adminClient
+      .from('listings')
+      .select('listing_id, latitude, longitude, address, city, geocoded_at')
+      .eq('org_id', orgId);
+
+    const existingMap = new Map<string, { lat: number | null; lng: number | null; address: string; city: string; geocodedAt: string | null }>();
+    if (existingListings) {
+      for (const l of existingListings) {
+        existingMap.set(l.listing_id, {
+          lat: l.latitude,
+          lng: l.longitude,
+          address: l.address,
+          city: l.city,
+          geocodedAt: l.geocoded_at,
+        });
+      }
+    }
+
     // Stage listings
     const stagedListings: Record<string, unknown>[] = [];
     const seenListingIds = new Set<string>();
@@ -344,6 +402,19 @@ serve(async (req) => {
       }
 
       seenListingIds.add(listingId);
+
+      // Preserve existing geocoding if address hasn't changed
+      const existing = existingMap.get(listingId);
+      if (existing && existing.lat && existing.lng) {
+        const addressChanged = existing.address !== listing.address || existing.city !== listing.city;
+        if (!addressChanged) {
+          listing.latitude = existing.lat;
+          listing.longitude = existing.lng;
+          listing.geocoded_at = existing.geocodedAt;
+          listing.geocode_source = 'mapbox';
+        }
+      }
+
       stagedListings.push(listing);
     }
 
@@ -366,6 +437,39 @@ serve(async (req) => {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
+
+    // Geocode listings that don't have coordinates (rate limited)
+    let geocodedCount = 0;
+    const toGeocode = stagedListings.filter(l => !l.latitude || !l.longitude);
+    console.log(`[Org Sync] ${toGeocode.length} listings need geocoding (limit: ${GEOCODE_BATCH_LIMIT})`);
+
+    for (const listing of toGeocode) {
+      if (geocodedCount >= GEOCODE_BATCH_LIMIT) {
+        console.log(`[Org Sync] Reached geocode limit (${GEOCODE_BATCH_LIMIT}), remaining will be geocoded next sync`);
+        break;
+      }
+
+      const address = listing.address as string;
+      const city = listing.city as string;
+      
+      if (address && city) {
+        const coords = await geocodeAddress(address, city);
+        if (coords) {
+          listing.latitude = coords.lat;
+          listing.longitude = coords.lng;
+          listing.geocoded_at = new Date().toISOString();
+          listing.geocode_source = 'mapbox';
+          geocodedCount++;
+        }
+      }
+
+      // Small delay to avoid rate limiting
+      if (geocodedCount < GEOCODE_BATCH_LIMIT && geocodedCount < toGeocode.length) {
+        await new Promise(resolve => setTimeout(resolve, 100));
+      }
+    }
+
+    console.log(`[Org Sync] Geocoded ${geocodedCount} listings`);
 
     // Delete existing org listings and insert new ones
     console.log(`[Org Sync] Deleting existing listings for org: ${orgId}`);
@@ -407,7 +511,8 @@ serve(async (req) => {
       skipped_breakdown: skippedBreakdown,
     }).eq('id', logId);
 
-    console.log(`[Org Sync] Complete: ${stagedListings.length} imported, ${rowsSkipped} skipped`);
+    const listingsWithCoords = stagedListings.filter(l => l.latitude && l.longitude).length;
+    console.log(`[Org Sync] Complete: ${stagedListings.length} imported, ${rowsSkipped} skipped, ${listingsWithCoords} geocoded`);
 
     return new Response(
       JSON.stringify({
@@ -415,6 +520,8 @@ serve(async (req) => {
         rows_imported: stagedListings.length,
         rows_skipped: rowsSkipped,
         skipped_breakdown: skippedBreakdown,
+        geocoded_this_run: geocodedCount,
+        total_with_coordinates: listingsWithCoords,
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
