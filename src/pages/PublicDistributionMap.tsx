@@ -386,42 +386,40 @@ export default function PublicDistributionMap() {
   }
 
   return (
-    <>
+    <div className="h-screen w-screen overflow-hidden flex flex-col bg-background">
       {/* Meta tags for SEO */}
       <meta name="robots" content="noindex, nofollow" />
       
-      {/* Full-height container with no scroll */}
-      <div className="h-screen bg-background flex flex-col overflow-hidden">
-        {/* Header - fixed height */}
-        <header className="flex-shrink-0 border-b-2 border-foreground bg-card px-4 py-3 flex items-center gap-4">
-          <div className="flex items-center gap-2">
-            <Building className="w-6 h-6 text-primary" />
-            <span className="font-black text-lg tracking-tight">DISTRIBUTION MAP</span>
-          </div>
-          <span className="text-sm text-muted-foreground">
-            {listings.length} Properties
-          </span>
-        </header>
+      {/* Header - shrink-0 to prevent flex growing */}
+      <header className="shrink-0 border-b-2 border-foreground bg-card px-4 py-3 flex items-center gap-4">
+        <div className="flex items-center gap-2">
+          <Building className="w-6 h-6 text-primary" />
+          <span className="font-black text-lg tracking-tight">DISTRIBUTION MAP</span>
+        </div>
+        <span className="text-sm text-muted-foreground">
+          {listings.length} Properties
+        </span>
+      </header>
 
-        {/* Main content - fills remaining height */}
-        <div className="flex-1 flex flex-col lg:flex-row min-h-0">
-          {/* Table panel */}
-          <div className="w-full lg:w-[45%] xl:w-[40%] lg:min-w-[400px] lg:max-w-[720px] border-r-0 lg:border-r-2 border-foreground flex flex-col h-[40vh] lg:h-full">
-            {/* Search - fixed height */}
-            <div className="flex-shrink-0 p-3 border-b-2 border-foreground bg-card">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                <Input
-                  placeholder="Search address, city, submarket..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-10"
-                />
-              </div>
+      {/* Main content - flex-1 min-h-0 is critical to prevent overflow */}
+      <main className="flex-1 min-h-0 flex overflow-hidden">
+        {/* Left panel - fixed width, internal scroll only */}
+        <div className="w-[520px] max-w-[55vw] min-w-[420px] h-full flex flex-col border-r-2 border-foreground">
+          {/* Search - sticky top */}
+          <div className="shrink-0 p-3 border-b-2 border-foreground bg-card">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+              <Input
+                placeholder="Search address, city, submarket..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-10"
+              />
             </div>
+          </div>
 
-            {/* Table - scrollable */}
-            <div className="flex-1 overflow-auto min-h-0">
+          {/* Table container - this is the ONLY scrollable area */}
+          <div className="flex-1 min-h-0 overflow-auto">
               <table className="w-full text-sm">
                 <thead className="bg-foreground text-background sticky top-0 z-10">
                   <tr>
@@ -513,36 +511,34 @@ export default function PublicDistributionMap() {
             </div>
           </div>
 
-          {/* Map panel - fills remaining width and full height */}
-          <div className="flex-1 min-w-0 h-[60vh] lg:h-full relative overflow-hidden">
-            {!MAPBOX_TOKEN ? (
-              <div className="absolute inset-0 flex items-center justify-center bg-muted">
-                <div className="text-center p-8 brutalist-card">
-                  <AlertCircle className="w-12 h-12 text-destructive mx-auto mb-4" />
-                  <p className="font-bold text-foreground mb-2">Map Unavailable</p>
-                  <p className="text-sm text-muted-foreground">
-                    Mapbox token not configured.
-                  </p>
-                </div>
+        {/* Right panel - map fills remaining space */}
+        <div className="flex-1 min-w-0 h-full overflow-hidden relative">
+          {!MAPBOX_TOKEN ? (
+            <div className="absolute inset-0 flex items-center justify-center bg-muted">
+              <div className="text-center p-8 brutalist-card">
+                <AlertCircle className="w-12 h-12 text-destructive mx-auto mb-4" />
+                <p className="font-bold text-foreground mb-2">Map Unavailable</p>
+                <p className="text-sm text-muted-foreground">
+                  Mapbox token not configured.
+                </p>
               </div>
-            ) : mapError ? (
-              <div className="absolute inset-0 flex items-center justify-center bg-muted">
-                <div className="text-center p-8 brutalist-card">
-                  <AlertCircle className="w-12 h-12 text-destructive mx-auto mb-4" />
-                  <p className="font-bold text-foreground mb-2">Map Error</p>
-                  <p className="text-sm text-muted-foreground">{mapError}</p>
-                </div>
+            </div>
+          ) : mapError ? (
+            <div className="absolute inset-0 flex items-center justify-center bg-muted">
+              <div className="text-center p-8 brutalist-card">
+                <AlertCircle className="w-12 h-12 text-destructive mx-auto mb-4" />
+                <p className="font-bold text-foreground mb-2">Map Error</p>
+                <p className="text-sm text-muted-foreground">{mapError}</p>
               </div>
-            ) : (
-              <div 
-                ref={mapContainerRef} 
-                className="absolute inset-0"
-                style={{ width: "100%", height: "100%" }}
-              />
-            )}
-          </div>
+            </div>
+          ) : (
+            <div 
+              ref={mapContainerRef} 
+              className="h-full w-full"
+            />
+          )}
         </div>
-      </div>
+      </main>
 
       {/* Custom popup styles */}
       <style>{`
@@ -561,6 +557,6 @@ export default function PublicDistributionMap() {
           background: hsl(48 97% 53%);
         }
       `}</style>
-    </>
+    </div>
   );
 }
