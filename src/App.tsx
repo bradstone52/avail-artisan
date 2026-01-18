@@ -40,6 +40,8 @@ const App = () => (
             <Route path="/recipients" element={<Recipients />} />
             {/* Public distribution map - tokenized access, no auth required */}
             <Route path="/public/distribution-map" element={<PublicDistributionMap />} />
+            {/* Backwards compatibility alias for old PDFs that used /dashboard/public/... */}
+            <Route path="/dashboard/public/distribution-map" element={<PublicDistributionMap />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>
