@@ -14,6 +14,36 @@ export type Database = {
   }
   public: {
     Tables: {
+      distribution_batches: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          id: string
+          is_active: boolean
+          name: string
+          period_month: number
+          period_year: number
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          is_active?: boolean
+          name: string
+          period_month: number
+          period_year: number
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          is_active?: boolean
+          name?: string
+          period_month?: number
+          period_year?: number
+        }
+        Relationships: []
+      }
       distribution_events: {
         Row: {
           event_type: string
@@ -45,6 +75,54 @@ export type Database = {
             columns: ["send_id"]
             isOneToOne: false
             referencedRelation: "distribution_sends"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      distribution_recipient_batch_status: {
+        Row: {
+          batch_id: string
+          id: string
+          next_step: string | null
+          owner_user_id: string | null
+          recipient_id: string
+          replied: boolean
+          reply_date: string | null
+          updated_at: string
+        }
+        Insert: {
+          batch_id: string
+          id?: string
+          next_step?: string | null
+          owner_user_id?: string | null
+          recipient_id: string
+          replied?: boolean
+          reply_date?: string | null
+          updated_at?: string
+        }
+        Update: {
+          batch_id?: string
+          id?: string
+          next_step?: string | null
+          owner_user_id?: string | null
+          recipient_id?: string
+          replied?: boolean
+          reply_date?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "distribution_recipient_batch_status_batch_id_fkey"
+            columns: ["batch_id"]
+            isOneToOne: false
+            referencedRelation: "distribution_batches"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "distribution_recipient_batch_status_recipient_id_fkey"
+            columns: ["recipient_id"]
+            isOneToOne: false
+            referencedRelation: "distribution_recipients"
             referencedColumns: ["id"]
           },
         ]

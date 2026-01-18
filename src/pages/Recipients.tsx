@@ -1,18 +1,11 @@
-import { useState } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { useRecipients, Recipient, RecipientInsert } from "@/hooks/useRecipients";
+import { useBatches, useAppUsers } from "@/hooks/useBatches";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
 import {
   Dialog,
   DialogContent,
@@ -21,7 +14,7 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
-import { Plus, Pencil, Trash2, Users, Send, History } from "lucide-react";
+import { Plus, Users, History } from "lucide-react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -33,7 +26,8 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { SendHistoryTable } from "@/components/recipients/SendHistoryTable";
-import { LogSendDialog } from "@/components/recipients/LogSendDialog";
+import { BatchHeader } from "@/components/recipients/BatchHeader";
+import { RecipientTrackingTable } from "@/components/recipients/RecipientTrackingTable";
 
 const emptyForm: RecipientInsert = {
   company_name: "",
@@ -44,13 +38,47 @@ const emptyForm: RecipientInsert = {
 };
 
 export default function Recipients() {
-  const { recipients, isLoading, createRecipient, updateRecipient, deleteRecipient } = useRecipients();
+  const { createRecipient, updateRecipient, deleteRecipient } = useRecipients();
+  const { 
+    activeBatch, 
+    activeBatchLoading, 
+    allBatches, 
+    useRecipientsWithStatus, 
+    createBatch, 
+    updateRecipientStatus 
+  } = useBatches();
+  const { data: appUsers = [] } = useAppUsers();
+
+  const [selectedBatchId, setSelectedBatchId] = useState<string | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
-  const [logSendOpen, setLogSendOpen] = useState(false);
   const [editingRecipient, setEditingRecipient] = useState<Recipient | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [form, setForm] = useState<RecipientInsert>(emptyForm);
+
+  // Set selected batch to active batch on load
+  useEffect(() => {
+    if (activeBatch && !selectedBatchId) {
+      setSelectedBatchId(activeBatch.id);
+    }
+  }, [activeBatch, selectedBatchId]);
+
+  // Get recipients with status for selected batch
+  const { data: recipientsWithStatus = [], isLoading: recipientsLoading } = 
+    useBatches().useRecipientsWithStatus(selectedBatchId);
+
+  // Calculate stats
+  const stats = useMemo(() => {
+    const total = recipientsWithStatus.length;
+    const replied = recipientsWithStatus.filter(r => r.status?.replied).length;
+    return {
+      total,
+      replied,
+      notReplied: total - replied,
+    };
+  }, [recipientsWithStatus]);
+
+  const isActiveBatch = selectedBatchId === activeBatch?.id;
 
   const openCreate = () => {
     setEditingRecipient(null);
@@ -93,6 +121,30 @@ export default function Recipients() {
     }
   };
 
+  const handleUpdateStatus = (recipientId: string, updates: {
+    replied?: boolean;
+    reply_date?: string | null;
+    next_step?: string | null;
+    owner_user_id?: string | null;
+  }) => {
+    if (!selectedBatchId) return;
+    updateRecipientStatus.mutate({
+      batchId: selectedBatchId,
+      recipientId,
+      updates,
+    });
+  };
+
+  const handleCreateBatch = () => {
+    createBatch.mutate(undefined, {
+      onSuccess: (newBatch) => {
+        setSelectedBatchId(newBatch.id);
+      },
+    });
+  };
+
+  const isLoading = activeBatchLoading || recipientsLoading;
+
   return (
     <AppLayout>
       <div className="p-6 space-y-6">
@@ -115,59 +167,41 @@ export default function Recipients() {
                 Send History
               </TabsTrigger>
             </TabsList>
-            <div className="flex gap-2">
-              <Button variant="outline" onClick={() => setLogSendOpen(true)}>
-                <Send className="h-4 w-4 mr-2" />
-                Log Send
-              </Button>
-              <Button onClick={openCreate}>
-                <Plus className="h-4 w-4 mr-2" />
-                Add Recipient
-              </Button>
-            </div>
+            <Button onClick={openCreate}>
+              <Plus className="h-4 w-4 mr-2" />
+              Add Recipient
+            </Button>
           </div>
 
-          <TabsContent value="recipients">
+          <TabsContent value="recipients" className="space-y-4">
+            {/* Batch Header */}
+            <BatchHeader
+              activeBatch={activeBatch || null}
+              allBatches={allBatches}
+              selectedBatchId={selectedBatchId}
+              onSelectBatch={setSelectedBatchId}
+              onCreateBatch={handleCreateBatch}
+              isCreating={createBatch.isPending}
+              stats={stats}
+            />
+
+            {/* Recipients Table */}
             {isLoading ? (
               <div className="text-muted-foreground">Loading...</div>
-            ) : recipients.length === 0 ? (
+            ) : !selectedBatchId ? (
               <div className="border rounded-lg p-8 text-center text-muted-foreground">
-                No recipients yet. Add your first recipient to get started.
+                Click "New Batch Send" to start tracking replies for a new distribution.
               </div>
             ) : (
-              <div className="border rounded-lg overflow-hidden">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Company</TableHead>
-                      <TableHead>Contact</TableHead>
-                      <TableHead>Title</TableHead>
-                      <TableHead>Email</TableHead>
-                      <TableHead className="w-[100px]">Actions</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {recipients.map((recipient) => (
-                      <TableRow key={recipient.id}>
-                        <TableCell className="font-medium">{recipient.company_name}</TableCell>
-                        <TableCell>{recipient.contact_name}</TableCell>
-                        <TableCell className="text-muted-foreground">{recipient.title || "—"}</TableCell>
-                        <TableCell>{recipient.email}</TableCell>
-                        <TableCell>
-                          <div className="flex gap-1">
-                            <Button variant="ghost" size="icon" onClick={() => openEdit(recipient)}>
-                              <Pencil className="h-4 w-4" />
-                            </Button>
-                            <Button variant="ghost" size="icon" onClick={() => openDelete(recipient.id)}>
-                              <Trash2 className="h-4 w-4 text-destructive" />
-                            </Button>
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </div>
+              <RecipientTrackingTable
+                recipients={recipientsWithStatus}
+                batchId={selectedBatchId}
+                isActiveBatch={isActiveBatch}
+                appUsers={appUsers}
+                onUpdateStatus={handleUpdateStatus}
+                onEditRecipient={openEdit}
+                onDeleteRecipient={openDelete}
+              />
             )}
           </TabsContent>
 
@@ -257,9 +291,6 @@ export default function Recipients() {
             </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>
-
-        {/* Log Send Dialog */}
-        <LogSendDialog open={logSendOpen} onOpenChange={setLogSendOpen} />
       </div>
     </AppLayout>
   );
