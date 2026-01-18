@@ -2,7 +2,6 @@ import { useEffect, useState, useRef, useCallback } from "react";
 import { useSearchParams, useNavigate, useLocation } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
 import { Search, MapPin, AlertCircle, Building, ArrowUpDown } from "lucide-react";
 import mapboxgl from "mapbox-gl";
 import "mapbox-gl/dist/mapbox-gl.css";
@@ -29,6 +28,13 @@ type SortDirection = "asc" | "desc";
 
 const MAPBOX_TOKEN = import.meta.env.VITE_MAPBOX_ACCESS_TOKEN;
 
+// Log token presence for debugging (not the actual token)
+if (MAPBOX_TOKEN) {
+  console.log("[PublicDistributionMap] Mapbox token is configured");
+} else {
+  console.warn("[PublicDistributionMap] VITE_MAPBOX_ACCESS_TOKEN is not set");
+}
+
 export default function PublicDistributionMap() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
@@ -38,6 +44,7 @@ export default function PublicDistributionMap() {
   const [listings, setListings] = useState<PublicListing[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [mapError, setMapError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [sortField, setSortField] = useState<SortField>("size_sf");
   const [sortDirection, setSortDirection] = useState<SortDirection>("desc");
@@ -47,6 +54,7 @@ export default function PublicDistributionMap() {
   const mapRef = useRef<mapboxgl.Map | null>(null);
   const markersRef = useRef<Map<string, mapboxgl.Marker>>(new Map());
   const popupRef = useRef<mapboxgl.Popup | null>(null);
+  const resizeObserverRef = useRef<ResizeObserver | null>(null);
 
   // Route guard: store token and prevent navigation away
   useEffect(() => {
@@ -102,36 +110,7 @@ export default function PublicDistributionMap() {
     fetchListings();
   }, [token]);
 
-  // Initialize map
-  useEffect(() => {
-    if (!mapContainerRef.current || !MAPBOX_TOKEN || listings.length === 0) return;
-    if (mapRef.current) return; // Already initialized
-
-    mapboxgl.accessToken = MAPBOX_TOKEN;
-    
-    const map = new mapboxgl.Map({
-      container: mapContainerRef.current,
-      style: "mapbox://styles/mapbox/light-v11",
-      center: [-114.0719, 51.0447], // Calgary default
-      zoom: 10,
-    });
-
-    map.addControl(new mapboxgl.NavigationControl(), "top-right");
-
-    mapRef.current = map;
-
-    // Add markers after map loads
-    map.on("load", () => {
-      addMarkers();
-      fitBoundsToMarkers();
-    });
-
-    return () => {
-      map.remove();
-      mapRef.current = null;
-    };
-  }, [listings]);
-
+  // Add markers function
   const addMarkers = useCallback(() => {
     if (!mapRef.current) return;
 
@@ -180,6 +159,7 @@ export default function PublicDistributionMap() {
     });
   }, [listings, selectedListingId]);
 
+  // Fit bounds function
   const fitBoundsToMarkers = useCallback(() => {
     if (!mapRef.current) return;
 
@@ -198,6 +178,7 @@ export default function PublicDistributionMap() {
     }
   }, [listings]);
 
+  // Select listing function
   const selectListing = useCallback((listingId: string) => {
     setSelectedListingId(listingId);
     const listing = listings.find((l) => l.id === listingId);
@@ -224,6 +205,9 @@ export default function PublicDistributionMap() {
     });
 
     if (listing.latitude && listing.longitude) {
+      // Resize map before flying
+      mapRef.current.resize();
+      
       // Fly to location
       mapRef.current.flyTo({
         center: [listing.longitude, listing.latitude],
@@ -268,6 +252,71 @@ export default function PublicDistributionMap() {
       rowEl.scrollIntoView({ behavior: "smooth", block: "center" });
     }
   }, [listings]);
+
+  // Initialize map
+  useEffect(() => {
+    if (!mapContainerRef.current || !MAPBOX_TOKEN || listings.length === 0) return;
+    if (mapRef.current) return; // Already initialized
+
+    try {
+      mapboxgl.accessToken = MAPBOX_TOKEN;
+      
+      const map = new mapboxgl.Map({
+        container: mapContainerRef.current,
+        style: "mapbox://styles/mapbox/light-v11",
+        center: [-114.0719, 51.0447], // Calgary default
+        zoom: 10,
+      });
+
+      map.addControl(new mapboxgl.NavigationControl(), "top-right");
+
+      mapRef.current = map;
+
+      // Add markers after map loads
+      map.on("load", () => {
+        addMarkers();
+        fitBoundsToMarkers();
+        // Resize after initial load
+        setTimeout(() => map.resize(), 100);
+      });
+
+      // Handle map errors
+      map.on("error", (e) => {
+        console.error("[PublicDistributionMap] Map error:", e);
+        setMapError("Failed to load map. Please check your internet connection.");
+      });
+
+      // Setup ResizeObserver for the map container
+      if (mapContainerRef.current) {
+        resizeObserverRef.current = new ResizeObserver(() => {
+          if (mapRef.current) {
+            mapRef.current.resize();
+          }
+        });
+        resizeObserverRef.current.observe(mapContainerRef.current);
+      }
+
+      // Window resize handler
+      const handleResize = () => {
+        if (mapRef.current) {
+          mapRef.current.resize();
+        }
+      };
+      window.addEventListener("resize", handleResize);
+
+      return () => {
+        window.removeEventListener("resize", handleResize);
+        if (resizeObserverRef.current) {
+          resizeObserverRef.current.disconnect();
+        }
+        map.remove();
+        mapRef.current = null;
+      };
+    } catch (err) {
+      console.error("[PublicDistributionMap] Failed to initialize map:", err);
+      setMapError("Failed to initialize map. Please try refreshing the page.");
+    }
+  }, [listings, addMarkers, fitBoundsToMarkers]);
 
   // Filter and sort listings
   const filteredListings = listings
@@ -315,7 +364,7 @@ export default function PublicDistributionMap() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
+      <div className="h-screen bg-background flex items-center justify-center overflow-hidden">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-4 border-primary border-t-transparent mx-auto mb-4" />
           <p className="text-muted-foreground font-medium">Loading map...</p>
@@ -326,7 +375,7 @@ export default function PublicDistributionMap() {
 
   if (error) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center p-4">
+      <div className="h-screen bg-background flex items-center justify-center p-4 overflow-hidden">
         <div className="brutalist-card p-8 max-w-md text-center">
           <AlertCircle className="w-16 h-16 text-destructive mx-auto mb-4" />
           <h1 className="text-2xl font-black mb-2">Invalid Link</h1>
@@ -341,9 +390,10 @@ export default function PublicDistributionMap() {
       {/* Meta tags for SEO */}
       <meta name="robots" content="noindex, nofollow" />
       
-      <div className="min-h-screen bg-background flex flex-col">
-        {/* Header */}
-        <header className="border-b-2 border-foreground bg-card px-4 py-3 flex items-center gap-4">
+      {/* Full-height container with no scroll */}
+      <div className="h-screen bg-background flex flex-col overflow-hidden">
+        {/* Header - fixed height */}
+        <header className="flex-shrink-0 border-b-2 border-foreground bg-card px-4 py-3 flex items-center gap-4">
           <div className="flex items-center gap-2">
             <Building className="w-6 h-6 text-primary" />
             <span className="font-black text-lg tracking-tight">DISTRIBUTION MAP</span>
@@ -353,12 +403,12 @@ export default function PublicDistributionMap() {
           </span>
         </header>
 
-        {/* Main content */}
-        <div className="flex-1 flex flex-col lg:flex-row">
+        {/* Main content - fills remaining height */}
+        <div className="flex-1 flex flex-col lg:flex-row min-h-0">
           {/* Table panel */}
-          <div className="w-full lg:w-[45%] xl:w-[40%] border-r-0 lg:border-r-2 border-foreground flex flex-col">
-            {/* Search */}
-            <div className="p-3 border-b-2 border-foreground bg-card">
+          <div className="w-full lg:w-[45%] xl:w-[40%] lg:min-w-[400px] lg:max-w-[720px] border-r-0 lg:border-r-2 border-foreground flex flex-col h-[40vh] lg:h-full">
+            {/* Search - fixed height */}
+            <div className="flex-shrink-0 p-3 border-b-2 border-foreground bg-card">
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                 <Input
@@ -370,10 +420,10 @@ export default function PublicDistributionMap() {
               </div>
             </div>
 
-            {/* Table */}
-            <div className="flex-1 overflow-auto">
+            {/* Table - scrollable */}
+            <div className="flex-1 overflow-auto min-h-0">
               <table className="w-full text-sm">
-                <thead className="bg-foreground text-background sticky top-0">
+                <thead className="bg-foreground text-background sticky top-0 z-10">
                   <tr>
                     <th className="text-left p-3">
                       <button
@@ -463,30 +513,35 @@ export default function PublicDistributionMap() {
             </div>
           </div>
 
-          {/* Map panel */}
-          <div className="w-full lg:w-[55%] xl:w-[60%] h-[50vh] lg:h-auto relative">
+          {/* Map panel - fills remaining width and full height */}
+          <div className="flex-1 min-w-0 h-[60vh] lg:h-full relative overflow-hidden">
             {!MAPBOX_TOKEN ? (
               <div className="absolute inset-0 flex items-center justify-center bg-muted">
                 <div className="text-center p-8 brutalist-card">
-                  <AlertCircle className="w-12 h-12 text-warning mx-auto mb-4" />
-                  <p className="font-bold text-foreground mb-2">Mapbox Token Missing</p>
+                  <AlertCircle className="w-12 h-12 text-destructive mx-auto mb-4" />
+                  <p className="font-bold text-foreground mb-2">Map Unavailable</p>
                   <p className="text-sm text-muted-foreground">
-                    Set <code className="bg-muted px-1 py-0.5 rounded text-xs">VITE_MAPBOX_ACCESS_TOKEN</code> in Lovable environment variables
+                    Mapbox token not configured.
                   </p>
                 </div>
               </div>
+            ) : mapError ? (
+              <div className="absolute inset-0 flex items-center justify-center bg-muted">
+                <div className="text-center p-8 brutalist-card">
+                  <AlertCircle className="w-12 h-12 text-destructive mx-auto mb-4" />
+                  <p className="font-bold text-foreground mb-2">Map Error</p>
+                  <p className="text-sm text-muted-foreground">{mapError}</p>
+                </div>
+              </div>
             ) : (
-              <div ref={mapContainerRef} className="absolute inset-0" />
+              <div 
+                ref={mapContainerRef} 
+                className="absolute inset-0"
+                style={{ width: "100%", height: "100%" }}
+              />
             )}
           </div>
         </div>
-
-        {/* Footer */}
-        <footer className="border-t-2 border-foreground bg-card px-4 py-2 text-center">
-          <p className="text-xs text-muted-foreground">
-            Information believed reliable but not guaranteed. © ClearView Commercial Realty Inc.
-          </p>
-        </footer>
       </div>
 
       {/* Custom popup styles */}
