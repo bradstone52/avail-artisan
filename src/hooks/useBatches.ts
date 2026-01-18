@@ -6,33 +6,36 @@ import { useAuth } from "@/contexts/AuthContext";
 export interface Batch {
   id: string;
   name: string;
-  period_year: number;
-  period_month: number;
+  period_year: number | null;
+  period_month: number | null;
   created_at: string;
   created_by: string | null;
   is_active: boolean;
+  status: string;
 }
 
-export interface RecipientBatchStatus {
+export interface BatchRecipient {
   id: string;
   batch_id: string;
   recipient_id: string;
   replied: boolean;
   reply_date: string | null;
   next_step: string | null;
+  owner: string;
   owner_user_id: string | null;
   updated_at: string;
 }
 
-export interface RecipientWithStatus {
+export interface RecipientWithBatchStatus {
   id: string;
   company_name: string;
   contact_name: string;
   title: string | null;
   email: string;
   notes: string | null;
+  default_owner: string;
   created_at: string;
-  status?: RecipientBatchStatus;
+  batchStatus?: BatchRecipient;
 }
 
 const MONTH_NAMES = [
@@ -40,26 +43,14 @@ const MONTH_NAMES = [
   "July", "August", "September", "October", "November", "December"
 ];
 
+const OWNER_OPTIONS = ["Brad", "Doug", "Angel", "Unassigned"] as const;
+export type OwnerOption = typeof OWNER_OPTIONS[number];
+
 export function useBatches() {
   const queryClient = useQueryClient();
   const { user } = useAuth();
 
-  // Get active batch
-  const activeBatchQuery = useQuery({
-    queryKey: ["distribution_batches", "active"],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("distribution_batches")
-        .select("*")
-        .eq("is_active", true)
-        .maybeSingle();
-
-      if (error) throw error;
-      return data as Batch | null;
-    },
-  });
-
-  // Get all batches for history dropdown
+  // Get all batches
   const allBatchesQuery = useQuery({
     queryKey: ["distribution_batches", "all"],
     queryFn: async () => {
@@ -73,66 +64,69 @@ export function useBatches() {
     },
   });
 
-  // Get recipients with status for a specific batch
-  const useRecipientsWithStatus = (batchId: string | null) => {
+  // Get recipients for a specific batch (with batch status joined)
+  const useBatchRecipients = (batchId: string | null) => {
     return useQuery({
-      queryKey: ["recipients_with_status", batchId],
+      queryKey: ["batch_recipients", batchId],
       queryFn: async () => {
         if (!batchId) return [];
 
-        // First get all recipients
-        const { data: recipients, error: recipientsError } = await supabase
-          .from("distribution_recipients")
-          .select("*")
-          .order("company_name", { ascending: true });
-
-        if (recipientsError) throw recipientsError;
-
-        // Then get status for this batch
-        const { data: statuses, error: statusError } = await supabase
+        // Get batch recipients with their status
+        const { data: batchRecipients, error: brError } = await supabase
           .from("distribution_recipient_batch_status")
           .select("*")
           .eq("batch_id", batchId);
 
-        if (statusError) throw statusError;
+        if (brError) throw brError;
+
+        // Get all recipients that are in this batch
+        const recipientIds = batchRecipients?.map(br => br.recipient_id) || [];
+        if (recipientIds.length === 0) return [];
+
+        const { data: recipients, error: rError } = await supabase
+          .from("distribution_recipients")
+          .select("*")
+          .in("id", recipientIds)
+          .order("company_name", { ascending: true });
+
+        if (rError) throw rError;
 
         // Create a map for quick lookup
-        const statusMap = new Map(statuses?.map(s => [s.recipient_id, s]) || []);
+        const statusMap = new Map(batchRecipients?.map(br => [br.recipient_id, br]) || []);
 
-        // Combine recipients with their status
+        // Combine recipients with their batch status
         return recipients?.map(recipient => ({
           ...recipient,
-          status: statusMap.get(recipient.id) as RecipientBatchStatus | undefined,
-        })) as RecipientWithStatus[];
+          default_owner: (recipient as any).default_owner || "Unassigned",
+          batchStatus: statusMap.get(recipient.id) as BatchRecipient | undefined,
+        })) as RecipientWithBatchStatus[];
       },
       enabled: !!batchId,
     });
   };
 
-  // Create new batch
+  // Create new batch from selected recipients
   const createBatch = useMutation({
-    mutationFn: async () => {
+    mutationFn: async ({ 
+      name, 
+      recipientIds 
+    }: { 
+      name: string; 
+      recipientIds: string[] 
+    }) => {
       const now = new Date();
       const year = now.getFullYear();
-      const month = now.getMonth(); // 0-indexed
-      const batchName = `Distribution Availabilities — ${MONTH_NAMES[month]} ${year}`;
+      const month = now.getMonth();
 
-      // First, deactivate all existing batches
-      const { error: deactivateError } = await supabase
-        .from("distribution_batches")
-        .update({ is_active: false })
-        .eq("is_active", true);
-
-      if (deactivateError) throw deactivateError;
-
-      // Create new active batch
+      // Create new batch
       const { data: newBatch, error: createError } = await supabase
         .from("distribution_batches")
         .insert({
-          name: batchName,
+          name: name,
           period_year: year,
-          period_month: month + 1, // Store as 1-indexed
+          period_month: month + 1,
           is_active: true,
+          status: "Active",
           created_by: user?.id || null,
         })
         .select()
@@ -140,14 +134,15 @@ export function useBatches() {
 
       if (createError) throw createError;
 
-      // Get all recipients
+      // Get default owners for selected recipients
       const { data: recipients, error: recipientsError } = await supabase
         .from("distribution_recipients")
-        .select("id");
+        .select("id, default_owner")
+        .in("id", recipientIds);
 
       if (recipientsError) throw recipientsError;
 
-      // Create status entries for all recipients
+      // Create status entries for selected recipients
       if (recipients && recipients.length > 0) {
         const statusEntries = recipients.map(r => ({
           batch_id: newBatch.id,
@@ -155,6 +150,7 @@ export function useBatches() {
           replied: false,
           reply_date: null,
           next_step: null,
+          owner: (r as any).default_owner || "Unassigned",
           owner_user_id: null,
         }));
 
@@ -169,11 +165,30 @@ export function useBatches() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["distribution_batches"] });
-      queryClient.invalidateQueries({ queryKey: ["recipients_with_status"] });
+      queryClient.invalidateQueries({ queryKey: ["batch_recipients"] });
       toast.success("New batch created successfully");
     },
     onError: (error) => {
       toast.error("Failed to create batch: " + error.message);
+    },
+  });
+
+  // Update batch status (Active/Closed)
+  const updateBatchStatus = useMutation({
+    mutationFn: async ({ batchId, status }: { batchId: string; status: string }) => {
+      const { error } = await supabase
+        .from("distribution_batches")
+        .update({ status, is_active: status === "Active" })
+        .eq("id", batchId);
+
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["distribution_batches"] });
+      toast.success("Batch status updated");
+    },
+    onError: (error) => {
+      toast.error("Failed to update batch: " + error.message);
     },
   });
 
@@ -186,7 +201,7 @@ export function useBatches() {
     }: {
       batchId: string;
       recipientId: string;
-      updates: Partial<Pick<RecipientBatchStatus, "replied" | "reply_date" | "next_step" | "owner_user_id">>;
+      updates: Partial<Pick<BatchRecipient, "replied" | "reply_date" | "next_step" | "owner">>;
     }) => {
       // First check if status exists
       const { data: existing } = await supabase
@@ -211,6 +226,7 @@ export function useBatches() {
           .insert({
             batch_id: batchId,
             recipient_id: recipientId,
+            owner: "Unassigned",
             ...updates,
           });
 
@@ -218,7 +234,7 @@ export function useBatches() {
       }
     },
     onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({ queryKey: ["recipients_with_status", variables.batchId] });
+      queryClient.invalidateQueries({ queryKey: ["batch_recipients", variables.batchId] });
     },
     onError: (error) => {
       toast.error("Failed to update status: " + error.message);
@@ -226,16 +242,17 @@ export function useBatches() {
   });
 
   return {
-    activeBatch: activeBatchQuery.data,
-    activeBatchLoading: activeBatchQuery.isLoading,
     allBatches: allBatchesQuery.data ?? [],
-    useRecipientsWithStatus,
+    allBatchesLoading: allBatchesQuery.isLoading,
+    useBatchRecipients,
     createBatch,
+    updateBatchStatus,
     updateRecipientStatus,
+    OWNER_OPTIONS,
   };
 }
 
-// Hook to get app users for owner dropdown
+// Keep for backwards compatibility but simplified
 export function useAppUsers() {
   return useQuery({
     queryKey: ["app_users"],

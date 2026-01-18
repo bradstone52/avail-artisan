@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { useRecipients, Recipient, RecipientInsert } from "@/hooks/useRecipients";
-import { useBatches, useAppUsers } from "@/hooks/useBatches";
+import { useBatches, Batch, RecipientWithBatchStatus } from "@/hooks/useBatches";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -13,8 +13,15 @@ import {
   DialogTitle,
   DialogFooter,
 } from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
-import { Plus, Users, History } from "lucide-react";
+import { Plus, Users, FolderOpen, Send } from "lucide-react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -25,9 +32,14 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { SendHistoryTable } from "@/components/recipients/SendHistoryTable";
-import { BatchHeader } from "@/components/recipients/BatchHeader";
-import { RecipientTrackingTable } from "@/components/recipients/RecipientTrackingTable";
+import { MasterRecipientTable } from "@/components/recipients/MasterRecipientTable";
+import { BatchList } from "@/components/recipients/BatchList";
+import { BatchDetailView } from "@/components/recipients/BatchDetailView";
+import { NewBatchDialog } from "@/components/recipients/NewBatchDialog";
+import { supabase } from "@/integrations/supabase/client";
+import { useQuery } from "@tanstack/react-query";
+
+const OWNER_OPTIONS = ["Brad", "Doug", "Angel", "Unassigned"] as const;
 
 const emptyForm: RecipientInsert = {
   company_name: "",
@@ -35,50 +47,65 @@ const emptyForm: RecipientInsert = {
   title: null,
   email: "",
   notes: null,
+  default_owner: "Unassigned",
 };
 
 export default function Recipients() {
-  const { createRecipient, updateRecipient, deleteRecipient } = useRecipients();
+  const { recipients, isLoading: recipientsLoading, createRecipient, updateRecipient, deleteRecipient } = useRecipients();
   const { 
-    activeBatch, 
-    activeBatchLoading, 
     allBatches, 
-    useRecipientsWithStatus, 
+    allBatchesLoading,
+    useBatchRecipients,
     createBatch, 
-    updateRecipientStatus 
+    updateBatchStatus,
+    updateRecipientStatus,
   } = useBatches();
-  const { data: appUsers = [] } = useAppUsers();
 
-  const [selectedBatchId, setSelectedBatchId] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState("recipients");
+  const [selectedRecipientIds, setSelectedRecipientIds] = useState<Set<string>>(new Set());
+  const [viewingBatchId, setViewingBatchId] = useState<string | null>(null);
+  
   const [dialogOpen, setDialogOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [newBatchDialogOpen, setNewBatchDialogOpen] = useState(false);
   const [editingRecipient, setEditingRecipient] = useState<Recipient | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [form, setForm] = useState<RecipientInsert>(emptyForm);
 
-  // Set selected batch to active batch on load
-  useEffect(() => {
-    if (activeBatch && !selectedBatchId) {
-      setSelectedBatchId(activeBatch.id);
-    }
-  }, [activeBatch, selectedBatchId]);
+  // Get batch recipients when viewing a batch
+  const { data: batchRecipients = [], isLoading: batchRecipientsLoading } = 
+    useBatchRecipients(viewingBatchId);
 
-  // Get recipients with status for selected batch
-  const { data: recipientsWithStatus = [], isLoading: recipientsLoading } = 
-    useBatches().useRecipientsWithStatus(selectedBatchId);
+  // Get batch stats for batch list
+  const batchesWithStats = useQuery({
+    queryKey: ["batch_stats", allBatches.map(b => b.id).join(",")],
+    queryFn: async () => {
+      if (allBatches.length === 0) return [];
 
-  // Calculate stats
-  const stats = useMemo(() => {
-    const total = recipientsWithStatus.length;
-    const replied = recipientsWithStatus.filter(r => r.status?.replied).length;
-    return {
-      total,
-      replied,
-      notReplied: total - replied,
-    };
-  }, [recipientsWithStatus]);
+      const results = await Promise.all(
+        allBatches.map(async (batch) => {
+          const { data, error } = await supabase
+            .from("distribution_recipient_batch_status")
+            .select("replied")
+            .eq("batch_id", batch.id);
 
-  const isActiveBatch = selectedBatchId === activeBatch?.id;
+          if (error) throw error;
+
+          return {
+            ...batch,
+            totalRecipients: data?.length || 0,
+            repliedCount: data?.filter(r => r.replied).length || 0,
+          };
+        })
+      );
+
+      return results;
+    },
+    enabled: allBatches.length > 0,
+  });
+
+  // Find current batch being viewed
+  const currentBatch = allBatches.find(b => b.id === viewingBatchId);
 
   const openCreate = () => {
     setEditingRecipient(null);
@@ -94,6 +121,7 @@ export default function Recipients() {
       title: recipient.title,
       email: recipient.email,
       notes: recipient.notes,
+      default_owner: recipient.default_owner || "Unassigned",
     });
     setDialogOpen(true);
   };
@@ -121,29 +149,53 @@ export default function Recipients() {
     }
   };
 
-  const handleUpdateStatus = (recipientId: string, updates: {
+  const handleNewBatchClick = () => {
+    if (selectedRecipientIds.size === 0) {
+      return;
+    }
+    setNewBatchDialogOpen(true);
+  };
+
+  const handleCreateBatch = (name: string) => {
+    createBatch.mutate(
+      { name, recipientIds: Array.from(selectedRecipientIds) },
+      {
+        onSuccess: (newBatch) => {
+          setNewBatchDialogOpen(false);
+          setSelectedRecipientIds(new Set());
+          setViewingBatchId(newBatch.id);
+          setActiveTab("batches");
+        },
+      }
+    );
+  };
+
+  const handleOpenBatch = (batchId: string) => {
+    setViewingBatchId(batchId);
+  };
+
+  const handleBackFromBatch = () => {
+    setViewingBatchId(null);
+  };
+
+  const handleUpdateRecipientStatus = (recipientId: string, updates: {
     replied?: boolean;
     reply_date?: string | null;
     next_step?: string | null;
-    owner_user_id?: string | null;
+    owner?: string;
   }) => {
-    if (!selectedBatchId) return;
+    if (!viewingBatchId) return;
     updateRecipientStatus.mutate({
-      batchId: selectedBatchId,
+      batchId: viewingBatchId,
       recipientId,
       updates,
     });
   };
 
-  const handleCreateBatch = () => {
-    createBatch.mutate(undefined, {
-      onSuccess: (newBatch) => {
-        setSelectedBatchId(newBatch.id);
-      },
-    });
+  const handleUpdateBatchStatus = (status: string) => {
+    if (!viewingBatchId) return;
+    updateBatchStatus.mutate({ batchId: viewingBatchId, status });
   };
-
-  const isLoading = activeBatchLoading || recipientsLoading;
 
   return (
     <AppLayout>
@@ -155,58 +207,68 @@ export default function Recipients() {
           </div>
         </div>
 
-        <Tabs defaultValue="recipients" className="space-y-4">
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
           <div className="flex items-center justify-between">
             <TabsList>
               <TabsTrigger value="recipients" className="gap-2">
                 <Users className="h-4 w-4" />
                 Recipients
               </TabsTrigger>
-              <TabsTrigger value="sends" className="gap-2">
-                <History className="h-4 w-4" />
-                Send History
+              <TabsTrigger value="batches" className="gap-2">
+                <FolderOpen className="h-4 w-4" />
+                Batches
               </TabsTrigger>
             </TabsList>
-            <Button onClick={openCreate}>
-              <Plus className="h-4 w-4 mr-2" />
-              Add Recipient
-            </Button>
+            
+            {activeTab === "recipients" && (
+              <div className="flex items-center gap-2">
+                <Button 
+                  onClick={handleNewBatchClick} 
+                  disabled={selectedRecipientIds.size === 0}
+                  variant="default"
+                >
+                  <Send className="h-4 w-4 mr-2" />
+                  New Batch Send ({selectedRecipientIds.size})
+                </Button>
+                <Button onClick={openCreate} variant="outline">
+                  <Plus className="h-4 w-4 mr-2" />
+                  Add Recipient
+                </Button>
+              </div>
+            )}
           </div>
 
           <TabsContent value="recipients" className="space-y-4">
-            {/* Batch Header */}
-            <BatchHeader
-              activeBatch={activeBatch || null}
-              allBatches={allBatches}
-              selectedBatchId={selectedBatchId}
-              onSelectBatch={setSelectedBatchId}
-              onCreateBatch={handleCreateBatch}
-              isCreating={createBatch.isPending}
-              stats={stats}
-            />
-
-            {/* Recipients Table */}
-            {isLoading ? (
-              <div className="text-muted-foreground">Loading...</div>
-            ) : !selectedBatchId ? (
-              <div className="border rounded-lg p-8 text-center text-muted-foreground">
-                Click "New Batch Send" to start tracking replies for a new distribution.
-              </div>
+            {recipientsLoading ? (
+              <div className="text-muted-foreground">Loading recipients...</div>
             ) : (
-              <RecipientTrackingTable
-                recipients={recipientsWithStatus}
-                batchId={selectedBatchId}
-                isActiveBatch={isActiveBatch}
-                appUsers={appUsers}
-                onUpdateStatus={handleUpdateStatus}
+              <MasterRecipientTable
+                recipients={recipients}
+                selectedIds={selectedRecipientIds}
+                onSelectionChange={setSelectedRecipientIds}
                 onEditRecipient={openEdit}
                 onDeleteRecipient={openDelete}
               />
             )}
           </TabsContent>
 
-          <TabsContent value="sends">
-            <SendHistoryTable />
+          <TabsContent value="batches" className="space-y-4">
+            {viewingBatchId && currentBatch ? (
+              <BatchDetailView
+                batch={currentBatch}
+                recipients={batchRecipients}
+                isLoading={batchRecipientsLoading}
+                onBack={handleBackFromBatch}
+                onUpdateStatus={handleUpdateRecipientStatus}
+                onUpdateBatchStatus={handleUpdateBatchStatus}
+              />
+            ) : (
+              <BatchList
+                batches={batchesWithStats.data || []}
+                isLoading={allBatchesLoading || batchesWithStats.isLoading}
+                onOpenBatch={handleOpenBatch}
+              />
+            )}
           </TabsContent>
         </Tabs>
 
@@ -236,14 +298,6 @@ export default function Recipients() {
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="title">Title</Label>
-                <Input
-                  id="title"
-                  value={form.title || ""}
-                  onChange={(e) => setForm({ ...form, title: e.target.value || null })}
-                />
-              </div>
-              <div className="space-y-2">
                 <Label htmlFor="email">Email *</Label>
                 <Input
                   id="email"
@@ -252,6 +306,24 @@ export default function Recipients() {
                   onChange={(e) => setForm({ ...form, email: e.target.value })}
                   required
                 />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="default_owner">Default Owner</Label>
+                <Select
+                  value={form.default_owner || "Unassigned"}
+                  onValueChange={(value) => setForm({ ...form, default_owner: value })}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {OWNER_OPTIONS.map((opt) => (
+                      <SelectItem key={opt} value={opt}>
+                        {opt}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
               <div className="space-y-2">
                 <Label htmlFor="notes">Notes</Label>
@@ -280,7 +352,7 @@ export default function Recipients() {
             <AlertDialogHeader>
               <AlertDialogTitle>Delete Recipient?</AlertDialogTitle>
               <AlertDialogDescription>
-                This will permanently delete this recipient and all associated send records.
+                This will permanently delete this recipient and remove them from all batches.
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
@@ -291,6 +363,15 @@ export default function Recipients() {
             </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>
+
+        {/* New Batch Dialog */}
+        <NewBatchDialog
+          open={newBatchDialogOpen}
+          onOpenChange={setNewBatchDialogOpen}
+          onConfirm={handleCreateBatch}
+          selectedCount={selectedRecipientIds.size}
+          isCreating={createBatch.isPending}
+        />
       </div>
     </AppLayout>
   );

@@ -21,8 +21,9 @@ export type Database = {
           id: string
           is_active: boolean
           name: string
-          period_month: number
-          period_year: number
+          period_month: number | null
+          period_year: number | null
+          status: string | null
         }
         Insert: {
           created_at?: string
@@ -30,8 +31,9 @@ export type Database = {
           id?: string
           is_active?: boolean
           name: string
-          period_month: number
-          period_year: number
+          period_month?: number | null
+          period_year?: number | null
+          status?: string | null
         }
         Update: {
           created_at?: string
@@ -39,8 +41,9 @@ export type Database = {
           id?: string
           is_active?: boolean
           name?: string
-          period_month?: number
-          period_year?: number
+          period_month?: number | null
+          period_year?: number | null
+          status?: string | null
         }
         Relationships: []
       }
@@ -84,6 +87,7 @@ export type Database = {
           batch_id: string
           id: string
           next_step: string | null
+          owner: string | null
           owner_user_id: string | null
           recipient_id: string
           replied: boolean
@@ -94,6 +98,7 @@ export type Database = {
           batch_id: string
           id?: string
           next_step?: string | null
+          owner?: string | null
           owner_user_id?: string | null
           recipient_id: string
           replied?: boolean
@@ -104,6 +109,7 @@ export type Database = {
           batch_id?: string
           id?: string
           next_step?: string | null
+          owner?: string | null
           owner_user_id?: string | null
           recipient_id?: string
           replied?: boolean
@@ -132,6 +138,7 @@ export type Database = {
           company_name: string
           contact_name: string
           created_at: string
+          default_owner: string | null
           email: string
           id: string
           notes: string | null
@@ -141,6 +148,7 @@ export type Database = {
           company_name: string
           contact_name: string
           created_at?: string
+          default_owner?: string | null
           email: string
           id?: string
           notes?: string | null
@@ -150,6 +158,7 @@ export type Database = {
           company_name?: string
           contact_name?: string
           created_at?: string
+          default_owner?: string | null
           email?: string
           id?: string
           notes?: string | null
