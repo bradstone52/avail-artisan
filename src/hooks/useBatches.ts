@@ -185,6 +185,7 @@ export function useBatches() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["distribution_batches"] });
+      queryClient.invalidateQueries({ queryKey: ["batch_stats"] });
       toast.success("Batch status updated");
     },
     onError: (error) => {
