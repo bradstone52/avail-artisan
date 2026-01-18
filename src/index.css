@@ -2,68 +2,72 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Neo-Brutalist Design System for ClearView Commercial Realty
-   Industrial CRE intelligence tool - confident, data-first, print-safe
-   Palette: White background + bold black outlines + cobalt blue + warm yellow
+/* Neo-Brutalist Design System
+   High contrast, bold geometry, thick outlines, hard shadows
+   Bright accent blocks + playful but disciplined layout
 */
 
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
 
 @layer base {
   :root {
-    /* Neo-Brutalist: High contrast, minimal decoration */
-    /* Base colors - White background, near-black ink */
-    --background: 0 0% 100%;
-    --foreground: 240 10% 5%;
+    /* Neo-Brutalist Color Palette */
+    /* Base - Warm paper background, near-black ink */
+    --background: 43 33% 94%;
+    --foreground: 0 0% 7%;
 
     --card: 0 0% 100%;
-    --card-foreground: 240 10% 5%;
+    --card-foreground: 0 0% 7%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 240 10% 5%;
+    --popover-foreground: 0 0% 7%;
 
-    /* Primary - Cobalt Blue for main actions */
+    /* Primary - Vivid Cobalt Blue */
     --primary: 217 91% 53%;
     --primary-foreground: 0 0% 100%;
 
-    /* Secondary - Warm Yellow for emphasis */
+    /* Secondary - Punchy Yellow */
     --secondary: 48 97% 53%;
-    --secondary-foreground: 240 10% 5%;
+    --secondary-foreground: 0 0% 7%;
 
-    /* Muted - Dark gray text and subtle surfaces */
-    --muted: 210 20% 98%;
-    --muted-foreground: 215 16% 27%;
+    /* Muted - For subtle surfaces */
+    --muted: 43 20% 90%;
+    --muted-foreground: 0 0% 30%;
 
     /* Accent - Blue (same as primary) */
     --accent: 217 91% 53%;
     --accent-foreground: 0 0% 100%;
 
-    /* Paper - Light gray for subtle surfaces */
-    --paper: 210 40% 98%;
+    /* Paper - Cream/warm white for surfaces */
+    --paper: 43 33% 96%;
 
     /* Table stripe for zebra rows */
-    --table-stripe: 220 14% 96%;
+    --table-stripe: 43 20% 92%;
 
-    /* Status colors */
-    --success: 145 55% 38%;
+    /* Status colors - Neon-ish */
+    --success: 142 71% 45%;
     --success-foreground: 0 0% 100%;
 
-    --warning: 48 97% 53%;
-    --warning-foreground: 240 10% 5%;
+    --warning: 33 100% 61%;
+    --warning-foreground: 0 0% 7%;
 
-    --destructive: 0 70% 50%;
+    --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 100%;
 
+    /* Pink accent (optional) */
+    --pink: 330 81% 60%;
+    --pink-foreground: 0 0% 100%;
+
     /* Borders - Strong black for brutalist aesthetic */
-    --border: 240 10% 5%;
-    --border-subtle: 220 14% 90%;
-    --input: 220 14% 90%;
+    --border: 0 0% 7%;
+    --border-subtle: 0 0% 85%;
+    --input: 0 0% 85%;
     --ring: 217 91% 53%;
 
-    --radius: 4px;
+    --radius: 6px;
 
-    /* Badge colors - Blue and Yellow accents */
-    --badge-new: 145 55% 38%;
+    /* Badge colors */
+    --badge-new: 142 71% 45%;
     --badge-new-foreground: 0 0% 100%;
     --badge-changed: 217 91% 53%;
     --badge-changed-foreground: 0 0% 100%;
@@ -72,67 +76,74 @@
 
     /* Sidebar - Neo-brutalist */
     --sidebar-background: 0 0% 100%;
-    --sidebar-foreground: 240 10% 5%;
+    --sidebar-foreground: 0 0% 7%;
     --sidebar-primary: 217 91% 53%;
     --sidebar-primary-foreground: 0 0% 100%;
     --sidebar-accent: 48 97% 53%;
-    --sidebar-accent-foreground: 240 10% 5%;
-    --sidebar-border: 240 10% 5%;
+    --sidebar-accent-foreground: 0 0% 7%;
+    --sidebar-border: 0 0% 7%;
     --sidebar-ring: 217 91% 53%;
+
+    /* Hard shadow offset */
+    --shadow-offset: 4px;
+    --shadow-color: 0 0% 7%;
   }
 
   .dark {
-    --background: 240 10% 5%;
+    --background: 0 0% 7%;
     --foreground: 0 0% 95%;
 
-    --card: 240 10% 8%;
+    --card: 0 0% 10%;
     --card-foreground: 0 0% 95%;
 
-    --popover: 240 10% 8%;
+    --popover: 0 0% 10%;
     --popover-foreground: 0 0% 95%;
 
     --primary: 217 91% 60%;
     --primary-foreground: 0 0% 100%;
 
     --secondary: 48 97% 60%;
-    --secondary-foreground: 240 10% 5%;
+    --secondary-foreground: 0 0% 7%;
 
-    --muted: 240 8% 15%;
-    --muted-foreground: 220 10% 60%;
+    --muted: 0 0% 15%;
+    --muted-foreground: 0 0% 60%;
 
     --accent: 217 91% 60%;
     --accent-foreground: 0 0% 100%;
 
-    --paper: 240 8% 12%;
-    --table-stripe: 240 8% 10%;
+    --paper: 0 0% 12%;
+    --table-stripe: 0 0% 10%;
 
-    --success: 145 50% 45%;
+    --success: 142 65% 50%;
     --success-foreground: 0 0% 100%;
 
-    --warning: 48 90% 55%;
-    --warning-foreground: 240 10% 5%;
+    --warning: 33 95% 55%;
+    --warning-foreground: 0 0% 7%;
 
-    --destructive: 0 60% 55%;
+    --destructive: 0 70% 55%;
     --destructive-foreground: 0 0% 100%;
 
+    --pink: 330 75% 65%;
+    --pink-foreground: 0 0% 100%;
+
     --border: 0 0% 90%;
-    --border-subtle: 240 8% 25%;
-    --input: 240 8% 20%;
+    --border-subtle: 0 0% 25%;
+    --input: 0 0% 20%;
     --ring: 217 91% 60%;
 
-    --badge-new: 145 50% 45%;
+    --badge-new: 142 65% 50%;
     --badge-new-foreground: 0 0% 100%;
     --badge-changed: 217 91% 60%;
     --badge-changed-foreground: 0 0% 100%;
     --badge-removed: 0 0% 55%;
     --badge-removed-foreground: 0 0% 100%;
 
-    --sidebar-background: 240 10% 6%;
+    --sidebar-background: 0 0% 8%;
     --sidebar-foreground: 0 0% 90%;
     --sidebar-primary: 217 91% 60%;
     --sidebar-primary-foreground: 0 0% 100%;
     --sidebar-accent: 48 97% 55%;
-    --sidebar-accent-foreground: 240 10% 5%;
+    --sidebar-accent-foreground: 0 0% 7%;
     --sidebar-border: 0 0% 90%;
     --sidebar-ring: 217 91% 60%;
   }
@@ -152,10 +163,10 @@
     font-feature-settings: "cv02", "cv03", "cv04", "cv11";
   }
 
-  /* Neo-Brutalist Typography - Heavy weights, tight tracking */
+  /* Neo-Brutalist Typography - Very bold, tight tracking */
   h1, h2, h3, h4, h5, h6 {
     font-family: 'Inter', system-ui, sans-serif;
-    @apply font-extrabold tracking-tight;
+    @apply font-black tracking-tight;
   }
 
   h1 { @apply text-4xl md:text-5xl; }
@@ -165,10 +176,21 @@
 }
 
 @layer components {
-  /* Neo-Brutalist Card - Strong borders, no shadows */
+  /* =====================================================
+     NEO-BRUTALIST CARD SYSTEM
+     ===================================================== */
+  
+  /* Primary brutalist card with hard shadow */
   .brutalist-card {
-    @apply bg-card border-2 border-foreground p-6;
+    @apply bg-card border-2 border-foreground p-6 relative;
     border-radius: var(--radius);
+    box-shadow: 4px 4px 0 hsl(var(--foreground));
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+  }
+
+  .brutalist-card:hover {
+    transform: translate(-2px, -2px);
+    box-shadow: 6px 6px 0 hsl(var(--foreground));
   }
 
   .brutalist-card-soft {
@@ -176,21 +198,51 @@
     border-radius: var(--radius);
   }
 
-  /* Neo-Brutalist Stat Block */
+  /* Accent card variants */
+  .brutalist-card-primary {
+    @apply brutalist-card bg-primary text-primary-foreground;
+    box-shadow: 4px 4px 0 hsl(var(--foreground));
+  }
+
+  .brutalist-card-secondary {
+    @apply brutalist-card bg-secondary text-secondary-foreground;
+    box-shadow: 4px 4px 0 hsl(var(--foreground));
+  }
+
+  /* =====================================================
+     NEO-BRUTALIST STAT/KPI BLOCKS
+     ===================================================== */
+  
   .brutalist-stat {
-    @apply border-2 border-foreground bg-background p-4;
+    @apply border-3 border-foreground bg-card p-4 relative;
     border-radius: var(--radius);
+    box-shadow: 3px 3px 0 hsl(var(--foreground));
+  }
+
+  .brutalist-stat-primary {
+    @apply brutalist-stat bg-primary text-primary-foreground;
+  }
+
+  .brutalist-stat-secondary {
+    @apply brutalist-stat bg-secondary text-secondary-foreground;
+  }
+
+  .brutalist-stat-success {
+    @apply brutalist-stat bg-success text-success-foreground;
   }
 
   .brutalist-stat-label {
-    @apply text-xs font-bold uppercase tracking-widest text-muted-foreground;
+    @apply text-xs font-bold uppercase tracking-[0.15em] opacity-80;
   }
 
   .brutalist-stat-value {
-    @apply text-3xl font-black tracking-tight;
+    @apply text-3xl md:text-4xl font-black tracking-tight;
   }
 
-  /* Neo-Brutalist Table */
+  /* =====================================================
+     NEO-BRUTALIST TABLE
+     ===================================================== */
+  
   .brutalist-table {
     @apply w-full border-collapse text-sm;
   }
@@ -200,7 +252,8 @@
   }
 
   .brutalist-table th {
-    @apply px-3 py-3 text-left text-xs font-bold uppercase tracking-wider;
+    @apply px-4 py-3 text-left text-xs font-bold uppercase tracking-[0.15em];
+    border-bottom: 3px solid hsl(var(--foreground));
   }
 
   .brutalist-table th.num {
@@ -208,7 +261,8 @@
   }
 
   .brutalist-table td {
-    @apply px-3 py-3 border-b border-border-subtle;
+    @apply px-4 py-3;
+    border-bottom: 2px solid hsl(var(--border-subtle));
   }
 
   .brutalist-table td.num {
@@ -219,35 +273,128 @@
     background: hsl(var(--table-stripe));
   }
 
-  /* Neo-Brutalist Section */
+  .brutalist-table tbody tr {
+    transition: background 0.1s ease;
+  }
+
+  .brutalist-table tbody tr:hover {
+    background: hsl(var(--secondary) / 0.2);
+  }
+
+  /* =====================================================
+     NEO-BRUTALIST SECTION/PANEL
+     ===================================================== */
+  
   .brutalist-section {
-    @apply border-2 border-foreground bg-background overflow-hidden;
+    @apply border-2 border-foreground bg-card overflow-hidden;
     border-radius: var(--radius);
+    box-shadow: 4px 4px 0 hsl(var(--foreground));
   }
 
   .brutalist-section-header {
-    @apply border-b-2 border-foreground bg-foreground text-background px-4 py-3;
+    @apply border-b-3 border-foreground bg-foreground text-background px-5 py-4;
+    @apply text-sm font-bold uppercase tracking-[0.15em];
   }
 
   .brutalist-section-body {
-    @apply p-4;
+    @apply p-5;
   }
 
-  /* Neo-Brutalist Badge */
+  /* =====================================================
+     NEO-BRUTALIST BADGES/CHIPS (STICKER STYLE)
+     ===================================================== */
+  
   .brutalist-badge {
-    @apply inline-flex items-center px-3 py-1.5 text-xs font-bold uppercase tracking-widest;
-    @apply border-2 border-current;
+    @apply inline-flex items-center px-3 py-1.5 text-xs font-bold uppercase tracking-[0.1em];
+    @apply border-2 border-foreground bg-card;
     border-radius: 2px;
+    box-shadow: 2px 2px 0 hsl(var(--foreground));
   }
 
-  /* Neo-Brutalist Chart */
-  .brutalist-chart {
-    @apply border-2 border-foreground p-4;
+  .brutalist-badge-primary {
+    @apply brutalist-badge bg-primary text-primary-foreground;
+  }
+
+  .brutalist-badge-secondary {
+    @apply brutalist-badge bg-secondary text-secondary-foreground;
+  }
+
+  .brutalist-badge-success {
+    @apply brutalist-badge bg-success text-success-foreground;
+  }
+
+  .brutalist-badge-destructive {
+    @apply brutalist-badge bg-destructive text-destructive-foreground;
+  }
+
+  /* =====================================================
+     NEO-BRUTALIST BUTTONS
+     ===================================================== */
+  
+  .brutalist-button {
+    @apply inline-flex items-center justify-center gap-2 px-5 py-2.5;
+    @apply text-sm font-bold uppercase tracking-wider;
+    @apply border-2 border-foreground bg-card text-foreground;
+    @apply transition-all duration-100 ease-out;
+    border-radius: var(--radius);
+    box-shadow: 3px 3px 0 hsl(var(--foreground));
+  }
+
+  .brutalist-button:hover {
+    transform: translate(-1px, -1px);
+    box-shadow: 4px 4px 0 hsl(var(--foreground));
+  }
+
+  .brutalist-button:active {
+    transform: translate(1px, 1px);
+    box-shadow: 2px 2px 0 hsl(var(--foreground));
+  }
+
+  .brutalist-button-primary {
+    @apply brutalist-button bg-primary text-primary-foreground;
+  }
+
+  .brutalist-button-secondary {
+    @apply brutalist-button bg-secondary text-secondary-foreground;
+  }
+
+  /* =====================================================
+     NEO-BRUTALIST INPUTS
+     ===================================================== */
+  
+  .brutalist-input {
+    @apply w-full px-4 py-2.5 text-sm;
+    @apply border-2 border-foreground bg-card text-foreground;
+    @apply placeholder:text-muted-foreground;
+    @apply focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2;
     border-radius: var(--radius);
   }
 
+  /* =====================================================
+     NEO-BRUTALIST PAGE HEADER
+     ===================================================== */
+  
+  .brutalist-page-header {
+    @apply border-b-3 border-foreground bg-card px-6 py-5;
+    box-shadow: 0 3px 0 hsl(var(--foreground));
+  }
+
+  .brutalist-page-title {
+    @apply text-2xl md:text-3xl font-black uppercase tracking-tight;
+  }
+
+  /* =====================================================
+     CHART COMPONENTS
+     ===================================================== */
+  
+  .brutalist-chart {
+    @apply border-2 border-foreground p-4;
+    border-radius: var(--radius);
+    box-shadow: 3px 3px 0 hsl(var(--foreground));
+  }
+
   .brutalist-chart-title {
-    @apply text-xs font-bold uppercase tracking-widest text-muted-foreground mb-3;
+    @apply text-xs font-bold uppercase tracking-[0.15em] text-muted-foreground mb-3;
   }
 
   .brutalist-chart-row {
@@ -259,7 +406,7 @@
   }
 
   .brutalist-chart-bar-bg {
-    @apply flex-1 h-4 bg-muted border border-border-subtle;
+    @apply flex-1 h-5 bg-muted border-2 border-foreground;
   }
 
   .brutalist-chart-bar {
@@ -267,24 +414,31 @@
   }
 
   .brutalist-chart-value {
-    @apply text-xs font-bold w-6 text-right;
+    @apply text-xs font-bold w-8 text-right;
   }
 
-  /* Document Layout */
+  /* =====================================================
+     DOCUMENT LAYOUT
+     ===================================================== */
+  
   .document-wrapper {
-    @apply bg-background max-w-5xl mx-auto border-2 border-foreground;
+    @apply bg-card max-w-5xl mx-auto border-2 border-foreground;
     border-radius: var(--radius);
+    box-shadow: 6px 6px 0 hsl(var(--foreground));
   }
 
   .document-page {
-    @apply bg-background p-8;
+    @apply bg-card p-8;
   }
 
   .document-page + .document-page {
     @apply border-t-2 border-foreground;
   }
 
-  /* Contact Block */
+  /* =====================================================
+     MISC COMPONENTS
+     ===================================================== */
+  
   .contact-block {
     @apply space-y-0.5;
   }
@@ -299,16 +453,20 @@
 
   /* Wizard Steps */
   .wizard-step {
-    @apply flex items-center gap-3 px-4 py-3 transition-colors;
+    @apply flex items-center gap-3 px-4 py-3;
+    @apply border-2 border-foreground;
     border-radius: var(--radius);
+    transition: all 0.15s ease;
   }
 
   .wizard-step-active {
     @apply bg-primary text-primary-foreground;
+    box-shadow: 3px 3px 0 hsl(var(--foreground));
   }
 
   .wizard-step-complete {
-    @apply bg-secondary/20 text-foreground border-2 border-secondary;
+    @apply bg-secondary text-secondary-foreground;
+    box-shadow: 2px 2px 0 hsl(var(--foreground));
   }
 
   .wizard-step-pending {
@@ -325,7 +483,7 @@
   }
 
   .data-table-header {
-    @apply bg-foreground text-background text-xs font-bold uppercase tracking-wider;
+    @apply bg-foreground text-background text-xs font-bold uppercase tracking-[0.15em];
   }
 }
 
@@ -334,13 +492,26 @@
     text-wrap: balance;
   }
 
+  /* Border width utilities */
+  .border-3 {
+    border-width: 3px;
+  }
+
+  .border-b-3 {
+    border-bottom-width: 3px;
+  }
+
+  .border-t-3 {
+    border-top-width: 3px;
+  }
+
   /* Typography scale */
   .text-display {
-    @apply text-4xl md:text-5xl font-black tracking-tight;
+    @apply text-4xl md:text-5xl lg:text-6xl font-black uppercase tracking-tight;
   }
 
   .text-headline {
-    @apply text-2xl md:text-3xl font-extrabold tracking-tight;
+    @apply text-2xl md:text-3xl font-black tracking-tight;
   }
 
   .text-subhead {
@@ -356,7 +527,35 @@
   }
 
   .text-micro {
-    @apply text-xs text-muted-foreground uppercase tracking-widest;
+    @apply text-xs font-bold uppercase tracking-[0.15em];
+  }
+
+  /* Hard shadow utilities */
+  .shadow-brutal {
+    box-shadow: 4px 4px 0 hsl(var(--foreground));
+  }
+
+  .shadow-brutal-sm {
+    box-shadow: 2px 2px 0 hsl(var(--foreground));
+  }
+
+  .shadow-brutal-lg {
+    box-shadow: 6px 6px 0 hsl(var(--foreground));
+  }
+
+  /* Hover lift effect */
+  .hover-lift {
+    @apply transition-all duration-100 ease-out;
+  }
+
+  .hover-lift:hover {
+    transform: translate(-2px, -2px);
+    box-shadow: 6px 6px 0 hsl(var(--foreground));
+  }
+
+  .hover-lift:active {
+    transform: translate(1px, 1px);
+    box-shadow: 2px 2px 0 hsl(var(--foreground));
   }
 
   /* Animation */
@@ -367,7 +566,7 @@
   @keyframes fadeIn {
     from {
       opacity: 0;
-      transform: translateY(4px);
+      transform: translateY(8px);
     }
     to {
       opacity: 1;

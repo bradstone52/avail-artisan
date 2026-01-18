@@ -71,7 +71,9 @@ export default function Auth() {
   if (authLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        <div className="border-2 border-foreground p-4 shadow-[4px_4px_0_hsl(var(--foreground))]" style={{ borderRadius: "var(--radius)" }}>
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        </div>
       </div>
     );
   }
@@ -81,18 +83,18 @@ export default function Auth() {
       <div className="w-full max-w-md animate-fade-in">
         {/* Logo and Title */}
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-primary mb-4">
-            <Building2 className="w-8 h-8 text-primary-foreground" />
+          <div className="inline-flex items-center justify-center w-20 h-20 border-3 border-foreground bg-primary shadow-[6px_6px_0_hsl(var(--foreground))] mb-6" style={{ borderRadius: "var(--radius)" }}>
+            <Building2 className="w-10 h-10 text-primary-foreground" />
           </div>
-          <h1 className="text-2xl font-display font-bold text-foreground">
-            Distribution Snapshot Builder
+          <h1 className="text-3xl font-black uppercase tracking-tight text-foreground">
+            Distribution Snapshot
           </h1>
-          <p className="text-muted-foreground mt-2">
+          <p className="text-muted-foreground mt-2 font-medium">
             Industrial CRE market intelligence
           </p>
         </div>
 
-        <Card className="border-border/50 shadow-lg">
+        <Card>
           <CardHeader className="text-center pb-4">
             <CardTitle>Sign In</CardTitle>
             <CardDescription>
@@ -103,9 +105,9 @@ export default function Auth() {
           <CardContent>
             <form onSubmit={handleLogin} className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="login-email">Email</Label>
+                <Label htmlFor="login-email" className="text-xs font-bold uppercase tracking-wider">Email</Label>
                 <div className="relative">
-                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Mail className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                   <Input
                     id="login-email"
                     type="email"
@@ -114,14 +116,14 @@ export default function Auth() {
                     onChange={(e) => setLoginEmail(e.target.value)}
                     disabled={isLoading}
                     required
-                    className="pl-10"
+                    className="pl-11"
                   />
                 </div>
               </div>
               <div className="space-y-2">
-                <Label htmlFor="login-password">Password</Label>
+                <Label htmlFor="login-password" className="text-xs font-bold uppercase tracking-wider">Password</Label>
                 <div className="relative">
-                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Lock className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                   <Input
                     id="login-password"
                     type="password"
@@ -130,7 +132,7 @@ export default function Auth() {
                     onChange={(e) => setLoginPassword(e.target.value)}
                     disabled={isLoading}
                     required
-                    className="pl-10"
+                    className="pl-11"
                   />
                 </div>
               </div>
@@ -151,13 +153,13 @@ export default function Auth() {
             </form>
 
             {/* Invite-only notice */}
-            <div className="mt-6 pt-6 border-t border-border">
+            <div className="mt-6 pt-6 border-t-2 border-border-subtle">
               <div className="text-center">
-                <p className="text-sm text-muted-foreground mb-3">
+                <p className="text-sm text-muted-foreground mb-3 font-medium">
                   New to the platform? You need an invite to join.
                 </p>
                 <Button
-                  variant="outline"
+                  variant="secondary"
                   onClick={() => navigate('/join')}
                   className="w-full"
                 >
@@ -168,7 +170,7 @@ export default function Auth() {
           </CardContent>
         </Card>
 
-        <p className="text-center text-xs text-muted-foreground mt-6">
+        <p className="text-center text-xs font-bold uppercase tracking-wider text-muted-foreground mt-6">
           Internal tool for brokerage team use only
         </p>
       </div>
