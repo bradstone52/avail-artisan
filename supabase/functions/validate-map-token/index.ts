@@ -97,9 +97,10 @@ serve(async (req) => {
       }
     }
 
-    console.log(`[validate-map-token] Token valid, org_id: ${link.org_id}, fetching listings`);
+    console.log(`[validate-map-token] Token valid, org_id: ${link.org_id}, listing_ids: ${link.listing_ids?.length || 0}`);
 
-    // Build query for listings - SCOPED BY ORG_ID to prevent duplicates
+    // Build query for listings
+    // PRIORITY: If listing_ids are specified, use ONLY those (ensures PDF and map match exactly)
     let query = supabase
       .from("listings")
       .select(`
@@ -117,18 +118,24 @@ serve(async (req) => {
         availability_date,
         latitude,
         longitude
-      `)
-      .eq("status", "Active")
-      .eq("include_in_issue", true);
+      `);
 
-    // CRITICAL: Scope by org_id to prevent cross-org duplicates
-    if (link.org_id) {
-      query = query.eq("org_id", link.org_id);
-      console.log(`[validate-map-token] Scoping to org: ${link.org_id}`);
+    // CRITICAL: If listing_ids are specified, use ONLY those - no other filters
+    if (link.listing_ids && link.listing_ids.length > 0) {
+      query = query.in("id", link.listing_ids);
+      console.log(`[validate-map-token] Using explicit listing_ids filter: ${link.listing_ids.length} IDs`);
     } else {
-      // Fallback: scope by the user who created the link
-      if (link.created_by) {
-        // Get the user's org
+      // Fallback: use org_id + filters (for legacy links without listing_ids)
+      query = query
+        .eq("status", "Active")
+        .eq("include_in_issue", true);
+
+      // Scope by org_id to prevent cross-org duplicates
+      if (link.org_id) {
+        query = query.eq("org_id", link.org_id);
+        console.log(`[validate-map-token] Scoping to org: ${link.org_id}`);
+      } else if (link.created_by) {
+        // Fallback: scope by the user who created the link
         const { data: membership } = await supabase
           .from("org_members")
           .select("org_id")
@@ -140,21 +147,16 @@ serve(async (req) => {
           console.log(`[validate-map-token] Scoping to creator's org: ${membership.org_id}`);
         }
       }
-    }
 
-    // Apply filters from share_link if present
-    const filters = link.filters || {};
-    
-    if (filters.minSF && typeof filters.minSF === "number") {
-      query = query.gte("size_sf", filters.minSF);
-    }
-    if (filters.maxSF && typeof filters.maxSF === "number") {
-      query = query.lte("size_sf", filters.maxSF);
-    }
-    
-    // If specific listing_ids are scoped, use those
-    if (link.listing_ids && link.listing_ids.length > 0) {
-      query = query.in("id", link.listing_ids);
+      // Apply filters from share_link if present
+      const filters = link.filters || {};
+      
+      if (filters.minSF && typeof filters.minSF === "number") {
+        query = query.gte("size_sf", filters.minSF);
+      }
+      if (filters.maxSF && typeof filters.maxSF === "number") {
+        query = query.lte("size_sf", filters.maxSF);
+      }
     }
 
     // Order by size descending

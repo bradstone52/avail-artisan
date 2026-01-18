@@ -3,6 +3,7 @@ import { useSearchParams, useNavigate, useLocation } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Input } from "@/components/ui/input";
 import { Search, MapPin, AlertCircle, Building, ArrowUpDown } from "lucide-react";
+import { toast } from "sonner";
 import mapboxgl from "mapbox-gl";
 import "mapbox-gl/dist/mapbox-gl.css";
 
@@ -93,8 +94,17 @@ export default function PublicDistributionMap() {
           return;
         }
 
-        setListings(listingsResult.data.listings || []);
-        console.log(`[PublicDistributionMap] Loaded ${listingsResult.data.listings?.length || 0} listings`);
+        // Deduplicate listings by listing_id client-side (belt and suspenders)
+        const rawListings = listingsResult.data.listings || [];
+        const seenIds = new Set<string>();
+        const uniqueListings = rawListings.filter((l: PublicListing) => {
+          if (seenIds.has(l.listing_id)) return false;
+          seenIds.add(l.listing_id);
+          return true;
+        });
+        
+        setListings(uniqueListings);
+        console.log(`[PublicDistributionMap] Loaded ${uniqueListings.length} unique listings (from ${rawListings.length} raw)`);
 
         // Handle Mapbox token response
         if (tokenResult.error) {
@@ -222,7 +232,8 @@ export default function PublicDistributionMap() {
       // Fly to location
       mapRef.current.flyTo({
         center: [listing.longitude, listing.latitude],
-        zoom: 14,
+        zoom: 13,
+        essential: true,
         duration: 1000,
       });
 
@@ -255,6 +266,9 @@ export default function PublicDistributionMap() {
           </div>
         `)
         .addTo(mapRef.current);
+    } else {
+      // No coordinates available - show toast
+      toast.info("Location not geocoded yet for this property");
     }
 
     // Scroll table row into view

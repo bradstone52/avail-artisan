@@ -191,27 +191,48 @@ serve(async (req) => {
     console.log(`[generate-pdf] Normalized PUBLIC_SITE_URL: ${publicSiteUrl}`);
     
     // Create or update share_links record for interactive map
+    // IMPORTANT: Include listing_ids so public map only shows PDF listings
     let mapShareToken: string | null = null;
+    const listingIdsForMap = safeListings.map(l => l.id).filter(Boolean) as string[];
+    console.log(`[generate-pdf] Preparing share link with ${listingIdsForMap.length} listing IDs`);
+    
     try {
       // Check if a share link already exists for this issue
       const { data: existingLink } = await supabase
         .from("share_links")
-        .select("token")
+        .select("id, token")
         .eq("issue_id", issueId)
         .eq("is_active", true)
         .single();
 
       if (existingLink?.token) {
         mapShareToken = existingLink.token;
-        console.log(`[generate-pdf] Using existing map share token: ${existingLink.token.substring(0, 8)}...`);
+        // Update the existing link with current listing_ids
+        const { error: updateError } = await supabase
+          .from("share_links")
+          .update({
+            listing_ids: listingIdsForMap,
+            filters: {
+              minSF: safeIssue.size_threshold,
+              maxSF: sizeThresholdMax,
+            },
+          })
+          .eq("id", existingLink.id);
+        
+        if (updateError) {
+          console.error(`[generate-pdf] Failed to update share link: ${updateError.message}`);
+        } else {
+          console.log(`[generate-pdf] Updated existing share token with ${listingIdsForMap.length} listings: ${existingLink.token.substring(0, 8)}...`);
+        }
       } else {
-        // Create new share link
+        // Create new share link with listing_ids
         const { data: newLink, error: linkError } = await supabase
           .from("share_links")
           .insert({
             issue_id: issueId,
             created_by: safeIssue.user_id,
             report_type: "distribution",
+            listing_ids: listingIdsForMap,
             filters: {
               minSF: safeIssue.size_threshold,
               maxSF: sizeThresholdMax,
@@ -225,7 +246,7 @@ serve(async (req) => {
           console.error(`[generate-pdf] Failed to create share link: ${linkError.message}`);
         } else if (newLink?.token) {
           mapShareToken = newLink.token;
-          console.log(`[generate-pdf] Created new map share token: ${newLink.token.substring(0, 8)}...`);
+          console.log(`[generate-pdf] Created new share token with ${listingIdsForMap.length} listings: ${newLink.token.substring(0, 8)}...`);
         }
       }
     } catch (err) {
