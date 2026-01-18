@@ -15,7 +15,8 @@ import {
   FilePlus, 
   Download,
   Sparkles,
-  Trash2
+  Trash2,
+  MapPin
 } from 'lucide-react';
 import { generateTemplateCSV, generateSampleData, downloadCSV } from '@/lib/sheet-parser';
 import { toast } from 'sonner';
@@ -238,6 +239,15 @@ export default function Dashboard() {
             <div className="bg-card border border-border rounded-xl p-5">
               <h3 className="font-display font-semibold mb-3">Quick Actions</h3>
               <div className="space-y-2">
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  className="w-full justify-start"
+                  onClick={() => navigate('/distribution-map')}
+                >
+                  <MapPin className="w-4 h-4 mr-2" />
+                  Open Distribution Map
+                </Button>
                 <Button 
                   variant="outline" 
                   size="sm" 
