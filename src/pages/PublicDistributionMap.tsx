@@ -26,15 +26,6 @@ interface PublicListing {
 type SortField = "address" | "city" | "size_sf" | "submarket";
 type SortDirection = "asc" | "desc";
 
-const MAPBOX_TOKEN = import.meta.env.VITE_MAPBOX_ACCESS_TOKEN;
-
-// Log token presence for debugging (not the actual token)
-if (MAPBOX_TOKEN) {
-  console.log("[PublicDistributionMap] Mapbox token is configured");
-} else {
-  console.warn("[PublicDistributionMap] VITE_MAPBOX_ACCESS_TOKEN is not set");
-}
-
 export default function PublicDistributionMap() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
@@ -44,6 +35,7 @@ export default function PublicDistributionMap() {
   const [listings, setListings] = useState<PublicListing[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [mapToken, setMapToken] = useState<string | null>(null);
   const [mapError, setMapError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [sortField, setSortField] = useState<SortField>("size_sf");
@@ -73,9 +65,9 @@ export default function PublicDistributionMap() {
     }
   }, [location, navigate]);
 
-  // Fetch listings
+  // Fetch listings and Mapbox token
   useEffect(() => {
-    async function fetchListings() {
+    async function fetchData() {
       if (!token) {
         setError("Invalid link - no token provided");
         setLoading(false);
@@ -83,31 +75,50 @@ export default function PublicDistributionMap() {
       }
 
       try {
-        const { data, error: fnError } = await supabase.functions.invoke(
-          "validate-map-token",
-          { body: { token } }
-        );
+        // Fetch listings and Mapbox token in parallel
+        const [listingsResult, tokenResult] = await Promise.all([
+          supabase.functions.invoke("validate-map-token", { body: { token } }),
+          supabase.functions.invoke("get-mapbox-token", { body: { token } })
+        ]);
 
-        if (fnError) {
-          throw new Error(fnError.message);
+        // Handle listings response
+        if (listingsResult.error) {
+          console.error("[PublicDistributionMap] Listings fetch error:", listingsResult.error);
+          throw new Error(listingsResult.error.message);
         }
 
-        if (!data?.valid) {
-          setError(data?.error || "Invalid or expired link");
+        if (!listingsResult.data?.valid) {
+          setError(listingsResult.data?.error || "Invalid or expired link");
           setLoading(false);
           return;
         }
 
-        setListings(data.listings || []);
+        setListings(listingsResult.data.listings || []);
+        console.log(`[PublicDistributionMap] Loaded ${listingsResult.data.listings?.length || 0} listings`);
+
+        // Handle Mapbox token response
+        if (tokenResult.error) {
+          console.error("[PublicDistributionMap] Mapbox token fetch error:", tokenResult.error);
+          setMapError("Failed to load map configuration");
+        } else if (tokenResult.data?.token) {
+          console.log("[PublicDistributionMap] Mapbox token received successfully");
+          setMapToken(tokenResult.data.token);
+        } else if (tokenResult.data?.error) {
+          console.error("[PublicDistributionMap] Mapbox token error:", tokenResult.data.error);
+          setMapError(tokenResult.data.error);
+        } else {
+          console.error("[PublicDistributionMap] No Mapbox token in response");
+          setMapError("Map token not available");
+        }
       } catch (err) {
-        console.error("Failed to fetch listings:", err);
+        console.error("[PublicDistributionMap] Failed to fetch data:", err);
         setError(err instanceof Error ? err.message : "Failed to load data");
       } finally {
         setLoading(false);
       }
     }
 
-    fetchListings();
+    fetchData();
   }, [token]);
 
   // Add markers function
@@ -253,13 +264,22 @@ export default function PublicDistributionMap() {
     }
   }, [listings]);
 
-  // Initialize map
+  // Initialize map when we have the token
   useEffect(() => {
-    if (!mapContainerRef.current || !MAPBOX_TOKEN || listings.length === 0) return;
-    if (mapRef.current) return; // Already initialized
+    // Need container, token, and either listings OR just show default map
+    if (!mapContainerRef.current || !mapToken) {
+      console.log("[PublicDistributionMap] Map init skipped - container:", !!mapContainerRef.current, "token:", !!mapToken);
+      return;
+    }
+    if (mapRef.current) {
+      console.log("[PublicDistributionMap] Map already initialized");
+      return;
+    }
+
+    console.log("[PublicDistributionMap] Initializing Mapbox map...");
 
     try {
-      mapboxgl.accessToken = MAPBOX_TOKEN;
+      mapboxgl.accessToken = mapToken;
       
       const map = new mapboxgl.Map({
         container: mapContainerRef.current,
@@ -274,16 +294,23 @@ export default function PublicDistributionMap() {
 
       // Add markers after map loads
       map.on("load", () => {
+        console.log("[PublicDistributionMap] Mapbox map loaded successfully");
         addMarkers();
         fitBoundsToMarkers();
         // Resize after initial load
         setTimeout(() => map.resize(), 100);
       });
 
-      // Handle map errors
+      // Handle map errors with detailed logging
       map.on("error", (e) => {
-        console.error("[PublicDistributionMap] Map error:", e);
-        setMapError("Failed to load map. Please check your internet connection.");
+        console.error("[PublicDistributionMap] Mapbox error event:", e?.error || e);
+        // Check for 401/403 which indicates token URL restriction issues
+        const errorMsg = e?.error?.message || e?.error?.toString() || "Unknown error";
+        if (errorMsg.includes("401") || errorMsg.includes("403") || errorMsg.includes("Unauthorized")) {
+          setMapError("Map access denied. Token may need URL restriction update.");
+        } else {
+          setMapError("Failed to load map. Please check your internet connection.");
+        }
       });
 
       // Setup ResizeObserver for the map container
@@ -316,7 +343,7 @@ export default function PublicDistributionMap() {
       console.error("[PublicDistributionMap] Failed to initialize map:", err);
       setMapError("Failed to initialize map. Please try refreshing the page.");
     }
-  }, [listings, addMarkers, fitBoundsToMarkers]);
+  }, [mapToken, addMarkers, fitBoundsToMarkers]);
 
   // Filter and sort listings
   const filteredListings = listings
@@ -513,22 +540,19 @@ export default function PublicDistributionMap() {
 
         {/* Right panel - map fills remaining space */}
         <div className="flex-1 min-w-0 h-full overflow-hidden relative">
-          {!MAPBOX_TOKEN ? (
-            <div className="absolute inset-0 flex items-center justify-center bg-muted">
-              <div className="text-center p-8 brutalist-card">
-                <AlertCircle className="w-12 h-12 text-destructive mx-auto mb-4" />
-                <p className="font-bold text-foreground mb-2">Map Unavailable</p>
-                <p className="text-sm text-muted-foreground">
-                  Mapbox token not configured.
-                </p>
-              </div>
-            </div>
-          ) : mapError ? (
+          {mapError ? (
             <div className="absolute inset-0 flex items-center justify-center bg-muted">
               <div className="text-center p-8 brutalist-card">
                 <AlertCircle className="w-12 h-12 text-destructive mx-auto mb-4" />
                 <p className="font-bold text-foreground mb-2">Map Error</p>
                 <p className="text-sm text-muted-foreground">{mapError}</p>
+              </div>
+            </div>
+          ) : !mapToken ? (
+            <div className="absolute inset-0 flex items-center justify-center bg-muted">
+              <div className="text-center p-8">
+                <div className="animate-spin rounded-full h-8 w-8 border-4 border-primary border-t-transparent mx-auto mb-4" />
+                <p className="text-sm text-muted-foreground">Loading map...</p>
               </div>
             </div>
           ) : (

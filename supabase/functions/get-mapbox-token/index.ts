@@ -1,0 +1,93 @@
+import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+};
+
+serve(async (req) => {
+  // Handle CORS preflight
+  if (req.method === "OPTIONS") {
+    return new Response(null, { headers: corsHeaders });
+  }
+
+  try {
+    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+    const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+    const mapboxToken = Deno.env.get("MAPBOX_ACCESS_TOKEN");
+    
+    console.log("[get-mapbox-token] Request received");
+    console.log("[get-mapbox-token] MAPBOX_ACCESS_TOKEN present:", !!mapboxToken);
+
+    if (!mapboxToken) {
+      console.error("[get-mapbox-token] MAPBOX_ACCESS_TOKEN not configured");
+      return new Response(
+        JSON.stringify({ error: "Mapbox token not configured" }),
+        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // Get the share token from the request body
+    let shareToken: string | null = null;
+    
+    if (req.method === "POST") {
+      const body = await req.json().catch(() => ({}));
+      shareToken = body.token;
+    }
+
+    if (!shareToken) {
+      console.log("[get-mapbox-token] Missing share token");
+      return new Response(
+        JSON.stringify({ error: "Missing share token" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    console.log(`[get-mapbox-token] Validating share token: ${shareToken.substring(0, 8)}...`);
+
+    // Validate the share token before returning the Mapbox token
+    const supabase = createClient(supabaseUrl, supabaseServiceKey);
+    
+    const { data: shareLink, error: linkError } = await supabase
+      .from("share_links")
+      .select("id, token, is_active, expires_at")
+      .eq("token", shareToken)
+      .eq("is_active", true)
+      .single();
+
+    if (linkError || !shareLink) {
+      console.log(`[get-mapbox-token] Invalid share token: ${linkError?.message || "not found"}`);
+      return new Response(
+        JSON.stringify({ error: "Invalid or expired share link" }),
+        { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // Check expiration
+    if (shareLink.expires_at) {
+      const expiresAt = new Date(shareLink.expires_at);
+      if (expiresAt < new Date()) {
+        console.log(`[get-mapbox-token] Share link expired at ${shareLink.expires_at}`);
+        return new Response(
+          JSON.stringify({ error: "Share link has expired" }),
+          { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+    }
+
+    console.log("[get-mapbox-token] Share token valid, returning Mapbox token");
+
+    return new Response(
+      JSON.stringify({ token: mapboxToken }),
+      { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+    );
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : "Unknown error";
+    console.error(`[get-mapbox-token] Error: ${msg}`);
+    return new Response(
+      JSON.stringify({ error: msg }),
+      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+    );
+  }
+});
