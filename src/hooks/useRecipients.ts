@@ -9,6 +9,7 @@ export interface Recipient {
   title: string | null;
   email: string;
   notes: string | null;
+  default_owner: string;
   created_at: string;
 }
 
@@ -27,7 +28,11 @@ export function useRecipients() {
         .order("company_name", { ascending: true });
 
       if (error) throw error;
-      return data as Recipient[];
+      // Map default_owner for each recipient
+      return (data || []).map(r => ({
+        ...r,
+        default_owner: (r as any).default_owner || "Unassigned",
+      })) as Recipient[];
     },
   });
 
@@ -35,7 +40,14 @@ export function useRecipients() {
     mutationFn: async (recipient: RecipientInsert) => {
       const { data, error } = await supabase
         .from("distribution_recipients")
-        .insert(recipient)
+        .insert({
+          company_name: recipient.company_name,
+          contact_name: recipient.contact_name,
+          title: recipient.title,
+          email: recipient.email,
+          notes: recipient.notes,
+          default_owner: recipient.default_owner || "Unassigned",
+        })
         .select()
         .single();
 
@@ -55,7 +67,14 @@ export function useRecipients() {
     mutationFn: async ({ id, ...updates }: RecipientUpdate) => {
       const { data, error } = await supabase
         .from("distribution_recipients")
-        .update(updates)
+        .update({
+          company_name: updates.company_name,
+          contact_name: updates.contact_name,
+          title: updates.title,
+          email: updates.email,
+          notes: updates.notes,
+          default_owner: updates.default_owner || "Unassigned",
+        })
         .eq("id", id)
         .select()
         .single();
