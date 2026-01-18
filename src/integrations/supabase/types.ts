@@ -490,6 +490,8 @@ export type Database = {
           display_address: string | null
           dock_doors: number | null
           drive_in_doors: number | null
+          geocode_source: string | null
+          geocoded_at: string | null
           gross_rate: string | null
           id: string
           include_in_issue: boolean
@@ -543,6 +545,8 @@ export type Database = {
           display_address?: string | null
           dock_doors?: number | null
           drive_in_doors?: number | null
+          geocode_source?: string | null
+          geocoded_at?: string | null
           gross_rate?: string | null
           id?: string
           include_in_issue?: boolean
@@ -596,6 +600,8 @@ export type Database = {
           display_address?: string | null
           dock_doors?: number | null
           drive_in_doors?: number | null
+          geocode_source?: string | null
+          geocoded_at?: string | null
           gross_rate?: string | null
           id?: string
           include_in_issue?: boolean
@@ -777,6 +783,7 @@ export type Database = {
           is_active: boolean
           issue_id: string | null
           listing_ids: string[] | null
+          org_id: string | null
           report_type: string
           token: string
         }
@@ -789,6 +796,7 @@ export type Database = {
           is_active?: boolean
           issue_id?: string | null
           listing_ids?: string[] | null
+          org_id?: string | null
           report_type?: string
           token?: string
         }
@@ -801,6 +809,7 @@ export type Database = {
           is_active?: boolean
           issue_id?: string | null
           listing_ids?: string[] | null
+          org_id?: string | null
           report_type?: string
           token?: string
         }
@@ -810,6 +819,13 @@ export type Database = {
             columns: ["issue_id"]
             isOneToOne: false
             referencedRelation: "issues"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "share_links_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "orgs"
             referencedColumns: ["id"]
           },
         ]

@@ -15,6 +15,7 @@ import JoinTeam from "./pages/JoinTeam";
 import Recipients from "./pages/Recipients";
 import TrackingRedirect from "./pages/TrackingRedirect";
 import PublicDistributionMap from "./pages/PublicDistributionMap";
+import DistributionMapViewer from "./pages/DistributionMapViewer";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -38,6 +39,8 @@ const App = () => (
             <Route path="/join-team" element={<JoinTeam />} />
             <Route path="/join" element={<JoinTeam />} />
             <Route path="/recipients" element={<Recipients />} />
+            {/* Authenticated distribution map viewer */}
+            <Route path="/distribution-map" element={<DistributionMapViewer />} />
             {/* Public distribution map - tokenized access, no auth required */}
             <Route path="/public/distribution-map" element={<PublicDistributionMap />} />
             {/* Backwards compatibility alias for old PDFs that used /dashboard/public/... */}
