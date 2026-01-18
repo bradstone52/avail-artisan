@@ -154,6 +154,10 @@
     @apply border-border;
   }
 
+  html, body, #root {
+    height: 100%;
+  }
+
   html {
     font-family: 'Inter', system-ui, -apple-system, sans-serif;
   }
@@ -161,6 +165,7 @@
   body {
     @apply bg-background text-foreground antialiased;
     font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+    margin: 0;
   }
 
   /* Neo-Brutalist Typography - Very bold, tight tracking */
