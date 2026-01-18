@@ -56,9 +56,11 @@ export default function PublicDistributionMap() {
   }, [token]);
 
   // Block navigation to other routes
+  // Valid paths include both /public/distribution-map and /dashboard/public/distribution-map (for old PDFs)
   useEffect(() => {
     const storedToken = sessionStorage.getItem("map_share_token");
-    if (storedToken && !location.pathname.startsWith("/public/distribution-map")) {
+    const isValidMapPath = location.pathname.includes("/public/distribution-map");
+    if (storedToken && !isValidMapPath) {
       navigate(`/public/distribution-map?token=${storedToken}`, { replace: true });
     }
   }, [location, navigate]);
@@ -465,9 +467,12 @@ export default function PublicDistributionMap() {
           <div className="w-full lg:w-[55%] xl:w-[60%] h-[50vh] lg:h-auto relative">
             {!MAPBOX_TOKEN ? (
               <div className="absolute inset-0 flex items-center justify-center bg-muted">
-                <div className="text-center p-8">
-                  <MapPin className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-                  <p className="text-muted-foreground">Map not available</p>
+                <div className="text-center p-8 brutalist-card">
+                  <AlertCircle className="w-12 h-12 text-warning mx-auto mb-4" />
+                  <p className="font-bold text-foreground mb-2">Mapbox Token Missing</p>
+                  <p className="text-sm text-muted-foreground">
+                    Set <code className="bg-muted px-1 py-0.5 rounded text-xs">VITE_MAPBOX_ACCESS_TOKEN</code> in Lovable environment variables
+                  </p>
                 </div>
               </div>
             ) : (

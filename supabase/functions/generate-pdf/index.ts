@@ -180,7 +180,15 @@ serve(async (req) => {
     const generatedDate = new Date(generatedAtIso);
 
     // Get the public site URL for the interactive map link
-    const publicSiteUrl = Deno.env.get("PUBLIC_SITE_URL") || "https://avail-artisan.lovable.app";
+    // Normalize: trim whitespace, remove trailing slash, remove /dashboard suffix if present
+    let publicSiteUrl = (Deno.env.get("PUBLIC_SITE_URL") || "https://avail-artisan.lovable.app").trim();
+    if (publicSiteUrl.endsWith("/")) {
+      publicSiteUrl = publicSiteUrl.slice(0, -1);
+    }
+    if (publicSiteUrl.endsWith("/dashboard")) {
+      publicSiteUrl = publicSiteUrl.slice(0, -10); // Remove "/dashboard"
+    }
+    console.log(`[generate-pdf] Normalized PUBLIC_SITE_URL: ${publicSiteUrl}`);
     
     // Create or update share_links record for interactive map
     let mapShareToken: string | null = null;
