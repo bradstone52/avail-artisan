@@ -497,9 +497,11 @@ export type Database = {
           land_acres: string | null
           landlord: string | null
           last_verified_date: string | null
+          latitude: number | null
           link: string | null
           listing_id: string
           listing_type: string | null
+          longitude: number | null
           mua: string | null
           notes_public: string | null
           office_percent: string | null
@@ -548,9 +550,11 @@ export type Database = {
           land_acres?: string | null
           landlord?: string | null
           last_verified_date?: string | null
+          latitude?: number | null
           link?: string | null
           listing_id: string
           listing_type?: string | null
+          longitude?: number | null
           mua?: string | null
           notes_public?: string | null
           office_percent?: string | null
@@ -599,9 +603,11 @@ export type Database = {
           land_acres?: string | null
           landlord?: string | null
           last_verified_date?: string | null
+          latitude?: number | null
           link?: string | null
           listing_id?: string
           listing_type?: string | null
+          longitude?: number | null
           mua?: string | null
           notes_public?: string | null
           office_percent?: string | null
@@ -760,6 +766,53 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      share_links: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          expires_at: string | null
+          filters: Json
+          id: string
+          is_active: boolean
+          issue_id: string | null
+          listing_ids: string[] | null
+          report_type: string
+          token: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          expires_at?: string | null
+          filters?: Json
+          id?: string
+          is_active?: boolean
+          issue_id?: string | null
+          listing_ids?: string[] | null
+          report_type?: string
+          token?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          expires_at?: string | null
+          filters?: Json
+          id?: string
+          is_active?: boolean
+          issue_id?: string | null
+          listing_ids?: string[] | null
+          report_type?: string
+          token?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "share_links_issue_id_fkey"
+            columns: ["issue_id"]
+            isOneToOne: false
+            referencedRelation: "issues"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       sheet_connections: {
         Row: {

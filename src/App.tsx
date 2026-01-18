@@ -14,6 +14,7 @@ import AdminUsers from "./pages/AdminUsers";
 import JoinTeam from "./pages/JoinTeam";
 import Recipients from "./pages/Recipients";
 import TrackingRedirect from "./pages/TrackingRedirect";
+import PublicDistributionMap from "./pages/PublicDistributionMap";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -37,6 +38,8 @@ const App = () => (
             <Route path="/join-team" element={<JoinTeam />} />
             <Route path="/join" element={<JoinTeam />} />
             <Route path="/recipients" element={<Recipients />} />
+            {/* Public distribution map - tokenized access, no auth required */}
+            <Route path="/public/distribution-map" element={<PublicDistributionMap />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>

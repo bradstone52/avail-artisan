@@ -57,6 +57,7 @@ interface PdfGenerationResult {
   pdf_filename: string;
   pdf_filesize: number;
   pdf_share_token: string;
+  map_share_token?: string;
 }
 
 const corsHeaders = {
@@ -178,7 +179,56 @@ serve(async (req) => {
     const generatedAtIso = new Date().toISOString();
     const generatedDate = new Date(generatedAtIso);
 
-    const html = buildPdfHtml(safeIssue, safeListings, { includeDetails, sizeThresholdMax, generatedDate });
+    // Get the public site URL for the interactive map link
+    const publicSiteUrl = Deno.env.get("PUBLIC_SITE_URL") || "https://avail-artisan.lovable.app";
+    
+    // Create or update share_links record for interactive map
+    let mapShareToken: string | null = null;
+    try {
+      // Check if a share link already exists for this issue
+      const { data: existingLink } = await supabase
+        .from("share_links")
+        .select("token")
+        .eq("issue_id", issueId)
+        .eq("is_active", true)
+        .single();
+
+      if (existingLink?.token) {
+        mapShareToken = existingLink.token;
+        console.log(`[generate-pdf] Using existing map share token: ${existingLink.token.substring(0, 8)}...`);
+      } else {
+        // Create new share link
+        const { data: newLink, error: linkError } = await supabase
+          .from("share_links")
+          .insert({
+            issue_id: issueId,
+            created_by: safeIssue.user_id,
+            report_type: "distribution",
+            filters: {
+              minSF: safeIssue.size_threshold,
+              maxSF: sizeThresholdMax,
+            },
+            is_active: true,
+          })
+          .select("token")
+          .single();
+
+        if (linkError) {
+          console.error(`[generate-pdf] Failed to create share link: ${linkError.message}`);
+        } else if (newLink?.token) {
+          mapShareToken = newLink.token;
+          console.log(`[generate-pdf] Created new map share token: ${newLink.token.substring(0, 8)}...`);
+        }
+      }
+    } catch (err) {
+      console.error(`[generate-pdf] Error creating share link: ${err instanceof Error ? err.message : String(err)}`);
+    }
+
+    // Build the interactive map URL
+    const mapUrl = mapShareToken ? `${publicSiteUrl}/public/distribution-map?token=${mapShareToken}` : null;
+    console.log(`[generate-pdf] Interactive map URL: ${mapUrl || "(none)"}`);
+
+    const html = buildPdfHtml(safeIssue, safeListings, { includeDetails, sizeThresholdMax, generatedDate, mapUrl });
 
     // Debug: confirm HTML contains the cover image URL
     if (safeIssue.cover_image_url) {
@@ -225,6 +275,7 @@ serve(async (req) => {
       pdf_filename: pdfFilename,
       pdf_filesize: pdfBytes.byteLength,
       pdf_share_token: shareToken,
+      map_share_token: mapShareToken || undefined,
     };
 
     return new Response(JSON.stringify(result), {
@@ -245,10 +296,11 @@ serve(async (req) => {
 // ============ NEO-BRUTALIST PDF HTML TEMPLATE ============
 // Redesigned cover with hero image, cleaner layout
 
-function buildPdfHtml(issue: any, listings: any[], opts?: { includeDetails?: boolean; sizeThresholdMax?: number; generatedDate?: Date }) {
+function buildPdfHtml(issue: any, listings: any[], opts?: { includeDetails?: boolean; sizeThresholdMax?: number; generatedDate?: Date; mapUrl?: string | null }) {
   const includeDetails = opts?.includeDetails ?? false;
   const sizeThresholdMax = opts?.sizeThresholdMax ?? 500000;
   const generatedDate = opts?.generatedDate ?? new Date();
+  const mapUrl = opts?.mapUrl ?? null;
 
   // Cover image: use uploaded image or null (no fallback)
   const coverImageUrl: string | null = issue.cover_image_url || null;
@@ -460,7 +512,7 @@ body {
 /* Clean unboxed KPI for listings tracked */
 .cover-count {
   display: block;
-  margin-bottom: 48px;
+  margin-bottom: 24px;
 }
 
 .cover-count strong {
@@ -477,6 +529,40 @@ body {
   text-transform: uppercase;
   letter-spacing: 0.08em;
   color: var(--muted);
+}
+
+/* Interactive Map Button - Neo-Brutalist Style */
+.map-button-wrapper {
+  margin-bottom: 32px;
+}
+
+.map-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  background: var(--blue);
+  color: white;
+  border: 3px solid var(--ink);
+  padding: 14px 24px;
+  font-size: 10pt;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  text-decoration: none;
+  box-shadow: 4px 4px 0 var(--ink);
+  cursor: pointer;
+}
+
+.map-button:hover {
+  background: #1d4ed8;
+}
+
+.map-button svg {
+  width: 18px;
+  height: 18px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
 }
 
 .cover-contacts {
@@ -737,6 +823,15 @@ tbody tr:last-child td {
       <strong>${total}</strong>
       <span>Tracked listings</span>
     </div>
+
+    ${mapUrl ? `
+    <div class="map-button-wrapper">
+      <a href="${mapUrl}" class="map-button" target="_blank" rel="noopener noreferrer">
+        <svg viewBox="0 0 24 24"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>
+        View Interactive Map
+      </a>
+    </div>
+    ` : ``}
 
     <div class="cover-contacts">
       <div class="contact-block">
