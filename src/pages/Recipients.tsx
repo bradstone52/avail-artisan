@@ -197,6 +197,10 @@ export default function Recipients() {
     updateBatchStatus.mutate({ batchId: viewingBatchId, status });
   };
 
+  const handleUpdateBatchStatusFromList = (batchId: string, status: string) => {
+    updateBatchStatus.mutate({ batchId, status });
+  };
+
   return (
     <AppLayout>
       <div className="p-6 space-y-6">
@@ -267,6 +271,7 @@ export default function Recipients() {
                 batches={batchesWithStats.data || []}
                 isLoading={allBatchesLoading || batchesWithStats.isLoading}
                 onOpenBatch={handleOpenBatch}
+                onUpdateBatchStatus={handleUpdateBatchStatusFromList}
               />
             )}
           </TabsContent>

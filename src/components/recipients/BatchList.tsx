@@ -8,6 +8,13 @@ import {
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { FolderOpen } from "lucide-react";
 import { Batch } from "@/hooks/useBatches";
 import { format } from "date-fns";
@@ -21,9 +28,10 @@ interface BatchListProps {
   batches: BatchWithStats[];
   isLoading: boolean;
   onOpenBatch: (batchId: string) => void;
+  onUpdateBatchStatus: (batchId: string, status: string) => void;
 }
 
-export function BatchList({ batches, isLoading, onOpenBatch }: BatchListProps) {
+export function BatchList({ batches, isLoading, onOpenBatch, onUpdateBatchStatus }: BatchListProps) {
   if (isLoading) {
     return <div className="text-muted-foreground p-4">Loading batches...</div>;
   }
@@ -43,7 +51,7 @@ export function BatchList({ batches, isLoading, onOpenBatch }: BatchListProps) {
           <TableRow>
             <TableHead className="w-[300px]">Batch Name</TableHead>
             <TableHead className="w-[120px]">Created</TableHead>
-            <TableHead className="w-[100px]">Status</TableHead>
+            <TableHead className="w-[130px]">Status</TableHead>
             <TableHead className="w-[120px] text-center">Total Recipients</TableHead>
             <TableHead className="w-[100px] text-center">Replied</TableHead>
             <TableHead className="w-[100px]">Actions</TableHead>
@@ -57,9 +65,22 @@ export function BatchList({ batches, isLoading, onOpenBatch }: BatchListProps) {
                 {format(new Date(batch.created_at), "MMM d, yyyy")}
               </TableCell>
               <TableCell>
-                <Badge variant={batch.status === "Active" ? "default" : "secondary"}>
-                  {batch.status}
-                </Badge>
+                <Select
+                  value={batch.status}
+                  onValueChange={(value) => onUpdateBatchStatus(batch.id, value)}
+                >
+                  <SelectTrigger className="h-8 w-[110px]">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Active">
+                      <Badge variant="default" className="font-normal">Active</Badge>
+                    </SelectItem>
+                    <SelectItem value="Closed">
+                      <Badge variant="secondary" className="font-normal">Closed</Badge>
+                    </SelectItem>
+                  </SelectContent>
+                </Select>
               </TableCell>
               <TableCell className="text-center">{batch.totalRecipients}</TableCell>
               <TableCell className="text-center">
