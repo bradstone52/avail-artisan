@@ -11,3 +11,6 @@ verify_jwt = false
 
 [functions.generate-pdf]
 verify_jwt = false
+
+[functions.validate-map-token]
+verify_jwt = false
