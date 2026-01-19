@@ -15,6 +15,7 @@ serve(async (req) => {
   try {
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+    const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
     const mapboxToken = Deno.env.get("MAPBOX_ACCESS_TOKEN");
     
     console.log("[get-mapbox-token] Request received");
@@ -28,14 +29,56 @@ serve(async (req) => {
       );
     }
 
-    // Get the share token from the request body
-    let shareToken: string | null = null;
-    
+    // Parse request body
+    let body: { token?: string; authenticated?: boolean } = {};
     if (req.method === "POST") {
-      const body = await req.json().catch(() => ({}));
-      shareToken = body.token;
+      body = await req.json().catch(() => ({}));
     }
 
+    const shareToken = body.token;
+    const isAuthenticatedRequest = body.authenticated === true;
+
+    // Option 1: Authenticated user request (no share token needed)
+    if (isAuthenticatedRequest) {
+      console.log("[get-mapbox-token] Authenticated request mode");
+      
+      // Validate the user's JWT from the Authorization header
+      const authHeader = req.headers.get("Authorization");
+      if (!authHeader) {
+        console.log("[get-mapbox-token] Missing Authorization header for authenticated request");
+        return new Response(
+          JSON.stringify({ error: "Authorization required" }),
+          { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
+      // Create a client with the user's token to verify they're authenticated
+      const supabaseClient = createClient(supabaseUrl, supabaseAnonKey, {
+        global: {
+          headers: { Authorization: authHeader },
+        },
+      });
+
+      const { data: { user }, error: userError } = await supabaseClient.auth.getUser();
+
+      if (userError || !user) {
+        console.log("[get-mapbox-token] Invalid or expired user token:", userError?.message);
+        return new Response(
+          JSON.stringify({ error: "Invalid or expired session" }),
+          { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
+      console.log(`[get-mapbox-token] Authenticated user: ${user.id.substring(0, 8)}...`);
+      console.log("[get-mapbox-token] Returning Mapbox token for authenticated user");
+
+      return new Response(
+        JSON.stringify({ token: mapboxToken }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // Option 2: Public share token validation
     if (!shareToken) {
       console.log("[get-mapbox-token] Missing share token");
       return new Response(
