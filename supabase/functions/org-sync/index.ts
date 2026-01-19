@@ -172,14 +172,23 @@ function shouldIncludeRow(row: unknown[], headers: string[]): { include: boolean
   return { include: true };
 }
 
-function mapRowToListing(row: string[], headers: string[], userId: string, orgId: string): Record<string, unknown> {
+// Safely get cell value as string
+function getCellAsString(value: unknown): string {
+  if (value === null || value === undefined) return '';
+  if (typeof value === 'string') return value.trim();
+  if (typeof value === 'boolean') return value ? 'true' : 'false';
+  if (typeof value === 'number') return String(value);
+  return String(value).trim();
+}
+
+function mapRowToListing(row: unknown[], headers: string[], userId: string, orgId: string): Record<string, unknown> {
   const listing: Record<string, unknown> = { user_id: userId, org_id: orgId };
 
   for (const mapping of FIELD_MAPPINGS) {
     const headerIdx = findHeaderIndex(headers, mapping.header);
     if (headerIdx === -1) continue;
 
-    const rawValue = row[headerIdx]?.trim() || '';
+    const rawValue = getCellAsString(row[headerIdx]);
     if (!rawValue) continue;
 
     if (mapping.type === 'number') {
