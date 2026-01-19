@@ -1035,7 +1035,6 @@ async function convertHtmlToPdf(html: string, generatedDate?: Date): Promise<Uin
         document_content: html,
         name: documentName,
         prince_options: {
-          profile: "PDF/A-1b",
           network_timeout: 30, // 30 seconds for external resources
         },
       }),
