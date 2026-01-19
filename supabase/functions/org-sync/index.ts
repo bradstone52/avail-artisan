@@ -170,9 +170,10 @@ async function fetchHyperlinksForColumn(params: {
   const colLetter = columnIndexToLetter(colIndex);
   const range = `${sheetName}!${colLetter}1:${colLetter}${rowCount}`;
 
+  // NOTE: Values API won't return rich-text hyperlink URLs. We need gridData.
   const url = `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}?includeGridData=true&ranges=${encodeURIComponent(
     range
-  )}&fields=sheets(data(rowData(values(hyperlink,formattedValue,userEnteredValue))))`;
+  )}&fields=sheets(properties(title),data(rowData(values(hyperlink,formattedValue,userEnteredValue))))`;
 
   const res = await fetch(url, { headers: { Authorization: `Bearer ${accessToken}` } });
   if (!res.ok) {
@@ -182,28 +183,40 @@ async function fetchHyperlinksForColumn(params: {
   }
 
   const json = await res.json();
-  const rowData = json?.sheets?.[0]?.data?.[0]?.rowData ?? [];
+  const sheet = (json?.sheets ?? []).find((s: any) => s?.properties?.title === sheetName) ?? json?.sheets?.[0];
+  const rowData = sheet?.data?.[0]?.rowData ?? [];
 
-  // rowData[i].values[0] corresponds to row i+1
-  return rowData.map((r: any) => {
+  // Ensure the array index aligns to the actual sheet row number (1-indexed)
+  const result: (string | undefined)[] = Array.from({ length: rowCount }, () => undefined);
+
+  for (let i = 0; i < rowCount; i++) {
+    const r = rowData[i];
     const cell = r?.values?.[0];
+
     const hyperlink = cell?.hyperlink as string | undefined;
-    if (hyperlink) return hyperlink;
+    if (hyperlink) {
+      result[i] = hyperlink;
+      continue;
+    }
 
     const formula = cell?.userEnteredValue?.formulaValue as string | undefined;
     if (formula) {
       const extracted = extractHyperlinkUrl(formula);
-      return extracted || undefined;
+      if (extracted) {
+        result[i] = extracted;
+        continue;
+      }
     }
 
     // If user pasted a naked URL, formattedValue may be the URL
     const formatted = cell?.formattedValue as string | undefined;
     if (formatted && (formatted.startsWith('http://') || formatted.startsWith('https://'))) {
-      return formatted;
+      result[i] = formatted;
+      continue;
     }
+  }
 
-    return undefined;
-  });
+  return result;
 }
 
 function shouldIncludeRow(row: unknown[], headers: string[]): { include: boolean; reason?: string } {
@@ -573,7 +586,12 @@ serve(async (req) => {
           })
         : [];
 
-    // Stage listings
+    if (brochureIdx !== -1) {
+      const found = brochureHyperlinks.filter(Boolean).length;
+      console.log(
+        `[Org Sync] Brochure URL column index=${brochureIdx}; rich-link URLs found=${found}/${brochureHyperlinks.length}`
+      );
+    }
     const stagedListings: Record<string, unknown>[] = [];
     const seenListingIds = new Set<string>();
     const skippedBreakdown = {

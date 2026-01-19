@@ -205,7 +205,7 @@ async function fetchHyperlinksForColumn(params: {
 
   const url = `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}?includeGridData=true&ranges=${encodeURIComponent(
     range
-  )}&fields=sheets(data(rowData(values(hyperlink,formattedValue,userEnteredValue))))`;
+  )}&fields=sheets(properties(title),data(rowData(values(hyperlink,formattedValue,userEnteredValue))))`;
 
   const res = await fetch(url, { headers: { Authorization: `Bearer ${accessToken}` } });
   if (!res.ok) {
@@ -215,26 +215,38 @@ async function fetchHyperlinksForColumn(params: {
   }
 
   const json = await res.json();
-  const rowData = json?.sheets?.[0]?.data?.[0]?.rowData ?? [];
+  const sheet = (json?.sheets ?? []).find((s: any) => s?.properties?.title === sheetName) ?? json?.sheets?.[0];
+  const rowData = sheet?.data?.[0]?.rowData ?? [];
 
-  return rowData.map((r: any) => {
+  const result: (string | undefined)[] = Array.from({ length: rowCount }, () => undefined);
+
+  for (let i = 0; i < rowCount; i++) {
+    const r = rowData[i];
     const cell = r?.values?.[0];
+
     const hyperlink = cell?.hyperlink as string | undefined;
-    if (hyperlink) return hyperlink;
+    if (hyperlink) {
+      result[i] = hyperlink;
+      continue;
+    }
 
     const formula = cell?.userEnteredValue?.formulaValue as string | undefined;
     if (formula) {
       const extracted = extractHyperlinkUrl(formula);
-      return extracted || undefined;
+      if (extracted) {
+        result[i] = extracted;
+        continue;
+      }
     }
 
     const formatted = cell?.formattedValue as string | undefined;
     if (formatted && (formatted.startsWith('http://') || formatted.startsWith('https://'))) {
-      return formatted;
+      result[i] = formatted;
+      continue;
     }
+  }
 
-    return undefined;
-  });
+  return result;
 }
 
 interface SizeThresholds {
@@ -519,6 +531,13 @@ serve(async (req) => {
             rowCount: sheetRowCount,
           })
         : [];
+
+    if (brochureIdx !== -1) {
+      const found = brochureHyperlinks.filter(Boolean).length;
+      console.log(
+        `[Scheduled Sync] Brochure URL column index=${brochureIdx}; rich-link URLs found=${found}/${brochureHyperlinks.length}`
+      );
+    }
 
     // Get the user_id from the connection (admin who set it up)
     const userId = connection.user_id;
