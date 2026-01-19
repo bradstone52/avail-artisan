@@ -143,27 +143,28 @@ export function DistributionMapView({
 
   // Select listing function - reads coordinates from the item directly
   const selectListing = useCallback((listingId: string) => {
-    setSelectedListingId(listingId);
     const listing = mappableListings.find((l) => l.id === listingId);
 
     if (!listing || !mapRef.current) return;
+
+    // Update state
+    setSelectedListingId(listingId);
 
     // Close existing popup
     if (popupRef.current) {
       popupRef.current.remove();
     }
 
-    // Update marker styles
+    // Update marker styles - HIDE non-selected markers, show only selected
     markersRef.current.forEach((marker, id) => {
       const el = marker.getElement();
       if (id === listingId) {
+        el.style.display = "flex"; // Show selected
         el.style.background = "hsl(48 97% 53%)"; // Yellow for selected
         el.style.boxShadow = "4px 4px 0 hsl(0 0% 7%)";
         el.style.zIndex = "100";
       } else {
-        el.style.background = "hsl(217 91% 53%)";
-        el.style.boxShadow = "3px 3px 0 hsl(0 0% 7%)";
-        el.style.zIndex = "";
+        el.style.display = "none"; // Hide non-selected
       }
     });
 
@@ -182,7 +183,7 @@ export function DistributionMapView({
       duration: 1000,
     });
 
-    // Show popup
+    // Show popup - enlarged with more padding and larger text
     const driveIn =
       listing.drive_in_doors === 0 || listing.drive_in_doors == null
         ? "—"
@@ -191,19 +192,20 @@ export function DistributionMapView({
     popupRef.current = new mapboxgl.Popup({
       closeButton: true,
       closeOnClick: false,
-      offset: 25,
+      offset: 30,
       className: "brutalist-popup",
+      maxWidth: "320px",
     })
       .setLngLat([lng, lat])
       .setHTML(`
-        <div style="font-family: Inter, sans-serif; padding: 8px;">
-          <div style="font-weight: 800; font-size: 14px; color: #111; margin-bottom: 4px;">
+        <div style="font-family: Inter, sans-serif; padding: 14px 16px;">
+          <div style="font-weight: 800; font-size: 16px; color: #111; margin-bottom: 6px; line-height: 1.3;">
             ${listing.property_name || listing.display_address || listing.address}
           </div>
-          <div style="font-size: 12px; color: #555; margin-bottom: 8px;">
+          <div style="font-size: 13px; color: #555; margin-bottom: 12px;">
             ${listing.city} · ${listing.submarket}
           </div>
-          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; font-size: 11px;">
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; font-size: 13px;">
             <div><strong>${listing.size_sf?.toLocaleString() || "—"}</strong> SF</div>
             <div><strong>${listing.clear_height_ft || "—"}</strong>' Clear</div>
             <div><strong>${listing.dock_doors || "—"}</strong> Docks</div>
@@ -369,9 +371,10 @@ export function DistributionMapView({
   const handleZoomOut = useCallback(() => {
     setSelectedListingId(null);
     
-    // Reset all markers to default style
+    // Reset all markers to default style AND show them again
     markersRef.current.forEach((marker) => {
       const el = marker.getElement();
+      el.style.display = "flex"; // Show all markers again
       el.style.background = "hsl(217 91% 53%)";
       el.style.boxShadow = "3px 3px 0 hsl(0 0% 7%)";
       el.style.zIndex = "";
