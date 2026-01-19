@@ -19,25 +19,35 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
 import { 
   Search, 
   Filter, 
   X, 
   AlertTriangle,
   CheckCircle2,
-  ExternalLink
+  ExternalLink,
+  MapPin,
+  MapPinOff
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { EditPinLocationDialog } from './EditPinLocationDialog';
 
 interface ListingsTableProps {
   listings: Listing[];
   onToggleInclude?: (listing: Listing) => void;
+  onListingUpdated?: () => void;
 }
 
-export function ListingsTable({ listings, onToggleInclude }: ListingsTableProps) {
+export function ListingsTable({ listings, onToggleInclude, onListingUpdated }: ListingsTableProps) {
   const [search, setSearch] = useState('');
   const [filters, setFilters] = useState<ListingFilter>({});
   const [showFilters, setShowFilters] = useState(false);
+  const [editPinListing, setEditPinListing] = useState<Listing | null>(null);
 
   // Get unique values for filters
   const submarkets = useMemo(() => 
@@ -253,13 +263,14 @@ export function ListingsTable({ listings, onToggleInclude }: ListingsTableProps)
               <TableHead className="text-center">Docks</TableHead>
               <TableHead>Availability</TableHead>
               <TableHead>Status</TableHead>
+              <TableHead className="w-20 text-center">Location</TableHead>
               <TableHead className="w-12"></TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {filteredListings.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={9} className="text-center py-12 text-muted-foreground">
+              <TableCell colSpan={10} className="text-center py-12 text-muted-foreground">
                   No listings match your filters
                 </TableCell>
               </TableRow>
@@ -305,6 +316,30 @@ export function ListingsTable({ listings, onToggleInclude }: ListingsTableProps)
                   <TableCell>
                     {getStatusBadge(listing.status)}
                   </TableCell>
+                  <TableCell className="text-center">
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button 
+                          variant="ghost" 
+                          size="icon" 
+                          className="h-8 w-8"
+                          onClick={() => setEditPinListing(listing)}
+                        >
+                          {listing.latitude && listing.longitude ? (
+                            <MapPin className="w-4 h-4 text-primary" />
+                          ) : (
+                            <MapPinOff className="w-4 h-4 text-muted-foreground" />
+                          )}
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        {listing.latitude && listing.longitude 
+                          ? `Edit pin location (${listing.geocode_source || 'unknown source'})`
+                          : 'Set pin location'
+                        }
+                      </TooltipContent>
+                    </Tooltip>
+                  </TableCell>
                   <TableCell>
                     {listing.link && (
                       <Button variant="ghost" size="icon" className="h-8 w-8" asChild>
@@ -320,6 +355,19 @@ export function ListingsTable({ listings, onToggleInclude }: ListingsTableProps)
           </TableBody>
         </Table>
       </div>
+
+      {/* Edit Pin Location Dialog */}
+      <EditPinLocationDialog
+        listing={editPinListing}
+        open={editPinListing !== null}
+        onOpenChange={(open) => {
+          if (!open) setEditPinListing(null);
+        }}
+        onSave={() => {
+          setEditPinListing(null);
+          onListingUpdated?.();
+        }}
+      />
     </div>
   );
 }
