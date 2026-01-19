@@ -248,7 +248,7 @@ export function DistributionMapView({
 
       const map = new mapboxgl.Map({
         container: mapContainerRef.current,
-        style: "mapbox://styles/mapbox/light-v11",
+        style: "mapbox://styles/mapbox/satellite-streets-v12",
         center: [-114.0719, 51.0447], // Calgary default
         zoom: 10,
       });
