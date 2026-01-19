@@ -202,6 +202,31 @@ export function parseNumber(value: string | undefined): number | undefined {
 }
 
 /**
+ * Extract URL from a HYPERLINK formula.
+ * Examples:
+ *   =HYPERLINK("https://example.com","Brochure") → https://example.com
+ *   =HYPERLINK("https://example.com") → https://example.com
+ *   https://example.com → https://example.com (already a URL)
+ */
+export function extractHyperlinkUrl(value: string): string {
+  if (!value) return '';
+  
+  // Check if it's a HYPERLINK formula
+  const hyperlinkMatch = value.match(/^=HYPERLINK\s*\(\s*"([^"]+)"/i);
+  if (hyperlinkMatch) {
+    return hyperlinkMatch[1];
+  }
+  
+  // If it already looks like a URL, return as-is
+  if (value.startsWith('http://') || value.startsWith('https://')) {
+    return value;
+  }
+  
+  // Otherwise return empty (not a valid URL)
+  return '';
+}
+
+/**
  * Parse a date string, returns ISO date or undefined
  */
 export function parseDate(value: string | undefined): string | undefined {
@@ -278,7 +303,15 @@ export function mapRowToListing(
         }
         break;
       default:
-        listing[mapping.dbColumn] = rawValue;
+        // Special handling for hyperlinks in the link column
+        if (mapping.dbColumn === 'link') {
+          const url = extractHyperlinkUrl(rawValue);
+          if (url) {
+            listing[mapping.dbColumn] = url;
+          }
+        } else {
+          listing[mapping.dbColumn] = rawValue;
+        }
     }
   }
 
