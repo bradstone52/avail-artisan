@@ -131,6 +131,41 @@ export function assertRowShouldBeIncluded(row: string[], headers: string[]): voi
   }
 }
 
+// Directional indicators that should always remain uppercase
+const DIRECTIONAL_INDICATORS = ['NW', 'NE', 'SW', 'SE', 'N', 'S', 'E', 'W'];
+
+/**
+ * Convert a string to title case, preserving directional indicators as uppercase.
+ * "5555 69 AVENUE SE" → "5555 69 Avenue SE"
+ */
+function toTitleCase(str: string): string {
+  return str.split(' ').map(word => {
+    const upperWord = word.toUpperCase();
+    if (DIRECTIONAL_INDICATORS.includes(upperWord)) {
+      return upperWord;
+    }
+    if (/^\d+$/.test(word)) {
+      return word;
+    }
+    return word.charAt(0).toUpperCase() + word.slice(1).toLowerCase();
+  }).join(' ');
+}
+
+/**
+ * Normalize address strings for better geocoding and consistent display.
+ * - Converts ALL CAPS to title case while preserving directional indicators
+ * - Removes dashes between street numbers (e.g., "5555 - 69th" → "5555 69th")
+ * - Removes ordinal suffixes (e.g., "69th" → "69")
+ */
+export function normalizeAddress(address: string): string {
+  let normalized = address;
+  normalized = toTitleCase(normalized);
+  normalized = normalized.replace(/(\d+)\s*-\s+(\d)/g, '$1 $2');
+  normalized = normalized.replace(/\b(\d+)(st|nd|rd|th)\b/gi, '$1');
+  normalized = normalized.replace(/\s+/g, ' ').trim();
+  return normalized;
+}
+
 /**
  * Normalize header for comparison (lowercase, trim whitespace)
  */
@@ -181,7 +216,8 @@ export function parseDate(value: string | undefined): string | undefined {
  * Compute display_address from Address and Unit/Bay
  */
 export function computeDisplayAddress(row: string[], headers: string[]): string {
-  const address = getValueByHeader(row, headers, 'Address') || '';
+  const rawAddress = getValueByHeader(row, headers, 'Address') || '';
+  const address = normalizeAddress(rawAddress);
   const unitBay = getValueByHeader(row, headers, UNIT_BAY_HEADER);
   
   if (unitBay) {
@@ -248,6 +284,11 @@ export function mapRowToListing(
 
   // Compute display_address
   listing.display_address = computeDisplayAddress(row, headers);
+
+  // Normalize the address for better geocoding and consistent display
+  if (listing.address) {
+    listing.address = normalizeAddress(listing.address as string);
+  }
 
   // Ensure required database columns have defaults (NOT NULL constraints)
   if (!listing.address) listing.address = '';
