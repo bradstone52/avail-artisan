@@ -67,10 +67,15 @@ export function IssueSettingsStep({ settings, onChange }: IssueSettingsStepProps
             <Label htmlFor="threshold">Minimum SF</Label>
             <Input
               id="threshold"
-              type="number"
-              placeholder="100000"
-              value={settings.sizeThreshold || ''}
-              onChange={(e) => updateField('sizeThreshold', parseInt(e.target.value) || 0)}
+              type="text"
+              inputMode="numeric"
+              placeholder="100,000"
+              value={settings.sizeThreshold ? settings.sizeThreshold.toLocaleString() : ''}
+              onChange={(e) => {
+                const rawValue = e.target.value.replace(/,/g, '');
+                const numValue = parseInt(rawValue) || 0;
+                updateField('sizeThreshold', numValue);
+              }}
             />
             <p className="text-xs text-muted-foreground">
               Properties must be at least this size
@@ -81,10 +86,15 @@ export function IssueSettingsStep({ settings, onChange }: IssueSettingsStepProps
             <Label htmlFor="thresholdMax">Maximum SF</Label>
             <Input
               id="thresholdMax"
-              type="number"
-              placeholder="500000"
-              value={settings.sizeThresholdMax || ''}
-              onChange={(e) => updateField('sizeThresholdMax', parseInt(e.target.value) || 500000)}
+              type="text"
+              inputMode="numeric"
+              placeholder="500,000"
+              value={settings.sizeThresholdMax ? settings.sizeThresholdMax.toLocaleString() : ''}
+              onChange={(e) => {
+                const rawValue = e.target.value.replace(/,/g, '');
+                const numValue = parseInt(rawValue) || 500000;
+                updateField('sizeThresholdMax', numValue);
+              }}
             />
             <p className="text-xs text-muted-foreground">
               Properties must be at most this size
