@@ -25,7 +25,7 @@ const FIELD_MAPPINGS = [
   { header: 'Voltage', dbColumn: 'voltage', type: 'string' },
   { header: 'Yard Area', dbColumn: 'yard_area', type: 'string' },
   { header: 'Sprinklered', dbColumn: 'sprinkler', type: 'string' },
-  { header: 'Available', dbColumn: 'availability_date', type: 'string' },
+  { header: 'Available', dbColumn: 'availability_date', type: 'date' },
   { header: 'Net Rate', dbColumn: 'asking_rate_psf', type: 'string' },
   { header: 'Op Costs', dbColumn: 'op_costs', type: 'string' },
   { header: 'Gross Rate', dbColumn: 'gross_rate', type: 'string' },
@@ -90,7 +90,8 @@ function parseNumber(value: string | undefined): number | undefined {
 }
 
 /**
- * Parse a date string or Google Sheets serial number, returns ISO date or undefined.
+ * Parse a date string or Google Sheets serial number, returns ISO date string,
+ * or the original value if it's not a parseable date (for "TBD", "30 Days", etc).
  * Google Sheets stores dates as serial numbers (days since Dec 30, 1899).
  * With valueRenderOption=FORMULA, dates may come as raw numbers like "45988".
  */
@@ -99,8 +100,9 @@ function parseDate(value: string | undefined): string | undefined {
   
   const trimmed = value.trim();
   
-  // Check if it's a Google Sheets serial date number (integer or decimal like 45988.5)
-  if (/^\d+(\.\d+)?$/.test(trimmed)) {
+  // Check if it's a Google Sheets serial date number (5+ digits, with optional decimal)
+  // But NOT short numbers like "2027" which might be years entered as text
+  if (/^\d{5,}(\.\d+)?$/.test(trimmed)) {
     const serialNumber = parseFloat(trimmed);
     // Google Sheets epoch is December 30, 1899
     // Valid range: 1 to 100000 (covers ~1900 to ~2173)
@@ -111,14 +113,18 @@ function parseDate(value: string | undefined): string | undefined {
         return date.toISOString().split('T')[0];
       }
     }
-    // If it's a number but out of range, don't try to parse as date string
-    return undefined;
+    // Return as-is for out of range numbers
+    return trimmed;
   }
   
   // Try to parse common date formats
   const date = new Date(trimmed);
-  if (isNaN(date.getTime())) return undefined;
-  return date.toISOString().split('T')[0];
+  if (!isNaN(date.getTime())) {
+    return date.toISOString().split('T')[0];
+  }
+  
+  // Return original value for things like "TBD", "30 Days", "2027", etc.
+  return trimmed;
 }
 
 /**

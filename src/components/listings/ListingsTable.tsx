@@ -113,6 +113,26 @@ export function ListingsTable({ listings, onToggleInclude, onListingUpdated }: L
     return sf.toLocaleString() + ' SF';
   };
 
+  /**
+   * Format availability date for display.
+   * ISO dates like "2026-02-15" become "Feb 2026".
+   * Text values like "TBD", "30 Days", "2027" are shown as-is.
+   */
+  const formatAvailability = (value: string | null | undefined): string => {
+    if (!value) return 'TBD';
+    
+    // Check if it's an ISO date (YYYY-MM-DD)
+    if (/^\d{4}-\d{2}-\d{2}$/.test(value)) {
+      const date = new Date(value + 'T00:00:00');
+      if (!isNaN(date.getTime())) {
+        return date.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
+      }
+    }
+    
+    // Return as-is for text values like "TBD", "30 Days", "2027", etc.
+    return value;
+  };
+
   const getStatusBadge = (status: string) => {
     switch (status) {
       case 'Active':
@@ -311,7 +331,7 @@ export function ListingsTable({ listings, onToggleInclude, onListingUpdated }: L
                     {listing.dock_doors || '—'}
                   </TableCell>
                   <TableCell className="text-sm">
-                    {listing.availability_date || 'TBD'}
+                    {formatAvailability(listing.availability_date)}
                   </TableCell>
                   <TableCell>
                     {getStatusBadge(listing.status)}
