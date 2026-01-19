@@ -42,10 +42,10 @@ export default function PublicDistributionMap() {
       }
 
       try {
-        // Fetch listings and Mapbox token in parallel
+        // Fetch listings and Google Maps API key in parallel
         const [listingsResult, tokenResult] = await Promise.all([
           supabase.functions.invoke("validate-map-token", { body: { token } }),
-          supabase.functions.invoke("get-mapbox-token", { body: { token } })
+          supabase.functions.invoke("get-google-maps-token", { body: { token } })
         ]);
 
         // Handle listings response
@@ -72,19 +72,19 @@ export default function PublicDistributionMap() {
         setListings(uniqueListings);
         console.log(`[PublicDistributionMap] Loaded ${uniqueListings.length} unique listings (from ${rawListings.length} raw)`);
 
-        // Handle Mapbox token response
+        // Handle Google Maps API key response
         if (tokenResult.error) {
-          console.error("[PublicDistributionMap] Mapbox token fetch error:", tokenResult.error);
+          console.error("[PublicDistributionMap] Google Maps API key fetch error:", tokenResult.error);
           setMapError("Failed to load map configuration");
-        } else if (tokenResult.data?.token) {
-          console.log("[PublicDistributionMap] Mapbox token received successfully");
-          setMapToken(tokenResult.data.token);
+        } else if (tokenResult.data?.apiKey) {
+          console.log("[PublicDistributionMap] Google Maps API key received successfully");
+          setMapToken(tokenResult.data.apiKey);
         } else if (tokenResult.data?.error) {
-          console.error("[PublicDistributionMap] Mapbox token error:", tokenResult.data.error);
+          console.error("[PublicDistributionMap] Google Maps API key error:", tokenResult.data.error);
           setMapError(tokenResult.data.error);
         } else {
-          console.error("[PublicDistributionMap] No Mapbox token in response");
-          setMapError("Map token not available");
+          console.error("[PublicDistributionMap] No Google Maps API key in response");
+          setMapError("Map API key not available");
         }
       } catch (err) {
         console.error("[PublicDistributionMap] Failed to fetch data:", err);
