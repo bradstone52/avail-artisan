@@ -35,6 +35,41 @@ const FIELD_MAPPINGS = [
   { header: 'Notes', dbColumn: 'notes_public', type: 'string' },
 ];
 
+// Directional indicators that should always remain uppercase
+const DIRECTIONAL_INDICATORS = ['NW', 'NE', 'SW', 'SE', 'N', 'S', 'E', 'W'];
+
+/**
+ * Convert a string to title case, preserving directional indicators as uppercase.
+ * "5555 69 AVENUE SE" → "5555 69 Avenue SE"
+ */
+function toTitleCase(str: string): string {
+  return str.split(' ').map(word => {
+    const upperWord = word.toUpperCase();
+    if (DIRECTIONAL_INDICATORS.includes(upperWord)) {
+      return upperWord;
+    }
+    if (/^\d+$/.test(word)) {
+      return word;
+    }
+    return word.charAt(0).toUpperCase() + word.slice(1).toLowerCase();
+  }).join(' ');
+}
+
+/**
+ * Normalize address strings for better geocoding and consistent display.
+ * - Converts ALL CAPS to title case while preserving directional indicators
+ * - Removes dashes between street numbers
+ * - Removes ordinal suffixes
+ */
+function normalizeAddress(address: string): string {
+  let normalized = address;
+  normalized = toTitleCase(normalized);
+  normalized = normalized.replace(/(\d+)\s*-\s+(\d)/g, '$1 $2');
+  normalized = normalized.replace(/\b(\d+)(st|nd|rd|th)\b/gi, '$1');
+  normalized = normalized.replace(/\s+/g, ' ').trim();
+  return normalized;
+}
+
 function parseCSV(csvText: string): string[][] {
   const lines = csvText.split('\n');
   const result: string[][] = [];
@@ -142,6 +177,11 @@ function mapRowToListing(row: string[], headers: string[], userId: string, orgId
     } else {
       listing[mapping.dbColumn] = rawValue;
     }
+  }
+
+  // Normalize the address for better geocoding and consistent display
+  if (listing.address) {
+    listing.address = normalizeAddress(listing.address as string);
   }
 
   // Defaults
