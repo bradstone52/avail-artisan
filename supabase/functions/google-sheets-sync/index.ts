@@ -132,8 +132,9 @@ serve(async (req) => {
 
     // Fetch spreadsheet data
     // NOTE: Use a wide range so we don't miss columns beyond Z (e.g., AA, AB...) like ListingID.
+    // Use FORMULA render option to get hyperlink formulas instead of display values
     const range = sheetName ? `${sheetName}!A:ZZ` : 'A:ZZ';
-    const sheetsUrl = `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${encodeURIComponent(range)}`;
+    const sheetsUrl = `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${encodeURIComponent(range)}?valueRenderOption=FORMULA`;
     
     console.log('Fetching from Google Sheets API:', sheetsUrl);
 

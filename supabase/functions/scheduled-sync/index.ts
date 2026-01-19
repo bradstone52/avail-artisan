@@ -121,6 +121,31 @@ function parseNumber(value: string | undefined): number | undefined {
   return isNaN(num) ? undefined : Math.round(num);
 }
 
+/**
+ * Extract URL from a HYPERLINK formula.
+ * Examples:
+ *   =HYPERLINK("https://example.com","Brochure") → https://example.com
+ *   =HYPERLINK("https://example.com") → https://example.com
+ *   https://example.com → https://example.com (already a URL)
+ */
+function extractHyperlinkUrl(value: string): string {
+  if (!value) return '';
+  
+  // Check if it's a HYPERLINK formula
+  const hyperlinkMatch = value.match(/^=HYPERLINK\s*\(\s*"([^"]+)"/i);
+  if (hyperlinkMatch) {
+    return hyperlinkMatch[1];
+  }
+  
+  // If it already looks like a URL, return as-is
+  if (value.startsWith('http://') || value.startsWith('https://')) {
+    return value;
+  }
+  
+  // Otherwise return empty (not a valid URL)
+  return '';
+}
+
 interface SizeThresholds {
   min: number;
   max: number;
@@ -173,6 +198,12 @@ function mapRowToListing(row: string[], headers: string[], userId: string, orgId
       const numValue = parseNumber(rawValue);
       if (numValue !== undefined) {
         listing[mapping.dbColumn] = numValue;
+      }
+    } else if (mapping.dbColumn === 'link') {
+      // Special handling for hyperlinks - extract URL from HYPERLINK formula
+      const url = extractHyperlinkUrl(rawValue);
+      if (url) {
+        listing[mapping.dbColumn] = url;
       }
     } else {
       listing[mapping.dbColumn] = rawValue;
@@ -333,7 +364,8 @@ serve(async (req) => {
     const sheetName = connection.tab_name || 'Sheet1';
     const range = `${sheetName}!A:ZZ`;
     
-    const sheetsUrl = `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${encodeURIComponent(range)}`;
+    // Use FORMULA render option to get hyperlink formulas instead of display values
+    const sheetsUrl = `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${encodeURIComponent(range)}?valueRenderOption=FORMULA`;
     
     const sheetsResponse = await fetch(sheetsUrl, {
       headers: { Authorization: `Bearer ${accessToken}` },
