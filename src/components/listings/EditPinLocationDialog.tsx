@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useCallback } from 'react';
+import { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import mapboxgl from 'mapbox-gl';
 import 'mapbox-gl/dist/mapbox-gl.css';
 import {
@@ -31,19 +31,43 @@ export function EditPinLocationDialog({
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<mapboxgl.Map | null>(null);
   const markerRef = useRef<mapboxgl.Marker | null>(null);
+  const isInitializedRef = useRef(false);
   
   const [mapboxToken, setMapboxToken] = useState<string | null>(null);
   const [newLocation, setNewLocation] = useState<{ lat: number; lng: number } | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [mapReady, setMapReady] = useState(false);
 
-  // Original location for reset
-  const originalLocation = listing?.latitude && listing?.longitude 
-    ? { lat: listing.latitude, lng: listing.longitude }
-    : null;
+  // Memoize original location to prevent unnecessary re-renders
+  const originalLocation = useMemo(() => {
+    if (listing?.latitude && listing?.longitude) {
+      return { lat: listing.latitude, lng: listing.longitude };
+    }
+    return null;
+  }, [listing?.latitude, listing?.longitude]);
+
+  // Reset state when dialog closes
+  useEffect(() => {
+    if (!open) {
+      // Clean up when closing
+      if (markerRef.current) {
+        markerRef.current.remove();
+        markerRef.current = null;
+      }
+      if (mapRef.current) {
+        mapRef.current.remove();
+        mapRef.current = null;
+      }
+      isInitializedRef.current = false;
+      setMapReady(false);
+      setNewLocation(null);
+    }
+  }, [open]);
 
   // Fetch Mapbox token
   useEffect(() => {
+    if (!open) return;
+    
     const fetchToken = async () => {
       try {
         const { data, error } = await supabase.functions.invoke('get-mapbox-token', {
@@ -59,10 +83,39 @@ export function EditPinLocationDialog({
       }
     };
 
-    if (open && !mapboxToken) {
+    if (!mapboxToken) {
       fetchToken();
     }
   }, [open, mapboxToken]);
+
+  // Create marker element
+  const createMarkerElement = useCallback(() => {
+    const el = document.createElement('div');
+    el.className = 'custom-pin-marker';
+    el.innerHTML = `
+      <div style="
+        width: 32px;
+        height: 32px;
+        background: #2563eb;
+        border: 3px solid white;
+        border-radius: 50% 50% 50% 0;
+        transform: rotate(-45deg);
+        box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      ">
+        <div style="
+          width: 10px;
+          height: 10px;
+          background: white;
+          border-radius: 50%;
+          transform: rotate(45deg);
+        "></div>
+      </div>
+    `;
+    return el;
+  }, []);
 
   // Update marker position
   const updateMarker = useCallback((lat: number, lng: number) => {
@@ -71,40 +124,23 @@ export function EditPinLocationDialog({
     if (markerRef.current) {
       markerRef.current.setLngLat([lng, lat]);
     } else {
-      const el = document.createElement('div');
-      el.className = 'custom-pin-marker';
-      el.innerHTML = `
-        <div style="
-          width: 32px;
-          height: 32px;
-          background: #2563eb;
-          border: 3px solid white;
-          border-radius: 50% 50% 50% 0;
-          transform: rotate(-45deg);
-          box-shadow: 0 4px 12px rgba(0,0,0,0.4);
-          display: flex;
-          align-items: center;
-          justify-content: center;
-        ">
-          <div style="
-            width: 10px;
-            height: 10px;
-            background: white;
-            border-radius: 50%;
-            transform: rotate(45deg);
-          "></div>
-        </div>
-      `;
-
-      markerRef.current = new mapboxgl.Marker({ element: el, anchor: 'bottom' })
+      markerRef.current = new mapboxgl.Marker({ 
+        element: createMarkerElement(), 
+        anchor: 'bottom' 
+      })
         .setLngLat([lng, lat])
         .addTo(mapRef.current);
     }
-  }, []);
+  }, [createMarkerElement]);
 
-  // Initialize map
+  // Initialize map - only when dialog is open, token is available, and not already initialized
   useEffect(() => {
-    if (!open || !mapboxToken || !mapContainerRef.current || mapRef.current) return;
+    if (!open || !mapboxToken || !mapContainerRef.current || isInitializedRef.current) {
+      return;
+    }
+
+    // Prevent double initialization
+    isInitializedRef.current = true;
 
     mapboxgl.accessToken = mapboxToken;
 
@@ -142,19 +178,11 @@ export function EditPinLocationDialog({
 
     mapRef.current = map;
 
-    return () => {
-      if (markerRef.current) {
-        markerRef.current.remove();
-        markerRef.current = null;
-      }
-      map.remove();
-      mapRef.current = null;
-      setMapReady(false);
-    };
+    // No cleanup here - handled by the open state effect
   }, [open, mapboxToken, originalLocation, updateMarker]);
 
   // Reset to original or clear
-  const handleReset = () => {
+  const handleReset = useCallback(() => {
     setNewLocation(null);
     if (originalLocation && mapRef.current) {
       updateMarker(originalLocation.lat, originalLocation.lng);
@@ -163,17 +191,17 @@ export function EditPinLocationDialog({
       markerRef.current.remove();
       markerRef.current = null;
     }
-  };
+  }, [originalLocation, updateMarker]);
 
   // Center on current marker
-  const handleCenterOnPin = () => {
+  const handleCenterOnPin = useCallback(() => {
     if (!mapRef.current) return;
     
     const loc = newLocation || originalLocation;
     if (loc) {
       mapRef.current.flyTo({ center: [loc.lng, loc.lat], zoom: 16 });
     }
-  };
+  }, [newLocation, originalLocation]);
 
   // Save location
   const handleSave = async () => {
