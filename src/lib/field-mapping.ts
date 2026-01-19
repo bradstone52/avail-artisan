@@ -9,16 +9,19 @@ export interface FieldMapping {
 }
 
 export const FIELD_MAPPINGS: FieldMapping[] = [
-  // Identity
+  // Identity - ONLY these two are truly required
   { header: 'ListingID', dbColumn: 'listing_id', type: 'string', required: true },
-  
-  // Core
   { header: 'Address', dbColumn: 'address', type: 'string', required: true },
-  { header: 'Municipality', dbColumn: 'city', type: 'string', required: true },
-  { header: 'Status', dbColumn: 'status', type: 'string', required: true },
-  { header: 'Submarket', dbColumn: 'submarket', type: 'string', required: true },
+  
+  // Core - these are mapped but NOT required (we provide defaults)
+  { header: 'Municipality', dbColumn: 'city', type: 'string' },
+  { header: 'Status', dbColumn: 'status', type: 'string' },
+  { header: 'Submarket', dbColumn: 'submarket', type: 'string' },
   { header: 'Listing Type', dbColumn: 'listing_type', type: 'string' },
   { header: 'Broker', dbColumn: 'broker_source', type: 'string' },
+  
+  // Filter column - maps to include_in_issue
+  { header: 'Distribution Warehouse?', dbColumn: 'include_in_issue', type: 'string' },
   
   // Specs
   { header: 'Total SF', dbColumn: 'size_sf', type: 'number' },
@@ -206,6 +209,7 @@ export function mapRowToListing(
     const headerIdx = findHeaderIndex(headers, mapping.header);
     
     if (headerIdx === -1) {
+      // Only track truly required headers as missing (ListingID, Address)
       if (mapping.required) {
         missingHeaders.push(mapping.header);
       }
@@ -215,6 +219,14 @@ export function mapRowToListing(
     const rawValue = row[headerIdx]?.trim() || '';
     
     if (!rawValue) continue;
+
+    // Special handling for include_in_issue (Distribution Warehouse? checkbox)
+    if (mapping.dbColumn === 'include_in_issue') {
+      const val = rawValue.toLowerCase();
+      const isTruthy = ['true', 'yes', 'y', '1', 'checked', 'x'].includes(val);
+      listing[mapping.dbColumn] = isTruthy;
+      continue;
+    }
 
     switch (mapping.type) {
       case 'number':
@@ -242,6 +254,11 @@ export function mapRowToListing(
   if (!listing.city) listing.city = '';
   if (!listing.submarket) listing.submarket = '';
   if (!listing.size_sf) listing.size_sf = 0;
+  
+  // Default include_in_issue to true if not set (for distribution maps)
+  if (listing.include_in_issue === undefined) {
+    listing.include_in_issue = true;
+  }
 
   // Normalize status to match database check constraint: Active, Leased, Removed, OnHold
   const validStatuses = ['Active', 'Leased', 'Removed', 'OnHold'];
@@ -252,7 +269,6 @@ export function mapRowToListing(
   listing.status = normalizedStatus || 'Active';
 
   // Ensure constrained columns have valid values (Yes/No/Unknown)
-  // These columns are not directly mapped from the sheet but have check constraints
   const yesNoUnknownFields = ['yard', 'cross_dock', 'trailer_parking'] as const;
   for (const field of yesNoUnknownFields) {
     if (listing[field] === undefined || listing[field] === null) {

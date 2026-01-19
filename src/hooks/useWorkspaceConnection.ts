@@ -317,16 +317,16 @@ export function useWorkspaceConnection() {
       const headers = rows[0];
       reportData.rows_read = rows.length - 1;
 
-      // Validate required headers
-      const missingRequired = validateRequiredHeaders(headers);
-      if (missingRequired.length > 0) {
-        throw new Error(`Missing required columns: ${missingRequired.join(', ')}`);
-      }
-
-      // Validate filter columns
+      // Check for filter columns - warn but don't fail
       const missingFilterCols = validateFilterColumns(headers);
       if (missingFilterCols.length > 0) {
-        throw new Error(`Missing filter columns: ${missingFilterCols.join(', ')}`);
+        console.warn(`[Sync] Missing filter columns: ${missingFilterCols.join(', ')}. Will import all rows.`);
+      }
+
+      // Check for core required headers (ListingID, Address only)
+      const missingRequired = validateRequiredHeaders(headers);
+      if (missingRequired.length > 0) {
+        console.warn(`[Sync] Missing required columns: ${missingRequired.join(', ')}. Rows without these values will be skipped.`);
       }
 
       // Get mapped headers info
@@ -360,9 +360,11 @@ export function useWorkspaceConnection() {
           continue;
         }
 
-        const { listing, missingHeaders } = mapRowToListing(row, headers, user.id, orgId || undefined);
+        const { listing } = mapRowToListing(row, headers, user.id, orgId || undefined);
         const listingId = (listing.listing_id as string)?.trim();
+        const address = (listing.address as string)?.trim();
 
+        // Only truly required: ListingID and Address
         if (!listingId) {
           reportData.rows_skipped++;
           reportData.skipped_breakdown.missing_fields++;
@@ -373,22 +375,22 @@ export function useWorkspaceConnection() {
           continue;
         }
 
+        if (!address) {
+          reportData.rows_skipped++;
+          reportData.skipped_breakdown.missing_fields++;
+          reportData.skipped_details.push({
+            row: sheetRowNumber,
+            reason: 'Missing Address',
+          });
+          continue;
+        }
+
         if (seenListingIds.has(listingId)) {
           reportData.rows_skipped++;
           reportData.skipped_breakdown.duplicate_listing_id++;
           reportData.skipped_details.push({
             row: sheetRowNumber,
             reason: `Duplicate ListingID: ${listingId}`,
-          });
-          continue;
-        }
-
-        if (missingHeaders.length > 0) {
-          reportData.rows_skipped++;
-          reportData.skipped_breakdown.missing_fields++;
-          reportData.skipped_details.push({
-            row: sheetRowNumber,
-            reason: `Missing required: ${missingHeaders.join(', ')}`,
           });
           continue;
         }
