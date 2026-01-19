@@ -183,11 +183,12 @@ serve(async (req) => {
     }
 
     // Get listings missing coordinates (exclude manually set ones)
+    // Note: neq doesn't work with NULL values, so we use or() to include NULL geocode_source
     const { data: listingsToGeocode, error: fetchError } = await supabaseAdmin
       .from('listings')
       .select('id, address, city')
       .or('latitude.is.null,longitude.is.null,latitude.eq.0,longitude.eq.0')
-      .neq('geocode_source', 'manual')
+      .or('geocode_source.is.null,geocode_source.neq.manual')
       .limit(MAX_GEOCODE_PER_RUN);
 
     if (fetchError) {
