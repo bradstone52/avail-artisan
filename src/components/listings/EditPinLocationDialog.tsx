@@ -1,6 +1,5 @@
 import { useState, useRef, useEffect, useCallback, useMemo } from 'react';
-import mapboxgl from 'mapbox-gl';
-import 'mapbox-gl/dist/mapbox-gl.css';
+import { setOptions, importLibrary } from '@googlemaps/js-api-loader';
 import {
   Dialog,
   DialogContent,
@@ -29,11 +28,11 @@ export function EditPinLocationDialog({
   onSave 
 }: EditPinLocationDialogProps) {
   const mapContainerRef = useRef<HTMLDivElement>(null);
-  const mapRef = useRef<mapboxgl.Map | null>(null);
-  const markerRef = useRef<mapboxgl.Marker | null>(null);
+  const mapRef = useRef<google.maps.Map | null>(null);
+  const markerRef = useRef<google.maps.marker.AdvancedMarkerElement | null>(null);
   const isInitializedRef = useRef(false);
   
-  const [mapboxToken, setMapboxToken] = useState<string | null>(null);
+  const [googleMapsApiKey, setGoogleMapsApiKey] = useState<string | null>(null);
   const [newLocation, setNewLocation] = useState<{ lat: number; lng: number } | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [mapReady, setMapReady] = useState(false);
@@ -51,14 +50,11 @@ export function EditPinLocationDialog({
     if (!open) {
       // Clean up marker
       if (markerRef.current) {
-        markerRef.current.remove();
+        markerRef.current.map = null;
         markerRef.current = null;
       }
-      // Clean up map
-      if (mapRef.current) {
-        mapRef.current.remove();
-        mapRef.current = null;
-      }
+      // Clean up map - just null the reference, Google Maps cleans up automatically
+      mapRef.current = null;
       // Reset initialization flag so map can be created again
       isInitializedRef.current = false;
       setMapReady(false);
@@ -66,34 +62,33 @@ export function EditPinLocationDialog({
     }
   }, [open]);
 
-  // Fetch Mapbox token
+  // Fetch Google Maps API key
   useEffect(() => {
     if (!open) return;
     
     const fetchToken = async () => {
       try {
-        const { data, error } = await supabase.functions.invoke('get-mapbox-token', {
+        const { data, error } = await supabase.functions.invoke('get-google-maps-token', {
           body: { authenticated: true }
         });
         if (error) throw error;
-        if (data?.token) {
-          setMapboxToken(data.token);
+        if (data?.apiKey) {
+          setGoogleMapsApiKey(data.apiKey);
         }
       } catch (err) {
-        console.error('Failed to fetch Mapbox token:', err);
+        console.error('Failed to fetch Google Maps API key:', err);
         toast.error('Failed to load map');
       }
     };
 
-    if (!mapboxToken) {
+    if (!googleMapsApiKey) {
       fetchToken();
     }
-  }, [open, mapboxToken]);
+  }, [open, googleMapsApiKey]);
 
   // Create marker element
   const createMarkerElement = useCallback(() => {
     const el = document.createElement('div');
-    el.className = 'custom-pin-marker';
     el.innerHTML = `
       <div style="
         width: 32px;
@@ -120,29 +115,29 @@ export function EditPinLocationDialog({
   }, []);
 
   // Update marker position
-  const updateMarker = useCallback((lat: number, lng: number) => {
+  const updateMarker = useCallback(async (lat: number, lng: number) => {
     if (!mapRef.current) return;
 
     if (markerRef.current) {
-      markerRef.current.setLngLat([lng, lat]);
+      markerRef.current.position = { lat, lng };
     } else {
-      markerRef.current = new mapboxgl.Marker({ 
-        element: createMarkerElement(), 
-        anchor: 'bottom' 
-      })
-        .setLngLat([lng, lat])
-        .addTo(mapRef.current);
+      const { AdvancedMarkerElement } = await importLibrary("marker") as google.maps.MarkerLibrary;
+      markerRef.current = new AdvancedMarkerElement({
+        map: mapRef.current,
+        position: { lat, lng },
+        content: createMarkerElement(),
+      });
     }
   }, [createMarkerElement]);
 
   // Initialize map - only when dialog is open, token is available, and not already initialized
   useEffect(() => {
-    if (!open || !mapboxToken || isInitializedRef.current) {
+    if (!open || !googleMapsApiKey || isInitializedRef.current) {
       return;
     }
 
     // Use a small delay to ensure the dialog container is mounted in the DOM
-    const initTimer = setTimeout(() => {
+    const initTimer = setTimeout(async () => {
       if (!mapContainerRef.current || isInitializedRef.current) {
         return;
       }
@@ -150,54 +145,75 @@ export function EditPinLocationDialog({
       // Prevent double initialization
       isInitializedRef.current = true;
 
-      mapboxgl.accessToken = mapboxToken;
+      try {
+        // Set API options
+        setOptions({
+          key: googleMapsApiKey,
+          v: "weekly",
+        });
 
-      // Default center: Calgary, or listing's current location
-      const center: [number, number] = originalLocation 
-        ? [originalLocation.lng, originalLocation.lat]
-        : [-114.0719, 51.0447];
+        // Import maps library
+        const { Map } = await importLibrary("maps") as google.maps.MapsLibrary;
 
-      const zoom = originalLocation ? 15 : 10;
+        if (!mapContainerRef.current) return;
 
-      const map = new mapboxgl.Map({
-        container: mapContainerRef.current,
-        style: 'mapbox://styles/mapbox/satellite-streets-v12',
-        center,
-        zoom,
-      });
+        // Default center: Calgary, or listing's current location
+        const center = originalLocation 
+          ? { lat: originalLocation.lat, lng: originalLocation.lng }
+          : { lat: 51.0447, lng: -114.0719 };
 
-      map.addControl(new mapboxgl.NavigationControl(), 'top-right');
+        const zoom = originalLocation ? 15 : 10;
 
-      map.on('load', () => {
-        setMapReady(true);
-        
-        // Add marker if there's an existing location
-        if (originalLocation) {
-          updateMarker(originalLocation.lat, originalLocation.lng);
-        }
-      });
+        const map = new Map(mapContainerRef.current, {
+          center,
+          zoom,
+          mapTypeId: "hybrid",
+          mapId: "edit-pin-map",
+          gestureHandling: "greedy",
+          zoomControl: true,
+          streetViewControl: false,
+          mapTypeControl: false,
+          fullscreenControl: false,
+        });
 
-      // Click handler to place/move pin
-      map.on('click', (e) => {
-        const { lat, lng } = e.lngLat;
-        setNewLocation({ lat, lng });
-        updateMarker(lat, lng);
-      });
+        mapRef.current = map;
 
-      mapRef.current = map;
+        google.maps.event.addListenerOnce(map, "tilesloaded", () => {
+          setMapReady(true);
+          
+          // Add marker if there's an existing location
+          if (originalLocation) {
+            updateMarker(originalLocation.lat, originalLocation.lng);
+          }
+        });
+
+        // Click handler to place/move pin
+        map.addListener("click", (e: google.maps.MapMouseEvent) => {
+          if (e.latLng) {
+            const lat = e.latLng.lat();
+            const lng = e.latLng.lng();
+            setNewLocation({ lat, lng });
+            updateMarker(lat, lng);
+          }
+        });
+      } catch (err) {
+        console.error('Failed to initialize Google Maps:', err);
+        toast.error('Failed to load map');
+      }
     }, 100);
 
     return () => clearTimeout(initTimer);
-  }, [open, mapboxToken, originalLocation, updateMarker]);
+  }, [open, googleMapsApiKey, originalLocation, updateMarker]);
 
   // Reset to original or clear
   const handleReset = useCallback(() => {
     setNewLocation(null);
     if (originalLocation && mapRef.current) {
       updateMarker(originalLocation.lat, originalLocation.lng);
-      mapRef.current.flyTo({ center: [originalLocation.lng, originalLocation.lat], zoom: 15 });
+      mapRef.current.panTo({ lat: originalLocation.lat, lng: originalLocation.lng });
+      mapRef.current.setZoom(15);
     } else if (markerRef.current) {
-      markerRef.current.remove();
+      markerRef.current.map = null;
       markerRef.current = null;
     }
   }, [originalLocation, updateMarker]);
@@ -208,7 +224,8 @@ export function EditPinLocationDialog({
     
     const loc = newLocation || originalLocation;
     if (loc) {
-      mapRef.current.flyTo({ center: [loc.lng, loc.lat], zoom: 16 });
+      mapRef.current.panTo({ lat: loc.lat, lng: loc.lng });
+      mapRef.current.setZoom(16);
     }
   }, [newLocation, originalLocation]);
 

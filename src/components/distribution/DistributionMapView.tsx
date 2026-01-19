@@ -2,8 +2,7 @@ import { useEffect, useState, useRef, useCallback, useMemo } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Search, MapPin, AlertCircle, Building, ArrowUpDown, ZoomOut } from "lucide-react";
-import mapboxgl from "mapbox-gl";
-import "mapbox-gl/dist/mapbox-gl.css";
+import { setOptions, importLibrary } from "@googlemaps/js-api-loader";
 
 export interface MapListing {
   id: string;
@@ -55,9 +54,9 @@ export function DistributionMapView({
   const [hoveredListingId, setHoveredListingId] = useState<string | null>(null);
 
   const mapContainerRef = useRef<HTMLDivElement>(null);
-  const mapRef = useRef<mapboxgl.Map | null>(null);
-  const markersRef = useRef<Map<string, mapboxgl.Marker>>(new Map());
-  const popupRef = useRef<mapboxgl.Popup | null>(null);
+  const mapRef = useRef<google.maps.Map | null>(null);
+  const markersRef = useRef<Map<string, google.maps.marker.AdvancedMarkerElement>>(new Map());
+  const infoWindowRef = useRef<google.maps.InfoWindow | null>(null);
   const resizeObserverRef = useRef<ResizeObserver | null>(null);
 
   // Keep latest selection in a ref so marker event handlers don't need to
@@ -84,66 +83,116 @@ export function DistributionMapView({
   // Count of non-mappable listings
   const unmappedCount = listings.length - mappableListings.length;
 
-  // Select listing function - reads coordinates from the item directly
+  // Create marker element
+  const createMarkerElement = useCallback((isSelected: boolean, isHovered: boolean) => {
+    const el = document.createElement("div");
+    let bgColor = "hsl(217 91% 53%)"; // Default blue
+    let shadowSize = "3px";
+    
+    if (isSelected) {
+      bgColor = "hsl(48 97% 53%)"; // Yellow for selected
+      shadowSize = "4px";
+    } else if (isHovered) {
+      bgColor = "hsl(142 71% 45%)"; // Green for hovered
+      shadowSize = "4px";
+    }
+    
+    el.innerHTML = `
+      <div style="
+        width: 32px;
+        height: 32px;
+        background: ${bgColor};
+        border: 3px solid hsl(0 0% 7%);
+        border-radius: 50%;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        box-shadow: ${shadowSize} ${shadowSize} 0 hsl(0 0% 7%);
+        transition: background 0.15s, box-shadow 0.15s;
+      ">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5">
+          <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/>
+          <circle cx="12" cy="10" r="3"/>
+        </svg>
+      </div>
+    `;
+    return el;
+  }, []);
+
+  // Update marker style
+  const updateMarkerStyle = useCallback((listingId: string, isSelected: boolean, isHovered: boolean) => {
+    const marker = markersRef.current.get(listingId);
+    if (!marker) return;
+    
+    const el = marker.content as HTMLElement;
+    if (!el) return;
+    
+    const inner = el.querySelector("div") as HTMLElement;
+    if (!inner) return;
+    
+    let bgColor = "hsl(217 91% 53%)";
+    let shadowSize = "3px";
+    let zIndex = 1;
+    
+    if (isSelected) {
+      bgColor = "hsl(48 97% 53%)";
+      shadowSize = "4px";
+      zIndex = 100;
+    } else if (isHovered) {
+      bgColor = "hsl(142 71% 45%)";
+      shadowSize = "4px";
+      zIndex = 50;
+    }
+    
+    inner.style.background = bgColor;
+    inner.style.boxShadow = `${shadowSize} ${shadowSize} 0 hsl(0 0% 7%)`;
+    marker.zIndex = zIndex;
+  }, []);
+
+  // Select listing function
   const selectListing = useCallback(
     (listingId: string) => {
       const listing = mappableListings.find((l) => l.id === listingId);
 
       if (!listing || !mapRef.current) return;
 
-      // Update state + ref (ref is used by marker event handlers)
+      // Update state + ref
       selectedListingIdRef.current = listingId;
       setSelectedListingId(listingId);
 
-      // Close existing popup
-      if (popupRef.current) {
-        popupRef.current.remove();
+      // Close existing info window
+      if (infoWindowRef.current) {
+        infoWindowRef.current.close();
       }
 
       // Update marker styles - HIDE non-selected markers, show only selected
       markersRef.current.forEach((marker, id) => {
-        const el = marker.getElement();
+        const el = marker.content as HTMLElement;
         if (id === listingId) {
-          el.style.display = "flex"; // Show selected
-          el.style.background = "hsl(48 97% 53%)"; // Yellow for selected
-          el.style.boxShadow = "4px 4px 0 hsl(0 0% 7%)";
-          el.style.zIndex = "100";
+          el.style.display = "flex";
+          updateMarkerStyle(id, true, false);
         } else {
-          el.style.display = "none"; // Hide non-selected
+          el.style.display = "none";
         }
       });
 
-      // All items in mappableListings have valid coords - no need to check again
       const lat = Number(listing.latitude);
       const lng = Number(listing.longitude);
 
-      // Resize map before flying
-      mapRef.current.resize();
+      // Pan and zoom to location
+      mapRef.current.panTo({ lat, lng });
+      mapRef.current.setZoom(16);
 
-      // Fly to location with higher zoom to isolate the pin
-      mapRef.current.flyTo({
-        center: [lng, lat],
-        zoom: 16,
-        essential: true,
-        duration: 1000,
-      });
-
-      // Show popup - slightly larger for readability
+      // Show info window
       const driveIn =
         listing.drive_in_doors === 0 || listing.drive_in_doors == null
           ? "—"
           : String(listing.drive_in_doors);
 
-      popupRef.current = new mapboxgl.Popup({
-        closeButton: true,
-        closeOnClick: false,
-        offset: 32,
-        className: "brutalist-popup",
-        maxWidth: "360px",
-      })
-        .setLngLat([lng, lat])
-        .setHTML(`
-          <div style="font-family: Inter, sans-serif; padding: 16px 18px;">
+      const infoWindow = new google.maps.InfoWindow({
+        content: `
+          <div style="font-family: Inter, sans-serif; padding: 16px 18px; max-width: 340px;">
             <div style="font-weight: 900; font-size: 17px; color: #111; margin-bottom: 8px; line-height: 1.25;">
               ${listing.property_name || listing.display_address || listing.address}
             </div>
@@ -157,8 +206,15 @@ export function DistributionMapView({
               <div><strong>${driveIn}</strong> Drive-In</div>
             </div>
           </div>
-        `)
-        .addTo(mapRef.current);
+        `,
+        pixelOffset: new google.maps.Size(0, -16),
+      });
+
+      const marker = markersRef.current.get(listingId);
+      if (marker) {
+        infoWindow.open(mapRef.current, marker);
+      }
+      infoWindowRef.current = infoWindow;
 
       // Scroll table row into view
       const rowEl = document.getElementById(`listing-row-${listingId}`);
@@ -166,72 +222,70 @@ export function DistributionMapView({
         rowEl.scrollIntoView({ behavior: "smooth", block: "center" });
       }
     },
-    [mappableListings]
+    [mappableListings, updateMarkerStyle]
   );
 
   // Add markers function
-  const addMarkers = useCallback(() => {
+  const addMarkers = useCallback(async () => {
     if (!mapRef.current) return;
 
     // Clear existing markers
-    markersRef.current.forEach((marker) => marker.remove());
+    markersRef.current.forEach((marker) => {
+      marker.map = null;
+    });
     markersRef.current.clear();
 
+    // Import AdvancedMarkerElement
+    const { AdvancedMarkerElement } = await importLibrary("marker") as google.maps.MarkerLibrary;
+
     mappableListings.forEach((listing) => {
-      const el = document.createElement("div");
-      el.className = "map-marker";
-      el.dataset.listingId = listing.id;
-      el.style.cssText = `
-        width: 32px;
-        height: 32px;
-        background: hsl(217 91% 53%);
-        border: 3px solid hsl(0 0% 7%);
-        border-radius: 50%;
-        cursor: pointer;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        box-shadow: 3px 3px 0 hsl(0 0% 7%);
-        transition: background 0.15s, box-shadow 0.15s;
-      `;
-      el.innerHTML = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>`;
+      const el = createMarkerElement(false, false);
 
-      const marker = new mapboxgl.Marker({ element: el, anchor: "center" })
-        .setLngLat([listing.longitude!, listing.latitude!])
-        .addTo(mapRef.current!);
+      const marker = new AdvancedMarkerElement({
+        map: mapRef.current!,
+        position: { lat: listing.latitude!, lng: listing.longitude! },
+        content: el,
+      });
 
-      el.addEventListener("click", () => {
+      marker.addListener("click", () => {
         selectListing(listing.id);
       });
 
       el.addEventListener("mouseenter", () => {
         if (selectedListingIdRef.current !== listing.id) {
-          el.style.background = "hsl(142 71% 45%)"; // Green on hover
-          el.style.boxShadow = "4px 4px 0 hsl(0 0% 7%)";
+          updateMarkerStyle(listing.id, false, true);
         }
       });
       el.addEventListener("mouseleave", () => {
         if (selectedListingIdRef.current !== listing.id) {
-          el.style.background = "hsl(217 91% 53%)";
-          el.style.boxShadow = "3px 3px 0 hsl(0 0% 7%)";
+          updateMarkerStyle(listing.id, false, false);
         }
       });
 
       markersRef.current.set(listing.id, marker);
     });
-  }, [mappableListings, selectListing]);
+  }, [mappableListings, selectListing, createMarkerElement, updateMarkerStyle]);
 
   // Fit bounds function
   const fitBoundsToMarkers = useCallback(() => {
     if (!mapRef.current || mappableListings.length === 0) return;
 
-    const bounds = new mapboxgl.LngLatBounds();
+    const bounds = new google.maps.LatLngBounds();
 
     mappableListings.forEach((listing) => {
-      bounds.extend([listing.longitude!, listing.latitude!]);
+      bounds.extend({ lat: listing.latitude!, lng: listing.longitude! });
     });
 
-    mapRef.current.fitBounds(bounds, { padding: 60, maxZoom: 12 });
+    mapRef.current.fitBounds(bounds, 60);
+    
+    // Limit max zoom
+    const listener = google.maps.event.addListener(mapRef.current, "idle", () => {
+      const zoom = mapRef.current?.getZoom();
+      if (zoom && zoom > 12) {
+        mapRef.current?.setZoom(12);
+      }
+      google.maps.event.removeListener(listener);
+    });
   }, [mappableListings]);
 
   // Initialize map when we have the token
@@ -243,61 +297,69 @@ export function DistributionMapView({
       return;
     }
 
-    try {
-      mapboxgl.accessToken = mapToken;
-
-      const map = new mapboxgl.Map({
-        container: mapContainerRef.current,
-        style: "mapbox://styles/mapbox/satellite-streets-v12",
-        center: [-114.0719, 51.0447], // Calgary default
-        zoom: 10,
-      });
-
-      map.addControl(new mapboxgl.NavigationControl(), "top-right");
-
-      mapRef.current = map;
-
-      // Add markers after map loads
-      map.on("load", () => {
-        addMarkers();
-        fitBoundsToMarkers();
-        setTimeout(() => map.resize(), 100);
-      });
-
-      // Handle map errors
-      map.on("error", (e) => {
-        console.error("[DistributionMapView] Mapbox error:", e?.error || e);
-      });
-
-      // Setup ResizeObserver for the map container
-      if (mapContainerRef.current) {
-        resizeObserverRef.current = new ResizeObserver(() => {
-          if (mapRef.current) {
-            mapRef.current.resize();
-          }
+    const initMap = async () => {
+      try {
+        // Set API options (only needs to be done once)
+        setOptions({
+          key: mapToken,
+          v: "weekly",
         });
-        resizeObserverRef.current.observe(mapContainerRef.current);
+
+        // Use importLibrary to load the maps library
+        const { Map } = await importLibrary("maps") as google.maps.MapsLibrary;
+
+        if (!mapContainerRef.current) return;
+
+        const map = new Map(mapContainerRef.current, {
+          center: { lat: 51.0447, lng: -114.0719 }, // Calgary default
+          zoom: 10,
+          mapTypeId: "hybrid", // Satellite with labels
+          mapId: "distribution-map", // Required for AdvancedMarkerElement
+          gestureHandling: "greedy",
+          zoomControl: true,
+          streetViewControl: false,
+          mapTypeControl: false,
+          fullscreenControl: false,
+        });
+
+        mapRef.current = map;
+
+        // Add markers after map loads
+        google.maps.event.addListenerOnce(map, "tilesloaded", () => {
+          addMarkers();
+          fitBoundsToMarkers();
+        });
+
+        // Setup ResizeObserver for the map container
+        if (mapContainerRef.current) {
+          resizeObserverRef.current = new ResizeObserver(() => {
+            if (mapRef.current) {
+              google.maps.event.trigger(mapRef.current, "resize");
+            }
+          });
+          resizeObserverRef.current.observe(mapContainerRef.current);
+        }
+
+        // Window resize handler
+        const handleResize = () => {
+          if (mapRef.current) {
+            google.maps.event.trigger(mapRef.current, "resize");
+          }
+        };
+        window.addEventListener("resize", handleResize);
+
+        return () => {
+          window.removeEventListener("resize", handleResize);
+          if (resizeObserverRef.current) {
+            resizeObserverRef.current.disconnect();
+          }
+        };
+      } catch (err) {
+        console.error("[DistributionMapView] Failed to initialize Google Maps:", err);
       }
+    };
 
-      // Window resize handler
-      const handleResize = () => {
-        if (mapRef.current) {
-          mapRef.current.resize();
-        }
-      };
-      window.addEventListener("resize", handleResize);
-
-      return () => {
-        window.removeEventListener("resize", handleResize);
-        if (resizeObserverRef.current) {
-          resizeObserverRef.current.disconnect();
-        }
-        map.remove();
-        mapRef.current = null;
-      };
-    } catch (err) {
-      console.error("[DistributionMapView] Failed to initialize map:", err);
-    }
+    initMap();
   }, [mapToken, addMarkers, fitBoundsToMarkers]);
 
   // Re-add markers when listings change
@@ -359,25 +421,21 @@ export function DistributionMapView({
     setHoveredListingId(listingId);
     
     markersRef.current.forEach((marker, id) => {
-      const el = marker.getElement();
+      const el = marker.content as HTMLElement;
+      if (!el) return;
+      
       if (id === selectedListingId) {
         // Keep selected style
-        el.style.background = "hsl(48 97% 53%)";
-        el.style.boxShadow = "4px 4px 0 hsl(0 0% 7%)";
-        el.style.zIndex = "100";
+        updateMarkerStyle(id, true, false);
       } else if (id === listingId) {
-        // Hovered style - green
-        el.style.background = "hsl(142 71% 45%)";
-        el.style.boxShadow = "4px 4px 0 hsl(0 0% 7%)";
-        el.style.zIndex = "50";
+        // Hovered style
+        updateMarkerStyle(id, false, true);
       } else {
         // Default style
-        el.style.background = "hsl(217 91% 53%)";
-        el.style.boxShadow = "3px 3px 0 hsl(0 0% 7%)";
-        el.style.zIndex = "";
+        updateMarkerStyle(id, false, false);
       }
     });
-  }, [selectedListingId]);
+  }, [selectedListingId, updateMarkerStyle]);
 
   // Zoom out to show all markers
   const handleZoomOut = useCallback(() => {
@@ -385,23 +443,23 @@ export function DistributionMapView({
     setSelectedListingId(null);
 
     // Reset all markers to default style AND show them again
-    markersRef.current.forEach((marker) => {
-      const el = marker.getElement();
-      el.style.display = "flex"; // Show all markers again
-      el.style.background = "hsl(217 91% 53%)";
-      el.style.boxShadow = "3px 3px 0 hsl(0 0% 7%)";
-      el.style.zIndex = "";
+    markersRef.current.forEach((marker, id) => {
+      const el = marker.content as HTMLElement;
+      if (el) {
+        el.style.display = "flex";
+      }
+      updateMarkerStyle(id, false, false);
     });
 
-    // Close popup
-    if (popupRef.current) {
-      popupRef.current.remove();
-      popupRef.current = null;
+    // Close info window
+    if (infoWindowRef.current) {
+      infoWindowRef.current.close();
+      infoWindowRef.current = null;
     }
 
     // Fit bounds to all markers
     fitBoundsToMarkers();
-  }, [fitBoundsToMarkers]);
+  }, [fitBoundsToMarkers, updateMarkerStyle]);
 
   return (
     <div className="h-[100dvh] w-full overflow-hidden flex flex-col bg-background">
@@ -492,11 +550,15 @@ export function DistributionMapView({
                     onClick={() => selectListing(listing.id)}
                     onMouseEnter={() => handleRowHover(listing.id)}
                     onMouseLeave={() => handleRowHover(null)}
-                    className={`
-                      cursor-pointer transition-colors border-b border-border-subtle
-                      ${idx % 2 === 1 ? "bg-muted/30" : "bg-card"}
-                      ${selectedListingId === listing.id ? "!bg-primary/20 ring-2 ring-inset ring-primary" : "hover:bg-[hsl(48_97%_53%/0.3)]"}
-                    `}
+                    className={`cursor-pointer border-b border-border transition-colors ${
+                      selectedListingId === listing.id
+                        ? "bg-primary/20"
+                        : hoveredListingId === listing.id
+                        ? "bg-[hsl(48_97%_53%/0.3)]"
+                        : idx % 2 === 0
+                        ? "bg-card"
+                        : "bg-background"
+                    }`}
                   >
                     <td className="p-3">
                       <div className="font-semibold text-foreground truncate max-w-[180px]">
@@ -507,81 +569,73 @@ export function DistributionMapView({
                       </div>
                     </td>
                     <td className="p-3 text-muted-foreground">{listing.city}</td>
-                    <td className="p-3 text-right font-semibold font-mono">
+                    <td className="p-3 text-right font-mono font-medium">
                       {listing.size_sf?.toLocaleString() || "—"}
                     </td>
-                    <td className="p-3 text-center">
+                    <td className="p-3 text-center text-muted-foreground">
                       {listing.clear_height_ft ? `${listing.clear_height_ft}'` : "—"}
                     </td>
-                    <td className="p-3 text-center">{listing.dock_doors ?? "—"}</td>
-                    <td className="p-3 text-center">{formatDriveIn(listing.drive_in_doors)}</td>
+                    <td className="p-3 text-center text-muted-foreground">
+                      {listing.dock_doors || "—"}
+                    </td>
+                    <td className="p-3 text-center text-muted-foreground">
+                      {formatDriveIn(listing.drive_in_doors)}
+                    </td>
                   </tr>
                 ))}
+                {filteredListings.length === 0 && (
+                  <tr>
+                    <td colSpan={6} className="p-8 text-center text-muted-foreground">
+                      <MapPin className="w-8 h-8 mx-auto mb-2 opacity-30" />
+                      <p>No listings found</p>
+                    </td>
+                  </tr>
+                )}
               </tbody>
             </table>
-
-            {filteredListings.length === 0 && (
-              <div className="p-8 text-center text-muted-foreground">
-                {searchQuery
-                  ? "No listings match your search"
-                  : "No geocoded listings available"}
-              </div>
-            )}
           </div>
         </div>
 
-        {/* Right panel - map fills remaining space */}
-        <div className="flex-1 min-w-0 min-h-0 overflow-hidden relative">
-          {mapError ? (
-            <div className="absolute inset-0 flex items-center justify-center bg-muted">
-              <div className="text-center p-8 brutalist-card">
+        {/* Right panel - map takes remaining space */}
+        <div className="flex-1 relative bg-muted">
+          {mapError && (
+            <div className="absolute inset-0 flex items-center justify-center">
+              <div className="text-center p-8">
                 <AlertCircle className="w-12 h-12 text-destructive mx-auto mb-4" />
-                <p className="font-bold text-foreground mb-2">Map Error</p>
-                <p className="text-sm text-muted-foreground">{mapError}</p>
+                <p className="font-semibold text-destructive">{mapError}</p>
               </div>
             </div>
-          ) : !mapToken ? (
-            <div className="absolute inset-0 flex items-center justify-center bg-muted">
-              <div className="text-center p-8">
-                <div className="animate-spin rounded-full h-8 w-8 border-4 border-primary border-t-transparent mx-auto mb-4" />
+          )}
+
+          {!mapToken && !mapError && (
+            <div className="absolute inset-0 flex items-center justify-center">
+              <div className="text-center">
+                <div className="animate-spin w-8 h-8 border-4 border-primary border-t-transparent rounded-full mx-auto mb-4" />
                 <p className="text-sm text-muted-foreground">Loading map...</p>
               </div>
             </div>
-          ) : (
-            <>
-              <div ref={mapContainerRef} className="h-full w-full" />
-              {/* Zoom out button */}
-              <Button
-                onClick={handleZoomOut}
-                variant="outline"
-                size="sm"
-                className="absolute bottom-4 left-4 z-10 bg-background/95 backdrop-blur-sm border-2 border-foreground shadow-[2px_2px_0_hsl(0_0%_7%)] hover:shadow-[3px_3px_0_hsl(0_0%_7%)] hover:translate-x-[-1px] hover:translate-y-[-1px] transition-all font-semibold"
-              >
-                <ZoomOut className="w-4 h-4 mr-2" />
-                View All
-              </Button>
-            </>
+          )}
+
+          <div
+            ref={mapContainerRef}
+            className="absolute inset-0"
+            style={{ visibility: mapToken ? "visible" : "hidden" }}
+          />
+
+          {/* Zoom out button - appears when a listing is selected */}
+          {selectedListingId && (
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={handleZoomOut}
+              className="absolute top-4 left-4 shadow-lg z-10"
+            >
+              <ZoomOut className="w-4 h-4 mr-2" />
+              View All
+            </Button>
           )}
         </div>
       </main>
-
-      {/* Custom popup styles */}
-      <style>{`
-        .mapboxgl-popup-content {
-          border: 2px solid hsl(0 0% 7%) !important;
-          border-radius: 6px !important;
-          box-shadow: 4px 4px 0 hsl(0 0% 7%) !important;
-          padding: 0 !important;
-        }
-        .mapboxgl-popup-close-button {
-          font-size: 18px;
-          padding: 4px 8px;
-          color: hsl(0 0% 7%);
-        }
-        .mapboxgl-popup-close-button:hover {
-          background: hsl(48 97% 53%);
-        }
-      `}</style>
     </div>
   );
 }

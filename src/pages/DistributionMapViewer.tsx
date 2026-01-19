@@ -67,19 +67,19 @@ export default function DistributionMapViewer() {
         setListings(listingsData || []);
         console.log(`[DistributionMapViewer] Loaded ${listingsData?.length || 0} listings`);
 
-        // Fetch Mapbox token via authenticated endpoint
-        const { data: tokenData, error: tokenError } = await supabase.functions.invoke("get-mapbox-token", {
+        // Fetch Google Maps API key via authenticated endpoint
+        const { data: tokenData, error: tokenError } = await supabase.functions.invoke("get-google-maps-token", {
           body: { authenticated: true }
         });
 
         if (tokenError) {
-          console.error("[DistributionMapViewer] Mapbox token fetch error:", tokenError);
+          console.error("[DistributionMapViewer] Google Maps API key fetch error:", tokenError);
           setMapError("Failed to load map configuration");
-        } else if (tokenData?.token) {
-          console.log("[DistributionMapViewer] Mapbox token received");
-          setMapToken(tokenData.token);
+        } else if (tokenData?.apiKey) {
+          console.log("[DistributionMapViewer] Google Maps API key received");
+          setMapToken(tokenData.apiKey);
         } else {
-          setMapError("Map token not available");
+          setMapError("Map API key not available");
         }
       } catch (err) {
         console.error("[DistributionMapViewer] Failed to fetch data:", err);
