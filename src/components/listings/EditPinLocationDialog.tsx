@@ -46,18 +46,20 @@ export function EditPinLocationDialog({
     return null;
   }, [listing?.latitude, listing?.longitude]);
 
-  // Reset state when dialog closes
+  // Clean up map when dialog closes
   useEffect(() => {
     if (!open) {
-      // Clean up when closing
+      // Clean up marker
       if (markerRef.current) {
         markerRef.current.remove();
         markerRef.current = null;
       }
+      // Clean up map
       if (mapRef.current) {
         mapRef.current.remove();
         mapRef.current = null;
       }
+      // Reset initialization flag so map can be created again
       isInitializedRef.current = false;
       setMapReady(false);
       setNewLocation(null);
@@ -135,50 +137,57 @@ export function EditPinLocationDialog({
 
   // Initialize map - only when dialog is open, token is available, and not already initialized
   useEffect(() => {
-    if (!open || !mapboxToken || !mapContainerRef.current || isInitializedRef.current) {
+    if (!open || !mapboxToken || isInitializedRef.current) {
       return;
     }
 
-    // Prevent double initialization
-    isInitializedRef.current = true;
-
-    mapboxgl.accessToken = mapboxToken;
-
-    // Default center: Calgary, or listing's current location
-    const center: [number, number] = originalLocation 
-      ? [originalLocation.lng, originalLocation.lat]
-      : [-114.0719, 51.0447];
-
-    const zoom = originalLocation ? 15 : 10;
-
-    const map = new mapboxgl.Map({
-      container: mapContainerRef.current,
-      style: 'mapbox://styles/mapbox/satellite-streets-v12',
-      center,
-      zoom,
-    });
-
-    map.addControl(new mapboxgl.NavigationControl(), 'top-right');
-
-    map.on('load', () => {
-      setMapReady(true);
-      
-      // Add marker if there's an existing location
-      if (originalLocation) {
-        updateMarker(originalLocation.lat, originalLocation.lng);
+    // Use a small delay to ensure the dialog container is mounted in the DOM
+    const initTimer = setTimeout(() => {
+      if (!mapContainerRef.current || isInitializedRef.current) {
+        return;
       }
-    });
 
-    // Click handler to place/move pin
-    map.on('click', (e) => {
-      const { lat, lng } = e.lngLat;
-      setNewLocation({ lat, lng });
-      updateMarker(lat, lng);
-    });
+      // Prevent double initialization
+      isInitializedRef.current = true;
 
-    mapRef.current = map;
+      mapboxgl.accessToken = mapboxToken;
 
-    // No cleanup here - handled by the open state effect
+      // Default center: Calgary, or listing's current location
+      const center: [number, number] = originalLocation 
+        ? [originalLocation.lng, originalLocation.lat]
+        : [-114.0719, 51.0447];
+
+      const zoom = originalLocation ? 15 : 10;
+
+      const map = new mapboxgl.Map({
+        container: mapContainerRef.current,
+        style: 'mapbox://styles/mapbox/satellite-streets-v12',
+        center,
+        zoom,
+      });
+
+      map.addControl(new mapboxgl.NavigationControl(), 'top-right');
+
+      map.on('load', () => {
+        setMapReady(true);
+        
+        // Add marker if there's an existing location
+        if (originalLocation) {
+          updateMarker(originalLocation.lat, originalLocation.lng);
+        }
+      });
+
+      // Click handler to place/move pin
+      map.on('click', (e) => {
+        const { lat, lng } = e.lngLat;
+        setNewLocation({ lat, lng });
+        updateMarker(lat, lng);
+      });
+
+      mapRef.current = map;
+    }, 100);
+
+    return () => clearTimeout(initTimer);
   }, [open, mapboxToken, originalLocation, updateMarker]);
 
   // Reset to original or clear
