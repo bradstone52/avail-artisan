@@ -20,9 +20,48 @@ interface GeocodedResult {
   longitude: number;
 }
 
+/**
+ * Normalize address strings to improve geocoding accuracy.
+ * Handles common formatting issues like:
+ * - "5555 - 69th Ave SE" → "5555 69 Ave SE"
+ * - Removes ordinal suffixes (st, nd, rd, th) from street numbers
+ * - Normalizes separators and extra spaces
+ */
+function normalizeAddress(address: string): string {
+  let normalized = address;
+  
+  // Remove " - " between street number and street name (e.g., "5555 - 69th" → "5555 69th")
+  normalized = normalized.replace(/(\d+)\s*-\s+(\d)/g, '$1 $2');
+  
+  // Remove ordinal suffixes from street numbers (e.g., "69th" → "69", "1st" → "1", "2nd" → "2", "3rd" → "3")
+  normalized = normalized.replace(/\b(\d+)(st|nd|rd|th)\b/gi, '$1');
+  
+  // Normalize common abbreviations
+  normalized = normalized.replace(/\bAvenue\b/gi, 'Ave');
+  normalized = normalized.replace(/\bStreet\b/gi, 'St');
+  normalized = normalized.replace(/\bDrive\b/gi, 'Dr');
+  normalized = normalized.replace(/\bRoad\b/gi, 'Rd');
+  normalized = normalized.replace(/\bBoulevard\b/gi, 'Blvd');
+  normalized = normalized.replace(/\bCrescent\b/gi, 'Cres');
+  normalized = normalized.replace(/\bCourt\b/gi, 'Ct');
+  normalized = normalized.replace(/\bPlace\b/gi, 'Pl');
+  normalized = normalized.replace(/\bCircle\b/gi, 'Cir');
+  normalized = normalized.replace(/\bHighway\b/gi, 'Hwy');
+  normalized = normalized.replace(/\bTrail\b/gi, 'Tr');
+  
+  // Remove extra spaces
+  normalized = normalized.replace(/\s+/g, ' ').trim();
+  
+  console.log(`Address normalized: "${address}" → "${normalized}"`);
+  
+  return normalized;
+}
+
 async function geocodeAddress(address: string, city: string | null, mapboxToken: string): Promise<{ lat: number; lng: number } | null> {
   try {
-    const fullAddress = city ? `${address}, ${city}, Canada` : `${address}, Canada`;
+    // Normalize the address before geocoding
+    const normalizedAddress = normalizeAddress(address);
+    const fullAddress = city ? `${normalizedAddress}, ${city}, Canada` : `${normalizedAddress}, Canada`;
     const encodedAddress = encodeURIComponent(fullAddress);
     const url = `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodedAddress}.json?access_token=${mapboxToken}&limit=1&country=CA`;
     
