@@ -17,6 +17,7 @@ export interface Listing {
   id: string;
   listing_id: string;
   property_name: string | null;
+  display_address: string | null;
   address: string;
   city: string;
   submarket: string;
@@ -43,6 +44,10 @@ export interface Listing {
   cross_dock: 'Yes' | 'No' | 'Unknown';
   trailer_parking: 'Yes' | 'No' | 'Unknown';
   org_id: string | null;
+  latitude: number | null;
+  longitude: number | null;
+  geocode_source: string | null;
+  geocoded_at: string | null;
   created_at: string;
   updated_at: string;
 }

@@ -116,6 +116,7 @@ export default function Listings() {
           <ListingsTable 
             listings={listings} 
             onToggleInclude={handleToggleInclude}
+            onListingUpdated={refreshListings}
           />
         )}
       </div>
