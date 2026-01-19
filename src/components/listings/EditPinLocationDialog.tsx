@@ -46,7 +46,9 @@ export function EditPinLocationDialog({
   useEffect(() => {
     const fetchToken = async () => {
       try {
-        const { data, error } = await supabase.functions.invoke('get-mapbox-token');
+        const { data, error } = await supabase.functions.invoke('get-mapbox-token', {
+          body: { authenticated: true }
+        });
         if (error) throw error;
         if (data?.token) {
           setMapboxToken(data.token);
