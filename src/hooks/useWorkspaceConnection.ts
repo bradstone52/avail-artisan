@@ -429,6 +429,27 @@ export function useWorkspaceConnection() {
         .update({ last_synced_at: new Date().toISOString() })
         .eq('id', connection.id);
 
+      // Geocode listings that are missing coordinates
+      console.log('[Sync] Starting geocoding for new listings...');
+      try {
+        const { data: geocodeResult, error: geocodeError } = await supabase.functions.invoke('geocode-listings', {
+          headers: {
+            Authorization: `Bearer ${session.access_token}`,
+          },
+        });
+        
+        if (geocodeError) {
+          console.warn('[Sync] Geocoding failed (non-fatal):', geocodeError);
+        } else if (geocodeResult) {
+          console.log(`[Sync] Geocoded ${geocodeResult.geocoded} listings`);
+          if (geocodeResult.remaining) {
+            console.log('[Sync] More listings need geocoding - run sync again or wait for next scheduled sync');
+          }
+        }
+      } catch (geocodeErr) {
+        console.warn('[Sync] Geocoding error (non-fatal):', geocodeErr);
+      }
+
       // Update sync log as successful
       if (logId) {
         await supabase.from('sync_logs').update({
