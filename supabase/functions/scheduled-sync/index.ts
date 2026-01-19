@@ -514,6 +514,10 @@ serve(async (req) => {
     // Headers are on row 2 (index 1)
     const headers = rows[1] || [];
     const dataRows = rows.slice(2);
+
+    console.log(
+      `[Scheduled Sync] Headers count=${headers.length}; headers=${JSON.stringify(headers)}`
+    );
     
     console.log(`[Scheduled Sync] Found ${dataRows.length} data rows`);
 

@@ -549,6 +549,13 @@ serve(async (req) => {
     // Headers are on headerRow (1-indexed, so index is headerRow - 1)
     const headers = rows[headerRow - 1] || [];
     const dataRows = rows.slice(headerRow);
+
+    const brochureIdx = findHeaderIndex(headers, 'Brochure URL');
+    console.log(
+      `[Org Sync] Headers count=${headers.length}; brochureIdx=${brochureIdx}; headers=${JSON.stringify(
+        headers
+      )}`
+    );
     
     console.log(`[Org Sync] Found ${dataRows.length} data rows`);
 
@@ -573,7 +580,8 @@ serve(async (req) => {
 
     // If brochure links were added as *rich text links* (not =HYPERLINK formulas), the Values API won't return the URL.
     // Fetch the underlying cell hyperlink metadata for the Brochure URL column and use it as a fallback.
-    const brochureIdx = findHeaderIndex(headers, 'Brochure URL');
+    // If brochure links were added as *rich text links* (not =HYPERLINK formulas), the Values API won't return the URL.
+    // Fetch the underlying cell hyperlink metadata for the Brochure URL column and use it as a fallback.
     const sheetRowCount = headerRow + dataRows.length; // includes header row
     const brochureHyperlinks =
       brochureIdx !== -1
@@ -618,6 +626,16 @@ serve(async (req) => {
         const sheetRowNumber = headerRow + 1 + i;
         const url = brochureHyperlinks[sheetRowNumber - 1];
         if (url) listing.link = url;
+      }
+
+      // Diagnostics (log a few missing brochure links)
+      if (!listing.link && brochureIdx !== -1 && i < 10) {
+        const raw = getCellAsString(row[brochureIdx]);
+        console.log(
+          `[Org Sync] Missing brochure link row=${headerRow + 1 + i} listing_id=${String(
+            listing.listing_id ?? ''
+          )} raw=${JSON.stringify(raw)}`
+        );
       }
 
       const listingId = (listing.listing_id as string)?.trim();
