@@ -89,30 +89,49 @@ function normalizeAddress(address: string): string {
   return normalized;
 }
 
-async function geocodeAddress(address: string, city: string | null, mapboxToken: string): Promise<{ lat: number; lng: number } | null> {
+/**
+ * Geocode an address using Google's Geocoding API.
+ * Returns lat/lng coordinates or null if geocoding fails.
+ */
+async function geocodeWithGoogle(
+  address: string, 
+  city: string | null, 
+  googleApiKey: string
+): Promise<{ lat: number; lng: number } | null> {
   try {
     // Normalize the address before geocoding
     const normalizedAddress = normalizeAddress(address);
     const fullAddress = city ? `${normalizedAddress}, ${city}, Canada` : `${normalizedAddress}, Canada`;
     const encodedAddress = encodeURIComponent(fullAddress);
-    const url = `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodedAddress}.json?access_token=${mapboxToken}&limit=1&country=CA`;
+    
+    // Use Google Geocoding API with region bias for Canada
+    const url = `https://maps.googleapis.com/maps/api/geocode/json?address=${encodedAddress}&region=ca&key=${googleApiKey}`;
+    
+    console.log(`Geocoding with Google: "${fullAddress}"`);
     
     const response = await fetch(url);
     if (!response.ok) {
-      console.error(`Geocoding failed for "${fullAddress}": ${response.status}`);
+      console.error(`Google Geocoding API error for "${fullAddress}": ${response.status}`);
       return null;
     }
     
     const data = await response.json();
-    if (data.features && data.features.length > 0) {
-      const [lng, lat] = data.features[0].center;
-      return { lat, lng };
+    
+    if (data.status === 'OK' && data.results && data.results.length > 0) {
+      const location = data.results[0].geometry.location;
+      console.log(`Google geocoded "${fullAddress}" → lat: ${location.lat}, lng: ${location.lng}`);
+      return { lat: location.lat, lng: location.lng };
     }
     
-    console.log(`No geocoding results for: ${fullAddress}`);
+    if (data.status === 'ZERO_RESULTS') {
+      console.log(`No Google geocoding results for: ${fullAddress}`);
+    } else if (data.status !== 'OK') {
+      console.error(`Google Geocoding API status: ${data.status}, error: ${data.error_message || 'none'}`);
+    }
+    
     return null;
   } catch (error) {
-    console.error(`Geocoding error for "${address}":`, error);
+    console.error(`Google geocoding error for "${address}":`, error);
     return null;
   }
 }
@@ -153,20 +172,22 @@ serve(async (req) => {
       });
     }
 
-    const mapboxToken = Deno.env.get('MAPBOX_ACCESS_TOKEN');
-    if (!mapboxToken) {
-      console.error('MAPBOX_ACCESS_TOKEN not configured');
+    // Use Google Geocoding API
+    const googleApiKey = Deno.env.get('GOOGLE_GEOCODING_API_KEY');
+    if (!googleApiKey) {
+      console.error('GOOGLE_GEOCODING_API_KEY not configured');
       return new Response(JSON.stringify({ error: 'Geocoding not configured' }), { 
         status: 500, 
         headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
       });
     }
 
-    // Get listings missing coordinates
+    // Get listings missing coordinates (exclude manually set ones)
     const { data: listingsToGeocode, error: fetchError } = await supabaseAdmin
       .from('listings')
       .select('id, address, city')
       .or('latitude.is.null,longitude.is.null,latitude.eq.0,longitude.eq.0')
+      .neq('geocode_source', 'manual')
       .limit(MAX_GEOCODE_PER_RUN);
 
     if (fetchError) {
@@ -188,14 +209,14 @@ serve(async (req) => {
       });
     }
 
-    console.log(`Geocoding ${listingsToGeocode.length} listings...`);
+    console.log(`Geocoding ${listingsToGeocode.length} listings with Google...`);
 
     const results: GeocodedResult[] = [];
     let successCount = 0;
     let failCount = 0;
 
     for (const listing of listingsToGeocode as Listing[]) {
-      const coords = await geocodeAddress(listing.address, listing.city, mapboxToken);
+      const coords = await geocodeWithGoogle(listing.address, listing.city, googleApiKey);
       
       if (coords) {
         results.push({
@@ -208,8 +229,8 @@ serve(async (req) => {
         failCount++;
       }
       
-      // Small delay to avoid rate limiting
-      await new Promise(resolve => setTimeout(resolve, 100));
+      // Small delay to avoid rate limiting (Google allows 50 QPS)
+      await new Promise(resolve => setTimeout(resolve, 50));
     }
 
     // Update all geocoded listings
@@ -219,7 +240,7 @@ serve(async (req) => {
         .update({
           latitude: result.latitude,
           longitude: result.longitude,
-          geocode_source: 'mapbox',
+          geocode_source: 'google',
           geocoded_at: new Date().toISOString(),
         })
         .eq('id', result.id);
