@@ -357,7 +357,7 @@ export function DistributionMapView({
       {/* Main content - flex-1 min-h-0 is critical to prevent overflow */}
       <main className="flex-1 min-h-0 flex overflow-hidden">
         {/* Left panel - fixed width, internal scroll only */}
-        <div className="w-[520px] max-w-[55vw] min-w-[320px] h-full flex flex-col border-r-2 border-foreground">
+        <div className="w-[600px] max-w-[60vw] min-w-[400px] h-full flex flex-col border-r-2 border-foreground">
           {/* Search - sticky top */}
           <div className="shrink-0 p-3 border-b-2 border-foreground bg-card">
             <div className="relative">
