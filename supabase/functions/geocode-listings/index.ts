@@ -20,15 +20,43 @@ interface GeocodedResult {
   longitude: number;
 }
 
+// Directional indicators that should always remain uppercase
+const DIRECTIONAL_INDICATORS = ['NW', 'NE', 'SW', 'SE', 'N', 'S', 'E', 'W'];
+
+/**
+ * Convert a string to title case, preserving directional indicators as uppercase.
+ * "5555 69 AVENUE SE" → "5555 69 Avenue SE"
+ */
+function toTitleCase(str: string): string {
+  return str.split(' ').map(word => {
+    const upperWord = word.toUpperCase();
+    // Keep directional indicators uppercase
+    if (DIRECTIONAL_INDICATORS.includes(upperWord)) {
+      return upperWord;
+    }
+    // Keep numbers as-is
+    if (/^\d+$/.test(word)) {
+      return word;
+    }
+    // Title case: first letter uppercase, rest lowercase
+    return word.charAt(0).toUpperCase() + word.slice(1).toLowerCase();
+  }).join(' ');
+}
+
 /**
  * Normalize address strings to improve geocoding accuracy.
  * Handles common formatting issues like:
  * - "5555 - 69th Ave SE" → "5555 69 Ave SE"
+ * - "5555 69 AVENUE SE" → "5555 69 Avenue SE"
  * - Removes ordinal suffixes (st, nd, rd, th) from street numbers
  * - Normalizes separators and extra spaces
+ * - Converts ALL CAPS to title case while preserving directional indicators
  */
 function normalizeAddress(address: string): string {
   let normalized = address;
+  
+  // First, convert to title case (handles ALL CAPS addresses)
+  normalized = toTitleCase(normalized);
   
   // Remove " - " between street number and street name (e.g., "5555 - 69th" → "5555 69th")
   normalized = normalized.replace(/(\d+)\s*-\s+(\d)/g, '$1 $2');
@@ -36,7 +64,7 @@ function normalizeAddress(address: string): string {
   // Remove ordinal suffixes from street numbers (e.g., "69th" → "69", "1st" → "1", "2nd" → "2", "3rd" → "3")
   normalized = normalized.replace(/\b(\d+)(st|nd|rd|th)\b/gi, '$1');
   
-  // Normalize common abbreviations
+  // Normalize common abbreviations (apply after title case to ensure consistent casing)
   normalized = normalized.replace(/\bAvenue\b/gi, 'Ave');
   normalized = normalized.replace(/\bStreet\b/gi, 'St');
   normalized = normalized.replace(/\bDrive\b/gi, 'Dr');
@@ -48,6 +76,10 @@ function normalizeAddress(address: string): string {
   normalized = normalized.replace(/\bCircle\b/gi, 'Cir');
   normalized = normalized.replace(/\bHighway\b/gi, 'Hwy');
   normalized = normalized.replace(/\bTrail\b/gi, 'Tr');
+  normalized = normalized.replace(/\bLane\b/gi, 'Ln');
+  normalized = normalized.replace(/\bTerrace\b/gi, 'Ter');
+  normalized = normalized.replace(/\bParkway\b/gi, 'Pkwy');
+  normalized = normalized.replace(/\bWay\b/gi, 'Way');
   
   // Remove extra spaces
   normalized = normalized.replace(/\s+/g, ' ').trim();
