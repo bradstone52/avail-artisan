@@ -60,6 +60,14 @@ export function DistributionMapView({
   const popupRef = useRef<mapboxgl.Popup | null>(null);
   const resizeObserverRef = useRef<ResizeObserver | null>(null);
 
+  // Keep latest selection in a ref so marker event handlers don't need to
+  // capture selectedListingId (which would force marker rebuilds and re-fitBounds).
+  const selectedListingIdRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    selectedListingIdRef.current = selectedListingId;
+  }, [selectedListingId]);
+
   // Create a filtered list of ONLY mappable listings (valid coordinates)
   const mappableListings = useMemo(() => {
     const seen = new Set<string>();
@@ -75,6 +83,91 @@ export function DistributionMapView({
 
   // Count of non-mappable listings
   const unmappedCount = listings.length - mappableListings.length;
+
+  // Select listing function - reads coordinates from the item directly
+  const selectListing = useCallback(
+    (listingId: string) => {
+      const listing = mappableListings.find((l) => l.id === listingId);
+
+      if (!listing || !mapRef.current) return;
+
+      // Update state + ref (ref is used by marker event handlers)
+      selectedListingIdRef.current = listingId;
+      setSelectedListingId(listingId);
+
+      // Close existing popup
+      if (popupRef.current) {
+        popupRef.current.remove();
+      }
+
+      // Update marker styles - HIDE non-selected markers, show only selected
+      markersRef.current.forEach((marker, id) => {
+        const el = marker.getElement();
+        if (id === listingId) {
+          el.style.display = "flex"; // Show selected
+          el.style.background = "hsl(48 97% 53%)"; // Yellow for selected
+          el.style.boxShadow = "4px 4px 0 hsl(0 0% 7%)";
+          el.style.zIndex = "100";
+        } else {
+          el.style.display = "none"; // Hide non-selected
+        }
+      });
+
+      // All items in mappableListings have valid coords - no need to check again
+      const lat = Number(listing.latitude);
+      const lng = Number(listing.longitude);
+
+      // Resize map before flying
+      mapRef.current.resize();
+
+      // Fly to location with higher zoom to isolate the pin
+      mapRef.current.flyTo({
+        center: [lng, lat],
+        zoom: 16,
+        essential: true,
+        duration: 1000,
+      });
+
+      // Show popup - slightly larger for readability
+      const driveIn =
+        listing.drive_in_doors === 0 || listing.drive_in_doors == null
+          ? "—"
+          : String(listing.drive_in_doors);
+
+      popupRef.current = new mapboxgl.Popup({
+        closeButton: true,
+        closeOnClick: false,
+        offset: 32,
+        className: "brutalist-popup",
+        maxWidth: "360px",
+      })
+        .setLngLat([lng, lat])
+        .setHTML(`
+          <div style="font-family: Inter, sans-serif; padding: 16px 18px;">
+            <div style="font-weight: 900; font-size: 17px; color: #111; margin-bottom: 8px; line-height: 1.25;">
+              ${listing.property_name || listing.display_address || listing.address}
+            </div>
+            <div style="font-size: 14px; color: #555; margin-bottom: 12px; line-height: 1.35;">
+              ${listing.city} · ${listing.submarket}
+            </div>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px 12px; font-size: 14px;">
+              <div><strong>${listing.size_sf?.toLocaleString() || "—"}</strong> SF</div>
+              <div><strong>${listing.clear_height_ft || "—"}</strong>' Clear</div>
+              <div><strong>${listing.dock_doors || "—"}</strong> Docks</div>
+              <div><strong>${driveIn}</strong> Drive-In</div>
+            </div>
+          </div>
+        `)
+        .addTo(mapRef.current);
+
+      // Scroll table row into view
+      const rowEl = document.getElementById(`listing-row-${listingId}`);
+      if (rowEl) {
+        rowEl.scrollIntoView({ behavior: "smooth", block: "center" });
+      }
+    },
+    [mappableListings]
+  );
 
   // Add markers function
   const addMarkers = useCallback(() => {
@@ -112,13 +205,13 @@ export function DistributionMapView({
       });
 
       el.addEventListener("mouseenter", () => {
-        if (selectedListingId !== listing.id) {
+        if (selectedListingIdRef.current !== listing.id) {
           el.style.background = "hsl(142 71% 45%)"; // Green on hover
           el.style.boxShadow = "4px 4px 0 hsl(0 0% 7%)";
         }
       });
       el.addEventListener("mouseleave", () => {
-        if (selectedListingId !== listing.id) {
+        if (selectedListingIdRef.current !== listing.id) {
           el.style.background = "hsl(217 91% 53%)";
           el.style.boxShadow = "3px 3px 0 hsl(0 0% 7%)";
         }
@@ -126,7 +219,7 @@ export function DistributionMapView({
 
       markersRef.current.set(listing.id, marker);
     });
-  }, [mappableListings, selectedListingId]);
+  }, [mappableListings, selectListing]);
 
   // Fit bounds function
   const fitBoundsToMarkers = useCallback(() => {
@@ -139,87 +232,6 @@ export function DistributionMapView({
     });
 
     mapRef.current.fitBounds(bounds, { padding: 60, maxZoom: 12 });
-  }, [mappableListings]);
-
-  // Select listing function - reads coordinates from the item directly
-  const selectListing = useCallback((listingId: string) => {
-    const listing = mappableListings.find((l) => l.id === listingId);
-
-    if (!listing || !mapRef.current) return;
-
-    // Update state
-    setSelectedListingId(listingId);
-
-    // Close existing popup
-    if (popupRef.current) {
-      popupRef.current.remove();
-    }
-
-    // Update marker styles - HIDE non-selected markers, show only selected
-    markersRef.current.forEach((marker, id) => {
-      const el = marker.getElement();
-      if (id === listingId) {
-        el.style.display = "flex"; // Show selected
-        el.style.background = "hsl(48 97% 53%)"; // Yellow for selected
-        el.style.boxShadow = "4px 4px 0 hsl(0 0% 7%)";
-        el.style.zIndex = "100";
-      } else {
-        el.style.display = "none"; // Hide non-selected
-      }
-    });
-
-    // All items in mappableListings have valid coords - no need to check again
-    const lat = Number(listing.latitude);
-    const lng = Number(listing.longitude);
-
-    // Resize map before flying
-    mapRef.current.resize();
-
-    // Fly to location with higher zoom to isolate the pin
-    mapRef.current.flyTo({
-      center: [lng, lat],
-      zoom: 16,
-      essential: true,
-      duration: 1000,
-    });
-
-    // Show popup - enlarged with more padding and larger text
-    const driveIn =
-      listing.drive_in_doors === 0 || listing.drive_in_doors == null
-        ? "—"
-        : String(listing.drive_in_doors);
-
-    popupRef.current = new mapboxgl.Popup({
-      closeButton: true,
-      closeOnClick: false,
-      offset: 30,
-      className: "brutalist-popup",
-      maxWidth: "320px",
-    })
-      .setLngLat([lng, lat])
-      .setHTML(`
-        <div style="font-family: Inter, sans-serif; padding: 14px 16px;">
-          <div style="font-weight: 800; font-size: 16px; color: #111; margin-bottom: 6px; line-height: 1.3;">
-            ${listing.property_name || listing.display_address || listing.address}
-          </div>
-          <div style="font-size: 13px; color: #555; margin-bottom: 12px;">
-            ${listing.city} · ${listing.submarket}
-          </div>
-          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; font-size: 13px;">
-            <div><strong>${listing.size_sf?.toLocaleString() || "—"}</strong> SF</div>
-            <div><strong>${listing.clear_height_ft || "—"}</strong>' Clear</div>
-            <div><strong>${listing.dock_doors || "—"}</strong> Docks</div>
-            <div><strong>${driveIn}</strong> Drive-In</div>
-          </div>
-        </div>
-      `)
-      .addTo(mapRef.current);
-
-    // Scroll table row into view
-    const rowEl = document.getElementById(`listing-row-${listingId}`);
-    if (rowEl) {
-      rowEl.scrollIntoView({ behavior: "smooth", block: "center" });
-    }
   }, [mappableListings]);
 
   // Initialize map when we have the token
@@ -369,8 +381,9 @@ export function DistributionMapView({
 
   // Zoom out to show all markers
   const handleZoomOut = useCallback(() => {
+    selectedListingIdRef.current = null;
     setSelectedListingId(null);
-    
+
     // Reset all markers to default style AND show them again
     markersRef.current.forEach((marker) => {
       const el = marker.getElement();
@@ -379,13 +392,13 @@ export function DistributionMapView({
       el.style.boxShadow = "3px 3px 0 hsl(0 0% 7%)";
       el.style.zIndex = "";
     });
-    
+
     // Close popup
     if (popupRef.current) {
       popupRef.current.remove();
       popupRef.current = null;
     }
-    
+
     // Fit bounds to all markers
     fitBoundsToMarkers();
   }, [fitBoundsToMarkers]);
