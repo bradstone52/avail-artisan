@@ -51,6 +51,7 @@ export function DistributionMapView({
   const [sortField, setSortField] = useState<SortField>("size_sf");
   const [sortDirection, setSortDirection] = useState<SortDirection>("desc");
   const [selectedListingId, setSelectedListingId] = useState<string | null>(null);
+  const [hoveredListingId, setHoveredListingId] = useState<string | null>(null);
 
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<mapboxgl.Map | null>(null);
@@ -85,6 +86,7 @@ export function DistributionMapView({
     mappableListings.forEach((listing) => {
       const el = document.createElement("div");
       el.className = "map-marker";
+      el.dataset.listingId = listing.id;
       el.style.cssText = `
         width: 32px;
         height: 32px;
@@ -96,11 +98,11 @@ export function DistributionMapView({
         align-items: center;
         justify-content: center;
         box-shadow: 3px 3px 0 hsl(0 0% 7%);
-        transition: transform 0.15s, box-shadow 0.15s;
+        transition: background 0.15s, box-shadow 0.15s;
       `;
       el.innerHTML = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>`;
 
-      const marker = new mapboxgl.Marker(el)
+      const marker = new mapboxgl.Marker({ element: el, anchor: "center" })
         .setLngLat([listing.longitude!, listing.latitude!])
         .addTo(mapRef.current!);
 
@@ -109,11 +111,15 @@ export function DistributionMapView({
       });
 
       el.addEventListener("mouseenter", () => {
-        el.style.transform = "translate(-1px, -1px) scale(1.1)";
+        if (selectedListingId !== listing.id) {
+          el.style.background = "hsl(142 71% 45%)"; // Green on hover
+          el.style.boxShadow = "4px 4px 0 hsl(0 0% 7%)";
+        }
       });
       el.addEventListener("mouseleave", () => {
         if (selectedListingId !== listing.id) {
-          el.style.transform = "";
+          el.style.background = "hsl(217 91% 53%)";
+          el.style.boxShadow = "3px 3px 0 hsl(0 0% 7%)";
         }
       });
 
@@ -151,11 +157,11 @@ export function DistributionMapView({
       const el = marker.getElement();
       if (id === listingId) {
         el.style.background = "hsl(48 97% 53%)"; // Yellow for selected
-        el.style.transform = "translate(-1px, -1px) scale(1.15)";
+        el.style.boxShadow = "4px 4px 0 hsl(0 0% 7%)";
         el.style.zIndex = "100";
       } else {
         el.style.background = "hsl(217 91% 53%)";
-        el.style.transform = "";
+        el.style.boxShadow = "3px 3px 0 hsl(0 0% 7%)";
         el.style.zIndex = "";
       }
     });
@@ -333,6 +339,31 @@ export function DistributionMapView({
     return String(val);
   };
 
+  // Highlight marker when hovering over table row
+  const handleRowHover = useCallback((listingId: string | null) => {
+    setHoveredListingId(listingId);
+    
+    markersRef.current.forEach((marker, id) => {
+      const el = marker.getElement();
+      if (id === selectedListingId) {
+        // Keep selected style
+        el.style.background = "hsl(48 97% 53%)";
+        el.style.boxShadow = "4px 4px 0 hsl(0 0% 7%)";
+        el.style.zIndex = "100";
+      } else if (id === listingId) {
+        // Hovered style - green
+        el.style.background = "hsl(142 71% 45%)";
+        el.style.boxShadow = "4px 4px 0 hsl(0 0% 7%)";
+        el.style.zIndex = "50";
+      } else {
+        // Default style
+        el.style.background = "hsl(217 91% 53%)";
+        el.style.boxShadow = "3px 3px 0 hsl(0 0% 7%)";
+        el.style.zIndex = "";
+      }
+    });
+  }, [selectedListingId]);
+
   return (
     <div className="h-[100dvh] w-full overflow-hidden flex flex-col bg-background">
       {/* Header - fixed height, no grow */}
@@ -420,6 +451,8 @@ export function DistributionMapView({
                     key={listing.id}
                     id={`listing-row-${listing.id}`}
                     onClick={() => selectListing(listing.id)}
+                    onMouseEnter={() => handleRowHover(listing.id)}
+                    onMouseLeave={() => handleRowHover(null)}
                     className={`
                       cursor-pointer transition-colors border-b border-border-subtle
                       ${idx % 2 === 1 ? "bg-muted/30" : "bg-card"}
