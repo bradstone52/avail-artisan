@@ -1,6 +1,7 @@
 import { useEffect, useState, useRef, useCallback, useMemo } from "react";
 import { Input } from "@/components/ui/input";
-import { Search, MapPin, AlertCircle, Building, ArrowUpDown } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Search, MapPin, AlertCircle, Building, ArrowUpDown, ZoomOut } from "lucide-react";
 import mapboxgl from "mapbox-gl";
 import "mapbox-gl/dist/mapbox-gl.css";
 
@@ -173,10 +174,10 @@ export function DistributionMapView({
     // Resize map before flying
     mapRef.current.resize();
 
-    // Fly to location
+    // Fly to location with higher zoom to isolate the pin
     mapRef.current.flyTo({
       center: [lng, lat],
-      zoom: 13,
+      zoom: 16,
       essential: true,
       duration: 1000,
     });
@@ -364,6 +365,28 @@ export function DistributionMapView({
     });
   }, [selectedListingId]);
 
+  // Zoom out to show all markers
+  const handleZoomOut = useCallback(() => {
+    setSelectedListingId(null);
+    
+    // Reset all markers to default style
+    markersRef.current.forEach((marker) => {
+      const el = marker.getElement();
+      el.style.background = "hsl(217 91% 53%)";
+      el.style.boxShadow = "3px 3px 0 hsl(0 0% 7%)";
+      el.style.zIndex = "";
+    });
+    
+    // Close popup
+    if (popupRef.current) {
+      popupRef.current.remove();
+      popupRef.current = null;
+    }
+    
+    // Fit bounds to all markers
+    fitBoundsToMarkers();
+  }, [fitBoundsToMarkers]);
+
   return (
     <div className="h-[100dvh] w-full overflow-hidden flex flex-col bg-background">
       {/* Header - fixed height, no grow */}
@@ -456,7 +479,7 @@ export function DistributionMapView({
                     className={`
                       cursor-pointer transition-colors border-b border-border-subtle
                       ${idx % 2 === 1 ? "bg-muted/30" : "bg-card"}
-                      ${selectedListingId === listing.id ? "!bg-secondary/30 ring-2 ring-inset ring-primary" : "hover:bg-muted/50"}
+                      ${selectedListingId === listing.id ? "!bg-primary/20 ring-2 ring-inset ring-primary" : "hover:bg-[hsl(48_97%_53%/0.3)]"}
                     `}
                   >
                     <td className="p-3">
@@ -509,7 +532,19 @@ export function DistributionMapView({
               </div>
             </div>
           ) : (
-            <div ref={mapContainerRef} className="h-full w-full" />
+            <>
+              <div ref={mapContainerRef} className="h-full w-full" />
+              {/* Zoom out button */}
+              <Button
+                onClick={handleZoomOut}
+                variant="outline"
+                size="sm"
+                className="absolute bottom-4 left-4 z-10 bg-background/95 backdrop-blur-sm border-2 border-foreground shadow-[2px_2px_0_hsl(0_0%_7%)] hover:shadow-[3px_3px_0_hsl(0_0%_7%)] hover:translate-x-[-1px] hover:translate-y-[-1px] transition-all font-semibold"
+              >
+                <ZoomOut className="w-4 h-4 mr-2" />
+                View All
+              </Button>
+            </>
           )}
         </div>
       </main>
