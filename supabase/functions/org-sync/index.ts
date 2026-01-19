@@ -99,17 +99,19 @@ function parseDate(value: string | undefined): string | undefined {
   
   const trimmed = value.trim();
   
-  // Check if it's a Google Sheets serial date number (typically 5 digits, 40000-50000 range for recent years)
-  if (/^\d+$/.test(trimmed)) {
-    const serialNumber = parseInt(trimmed, 10);
+  // Check if it's a Google Sheets serial date number (integer or decimal like 45988.5)
+  if (/^\d+(\.\d+)?$/.test(trimmed)) {
+    const serialNumber = parseFloat(trimmed);
     // Google Sheets epoch is December 30, 1899
+    // Valid range: 1 to 100000 (covers ~1900 to ~2173)
     if (serialNumber > 0 && serialNumber < 100000) {
       const epoch = new Date(1899, 11, 30); // Dec 30, 1899
-      const date = new Date(epoch.getTime() + serialNumber * 24 * 60 * 60 * 1000);
+      const date = new Date(epoch.getTime() + Math.floor(serialNumber) * 24 * 60 * 60 * 1000);
       if (!isNaN(date.getTime())) {
         return date.toISOString().split('T')[0];
       }
     }
+    // If it's a number but out of range, don't try to parse as date string
     return undefined;
   }
   
