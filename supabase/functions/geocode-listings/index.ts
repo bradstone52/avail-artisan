@@ -183,13 +183,18 @@ serve(async (req) => {
     }
 
     // Get listings missing coordinates (exclude manually set ones)
-    // Note: neq doesn't work with NULL values, so we use or() to include NULL geocode_source
+    // We need listings where:
+    // 1. They have no coordinates (lat/lng is null or 0)
+    // 2. AND they weren't manually geocoded (geocode_source is null OR not 'manual')
+    // Note: neq doesn't match NULL values in PostgreSQL, so we need to handle NULL separately
     const { data: listingsToGeocode, error: fetchError } = await supabaseAdmin
       .from('listings')
-      .select('id, address, city')
+      .select('id, address, city, geocode_source')
       .or('latitude.is.null,longitude.is.null,latitude.eq.0,longitude.eq.0')
-      .or('geocode_source.is.null,geocode_source.neq.manual')
       .limit(MAX_GEOCODE_PER_RUN);
+
+    // Filter out manually geocoded listings in JavaScript since Supabase doesn't easily combine or() with neq()
+    const filteredListings = listingsToGeocode?.filter(l => l.geocode_source !== 'manual') || [];
 
     if (fetchError) {
       console.error('Error fetching listings:', fetchError);
@@ -199,7 +204,7 @@ serve(async (req) => {
       });
     }
 
-    if (!listingsToGeocode || listingsToGeocode.length === 0) {
+    if (filteredListings.length === 0) {
       console.log('No listings need geocoding');
       return new Response(JSON.stringify({ 
         success: true, 
@@ -210,13 +215,13 @@ serve(async (req) => {
       });
     }
 
-    console.log(`Geocoding ${listingsToGeocode.length} listings with Google...`);
+    console.log(`Geocoding ${filteredListings.length} listings with Google...`);
 
     const results: GeocodedResult[] = [];
     let successCount = 0;
     let failCount = 0;
 
-    for (const listing of listingsToGeocode as Listing[]) {
+    for (const listing of filteredListings as Listing[]) {
       const coords = await geocodeWithGoogle(listing.address, listing.city, googleApiKey);
       
       if (coords) {
