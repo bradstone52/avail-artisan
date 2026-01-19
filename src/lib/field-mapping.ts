@@ -42,7 +42,7 @@ export const FIELD_MAPPINGS: FieldMapping[] = [
   { header: 'MUA', dbColumn: 'mua', type: 'string' },
   
   // Commercial
-  { header: 'Available', dbColumn: 'availability_date', type: 'string' },
+  { header: 'Available', dbColumn: 'availability_date', type: 'date' },
   { header: 'Net Rate', dbColumn: 'asking_rate_psf', type: 'string' },
   { header: 'Op Costs', dbColumn: 'op_costs', type: 'string' },
   { header: 'Gross Rate', dbColumn: 'gross_rate', type: 'string' },
@@ -227,7 +227,8 @@ export function extractHyperlinkUrl(value: string): string {
 }
 
 /**
- * Parse a date string or Google Sheets serial number, returns ISO date or undefined.
+ * Parse a date string or Google Sheets serial number, returns ISO date string, 
+ * a formatted date, or the original value if it's not a parseable date.
  * Google Sheets stores dates as serial numbers (days since Dec 30, 1899).
  * With valueRenderOption=FORMULA, dates may come as raw numbers like "45988" or "45988.5".
  */
@@ -238,7 +239,8 @@ export function parseDate(value: string | undefined): string | undefined {
   
   // Check if it's a Google Sheets serial date number (integer or decimal)
   // Match patterns like: 45988, 45988.0, 45988.5
-  if (/^\d+(\.\d+)?$/.test(trimmed)) {
+  // But NOT short numbers like "2027" which might be years entered as text
+  if (/^\d{5,}(\.\d+)?$/.test(trimmed)) {
     const serialNumber = parseFloat(trimmed);
     // Google Sheets epoch is December 30, 1899
     // Valid range for dates: 1 to 100000 (covers ~1900 to ~2173)
@@ -250,14 +252,18 @@ export function parseDate(value: string | undefined): string | undefined {
         return date.toISOString().split('T')[0];
       }
     }
-    // If it's a number but out of range, don't try to parse as date string
-    return undefined;
+    // If it's a number but out of range, return as-is (might be a year or special value)
+    return trimmed;
   }
   
-  // Try to parse common date formats (but not if it looks like a number)
+  // Try to parse common date formats
   const date = new Date(trimmed);
-  if (isNaN(date.getTime())) return undefined;
-  return date.toISOString().split('T')[0];
+  if (!isNaN(date.getTime())) {
+    return date.toISOString().split('T')[0];
+  }
+  
+  // Return original value for things like "TBD", "30 Days", "2027", etc.
+  return trimmed;
 }
 
 /**
