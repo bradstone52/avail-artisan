@@ -33,6 +33,7 @@ const FIELD_MAPPINGS = [
   { header: 'Landlord/Owner/Developer', dbColumn: 'landlord', type: 'string' },
   { header: 'Brochure URL', dbColumn: 'link', type: 'string' },
   { header: 'Notes', dbColumn: 'notes_public', type: 'string' },
+  { header: 'Last Verified', dbColumn: 'last_verified_date', type: 'date' },
 ];
 
 // Directional indicators that should always remain uppercase
@@ -122,6 +123,36 @@ function parseNumber(value: string | undefined): number | undefined {
 }
 
 /**
+ * Parse a date string or Google Sheets serial number, returns ISO date or undefined.
+ * Google Sheets stores dates as serial numbers (days since Dec 30, 1899).
+ * With valueRenderOption=FORMULA, dates may come as raw numbers like "45988".
+ */
+function parseDate(value: string | undefined): string | undefined {
+  if (!value) return undefined;
+  
+  const trimmed = value.trim();
+  
+  // Check if it's a Google Sheets serial date number (typically 5 digits, 40000-50000 range for recent years)
+  if (/^\d+$/.test(trimmed)) {
+    const serialNumber = parseInt(trimmed, 10);
+    // Google Sheets epoch is December 30, 1899
+    if (serialNumber > 0 && serialNumber < 100000) {
+      const epoch = new Date(1899, 11, 30); // Dec 30, 1899
+      const date = new Date(epoch.getTime() + serialNumber * 24 * 60 * 60 * 1000);
+      if (!isNaN(date.getTime())) {
+        return date.toISOString().split('T')[0];
+      }
+    }
+    return undefined;
+  }
+  
+  // Try to parse common date formats
+  const date = new Date(trimmed);
+  if (isNaN(date.getTime())) return undefined;
+  return date.toISOString().split('T')[0];
+}
+
+/**
  * Extract URL from a HYPERLINK formula.
  * Examples:
  *   =HYPERLINK("https://example.com","Brochure") → https://example.com
@@ -198,6 +229,12 @@ function mapRowToListing(row: string[], headers: string[], userId: string, orgId
       const numValue = parseNumber(rawValue);
       if (numValue !== undefined) {
         listing[mapping.dbColumn] = numValue;
+      }
+    } else if (mapping.type === 'date') {
+      // Special handling for dates - parse Google Sheets serial numbers
+      const dateValue = parseDate(rawValue);
+      if (dateValue) {
+        listing[mapping.dbColumn] = dateValue;
       }
     } else if (mapping.dbColumn === 'link') {
       // Special handling for hyperlinks - extract URL from HYPERLINK formula

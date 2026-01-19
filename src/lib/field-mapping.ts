@@ -227,12 +227,33 @@ export function extractHyperlinkUrl(value: string): string {
 }
 
 /**
- * Parse a date string, returns ISO date or undefined
+ * Parse a date string or Google Sheets serial number, returns ISO date or undefined.
+ * Google Sheets stores dates as serial numbers (days since Dec 30, 1899).
+ * With valueRenderOption=FORMULA, dates may come as raw numbers like "45988".
  */
 export function parseDate(value: string | undefined): string | undefined {
   if (!value) return undefined;
+  
+  const trimmed = value.trim();
+  
+  // Check if it's a Google Sheets serial date number (typically 5 digits, 40000-50000 range for recent years)
+  if (/^\d+$/.test(trimmed)) {
+    const serialNumber = parseInt(trimmed, 10);
+    // Google Sheets epoch is December 30, 1899
+    // But there's a bug where it treats 1900 as a leap year, so we adjust
+    if (serialNumber > 0 && serialNumber < 100000) {
+      // Convert serial number to date
+      const epoch = new Date(1899, 11, 30); // Dec 30, 1899
+      const date = new Date(epoch.getTime() + serialNumber * 24 * 60 * 60 * 1000);
+      if (!isNaN(date.getTime())) {
+        return date.toISOString().split('T')[0];
+      }
+    }
+    return undefined;
+  }
+  
   // Try to parse common date formats
-  const date = new Date(value);
+  const date = new Date(trimmed);
   if (isNaN(date.getTime())) return undefined;
   return date.toISOString().split('T')[0];
 }
