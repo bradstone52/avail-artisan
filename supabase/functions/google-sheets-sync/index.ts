@@ -6,6 +6,94 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+function normalizeHeader(header: string): string {
+  return header.trim().toLowerCase();
+}
+
+function findHeaderIndex(headers: string[], targetHeader: string): number {
+  const normalized = normalizeHeader(targetHeader);
+  return headers.findIndex((h) => normalizeHeader(h) === normalized);
+}
+
+function columnIndexToLetter(index: number): string {
+  // 0 -> A, 25 -> Z, 26 -> AA ...
+  let n = index + 1;
+  let letters = '';
+  while (n > 0) {
+    const rem = (n - 1) % 26;
+    letters = String.fromCharCode(65 + rem) + letters;
+    n = Math.floor((n - 1) / 26);
+  }
+  return letters;
+}
+
+function extractHyperlinkUrl(value: string): string {
+  if (!value) return '';
+  const hyperlinkMatch = value.match(/^=HYPERLINK\s*\(\s*"([^"]+)"/i);
+  if (hyperlinkMatch) return hyperlinkMatch[1];
+  if (value.startsWith('http://') || value.startsWith('https://')) return value;
+  return '';
+}
+
+async function fetchHyperlinksForColumn(params: {
+  spreadsheetId: string;
+  sheetName: string;
+  accessToken: string;
+  colIndex: number;
+  startRow: number; // 1-indexed
+  rowCount: number;
+}): Promise<(string | undefined)[]> {
+  const { spreadsheetId, sheetName, accessToken, colIndex, startRow, rowCount } = params;
+
+  const colLetter = columnIndexToLetter(colIndex);
+  const endRow = startRow + rowCount - 1;
+  const range = `${sheetName}!${colLetter}${startRow}:${colLetter}${endRow}`;
+
+  const url = `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}?includeGridData=true&ranges=${encodeURIComponent(
+    range
+  )}&fields=sheets(properties(title),data(rowData(values(hyperlink,formattedValue,userEnteredValue))))`;
+
+  const res = await fetch(url, { headers: { Authorization: `Bearer ${accessToken}` } });
+  if (!res.ok) {
+    const txt = await res.text();
+    throw new Error(txt);
+  }
+
+  const json = await res.json();
+  const sheet = (json?.sheets ?? []).find((s: any) => s?.properties?.title === sheetName) ?? json?.sheets?.[0];
+  const rowData = sheet?.data?.[0]?.rowData ?? [];
+
+  const result: (string | undefined)[] = Array.from({ length: rowCount }, () => undefined);
+
+  for (let i = 0; i < rowCount; i++) {
+    const r = rowData[i];
+    const cell = r?.values?.[0];
+
+    const hyperlink = cell?.hyperlink as string | undefined;
+    if (hyperlink) {
+      result[i] = hyperlink;
+      continue;
+    }
+
+    const formula = cell?.userEnteredValue?.formulaValue as string | undefined;
+    if (formula) {
+      const extracted = extractHyperlinkUrl(formula);
+      if (extracted) {
+        result[i] = extracted;
+        continue;
+      }
+    }
+
+    const formatted = cell?.formattedValue as string | undefined;
+    if (formatted && (formatted.startsWith('http://') || formatted.startsWith('https://'))) {
+      result[i] = formatted;
+      continue;
+    }
+  }
+
+  return result;
+}
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -168,10 +256,33 @@ serve(async (req) => {
       console.log('Detected headers:', JSON.stringify(rows[0]));
     }
 
+    // Attempt to fetch rich-text hyperlink URLs for the "Brochure URL" column.
+    // The Values API does NOT return these URLs unless they are =HYPERLINK() formulas.
+    const headersRow: string[] = rows[0] || [];
+    const brochureIdx = findHeaderIndex(headersRow, 'Brochure URL');
+    let brochureHyperlinks: (string | undefined)[] | undefined = undefined;
+
+    if (sheetName && brochureIdx !== -1 && rows.length > 0) {
+      try {
+        brochureHyperlinks = await fetchHyperlinksForColumn({
+          spreadsheetId,
+          sheetName,
+          accessToken,
+          colIndex: brochureIdx,
+          startRow: headerRow,
+          rowCount: rows.length,
+        });
+        const found = brochureHyperlinks.filter(Boolean).length;
+        console.log(`Brochure URL column index=${brochureIdx}; rich-link URLs found=${found}/${brochureHyperlinks.length}`);
+      } catch (e) {
+        console.warn('Rich-link brochure fetch failed:', e);
+      }
+    }
+
     // Convert to CSV-like format for consistency with existing parser
     // Escape commas in cell values by quoting them
-    const csvData = rows.map((row: string[]) => 
-      row.map((cell: string) => {
+    const csvData = rows.map((row: unknown[]) => 
+      row.map((cell: unknown) => {
         const str = String(cell || '');
         if (str.includes(',') || str.includes('"') || str.includes('\n')) {
           return `"${str.replace(/"/g, '""')}"`;
@@ -186,7 +297,8 @@ serve(async (req) => {
       success: true, 
       data: csvData,
       rowCount: rows.length,
-      headerRow: headerRow
+      headerRow: headerRow,
+      brochureHyperlinks,
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });

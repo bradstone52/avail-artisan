@@ -287,6 +287,7 @@ export function useWorkspaceConnection() {
 
     try {
       let csvText: string;
+      let brochureHyperlinks: (string | undefined)[] | undefined = undefined;
 
       if (connection.connection_type === 'oauth' && connection.google_sheet_id) {
         const { data, error } = await supabase.functions.invoke('google-sheets-sync', {
@@ -303,6 +304,7 @@ export function useWorkspaceConnection() {
         if (error) throw error;
         if (data?.error) throw new Error(data.error);
         csvText = data.data;
+        brochureHyperlinks = data.brochureHyperlinks;
       } else {
         const response = await fetch(connection.sheet_url);
         if (!response.ok) throw new Error('Failed to fetch sheet');
@@ -361,6 +363,15 @@ export function useWorkspaceConnection() {
         }
 
         const { listing } = mapRowToListing(row, headers, user.id, orgId || undefined);
+
+        // Fallback brochure URL from rich-text hyperlink metadata, if provided by google-sheets-sync
+        if ((!listing.link || listing.link === 'Brochure') && brochureHyperlinks?.length) {
+          const url = brochureHyperlinks[i]; // aligned with parsed rows (index 0 = header)
+          if (url) {
+            listing.link = url;
+          }
+        }
+
         const listingId = (listing.listing_id as string)?.trim();
         const address = (listing.address as string)?.trim();
 
