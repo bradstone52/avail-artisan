@@ -179,6 +179,64 @@ function extractHyperlinkUrl(value: string): string {
   return '';
 }
 
+function columnIndexToLetter(index: number): string {
+  // 0 -> A, 25 -> Z, 26 -> AA ...
+  let n = index + 1;
+  let letters = '';
+  while (n > 0) {
+    const rem = (n - 1) % 26;
+    letters = String.fromCharCode(65 + rem) + letters;
+    n = Math.floor((n - 1) / 26);
+  }
+  return letters;
+}
+
+async function fetchHyperlinksForColumn(params: {
+  spreadsheetId: string;
+  sheetName: string;
+  accessToken: string;
+  colIndex: number;
+  rowCount: number;
+}): Promise<(string | undefined)[]> {
+  const { spreadsheetId, sheetName, accessToken, colIndex, rowCount } = params;
+
+  const colLetter = columnIndexToLetter(colIndex);
+  const range = `${sheetName}!${colLetter}1:${colLetter}${rowCount}`;
+
+  const url = `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}?includeGridData=true&ranges=${encodeURIComponent(
+    range
+  )}&fields=sheets(data(rowData(values(hyperlink,formattedValue,userEnteredValue))))`;
+
+  const res = await fetch(url, { headers: { Authorization: `Bearer ${accessToken}` } });
+  if (!res.ok) {
+    const txt = await res.text();
+    console.warn('[Scheduled Sync] hyperlink fetch failed:', txt);
+    return [];
+  }
+
+  const json = await res.json();
+  const rowData = json?.sheets?.[0]?.data?.[0]?.rowData ?? [];
+
+  return rowData.map((r: any) => {
+    const cell = r?.values?.[0];
+    const hyperlink = cell?.hyperlink as string | undefined;
+    if (hyperlink) return hyperlink;
+
+    const formula = cell?.userEnteredValue?.formulaValue as string | undefined;
+    if (formula) {
+      const extracted = extractHyperlinkUrl(formula);
+      return extracted || undefined;
+    }
+
+    const formatted = cell?.formattedValue as string | undefined;
+    if (formatted && (formatted.startsWith('http://') || formatted.startsWith('https://'))) {
+      return formatted;
+    }
+
+    return undefined;
+  });
+}
+
 interface SizeThresholds {
   min: number;
   max: number;
@@ -447,6 +505,21 @@ serve(async (req) => {
     
     console.log(`[Scheduled Sync] Found ${dataRows.length} data rows`);
 
+    // If brochure links were added as *rich text links* (not =HYPERLINK formulas), the Values API won't return the URL.
+    // Fetch the underlying cell hyperlink metadata for the Brochure URL column and use it as a fallback.
+    const brochureIdx = findHeaderIndex(headers, 'Brochure URL');
+    const sheetRowCount = 2 + dataRows.length; // rows include header row (row 2)
+    const brochureHyperlinks =
+      brochureIdx !== -1
+        ? await fetchHyperlinksForColumn({
+            spreadsheetId,
+            sheetName,
+            accessToken,
+            colIndex: brochureIdx,
+            rowCount: sheetRowCount,
+          })
+        : [];
+
     // Get the user_id from the connection (admin who set it up)
     const userId = connection.user_id;
 
@@ -506,6 +579,15 @@ serve(async (req) => {
       }
 
       const listing = mapRowToListing(row, headers, userId, orgId);
+
+      // Fallback brochure link from hyperlink metadata
+      if (!listing.link && brochureHyperlinks.length) {
+        // data row i corresponds to sheet row: 3 + i (since header is row 2)
+        const sheetRowNumber = 3 + i;
+        const url = brochureHyperlinks[sheetRowNumber - 1];
+        if (url) listing.link = url;
+      }
+
       const listingId = (listing.listing_id as string)?.trim();
 
       if (!listingId) {

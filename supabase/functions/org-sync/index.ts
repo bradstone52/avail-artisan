@@ -146,6 +146,66 @@ function extractHyperlinkUrl(value: string): string {
   return '';
 }
 
+function columnIndexToLetter(index: number): string {
+  // 0 -> A, 25 -> Z, 26 -> AA ...
+  let n = index + 1;
+  let letters = '';
+  while (n > 0) {
+    const rem = (n - 1) % 26;
+    letters = String.fromCharCode(65 + rem) + letters;
+    n = Math.floor((n - 1) / 26);
+  }
+  return letters;
+}
+
+async function fetchHyperlinksForColumn(params: {
+  spreadsheetId: string;
+  sheetName: string;
+  accessToken: string;
+  colIndex: number;
+  rowCount: number;
+}): Promise<(string | undefined)[]> {
+  const { spreadsheetId, sheetName, accessToken, colIndex, rowCount } = params;
+
+  const colLetter = columnIndexToLetter(colIndex);
+  const range = `${sheetName}!${colLetter}1:${colLetter}${rowCount}`;
+
+  const url = `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}?includeGridData=true&ranges=${encodeURIComponent(
+    range
+  )}&fields=sheets(data(rowData(values(hyperlink,formattedValue,userEnteredValue))))`;
+
+  const res = await fetch(url, { headers: { Authorization: `Bearer ${accessToken}` } });
+  if (!res.ok) {
+    const txt = await res.text();
+    console.warn('[Org Sync] hyperlink fetch failed:', txt);
+    return [];
+  }
+
+  const json = await res.json();
+  const rowData = json?.sheets?.[0]?.data?.[0]?.rowData ?? [];
+
+  // rowData[i].values[0] corresponds to row i+1
+  return rowData.map((r: any) => {
+    const cell = r?.values?.[0];
+    const hyperlink = cell?.hyperlink as string | undefined;
+    if (hyperlink) return hyperlink;
+
+    const formula = cell?.userEnteredValue?.formulaValue as string | undefined;
+    if (formula) {
+      const extracted = extractHyperlinkUrl(formula);
+      return extracted || undefined;
+    }
+
+    // If user pasted a naked URL, formattedValue may be the URL
+    const formatted = cell?.formattedValue as string | undefined;
+    if (formatted && (formatted.startsWith('http://') || formatted.startsWith('https://'))) {
+      return formatted;
+    }
+
+    return undefined;
+  });
+}
+
 function shouldIncludeRow(row: unknown[], headers: string[]): { include: boolean; reason?: string } {
   const statusIdx = findHeaderIndex(headers, 'Status');
   const distributionIdx = findHeaderIndex(headers, 'Distribution Warehouse?');
@@ -498,6 +558,21 @@ serve(async (req) => {
       }
     }
 
+    // If brochure links were added as *rich text links* (not =HYPERLINK formulas), the Values API won't return the URL.
+    // Fetch the underlying cell hyperlink metadata for the Brochure URL column and use it as a fallback.
+    const brochureIdx = findHeaderIndex(headers, 'Brochure URL');
+    const sheetRowCount = headerRow + dataRows.length; // includes header row
+    const brochureHyperlinks =
+      brochureIdx !== -1
+        ? await fetchHyperlinksForColumn({
+            spreadsheetId: integration.sheet_id,
+            sheetName,
+            accessToken,
+            colIndex: brochureIdx,
+            rowCount: sheetRowCount,
+          })
+        : [];
+
     // Stage listings
     const stagedListings: Record<string, unknown>[] = [];
     const seenListingIds = new Set<string>();
@@ -508,7 +583,8 @@ serve(async (req) => {
       duplicate_listing_id: 0,
     };
 
-    for (const row of dataRows) {
+    for (let i = 0; i < dataRows.length; i++) {
+      const row = dataRows[i];
       const filterResult = shouldIncludeRow(row, headers);
       if (!filterResult.include) {
         if (filterResult.reason === 'inactive') skippedBreakdown.inactive++;
@@ -517,6 +593,15 @@ serve(async (req) => {
       }
 
       const listing = mapRowToListing(row, headers, user.id, orgId);
+
+      // Fallback brochure link from hyperlink metadata
+      if (!listing.link && brochureHyperlinks.length) {
+        // data row i corresponds to sheet row: headerRow + 1 + i
+        const sheetRowNumber = headerRow + 1 + i;
+        const url = brochureHyperlinks[sheetRowNumber - 1];
+        if (url) listing.link = url;
+      }
+
       const listingId = (listing.listing_id as string)?.trim();
 
       if (!listingId) {
