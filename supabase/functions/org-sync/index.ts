@@ -146,16 +146,24 @@ function extractHyperlinkUrl(value: string): string {
   return '';
 }
 
-function shouldIncludeRow(row: string[], headers: string[]): { include: boolean; reason?: string } {
+function shouldIncludeRow(row: unknown[], headers: string[]): { include: boolean; reason?: string } {
   const statusIdx = findHeaderIndex(headers, 'Status');
   const distributionIdx = findHeaderIndex(headers, 'Distribution Warehouse?');
   
-  const statusValue = statusIdx !== -1 ? row[statusIdx]?.trim().toLowerCase() : '';
+  // Safely convert cell value to string (handles booleans, numbers, etc.)
+  const cellToString = (value: unknown): string => {
+    if (value === null || value === undefined) return '';
+    if (typeof value === 'string') return value.trim().toLowerCase();
+    if (typeof value === 'boolean') return value ? 'true' : 'false';
+    return String(value).trim().toLowerCase();
+  };
+  
+  const statusValue = statusIdx !== -1 ? cellToString(row[statusIdx]) : '';
   if (statusValue !== 'active') {
     return { include: false, reason: 'inactive' };
   }
   
-  const distributionValue = distributionIdx !== -1 ? row[distributionIdx]?.trim().toLowerCase() : '';
+  const distributionValue = distributionIdx !== -1 ? cellToString(row[distributionIdx]) : '';
   const isTruthy = ['true', 'yes', 'y', '1', 'checked', 'x'].includes(distributionValue);
   if (!isTruthy) {
     return { include: false, reason: 'not_distribution' };

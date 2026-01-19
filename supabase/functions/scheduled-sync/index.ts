@@ -184,8 +184,16 @@ interface SizeThresholds {
   max: number;
 }
 
+// Safely convert cell value to string (handles booleans, numbers, etc.)
+function cellToString(value: unknown): string {
+  if (value === null || value === undefined) return '';
+  if (typeof value === 'string') return value.trim().toLowerCase();
+  if (typeof value === 'boolean') return value ? 'true' : 'false';
+  return String(value).trim().toLowerCase();
+}
+
 function shouldIncludeRow(
-  row: string[], 
+  row: unknown[], 
   headers: string[], 
   sizeThresholds?: SizeThresholds
 ): { include: boolean; reason?: string } {
@@ -193,12 +201,12 @@ function shouldIncludeRow(
   const distributionIdx = findHeaderIndex(headers, 'Distribution Warehouse?');
   const sizeIdx = findHeaderIndex(headers, 'Total SF');
   
-  const statusValue = statusIdx !== -1 ? row[statusIdx]?.trim().toLowerCase() : '';
+  const statusValue = statusIdx !== -1 ? cellToString(row[statusIdx]) : '';
   if (statusValue !== 'active') {
     return { include: false, reason: 'inactive' };
   }
   
-  const distributionValue = distributionIdx !== -1 ? row[distributionIdx]?.trim().toLowerCase() : '';
+  const distributionValue = distributionIdx !== -1 ? cellToString(row[distributionIdx]) : '';
   const isTruthy = ['true', 'yes', 'y', '1', 'checked', 'x'].includes(distributionValue);
   if (!isTruthy) {
     return { include: false, reason: 'not_distribution' };
@@ -206,7 +214,9 @@ function shouldIncludeRow(
   
   // Size filtering
   if (sizeThresholds && sizeIdx !== -1) {
-    const sizeValue = parseNumber(row[sizeIdx]);
+    const sizeRaw = row[sizeIdx];
+    const sizeStr = typeof sizeRaw === 'string' ? sizeRaw : String(sizeRaw ?? '');
+    const sizeValue = parseNumber(sizeStr);
     if (sizeValue !== undefined) {
       if (sizeValue < sizeThresholds.min || sizeValue > sizeThresholds.max) {
         return { include: false, reason: 'outside_size_range' };
