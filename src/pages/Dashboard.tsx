@@ -243,10 +243,12 @@ export default function Dashboard() {
                   variant="outline" 
                   size="sm" 
                   className="w-full justify-start"
-                  onClick={() => navigate('/distribution-map')}
+                  asChild
                 >
-                  <MapPin className="w-4 h-4 mr-2" />
-                  Open Distribution Map
+                  <a href="/distribution-map" target="_blank" rel="noopener noreferrer">
+                    <MapPin className="w-4 h-4 mr-2" />
+                    Open Distribution Map
+                  </a>
                 </Button>
                 <Button 
                   variant="outline" 
