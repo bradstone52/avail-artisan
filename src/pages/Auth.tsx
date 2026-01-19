@@ -170,9 +170,6 @@ export default function Auth() {
           </CardContent>
         </Card>
 
-        <p className="text-center text-xs font-bold uppercase tracking-wider text-muted-foreground mt-6">
-          Internal tool for brokerage team use only
-        </p>
       </div>
     </div>
   );
