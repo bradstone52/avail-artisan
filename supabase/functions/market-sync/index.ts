@@ -316,10 +316,32 @@ function mapRowToListing(row: unknown[], headers: string[], userId: string, orgI
   if (!listing.size_sf) listing.size_sf = 0;
   if (listing.is_distribution_warehouse === undefined) listing.is_distribution_warehouse = false;
 
-  // Normalize status - now includes Sold
-  const validStatuses = ['Active', 'Leased', 'Removed', 'OnHold', 'Sold'];
+  // Normalize status - includes all valid statuses
+  const validStatuses = ['Active', 'Leased', 'Removed', 'OnHold', 'Sold', 'On Hold', 'Under Offer'];
   const rawStatus = (listing.status as string || '').trim();
-  listing.status = validStatuses.find(s => s.toLowerCase() === rawStatus.toLowerCase()) || 'Active';
+  
+  // Log non-Active statuses for debugging
+  if (rawStatus && rawStatus.toLowerCase() !== 'active') {
+    console.log(`[Market Sync] Non-Active status found: "${rawStatus}" for listing ${listing.listing_id}`);
+  }
+  
+  // Normalize status with flexible matching
+  let normalizedStatus = 'Active';
+  const lowerStatus = rawStatus.toLowerCase();
+  if (lowerStatus === 'leased' || lowerStatus === 'lease') {
+    normalizedStatus = 'Leased';
+  } else if (lowerStatus === 'removed' || lowerStatus === 'remove' || lowerStatus === 'deleted') {
+    normalizedStatus = 'Removed';
+  } else if (lowerStatus === 'onhold' || lowerStatus === 'on hold' || lowerStatus === 'hold') {
+    normalizedStatus = 'OnHold';
+  } else if (lowerStatus === 'sold' || lowerStatus === 'sale') {
+    normalizedStatus = 'Sold';
+  } else if (lowerStatus === 'active') {
+    normalizedStatus = 'Active';
+  } else if (rawStatus) {
+    console.log(`[Market Sync] Unrecognized status: "${rawStatus}" - defaulting to Active`);
+  }
+  listing.status = normalizedStatus;
 
   // Default Yes/No/Unknown fields if not set from sheet
   const yesNoFields = ['yard', 'cross_dock', 'trailer_parking'];
