@@ -18,6 +18,7 @@ import {
   FileText,
   Pencil,
   Trash2,
+  Undo2,
 } from 'lucide-react';
 import { format } from 'date-fns';
 import {
@@ -73,8 +74,9 @@ function TransactionTypeBadge({ type }: { type: string }) {
 export default function TransactionDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { getTransaction, deleteTransaction } = useTransactions();
+  const { getTransaction, deleteTransaction, undoTransaction } = useTransactions();
   const [transaction, setTransaction] = useState<Transaction | null>(null);
+  const [isUndoing, setIsUndoing] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [isDeleting, setIsDeleting] = useState(false);
 
@@ -97,6 +99,13 @@ export default function TransactionDetail() {
       navigate('/transactions');
     }
     setIsDeleting(false);
+  };
+
+  const handleUndo = async () => {
+    if (!id) return;
+    setIsUndoing(true);
+    await undoTransaction(id);
+    setIsUndoing(false);
   };
 
   if (isLoading) {
@@ -155,6 +164,30 @@ export default function TransactionDetail() {
             </p>
           </div>
           <div className="flex gap-2">
+            {transaction.market_listing_id && (
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button variant="outline" disabled={isUndoing}>
+                    <Undo2 className="h-4 w-4 mr-2" />
+                    Undo Transaction
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Undo Transaction</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      This will delete the transaction and restore the linked market listing to "Active" status. Continue?
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                    <AlertDialogAction onClick={handleUndo} disabled={isUndoing}>
+                      {isUndoing ? 'Undoing...' : 'Undo'}
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+            )}
             <Button variant="outline" onClick={() => navigate(`/transactions/${id}/edit`)}>
               <Pencil className="h-4 w-4 mr-2" />
               Edit
