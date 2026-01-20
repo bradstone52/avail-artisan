@@ -3,7 +3,6 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useOrg } from '@/hooks/useOrg';
 import { toast } from 'sonner';
-import { useNavigate } from 'react-router-dom';
 
 export interface Transaction {
   id: string;
@@ -93,7 +92,6 @@ export interface TransactionInput {
 export function useTransactions() {
   const { user } = useAuth();
   const { orgId } = useOrg();
-  const navigate = useNavigate();
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -234,7 +232,7 @@ export function useTransactions() {
         .from('transactions')
         .select('market_listing_id')
         .eq('id', id)
-        .single();
+        .maybeSingle();
 
       if (fetchError) throw fetchError;
 
@@ -258,7 +256,6 @@ export function useTransactions() {
 
       toast.success('Transaction undone — listing restored to Active');
       await fetchTransactions();
-      navigate('/transactions');
       return true;
     } catch (error) {
       console.error('Error undoing transaction:', error);
