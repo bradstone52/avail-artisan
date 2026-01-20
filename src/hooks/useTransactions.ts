@@ -3,6 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useOrg } from '@/hooks/useOrg';
 import { toast } from 'sonner';
+import { Json } from '@/integrations/supabase/types';
 
 export interface Transaction {
   id: string;
@@ -87,6 +88,7 @@ export interface TransactionInput {
   commission_percent?: number | null;
   commission_amount?: number | null;
   notes?: string | null;
+  market_listing_snapshot?: Json | null;
 }
 
 export function useTransactions() {
@@ -140,10 +142,30 @@ export function useTransactions() {
     }
 
     try {
+      let listingSnapshot: Json | null = null;
+
+      // If there's a linked market listing, fetch the full record for snapshot and deletion
+      if (input.market_listing_id) {
+        const { data: listingData, error: listingError } = await supabase
+          .from('market_listings')
+          .select('*')
+          .eq('id', input.market_listing_id)
+          .single();
+
+        if (listingError) {
+          console.error('Error fetching listing for snapshot:', listingError);
+        } else if (listingData) {
+          // Store full listing as snapshot for undo
+          listingSnapshot = listingData as unknown as Json;
+        }
+      }
+
+      // Create the transaction with snapshot
       const { data, error } = await supabase
         .from('transactions')
         .insert({
           ...input,
+          market_listing_snapshot: listingSnapshot,
           org_id: orgId,
           created_by: user.id,
         })
@@ -151,10 +173,23 @@ export function useTransactions() {
         .single();
 
       if (error) throw error;
+
+      // Delete the market listing after successful transaction creation
+      if (input.market_listing_id) {
+        const { error: deleteError } = await supabase
+          .from('market_listings')
+          .delete()
+          .eq('id', input.market_listing_id);
+
+        if (deleteError) {
+          console.error('Error deleting market listing:', deleteError);
+          // Don't fail the whole operation, but notify user
+          toast.warning('Transaction created, but listing could not be removed');
+        }
+      }
       
       toast.success('Transaction created');
       // Don't block navigation on refreshing the list.
-      // (Fetching can be slow due to joins + ordering.)
       void fetchTransactions();
       return data as Transaction;
     } catch (error) {
@@ -229,23 +264,37 @@ export function useTransactions() {
 
   const undoTransaction = async (id: string): Promise<boolean> => {
     try {
-      // First get the transaction to find the linked market listing
+      // Get the transaction with the snapshot
       const { data: transaction, error: fetchError } = await supabase
         .from('transactions')
-        .select('market_listing_id')
+        .select('market_listing_id, market_listing_snapshot')
         .eq('id', id)
         .maybeSingle();
 
       if (fetchError) throw fetchError;
 
-      // If there's a linked market listing, restore its status to "Active"
-      if (transaction?.market_listing_id) {
-        const { error: updateError } = await supabase
+      // If there's a snapshot, restore the listing from it
+      if (transaction?.market_listing_snapshot && typeof transaction.market_listing_snapshot === 'object' && !Array.isArray(transaction.market_listing_snapshot)) {
+        const snapshot = transaction.market_listing_snapshot as Record<string, Json | undefined>;
+        
+        // Remove fields that shouldn't be in insert (auto-generated or conflicting)
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        const { id: _id, created_at: _createdAt, ...restoreData } = snapshot;
+        
+        // Cast to the expected insert type
+        const { error: insertError } = await supabase
           .from('market_listings')
-          .update({ status: 'Active' })
-          .eq('id', transaction.market_listing_id);
+          .insert(restoreData as unknown as {
+            address: string;
+            listing_id: string;
+            user_id: string;
+            [key: string]: unknown;
+          });
 
-        if (updateError) throw updateError;
+        if (insertError) {
+          console.error('Error restoring listing:', insertError);
+          throw insertError;
+        }
       }
 
       // Delete the transaction
@@ -256,8 +305,8 @@ export function useTransactions() {
 
       if (deleteError) throw deleteError;
 
-      toast.success('Transaction undone — listing restored to Active');
-      await fetchTransactions();
+      toast.success('Transaction undone — listing restored');
+      void fetchTransactions();
       return true;
     } catch (error) {
       console.error('Error undoing transaction:', error);
