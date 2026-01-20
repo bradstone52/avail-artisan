@@ -5,6 +5,48 @@ import { useOrg } from '@/hooks/useOrg';
 import { toast } from 'sonner';
 import { Json } from '@/integrations/supabase/types';
 
+export interface MarketListingData {
+  id?: string;
+  listing_id: string;
+  address: string;
+  display_address: string | null;
+  city: string;
+  submarket: string;
+  size_sf: number;
+  warehouse_sf: number | null;
+  office_sf: number | null;
+  clear_height_ft: number | null;
+  dock_doors: number | null;
+  drive_in_doors: number | null;
+  power_amps: string | null;
+  voltage: string | null;
+  yard_area: string | null;
+  sprinkler: string | null;
+  cranes: string | null;
+  crane_tons: string | null;
+  zoning: string | null;
+  landlord: string | null;
+  broker_source: string | null;
+  link: string | null;
+  status: string;
+  yard?: string | null;
+  cross_dock?: string | null;
+  trailer_parking?: string | null;
+  land_acres?: string | null;
+  mua?: string | null;
+  op_costs?: string | null;
+  asking_rate_psf?: string | null;
+  gross_rate?: string | null;
+  sale_price?: string | null;
+  condo_fees?: string | null;
+  property_tax?: string | null;
+  sublease_exp?: string | null;
+  listing_type?: string | null;
+  availability_date?: string | null;
+  notes_public?: string | null;
+  internal_note?: string | null;
+}
+
 export interface Transaction {
   id: string;
   org_id: string | null;
@@ -35,32 +77,10 @@ export interface Transaction {
   created_by: string | null;
   created_at: string;
   updated_at: string;
-  // Joined market listing data
-  market_listing?: {
-    id: string;
-    listing_id: string;
-    address: string;
-    display_address: string | null;
-    city: string;
-    submarket: string;
-    size_sf: number;
-    warehouse_sf: number | null;
-    office_sf: number | null;
-    clear_height_ft: number | null;
-    dock_doors: number | null;
-    drive_in_doors: number | null;
-    power_amps: string | null;
-    voltage: string | null;
-    yard_area: string | null;
-    sprinkler: string | null;
-    cranes: string | null;
-    crane_tons: string | null;
-    zoning: string | null;
-    landlord: string | null;
-    broker_source: string | null;
-    link: string | null;
-    status: string;
-  } | null;
+  // Snapshot of listing at time of transaction (for undo/display)
+  market_listing_snapshot: MarketListingData | null;
+  // Joined market listing data (null if listing was deleted)
+  market_listing?: MarketListingData | null;
 }
 
 export interface TransactionInput {
@@ -108,21 +128,15 @@ export function useTransactions() {
     try {
       const { data, error } = await supabase
         .from('transactions')
-        .select(`
-          *,
-          market_listing:market_listings(
-            id, listing_id, address, display_address, city, submarket,
-            size_sf, warehouse_sf, office_sf, clear_height_ft,
-            dock_doors, drive_in_doors, power_amps, voltage,
-            yard_area, sprinkler, cranes, crane_tons, zoning,
-            landlord, broker_source, link, status
-          )
-        `)
+        .select('*')
         .eq('org_id', orgId)
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      setTransactions((data || []) as Transaction[]);
+      setTransactions((data || []).map(t => ({
+        ...t,
+        market_listing_snapshot: t.market_listing_snapshot as unknown as MarketListingData | null,
+      })) as Transaction[]);
     } catch (error) {
       console.error('Error fetching transactions:', error);
       toast.error('Failed to load transactions');
@@ -191,7 +205,10 @@ export function useTransactions() {
       toast.success('Transaction created');
       // Don't block navigation on refreshing the list.
       void fetchTransactions();
-      return data as Transaction;
+      return {
+        ...data,
+        market_listing_snapshot: data.market_listing_snapshot as unknown as MarketListingData | null,
+      } as Transaction;
     } catch (error) {
       console.error('Error creating transaction:', error);
       toast.error('Failed to create transaction');
@@ -241,21 +258,15 @@ export function useTransactions() {
     try {
       const { data, error } = await supabase
         .from('transactions')
-        .select(`
-          *,
-          market_listing:market_listings(
-            id, listing_id, address, display_address, city, submarket,
-            size_sf, warehouse_sf, office_sf, clear_height_ft,
-            dock_doors, drive_in_doors, power_amps, voltage,
-            yard_area, sprinkler, cranes, crane_tons, zoning,
-            landlord, broker_source, link, status
-          )
-        `)
+        .select('*')
         .eq('id', id)
         .single();
 
       if (error) throw error;
-      return data as Transaction;
+      return {
+        ...data,
+        market_listing_snapshot: data.market_listing_snapshot as unknown as MarketListingData | null,
+      } as Transaction;
     } catch (error) {
       console.error('Error fetching transaction:', error);
       return null;
