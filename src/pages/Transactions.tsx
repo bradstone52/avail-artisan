@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
+import { Checkbox } from '@/components/ui/checkbox';
 import {
   Table,
   TableBody,
@@ -22,6 +23,16 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+import {
   Plus,
   Search,
   ExternalLink,
@@ -29,6 +40,7 @@ import {
   Building2,
   DollarSign,
   FileText,
+  Trash2,
 } from 'lucide-react';
 import { format } from 'date-fns';
 
@@ -58,9 +70,12 @@ function TransactionTypeBadge({ type }: { type: string }) {
 
 export default function Transactions() {
   const navigate = useNavigate();
-  const { transactions, isLoading } = useTransactions();
+  const { transactions, isLoading, deleteTransactions } = useTransactions();
   const [search, setSearch] = useState('');
   const [typeFilter, setTypeFilter] = useState<string>('all');
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const filteredTransactions = useMemo(() => {
     return transactions.filter((t) => {
@@ -88,6 +103,39 @@ export default function Transactions() {
       totalSaleVolume,
     };
   }, [transactions]);
+
+  const allFilteredSelected = filteredTransactions.length > 0 && 
+    filteredTransactions.every(t => selectedIds.has(t.id));
+  
+  const someSelected = selectedIds.size > 0;
+
+  const handleSelectAll = (checked: boolean) => {
+    if (checked) {
+      setSelectedIds(new Set(filteredTransactions.map(t => t.id)));
+    } else {
+      setSelectedIds(new Set());
+    }
+  };
+
+  const handleSelectOne = (id: string, checked: boolean) => {
+    const newSelected = new Set(selectedIds);
+    if (checked) {
+      newSelected.add(id);
+    } else {
+      newSelected.delete(id);
+    }
+    setSelectedIds(newSelected);
+  };
+
+  const handleBatchDelete = async () => {
+    setIsDeleting(true);
+    const success = await deleteTransactions(Array.from(selectedIds));
+    setIsDeleting(false);
+    if (success) {
+      setSelectedIds(new Set());
+      setShowDeleteConfirm(false);
+    }
+  };
 
   if (isLoading) {
     return (
@@ -157,7 +205,7 @@ export default function Transactions() {
         </div>
 
         {/* Filters */}
-        <div className="flex gap-4">
+        <div className="flex gap-4 items-center">
           <div className="relative flex-1 max-w-sm">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
@@ -178,6 +226,16 @@ export default function Transactions() {
               <SelectItem value="Sublease">Sublease</SelectItem>
             </SelectContent>
           </Select>
+          {someSelected && (
+            <Button 
+              variant="destructive" 
+              size="sm"
+              onClick={() => setShowDeleteConfirm(true)}
+            >
+              <Trash2 className="h-4 w-4 mr-2" />
+              Delete ({selectedIds.size})
+            </Button>
+          )}
         </div>
 
         {/* Transactions Table */}
@@ -185,6 +243,13 @@ export default function Transactions() {
           <Table>
             <TableHeader>
               <TableRow>
+                <TableHead className="w-[50px]">
+                  <Checkbox
+                    checked={allFilteredSelected}
+                    onCheckedChange={handleSelectAll}
+                    aria-label="Select all"
+                  />
+                </TableHead>
                 <TableHead>Address</TableHead>
                 <TableHead>Type</TableHead>
                 <TableHead>Size</TableHead>
@@ -197,7 +262,7 @@ export default function Transactions() {
             <TableBody>
               {filteredTransactions.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
+                  <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
                     {transactions.length === 0
                       ? 'No transactions yet. Create your first transaction to get started.'
                       : 'No transactions match your filters.'}
@@ -210,6 +275,13 @@ export default function Transactions() {
                     className="cursor-pointer hover:bg-muted/50"
                     onClick={() => navigate(`/transactions/${transaction.id}`)}
                   >
+                    <TableCell onClick={(e) => e.stopPropagation()}>
+                      <Checkbox
+                        checked={selectedIds.has(transaction.id)}
+                        onCheckedChange={(checked) => handleSelectOne(transaction.id, !!checked)}
+                        aria-label={`Select ${transaction.address}`}
+                      />
+                    </TableCell>
                     <TableCell>
                       <div>
                         <div className="font-medium">
@@ -263,6 +335,30 @@ export default function Transactions() {
             </TableBody>
           </Table>
         </Card>
+
+        {/* Delete Confirmation Dialog */}
+        <AlertDialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Delete {selectedIds.size} transaction{selectedIds.size > 1 ? 's' : ''}?</AlertDialogTitle>
+              <AlertDialogDescription>
+                This action cannot be undone. The selected transactions will be permanently deleted.
+                Note: This will NOT restore any associated market listings.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel disabled={isDeleting}>Cancel</AlertDialogCancel>
+              <AlertDialogAction 
+                onClick={handleBatchDelete}
+                disabled={isDeleting}
+                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              >
+                {isDeleting ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+                Delete
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </div>
     </AppLayout>
   );

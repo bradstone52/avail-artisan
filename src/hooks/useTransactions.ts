@@ -254,6 +254,27 @@ export function useTransactions() {
     }
   };
 
+  const deleteTransactions = async (ids: string[]): Promise<boolean> => {
+    if (ids.length === 0) return true;
+    
+    try {
+      const { error } = await supabase
+        .from('transactions')
+        .delete()
+        .in('id', ids);
+
+      if (error) throw error;
+      
+      toast.success(`${ids.length} transaction${ids.length > 1 ? 's' : ''} deleted`);
+      await fetchTransactions();
+      return true;
+    } catch (error) {
+      console.error('Error deleting transactions:', error);
+      toast.error('Failed to delete transactions');
+      return false;
+    }
+  };
+
   const getTransaction = useCallback(async (id: string): Promise<Transaction | null> => {
     try {
       const { data, error } = await supabase
@@ -333,6 +354,7 @@ export function useTransactions() {
     createTransaction,
     updateTransaction,
     deleteTransaction,
+    deleteTransactions,
     getTransaction,
     undoTransaction,
   };
