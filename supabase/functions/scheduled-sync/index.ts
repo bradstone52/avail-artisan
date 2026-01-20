@@ -592,6 +592,28 @@ serve(async (req) => {
 
     console.log(`[Scheduled Sync] Size thresholds: ${sizeThresholds.min} - ${sizeThresholds.max} SF`);
 
+    // PHASE 1.5: Preserve manually-set coordinates BEFORE staging + swap
+    const { data: manualGeocodedListings } = await supabase
+      .from('listings')
+      .select('listing_id, latitude, longitude, geocoded_at')
+      .eq('org_id', orgId)
+      .eq('geocode_source', 'manual');
+
+    const manualCoordsMap = new Map<string, { lat: number; lng: number; geocoded_at: string }>();
+    if (manualGeocodedListings) {
+      for (const l of manualGeocodedListings as any[]) {
+        if (l.latitude && l.longitude) {
+          manualCoordsMap.set(l.listing_id, {
+            lat: Number(l.latitude),
+            lng: Number(l.longitude),
+            geocoded_at: l.geocoded_at || new Date().toISOString(),
+          });
+        }
+      }
+    }
+
+    console.log(`[Scheduled Sync] Found ${manualCoordsMap.size} listings with manual coordinates to preserve`);
+
     for (let i = 0; i < dataRows.length; i++) {
       const row = dataRows[i];
       
@@ -630,6 +652,16 @@ serve(async (req) => {
       }
 
       seenListingIds.add(listingId);
+
+      // Apply preserved manual coordinates (if any) by listing_id
+      const manualCoords = manualCoordsMap.get(listingId);
+      if (manualCoords) {
+        listing.latitude = manualCoords.lat;
+        listing.longitude = manualCoords.lng;
+        listing.geocode_source = 'manual';
+        listing.geocoded_at = manualCoords.geocoded_at;
+      }
+
       stagedListings.push(listing);
     }
 
