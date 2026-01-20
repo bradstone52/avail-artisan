@@ -580,6 +580,8 @@ body {
   text-decoration: none;
   box-shadow: 4px 4px 0 var(--ink);
   cursor: pointer;
+  /* Prince/DocRaptor: open link in new window/tab */
+  -prince-link: url(attr(href)) new-window;
 }
 
 .map-button:hover {
