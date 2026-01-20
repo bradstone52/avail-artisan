@@ -3,6 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useOrg } from '@/hooks/useOrg';
 import { toast } from 'sonner';
+import { useNavigate } from 'react-router-dom';
 
 export interface Transaction {
   id: string;
@@ -92,6 +93,7 @@ export interface TransactionInput {
 export function useTransactions() {
   const { user } = useAuth();
   const { orgId } = useOrg();
+  const navigate = useNavigate();
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -225,6 +227,46 @@ export function useTransactions() {
     }
   };
 
+  const undoTransaction = async (id: string): Promise<boolean> => {
+    try {
+      // First get the transaction to find the linked market listing
+      const { data: transaction, error: fetchError } = await supabase
+        .from('transactions')
+        .select('market_listing_id')
+        .eq('id', id)
+        .single();
+
+      if (fetchError) throw fetchError;
+
+      // If there's a linked market listing, restore its status to "Active"
+      if (transaction?.market_listing_id) {
+        const { error: updateError } = await supabase
+          .from('market_listings')
+          .update({ status: 'Active' })
+          .eq('id', transaction.market_listing_id);
+
+        if (updateError) throw updateError;
+      }
+
+      // Delete the transaction
+      const { error: deleteError } = await supabase
+        .from('transactions')
+        .delete()
+        .eq('id', id);
+
+      if (deleteError) throw deleteError;
+
+      toast.success('Transaction undone — listing restored to Active');
+      await fetchTransactions();
+      navigate('/transactions');
+      return true;
+    } catch (error) {
+      console.error('Error undoing transaction:', error);
+      toast.error('Failed to undo transaction');
+      return false;
+    }
+  };
+
   return {
     transactions,
     isLoading,
@@ -233,5 +275,6 @@ export function useTransactions() {
     updateTransaction,
     deleteTransaction,
     getTransaction,
+    undoTransaction,
   };
 }
