@@ -51,21 +51,21 @@ function LinkStatusBadge({ status }: { status: string | null }) {
 function ListingStatusBadge({ status }: { status: string }) {
   switch (status) {
     case 'Active':
-      return <Badge className="bg-green-500/10 text-green-600 border-green-500/20">Active</Badge>;
+      return <Badge className="bg-blue-600 text-white">Active</Badge>;
     case 'Under Contract':
-      return <Badge className="bg-amber-500/10 text-amber-600 border-amber-500/20">Under Contract</Badge>;
+      return <Badge className="bg-amber-500 text-white">Under Contract</Badge>;
     case 'Sold/Leased':
-      return <Badge className="bg-blue-500/10 text-blue-600 border-blue-500/20">Sold/Leased</Badge>;
+      return <Badge className="bg-red-600 text-white">Sold/Leased</Badge>;
     case 'Unknown/Removed':
-      return <Badge className="bg-red-500/10 text-red-600 border-red-500/20">Unknown/Removed</Badge>;
+      return <Badge className="bg-gray-300 text-gray-600">Unknown/Removed</Badge>;
     case 'Leased':
-      return <Badge className="bg-blue-500/10 text-blue-600 border-blue-500/20">Leased</Badge>;
+      return <Badge className="bg-red-600 text-white">Leased</Badge>;
     case 'Sold':
-      return <Badge className="bg-blue-500/10 text-blue-600 border-blue-500/20">Sold</Badge>;
+      return <Badge className="bg-red-600 text-white">Sold</Badge>;
     case 'OnHold':
-      return <Badge className="bg-amber-500/10 text-amber-600 border-amber-500/20">On Hold</Badge>;
+      return <Badge className="bg-amber-500 text-white">On Hold</Badge>;
     case 'Removed':
-      return <Badge variant="destructive">Removed</Badge>;
+      return <Badge className="bg-gray-300 text-gray-600">Removed</Badge>;
     default:
       return <Badge variant="secondary">{status}</Badge>;
   }
