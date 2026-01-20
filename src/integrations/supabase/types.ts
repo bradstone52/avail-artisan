@@ -649,6 +649,247 @@ export type Database = {
           },
         ]
       }
+      market_listings: {
+        Row: {
+          address: string
+          asking_rate_psf: string | null
+          availability_date: string | null
+          brochure_search_url: string | null
+          broker_source: string | null
+          building_depth: string | null
+          city: string
+          clear_height_ft: number | null
+          condo_fees: string | null
+          crane_tons: string | null
+          cranes: string | null
+          created_at: string
+          cross_dock: string | null
+          display_address: string | null
+          dock_doors: number | null
+          drive_in_doors: number | null
+          geocode_source: string | null
+          geocoded_at: string | null
+          gross_rate: string | null
+          id: string
+          internal_note: string | null
+          is_distribution_warehouse: boolean | null
+          land_acres: string | null
+          landlord: string | null
+          last_verified_date: string | null
+          latitude: number | null
+          link: string | null
+          link_last_checked: string | null
+          link_status: string | null
+          listing_id: string
+          listing_type: string | null
+          longitude: number | null
+          mua: string | null
+          notes_public: string | null
+          office_sf: number | null
+          op_costs: string | null
+          org_id: string | null
+          power_amps: string | null
+          property_tax: string | null
+          sale_price: string | null
+          size_sf: number
+          sprinkler: string | null
+          status: string
+          sublease_exp: string | null
+          submarket: string
+          trailer_parking: string | null
+          updated_at: string
+          user_id: string
+          voltage: string | null
+          warehouse_sf: number | null
+          yard: string | null
+          yard_area: string | null
+          zoning: string | null
+        }
+        Insert: {
+          address: string
+          asking_rate_psf?: string | null
+          availability_date?: string | null
+          brochure_search_url?: string | null
+          broker_source?: string | null
+          building_depth?: string | null
+          city?: string
+          clear_height_ft?: number | null
+          condo_fees?: string | null
+          crane_tons?: string | null
+          cranes?: string | null
+          created_at?: string
+          cross_dock?: string | null
+          display_address?: string | null
+          dock_doors?: number | null
+          drive_in_doors?: number | null
+          geocode_source?: string | null
+          geocoded_at?: string | null
+          gross_rate?: string | null
+          id?: string
+          internal_note?: string | null
+          is_distribution_warehouse?: boolean | null
+          land_acres?: string | null
+          landlord?: string | null
+          last_verified_date?: string | null
+          latitude?: number | null
+          link?: string | null
+          link_last_checked?: string | null
+          link_status?: string | null
+          listing_id: string
+          listing_type?: string | null
+          longitude?: number | null
+          mua?: string | null
+          notes_public?: string | null
+          office_sf?: number | null
+          op_costs?: string | null
+          org_id?: string | null
+          power_amps?: string | null
+          property_tax?: string | null
+          sale_price?: string | null
+          size_sf?: number
+          sprinkler?: string | null
+          status?: string
+          sublease_exp?: string | null
+          submarket?: string
+          trailer_parking?: string | null
+          updated_at?: string
+          user_id: string
+          voltage?: string | null
+          warehouse_sf?: number | null
+          yard?: string | null
+          yard_area?: string | null
+          zoning?: string | null
+        }
+        Update: {
+          address?: string
+          asking_rate_psf?: string | null
+          availability_date?: string | null
+          brochure_search_url?: string | null
+          broker_source?: string | null
+          building_depth?: string | null
+          city?: string
+          clear_height_ft?: number | null
+          condo_fees?: string | null
+          crane_tons?: string | null
+          cranes?: string | null
+          created_at?: string
+          cross_dock?: string | null
+          display_address?: string | null
+          dock_doors?: number | null
+          drive_in_doors?: number | null
+          geocode_source?: string | null
+          geocoded_at?: string | null
+          gross_rate?: string | null
+          id?: string
+          internal_note?: string | null
+          is_distribution_warehouse?: boolean | null
+          land_acres?: string | null
+          landlord?: string | null
+          last_verified_date?: string | null
+          latitude?: number | null
+          link?: string | null
+          link_last_checked?: string | null
+          link_status?: string | null
+          listing_id?: string
+          listing_type?: string | null
+          longitude?: number | null
+          mua?: string | null
+          notes_public?: string | null
+          office_sf?: number | null
+          op_costs?: string | null
+          org_id?: string | null
+          power_amps?: string | null
+          property_tax?: string | null
+          sale_price?: string | null
+          size_sf?: number
+          sprinkler?: string | null
+          status?: string
+          sublease_exp?: string | null
+          submarket?: string
+          trailer_parking?: string | null
+          updated_at?: string
+          user_id?: string
+          voltage?: string | null
+          warehouse_sf?: number | null
+          yard?: string | null
+          yard_area?: string | null
+          zoning?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "market_listings_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "orgs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      market_sync_logs: {
+        Row: {
+          completed_at: string | null
+          created_at: string
+          error_message: string | null
+          id: string
+          links_bad: number | null
+          links_checked: number | null
+          links_ok: number | null
+          org_id: string | null
+          rows_imported: number | null
+          rows_read: number | null
+          rows_skipped: number | null
+          run_type: string
+          skipped_breakdown: Json | null
+          started_at: string
+          status: string
+          triggered_by: string | null
+        }
+        Insert: {
+          completed_at?: string | null
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          links_bad?: number | null
+          links_checked?: number | null
+          links_ok?: number | null
+          org_id?: string | null
+          rows_imported?: number | null
+          rows_read?: number | null
+          rows_skipped?: number | null
+          run_type?: string
+          skipped_breakdown?: Json | null
+          started_at?: string
+          status?: string
+          triggered_by?: string | null
+        }
+        Update: {
+          completed_at?: string | null
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          links_bad?: number | null
+          links_checked?: number | null
+          links_ok?: number | null
+          org_id?: string | null
+          rows_imported?: number | null
+          rows_read?: number | null
+          rows_skipped?: number | null
+          run_type?: string
+          skipped_breakdown?: Json | null
+          started_at?: string
+          status?: string
+          triggered_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "market_sync_logs_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "orgs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       org_integrations: {
         Row: {
           google_access_token: string | null
