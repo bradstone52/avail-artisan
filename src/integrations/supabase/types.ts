@@ -783,6 +783,7 @@ export type Database = {
           is_active: boolean
           issue_id: string | null
           listing_ids: string[] | null
+          listing_snapshot: Json | null
           org_id: string | null
           report_type: string
           token: string
@@ -796,6 +797,7 @@ export type Database = {
           is_active?: boolean
           issue_id?: string | null
           listing_ids?: string[] | null
+          listing_snapshot?: Json | null
           org_id?: string | null
           report_type?: string
           token?: string
@@ -809,6 +811,7 @@ export type Database = {
           is_active?: boolean
           issue_id?: string | null
           listing_ids?: string[] | null
+          listing_snapshot?: Json | null
           org_id?: string | null
           report_type?: string
           token?: string
