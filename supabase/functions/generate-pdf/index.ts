@@ -191,9 +191,9 @@ serve(async (req) => {
     console.log(`[generate-pdf] Normalized PUBLIC_SITE_URL: ${publicSiteUrl}`);
     
     // Create or update share_links record for interactive map
-    // IMPORTANT: Include listing_ids so public map only shows PDF listings
+    // IMPORTANT: Use listing_id (stable identifier) instead of id (UUID that changes on sync)
     let mapShareToken: string | null = null;
-    const listingIdsForMap = safeListings.map(l => l.id).filter(Boolean) as string[];
+    const listingIdsForMap = safeListings.map(l => l.listing_id).filter(Boolean) as string[];
     console.log(`[generate-pdf] Preparing share link with ${listingIdsForMap.length} listing IDs`);
     
     try {

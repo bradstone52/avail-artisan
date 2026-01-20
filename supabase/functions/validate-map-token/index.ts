@@ -120,10 +120,11 @@ serve(async (req) => {
         longitude
       `);
 
-    // CRITICAL: If listing_ids are specified, use ONLY those - no other filters
+    // CRITICAL: listing_ids now stores listing_id (stable) instead of id (UUID)
+    // This ensures the map shows the same listings even after syncs change UUIDs
     if (link.listing_ids && link.listing_ids.length > 0) {
-      query = query.in("id", link.listing_ids);
-      console.log(`[validate-map-token] Using explicit listing_ids filter: ${link.listing_ids.length} IDs`);
+      query = query.in("listing_id", link.listing_ids);
+      console.log(`[validate-map-token] Using explicit listing_id filter: ${link.listing_ids.length} IDs`);
     } else {
       // Fallback: use org_id + filters (for legacy links without listing_ids)
       query = query
