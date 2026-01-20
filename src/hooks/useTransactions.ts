@@ -153,7 +153,9 @@ export function useTransactions() {
       if (error) throw error;
       
       toast.success('Transaction created');
-      await fetchTransactions();
+      // Don't block navigation on refreshing the list.
+      // (Fetching can be slow due to joins + ordering.)
+      void fetchTransactions();
       return data as Transaction;
     } catch (error) {
       console.error('Error creating transaction:', error);
