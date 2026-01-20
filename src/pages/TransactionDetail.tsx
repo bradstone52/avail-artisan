@@ -12,8 +12,6 @@ import {
   Building2,
   DollarSign,
   Users,
-  Calendar,
-  MapPin,
   ExternalLink,
   FileText,
   Pencil,
@@ -144,8 +142,11 @@ export default function TransactionDetail() {
   }
 
   // Use snapshot for property details (since listing is deleted after transaction)
-  const listing: MarketListingData | null = transaction.market_listing_snapshot || transaction.market_listing || null;
-  const canUndo = !!transaction.market_listing_snapshot;
+  // The snapshot is the raw JSONB data from the database
+  const snapshot = transaction.market_listing_snapshot;
+  const hasSnapshot = snapshot && typeof snapshot === 'object' && Object.keys(snapshot).length > 0;
+  const listing: MarketListingData | null = hasSnapshot ? snapshot : (transaction.market_listing || null);
+  const canUndo = hasSnapshot;
 
   return (
     <AppLayout>
@@ -362,34 +363,40 @@ export default function TransactionDetail() {
               <CardDescription>Building specifications and features</CardDescription>
             </CardHeader>
             <CardContent className="space-y-1">
-              <DetailRow label="Total Size" value={formatSF(transaction.size_sf)} />
-              {listing && (
-                <>
-                  <Separator />
-                  <DetailRow label="Warehouse SF" value={formatSF(listing.warehouse_sf)} />
-                  <Separator />
-                  <DetailRow label="Office SF" value={formatSF(listing.office_sf)} />
-                  <Separator />
-                  <DetailRow
-                    label="Clear Height"
-                    value={listing.clear_height_ft ? `${listing.clear_height_ft} ft` : null}
-                  />
-                  <Separator />
-                  <DetailRow label="Dock Doors" value={listing.dock_doors} />
-                  <Separator />
-                  <DetailRow label="Drive-in Doors" value={listing.drive_in_doors} />
-                  <Separator />
-                  <DetailRow label="Power" value={listing.power_amps} />
-                  <Separator />
-                  <DetailRow label="Voltage" value={listing.voltage} />
-                  <Separator />
-                  <DetailRow label="Sprinkler" value={listing.sprinkler} />
-                  <Separator />
-                  <DetailRow label="Cranes" value={listing.cranes} />
-                  <Separator />
-                  <DetailRow label="Zoning" value={listing.zoning} />
-                </>
-              )}
+              <DetailRow label="Total Size" value={formatSF(listing?.size_sf ?? transaction.size_sf)} />
+              <Separator />
+              <DetailRow label="Warehouse SF" value={formatSF(listing?.warehouse_sf)} />
+              <Separator />
+              <DetailRow label="Office SF" value={formatSF(listing?.office_sf)} />
+              <Separator />
+              <DetailRow
+                label="Clear Height"
+                value={listing?.clear_height_ft ? `${listing.clear_height_ft} ft` : null}
+              />
+              <Separator />
+              <DetailRow label="Dock Doors" value={listing?.dock_doors} />
+              <Separator />
+              <DetailRow label="Drive-in Doors" value={listing?.drive_in_doors} />
+              <Separator />
+              <DetailRow label="Power" value={listing?.power_amps} />
+              <Separator />
+              <DetailRow label="Voltage" value={listing?.voltage} />
+              <Separator />
+              <DetailRow label="Sprinkler" value={listing?.sprinkler} />
+              <Separator />
+              <DetailRow label="Cranes" value={listing?.cranes} />
+              <Separator />
+              <DetailRow label="Zoning" value={listing?.zoning} />
+              <Separator />
+              <DetailRow label="Yard" value={listing?.yard} />
+              <Separator />
+              <DetailRow label="Yard Area" value={listing?.yard_area} />
+              <Separator />
+              <DetailRow label="Cross-Dock" value={listing?.cross_dock} />
+              <Separator />
+              <DetailRow label="Trailer Parking" value={listing?.trailer_parking} />
+              <Separator />
+              <DetailRow label="Land Acres" value={listing?.land_acres} />
             </CardContent>
           </Card>
 
