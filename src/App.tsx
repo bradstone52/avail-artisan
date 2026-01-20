@@ -16,6 +16,7 @@ import Recipients from "./pages/Recipients";
 import TrackingRedirect from "./pages/TrackingRedirect";
 import PublicDistributionMap from "./pages/PublicDistributionMap";
 import DistributionMapViewer from "./pages/DistributionMapViewer";
+import PdfOpenMap from "./pages/PdfOpenMap";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -35,6 +36,8 @@ const App = () => (
             <Route path="/issue-builder" element={<IssueBuilder />} />
             <Route path="/share/:token" element={<SharePage />} />
             <Route path="/r/:trackingToken" element={<TrackingRedirect />} />
+            {/* PDF helper route: opens the interactive map in a new tab */}
+            <Route path="/pdf/open-map" element={<PdfOpenMap />} />
             <Route path="/admin/users" element={<AdminUsers />} />
             <Route path="/join-team" element={<JoinTeam />} />
             <Route path="/join" element={<JoinTeam />} />
