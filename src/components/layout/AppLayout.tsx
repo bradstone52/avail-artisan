@@ -15,7 +15,8 @@ import {
   ChevronRight,
   Users,
   Shield,
-  Mail
+  Mail,
+  Database
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -32,6 +33,7 @@ const navigation = [
 const adminNavigation = [
   { name: 'User Management', href: '/admin/users', icon: Users },
   { name: 'Recipients', href: '/recipients', icon: Mail },
+  { name: 'Market Listings', href: '/market-listings', icon: Database },
 ];
 
 export function AppLayout({ children }: AppLayoutProps) {
