@@ -26,7 +26,6 @@ import { Loader2 } from 'lucide-react';
 const STATUS_OPTIONS = [
   { value: 'Active', label: 'Active', color: 'bg-blue-600 text-white' },
   { value: 'Under Contract', label: 'Under Contract', color: 'bg-amber-500 text-white' },
-  { value: 'OnHold', label: 'On Hold', color: 'bg-amber-500 text-white' },
   { value: 'Sold/Leased', label: 'Sold/Leased', color: 'bg-red-600 text-white' },
   { value: 'Unknown/Removed', label: 'Unknown/Removed', color: 'bg-gray-300 text-gray-600' },
 ];
