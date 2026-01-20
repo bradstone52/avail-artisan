@@ -8,6 +8,7 @@ import Index from "./pages/Index";
 import Auth from "./pages/Auth";
 import Dashboard from "./pages/Dashboard";
 import Listings from "./pages/Listings";
+import MarketListings from "./pages/MarketListings";
 import IssueBuilder from "./pages/IssueBuilder";
 import SharePage from "./pages/SharePage";
 import AdminUsers from "./pages/AdminUsers";
@@ -33,6 +34,7 @@ const App = () => (
             <Route path="/auth" element={<Auth />} />
             <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/listings" element={<Listings />} />
+            <Route path="/market-listings" element={<MarketListings />} />
             <Route path="/issue-builder" element={<IssueBuilder />} />
             <Route path="/share/:token" element={<SharePage />} />
             <Route path="/r/:trackingToken" element={<TrackingRedirect />} />
