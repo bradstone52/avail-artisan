@@ -8,18 +8,7 @@ import {
   SelectContent,
   SelectItem,
   SelectTrigger,
-  SelectValue,
 } from '@/components/ui/select';
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from '@/components/ui/alert-dialog';
 import { Badge } from '@/components/ui/badge';
 import { Loader2 } from 'lucide-react';
 
@@ -38,26 +27,21 @@ interface StatusDropdownProps {
 export function StatusDropdown({ listing, onStatusChanged }: StatusDropdownProps) {
   const navigate = useNavigate();
   const [isUpdating, setIsUpdating] = useState(false);
-  const [showTransactionPrompt, setShowTransactionPrompt] = useState(false);
-  const [pendingStatus, setPendingStatus] = useState<string | null>(null);
 
   const handleStatusChange = async (newStatus: string) => {
     if (newStatus === listing.status) return;
 
-    // Check if changing to "Sold/Leased" status
-    const wasOpen = listing.status !== 'Sold/Leased';
-    const isNowClosed = newStatus === 'Sold/Leased';
-
-    if (wasOpen && isNowClosed) {
-      setPendingStatus(newStatus);
-      setShowTransactionPrompt(true);
+    // If changing to "Sold/Leased" status, go directly to Log Transaction
+    if (newStatus === 'Sold/Leased') {
+      // Navigate directly to transaction form - listing will be deleted after transaction is created
+      navigate(`/transactions/new?listing=${listing.id}`);
       return;
     }
 
     await updateStatus(newStatus);
   };
 
-  const updateStatus = async (newStatus: string, createTransaction = false) => {
+  const updateStatus = async (newStatus: string) => {
     setIsUpdating(true);
     try {
       const { error } = await supabase
@@ -72,32 +56,12 @@ export function StatusDropdown({ listing, onStatusChanged }: StatusDropdownProps
 
       toast.success(`Status updated to ${newStatus}`);
       onStatusChanged();
-
-      if (createTransaction) {
-        navigate(`/transactions/new?listing=${listing.id}`);
-      }
     } catch (err) {
       console.error('Error updating status:', err);
       toast.error('Failed to update status');
     } finally {
       setIsUpdating(false);
     }
-  };
-
-  const handleConfirmTransaction = async () => {
-    if (pendingStatus) {
-      await updateStatus(pendingStatus, true);
-    }
-    setShowTransactionPrompt(false);
-    setPendingStatus(null);
-  };
-
-  const handleSkipTransaction = async () => {
-    if (pendingStatus) {
-      await updateStatus(pendingStatus, false);
-    }
-    setShowTransactionPrompt(false);
-    setPendingStatus(null);
   };
 
   const currentOption = STATUS_OPTIONS.find(opt => opt.value === listing.status);
@@ -125,25 +89,6 @@ export function StatusDropdown({ listing, onStatusChanged }: StatusDropdownProps
         </SelectContent>
       </Select>
 
-      <AlertDialog open={showTransactionPrompt} onOpenChange={setShowTransactionPrompt}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Create Transaction Record?</AlertDialogTitle>
-            <AlertDialogDescription>
-              You're marking this listing as "{pendingStatus}". Would you like to create a transaction 
-              record to capture the deal details (price, buyer/tenant, closing date, etc.)?
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel onClick={handleSkipTransaction}>
-              Skip for Now
-            </AlertDialogCancel>
-            <AlertDialogAction onClick={handleConfirmTransaction}>
-              Yes, Create Transaction
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
     </>
   );
 }
