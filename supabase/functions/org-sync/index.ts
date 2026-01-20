@@ -565,21 +565,33 @@ serve(async (req) => {
     
     console.log(`[Org Sync] Found ${dataRows.length} data rows`);
 
-    // Get existing listings for this org to preserve geocoding
+    // Get existing listings for this org to preserve geocoding (especially manual pins)
     const { data: existingListings } = await adminClient
       .from('listings')
-      .select('listing_id, latitude, longitude, address, city, geocoded_at')
+      .select('listing_id, latitude, longitude, address, city, geocoded_at, geocode_source')
       .eq('org_id', orgId);
 
-    const existingMap = new Map<string, { lat: number | null; lng: number | null; address: string; city: string; geocodedAt: string | null }>();
+    const existingMap = new Map<
+      string,
+      {
+        lat: number | null;
+        lng: number | null;
+        address: string;
+        city: string;
+        geocodedAt: string | null;
+        geocodeSource: string | null;
+      }
+    >();
+
     if (existingListings) {
-      for (const l of existingListings) {
+      for (const l of existingListings as any[]) {
         existingMap.set(l.listing_id, {
           lat: l.latitude,
           lng: l.longitude,
           address: l.address,
           city: l.city,
           geocodedAt: l.geocoded_at,
+          geocodeSource: l.geocode_source ?? null,
         });
       }
     }
@@ -658,15 +670,24 @@ serve(async (req) => {
 
       seenListingIds.add(listingId);
 
-      // Preserve existing geocoding if address hasn't changed
+      // Preserve existing geocoding.
+      // CRITICAL: If the existing pin was manually moved, preserve it ALWAYS.
       const existing = existingMap.get(listingId);
       if (existing && existing.lat && existing.lng) {
+        const isManual = (existing.geocodeSource || '').toLowerCase() === 'manual';
         const addressChanged = existing.address !== listing.address || existing.city !== listing.city;
-        if (!addressChanged) {
+
+        if (isManual) {
           listing.latitude = existing.lat;
           listing.longitude = existing.lng;
           listing.geocoded_at = existing.geocodedAt;
-          listing.geocode_source = 'mapbox';
+          listing.geocode_source = 'manual';
+        } else if (!addressChanged) {
+          listing.latitude = existing.lat;
+          listing.longitude = existing.lng;
+          listing.geocoded_at = existing.geocodedAt;
+          // Preserve the original source if we have it; otherwise fall back to mapbox
+          listing.geocode_source = existing.geocodeSource || 'mapbox';
         }
       }
 
