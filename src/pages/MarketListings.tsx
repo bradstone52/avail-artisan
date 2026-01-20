@@ -48,6 +48,29 @@ function LinkStatusBadge({ status }: { status: string | null }) {
   }
 }
 
+function ListingStatusBadge({ status }: { status: string }) {
+  switch (status) {
+    case 'Active':
+      return <Badge className="bg-green-500/10 text-green-600 border-green-500/20">Active</Badge>;
+    case 'Under Contract':
+      return <Badge className="bg-amber-500/10 text-amber-600 border-amber-500/20">Under Contract</Badge>;
+    case 'Sold/Leased':
+      return <Badge className="bg-blue-500/10 text-blue-600 border-blue-500/20">Sold/Leased</Badge>;
+    case 'Unknown/Removed':
+      return <Badge className="bg-red-500/10 text-red-600 border-red-500/20">Unknown/Removed</Badge>;
+    case 'Leased':
+      return <Badge className="bg-blue-500/10 text-blue-600 border-blue-500/20">Leased</Badge>;
+    case 'Sold':
+      return <Badge className="bg-blue-500/10 text-blue-600 border-blue-500/20">Sold</Badge>;
+    case 'OnHold':
+      return <Badge className="bg-amber-500/10 text-amber-600 border-amber-500/20">On Hold</Badge>;
+    case 'Removed':
+      return <Badge variant="destructive">Removed</Badge>;
+    default:
+      return <Badge variant="secondary">{status}</Badge>;
+  }
+}
+
 const SIZE_RANGES = [
   { label: 'All Sizes', value: 'all', min: 0, max: Infinity },
   { label: 'Under 50,000 SF', value: 'under50k', min: 0, max: 50000 },
@@ -458,9 +481,7 @@ export default function MarketListings() {
                           {formatSF(listing.size_sf)}
                         </TableCell>
                         <TableCell>
-                          <Badge variant={listing.status === 'Active' ? 'default' : 'secondary'}>
-                            {listing.status}
-                          </Badge>
+                          <ListingStatusBadge status={listing.status} />
                         </TableCell>
                         <TableCell>
                           <span className="text-sm text-muted-foreground">
