@@ -104,7 +104,10 @@ export default function TransactionDetail() {
   const handleUndo = async () => {
     if (!id) return;
     setIsUndoing(true);
-    await undoTransaction(id);
+    const success = await undoTransaction(id);
+    if (success) {
+      navigate('/transactions');
+    }
     setIsUndoing(false);
   };
 
