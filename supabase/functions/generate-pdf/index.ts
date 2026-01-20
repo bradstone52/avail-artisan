@@ -253,9 +253,11 @@ serve(async (req) => {
       console.error(`[generate-pdf] Error creating share link: ${err instanceof Error ? err.message : String(err)}`);
     }
 
-    // Build the interactive map URL
-    const mapUrl = mapShareToken ? `${publicSiteUrl}/public/distribution-map?token=${mapShareToken}` : null;
-    console.log(`[generate-pdf] Interactive map URL: ${mapUrl || "(none)"}`);
+    // Build the interactive map URL for the PDF.
+    // NOTE: Many PDF viewers ignore target="_blank". We route through a tiny web page that
+    // attempts window.open() (user-gesture from PDF click) to reliably open a new tab.
+    const mapUrl = mapShareToken ? `${publicSiteUrl}/pdf/open-map?token=${mapShareToken}` : null;
+    console.log(`[generate-pdf] Interactive map URL (PDF redirect): ${mapUrl || "(none)"}`);
 
     const html = buildPdfHtml(safeIssue, safeListings, { includeDetails, sizeThresholdMax, generatedDate, mapUrl });
 
