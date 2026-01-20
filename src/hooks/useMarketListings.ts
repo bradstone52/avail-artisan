@@ -84,6 +84,7 @@ export function useMarketListings() {
   const [syncLogs, setSyncLogs] = useState<MarketSyncLog[]>([]);
   const [loading, setLoading] = useState(true);
   const [isSyncing, setIsSyncing] = useState(false);
+  const [isValidatingLinks, setIsValidatingLinks] = useState(false);
 
   // Fetch market listings for the org
   const fetchListings = useCallback(async () => {
@@ -169,6 +170,45 @@ export function useMarketListings() {
     }
   };
 
+  // Validate brochure links
+  const validateLinks = async () => {
+    if (!user || !session?.access_token) {
+      toast.error('Not authenticated');
+      return null;
+    }
+
+    setIsValidatingLinks(true);
+
+    try {
+      const { data, error } = await supabase.functions.invoke('validate-brochure-links', {
+        headers: {
+          Authorization: `Bearer ${session.access_token}`,
+        },
+      });
+
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+
+      const message = `Checked ${data.checked} links: ${data.ok} ok, ${data.broken} broken`;
+      if (data.remaining > 0) {
+        toast.success(`${message}. ${data.remaining} remaining - run again to continue.`);
+      } else {
+        toast.success(message);
+      }
+      
+      // Refresh listings to show updated status
+      await fetchListings();
+      
+      return data;
+    } catch (err) {
+      console.error('Link validation error:', err);
+      toast.error(err instanceof Error ? err.message : 'Validation failed');
+      return null;
+    } finally {
+      setIsValidatingLinks(false);
+    }
+  };
+
   // Refresh listings
   const refreshListings = async () => {
     await fetchListings();
@@ -179,7 +219,9 @@ export function useMarketListings() {
     syncLogs,
     loading,
     isSyncing,
+    isValidatingLinks,
     syncMarketListings,
+    validateLinks,
     refreshListings,
     refetchSyncLogs: fetchSyncLogs,
   };
