@@ -1,0 +1,780 @@
+import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+};
+
+// Field mappings for parsing the sheet - maps to market_listings table
+const FIELD_MAPPINGS = [
+  { header: 'ListingID', dbColumn: 'listing_id', type: 'string', required: true },
+  { header: 'Address', dbColumn: 'address', type: 'string', required: true },
+  { header: 'Municipality', dbColumn: 'city', type: 'string', required: true },
+  { header: 'Status', dbColumn: 'status', type: 'string', required: true },
+  { header: 'Submarket', dbColumn: 'submarket', type: 'string', required: true },
+  { header: 'Listing Type', dbColumn: 'listing_type', type: 'string' },
+  { header: 'Broker', dbColumn: 'broker_source', type: 'string' },
+  { header: 'Distribution Warehouse?', dbColumn: 'is_distribution_warehouse', type: 'boolean' },
+  { header: 'Total SF', dbColumn: 'size_sf', type: 'number' },
+  { header: 'Warehouse SF', dbColumn: 'warehouse_sf', type: 'number' },
+  { header: 'Office SF', dbColumn: 'office_sf', type: 'number' },
+  { header: 'Ceiling Ht.', dbColumn: 'clear_height_ft', type: 'number' },
+  { header: 'Dock Doors', dbColumn: 'dock_doors', type: 'number' },
+  { header: 'Drive-in Doors', dbColumn: 'drive_in_doors', type: 'number' },
+  { header: 'Power (Amps)', dbColumn: 'power_amps', type: 'string' },
+  { header: 'Voltage', dbColumn: 'voltage', type: 'string' },
+  { header: 'Yard Area', dbColumn: 'yard_area', type: 'string' },
+  { header: 'Sprinklered', dbColumn: 'sprinkler', type: 'string' },
+  { header: 'Cranes', dbColumn: 'cranes', type: 'string' },
+  { header: 'Crane Tons', dbColumn: 'crane_tons', type: 'string' },
+  { header: 'Building Depth', dbColumn: 'building_depth', type: 'string' },
+  { header: 'Land Acres', dbColumn: 'land_acres', type: 'string' },
+  { header: 'Zoning', dbColumn: 'zoning', type: 'string' },
+  { header: 'MUA', dbColumn: 'mua', type: 'string' },
+  { header: 'Available', dbColumn: 'availability_date', type: 'date' },
+  { header: 'Net Rate', dbColumn: 'asking_rate_psf', type: 'string' },
+  { header: 'Op Costs', dbColumn: 'op_costs', type: 'string' },
+  { header: 'Gross Rate', dbColumn: 'gross_rate', type: 'string' },
+  { header: 'Sale Price', dbColumn: 'sale_price', type: 'string' },
+  { header: 'Condo Fees', dbColumn: 'condo_fees', type: 'string' },
+  { header: 'Property Tax', dbColumn: 'property_tax', type: 'string' },
+  { header: 'Landlord/Owner/Developer', dbColumn: 'landlord', type: 'string' },
+  { header: 'Sublease Exp.', dbColumn: 'sublease_exp', type: 'string' },
+  { header: 'Brochure URL', dbColumn: 'link', type: 'string' },
+  { header: 'Notes', dbColumn: 'notes_public', type: 'string' },
+  { header: 'Internal Notes', dbColumn: 'internal_note', type: 'string' },
+  { header: 'Last Verified', dbColumn: 'last_verified_date', type: 'date' },
+];
+
+// Directional indicators that should always remain uppercase
+const DIRECTIONAL_INDICATORS = ['NW', 'NE', 'SW', 'SE', 'N', 'S', 'E', 'W'];
+
+/**
+ * Convert a string to title case, preserving directional indicators as uppercase.
+ */
+function toTitleCase(str: string): string {
+  return str.split(' ').map(word => {
+    const upperWord = word.toUpperCase();
+    if (DIRECTIONAL_INDICATORS.includes(upperWord)) {
+      return upperWord;
+    }
+    if (/^\d+$/.test(word)) {
+      return word;
+    }
+    return word.charAt(0).toUpperCase() + word.slice(1).toLowerCase();
+  }).join(' ');
+}
+
+/**
+ * Normalize address strings for better geocoding and consistent display.
+ */
+function normalizeAddress(address: string): string {
+  let normalized = address;
+  normalized = toTitleCase(normalized);
+  normalized = normalized.replace(/(\d+)\s*-\s+(\d)/g, '$1 $2');
+  normalized = normalized.replace(/\b(\d+)(st|nd|rd|th)\b/gi, '$1');
+  normalized = normalized.replace(/\s+/g, ' ').trim();
+  return normalized;
+}
+
+const GEOCODE_BATCH_LIMIT = 50;
+
+function normalizeHeader(header: string): string {
+  return header.trim().toLowerCase();
+}
+
+function findHeaderIndex(headers: string[], targetHeader: string): number {
+  const normalized = normalizeHeader(targetHeader);
+  return headers.findIndex(h => normalizeHeader(h) === normalized);
+}
+
+function parseNumber(value: string | undefined): number | undefined {
+  if (!value) return undefined;
+  const cleaned = value.replace(/[$,\s]/g, '');
+  const num = parseFloat(cleaned);
+  return isNaN(num) ? undefined : Math.round(num);
+}
+
+/**
+ * Parse a date string or Google Sheets serial number.
+ */
+function parseDate(value: string | undefined): string | undefined {
+  if (!value) return undefined;
+  
+  const trimmed = value.trim();
+  
+  if (/^\d{5,}(\.\d+)?$/.test(trimmed)) {
+    const serialNumber = parseFloat(trimmed);
+    if (serialNumber > 0 && serialNumber < 100000) {
+      const epoch = new Date(1899, 11, 30);
+      const date = new Date(epoch.getTime() + Math.floor(serialNumber) * 24 * 60 * 60 * 1000);
+      if (!isNaN(date.getTime())) {
+        return date.toISOString().split('T')[0];
+      }
+    }
+    return trimmed;
+  }
+  
+  const date = new Date(trimmed);
+  if (!isNaN(date.getTime())) {
+    return date.toISOString().split('T')[0];
+  }
+  
+  return trimmed;
+}
+
+/**
+ * Extract URL from a HYPERLINK formula.
+ */
+function extractHyperlinkUrl(value: string): string {
+  if (!value) return '';
+  
+  const hyperlinkMatch = value.match(/^=HYPERLINK\s*\(\s*"([^"]+)"/i);
+  if (hyperlinkMatch) {
+    return hyperlinkMatch[1];
+  }
+  
+  if (value.startsWith('http://') || value.startsWith('https://')) {
+    return value;
+  }
+  
+  return '';
+}
+
+function columnIndexToLetter(index: number): string {
+  let n = index + 1;
+  let letters = '';
+  while (n > 0) {
+    const rem = (n - 1) % 26;
+    letters = String.fromCharCode(65 + rem) + letters;
+    n = Math.floor((n - 1) / 26);
+  }
+  return letters;
+}
+
+async function fetchHyperlinksForColumn(params: {
+  spreadsheetId: string;
+  sheetName: string;
+  accessToken: string;
+  colIndex: number;
+  rowCount: number;
+}): Promise<(string | undefined)[]> {
+  const { spreadsheetId, sheetName, accessToken, colIndex, rowCount } = params;
+
+  const colLetter = columnIndexToLetter(colIndex);
+  const range = `${sheetName}!${colLetter}1:${colLetter}${rowCount}`;
+
+  const url = `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}?includeGridData=true&ranges=${encodeURIComponent(
+    range
+  )}&fields=sheets(properties(title),data(rowData(values(hyperlink,formattedValue,userEnteredValue))))`;
+
+  const res = await fetch(url, { headers: { Authorization: `Bearer ${accessToken}` } });
+  if (!res.ok) {
+    const txt = await res.text();
+    console.warn('[Market Sync] hyperlink fetch failed:', txt);
+    return [];
+  }
+
+  const json = await res.json();
+  const sheet = (json?.sheets ?? []).find((s: any) => s?.properties?.title === sheetName) ?? json?.sheets?.[0];
+  const rowData = sheet?.data?.[0]?.rowData ?? [];
+
+  const result: (string | undefined)[] = Array.from({ length: rowCount }, () => undefined);
+
+  for (let i = 0; i < rowCount; i++) {
+    const r = rowData[i];
+    const cell = r?.values?.[0];
+
+    const hyperlink = cell?.hyperlink as string | undefined;
+    if (hyperlink) {
+      result[i] = hyperlink;
+      continue;
+    }
+
+    const formula = cell?.userEnteredValue?.formulaValue as string | undefined;
+    if (formula) {
+      const extracted = extractHyperlinkUrl(formula);
+      if (extracted) {
+        result[i] = extracted;
+        continue;
+      }
+    }
+
+    const formatted = cell?.formattedValue as string | undefined;
+    if (formatted && (formatted.startsWith('http://') || formatted.startsWith('https://'))) {
+      result[i] = formatted;
+      continue;
+    }
+  }
+
+  return result;
+}
+
+/**
+ * For market sync, we include ALL Active listings (not just distribution ones)
+ */
+function shouldIncludeRow(row: unknown[], headers: string[]): { include: boolean; reason?: string } {
+  const statusIdx = findHeaderIndex(headers, 'Status');
+  
+  const cellToString = (value: unknown): string => {
+    if (value === null || value === undefined) return '';
+    if (typeof value === 'string') return value.trim().toLowerCase();
+    if (typeof value === 'boolean') return value ? 'true' : 'false';
+    return String(value).trim().toLowerCase();
+  };
+  
+  const statusValue = statusIdx !== -1 ? cellToString(row[statusIdx]) : '';
+  if (statusValue !== 'active') {
+    return { include: false, reason: 'inactive' };
+  }
+  
+  return { include: true };
+}
+
+function getCellAsString(value: unknown): string {
+  if (value === null || value === undefined) return '';
+  if (typeof value === 'string') return value.trim();
+  if (typeof value === 'boolean') return value ? 'true' : 'false';
+  if (typeof value === 'number') return String(value);
+  return String(value).trim();
+}
+
+function mapRowToListing(row: unknown[], headers: string[], userId: string, orgId: string): Record<string, unknown> {
+  const listing: Record<string, unknown> = { user_id: userId, org_id: orgId };
+
+  for (const mapping of FIELD_MAPPINGS) {
+    const headerIdx = findHeaderIndex(headers, mapping.header);
+    if (headerIdx === -1) continue;
+
+    const rawValue = getCellAsString(row[headerIdx]);
+    if (!rawValue) continue;
+
+    if (mapping.type === 'number') {
+      const numValue = parseNumber(rawValue);
+      if (numValue !== undefined) {
+        listing[mapping.dbColumn] = numValue;
+      }
+    } else if (mapping.type === 'date') {
+      const dateValue = parseDate(rawValue);
+      if (dateValue) {
+        listing[mapping.dbColumn] = dateValue;
+      }
+    } else if (mapping.type === 'boolean') {
+      // Handle Distribution Warehouse? checkbox
+      const val = rawValue.toLowerCase();
+      const isTruthy = ['true', 'yes', 'y', '1', 'checked', 'x'].includes(val);
+      listing[mapping.dbColumn] = isTruthy;
+    } else if (mapping.dbColumn === 'link') {
+      const url = extractHyperlinkUrl(rawValue);
+      if (url) {
+        listing[mapping.dbColumn] = url;
+      }
+    } else {
+      listing[mapping.dbColumn] = rawValue;
+    }
+  }
+
+  // Normalize the address
+  if (listing.address) {
+    listing.address = normalizeAddress(listing.address as string);
+  }
+
+  // Compute display_address from Address and Unit/Bay
+  const unitBayIdx = findHeaderIndex(headers, 'Unit/Bay');
+  if (unitBayIdx !== -1) {
+    const unitBay = getCellAsString(row[unitBayIdx]);
+    if (unitBay) {
+      listing.display_address = `${listing.address || ''} — ${unitBay}`;
+    } else {
+      listing.display_address = listing.address || '';
+    }
+  } else {
+    listing.display_address = listing.address || '';
+  }
+
+  // Defaults
+  if (!listing.address) listing.address = '';
+  if (!listing.city) listing.city = '';
+  if (!listing.submarket) listing.submarket = '';
+  if (!listing.size_sf) listing.size_sf = 0;
+  if (listing.is_distribution_warehouse === undefined) listing.is_distribution_warehouse = false;
+
+  // Normalize status
+  const validStatuses = ['Active', 'Leased', 'Removed', 'OnHold'];
+  const rawStatus = (listing.status as string || '').trim();
+  listing.status = validStatuses.find(s => s.toLowerCase() === rawStatus.toLowerCase()) || 'Active';
+
+  // Yes/No/Unknown fields
+  const yesNoFields = ['yard', 'cross_dock', 'trailer_parking'];
+  for (const field of yesNoFields) {
+    listing[field] = 'Unknown';
+  }
+
+  return listing;
+}
+
+async function refreshAccessToken(refreshToken: string): Promise<{ access_token?: string; error?: string }> {
+  const clientId = Deno.env.get('GOOGLE_CLIENT_ID');
+  const clientSecret = Deno.env.get('GOOGLE_CLIENT_SECRET');
+
+  const response = await fetch('https://oauth2.googleapis.com/token', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: new URLSearchParams({
+      client_id: clientId!,
+      client_secret: clientSecret!,
+      refresh_token: refreshToken,
+      grant_type: 'refresh_token',
+    }),
+  });
+
+  return response.json();
+}
+
+async function geocodeAddress(address: string, city: string): Promise<{ lat: number; lng: number } | null> {
+  const mapboxToken = Deno.env.get('MAPBOX_ACCESS_TOKEN');
+  if (!mapboxToken) {
+    console.log('[Market Sync] No MAPBOX_ACCESS_TOKEN available');
+    return null;
+  }
+
+  const query = `${address}, ${city}, Alberta, Canada`;
+  const encodedQuery = encodeURIComponent(query);
+  
+  try {
+    const response = await fetch(
+      `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodedQuery}.json?access_token=${mapboxToken}&limit=1&types=address,poi`
+    );
+    
+    if (!response.ok) {
+      console.error(`[Market Sync] Mapbox API error: ${response.status}`);
+      return null;
+    }
+
+    const data = await response.json();
+    
+    if (data.features && data.features.length > 0) {
+      const [lng, lat] = data.features[0].center;
+      console.log(`[Market Sync] Geocoded: "${query}" -> [${lat}, ${lng}]`);
+      return { lat, lng };
+    }
+    
+    console.log(`[Market Sync] No results for: "${query}"`);
+    return null;
+  } catch (error) {
+    console.error('[Market Sync] Geocode error:', error);
+    return null;
+  }
+}
+
+serve(async (req) => {
+  if (req.method === 'OPTIONS') {
+    return new Response(null, { headers: corsHeaders });
+  }
+
+  const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+  const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY')!;
+  const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+
+  try {
+    // Authenticate user
+    const authHeader = req.headers.get('Authorization');
+    if (!authHeader) {
+      return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+        status: 401,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    const userClient = createClient(supabaseUrl, supabaseAnonKey, {
+      global: { headers: { Authorization: authHeader } },
+    });
+
+    const { data: { user }, error: userError } = await userClient.auth.getUser();
+    if (userError || !user) {
+      return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+        status: 401,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    const body = await req.json().catch(() => ({}));
+    const orgId = body.orgId;
+
+    if (!orgId) {
+      return new Response(JSON.stringify({ error: 'orgId is required' }), {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    // Use service role for data operations
+    const adminClient = createClient(supabaseUrl, serviceRoleKey);
+
+    // Verify user is member of this org
+    const { data: membership } = await adminClient
+      .from('org_members')
+      .select('role')
+      .eq('org_id', orgId)
+      .eq('user_id', user.id)
+      .single();
+
+    if (!membership) {
+      return new Response(JSON.stringify({ error: 'Not a member of this organization' }), {
+        status: 403,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    // Get org integration
+    const { data: integration, error: integrationError } = await adminClient
+      .from('org_integrations')
+      .select('*')
+      .eq('org_id', orgId)
+      .single();
+
+    if (integrationError || !integration) {
+      return new Response(JSON.stringify({ error: 'Admin must connect Google Sheets first' }), {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    if (!integration.sheet_id) {
+      return new Response(JSON.stringify({ error: 'No sheet configured. Admin must set up sheet URL.' }), {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    console.log(`[Market Sync] Starting sync for org: ${orgId}`);
+
+    // Create market sync log
+    const { data: syncLog } = await adminClient
+      .from('market_sync_logs')
+      .insert({
+        org_id: orgId,
+        run_type: 'manual',
+        triggered_by: user.id,
+        status: 'running',
+      })
+      .select()
+      .single();
+
+    const logId = syncLog?.id;
+
+    // Check if token needs refresh
+    let accessToken = integration.google_access_token;
+    const expiresAt = integration.google_token_expiry ? new Date(integration.google_token_expiry) : new Date(0);
+
+    if (expiresAt <= new Date()) {
+      console.log('[Market Sync] Token expired, refreshing...');
+      
+      if (!integration.google_refresh_token) {
+        await adminClient.from('market_sync_logs').update({
+          status: 'failed',
+          completed_at: new Date().toISOString(),
+          error_message: 'Google connection expired. Admin must reconnect.',
+        }).eq('id', logId);
+
+        return new Response(JSON.stringify({ error: 'Google connection expired. Admin must reconnect.' }), {
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+
+      const refreshResult = await refreshAccessToken(integration.google_refresh_token);
+      
+      if (refreshResult.error || !refreshResult.access_token) {
+        await adminClient.from('market_sync_logs').update({
+          status: 'failed',
+          completed_at: new Date().toISOString(),
+          error_message: 'Failed to refresh Google token. Admin must reconnect.',
+        }).eq('id', logId);
+
+        return new Response(JSON.stringify({ error: 'Failed to refresh Google token. Admin must reconnect.' }), {
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+
+      accessToken = refreshResult.access_token;
+
+      // Update token in database
+      await adminClient
+        .from('org_integrations')
+        .update({
+          google_access_token: accessToken,
+          google_token_expiry: new Date(Date.now() + 3600 * 1000).toISOString(),
+        })
+        .eq('org_id', orgId);
+    }
+
+    // Fetch data from Google Sheets
+    const sheetName = integration.tab_name || 'Vacancy_List';
+    const headerRow = integration.header_row || 2;
+    const range = `${sheetName}!A:ZZ`;
+    
+    const sheetsUrl = `https://sheets.googleapis.com/v4/spreadsheets/${integration.sheet_id}/values/${encodeURIComponent(range)}?valueRenderOption=FORMULA`;
+    
+    const sheetsResponse = await fetch(sheetsUrl, {
+      headers: { Authorization: `Bearer ${accessToken}` },
+    });
+
+    if (!sheetsResponse.ok) {
+      const errorText = await sheetsResponse.text();
+      console.error('[Market Sync] Sheets API error:', errorText);
+      
+      await adminClient.from('market_sync_logs').update({
+        status: 'failed',
+        completed_at: new Date().toISOString(),
+        error_message: `Google Sheets API error: ${errorText}`,
+      }).eq('id', logId);
+
+      return new Response(JSON.stringify({ error: 'Failed to fetch sheet data' }), {
+        status: 500,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    const sheetsData = await sheetsResponse.json();
+    const rows = sheetsData.values || [];
+
+    if (rows.length < headerRow) {
+      return new Response(JSON.stringify({ error: 'Sheet appears to be empty' }), {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    const headers = rows[headerRow - 1] || [];
+    const dataRows = rows.slice(headerRow);
+
+    const brochureIdx = findHeaderIndex(headers, 'Brochure URL');
+    console.log(`[Market Sync] Headers count=${headers.length}; brochureIdx=${brochureIdx}`);
+    console.log(`[Market Sync] Found ${dataRows.length} data rows`);
+
+    // Get existing market_listings for this org to preserve geocoding
+    const { data: existingListings } = await adminClient
+      .from('market_listings')
+      .select('listing_id, latitude, longitude, address, city, geocoded_at, geocode_source')
+      .eq('org_id', orgId);
+
+    const existingMap = new Map<
+      string,
+      {
+        lat: number | null;
+        lng: number | null;
+        address: string;
+        city: string;
+        geocodedAt: string | null;
+        geocodeSource: string | null;
+      }
+    >();
+
+    if (existingListings) {
+      for (const l of existingListings as any[]) {
+        existingMap.set(l.listing_id, {
+          lat: l.latitude,
+          lng: l.longitude,
+          address: l.address,
+          city: l.city,
+          geocodedAt: l.geocoded_at,
+          geocodeSource: l.geocode_source ?? null,
+        });
+      }
+    }
+
+    // Fetch brochure hyperlinks
+    const sheetRowCount = headerRow + dataRows.length;
+    const brochureHyperlinks =
+      brochureIdx !== -1
+        ? await fetchHyperlinksForColumn({
+            spreadsheetId: integration.sheet_id,
+            sheetName,
+            accessToken,
+            colIndex: brochureIdx,
+            rowCount: sheetRowCount,
+          })
+        : [];
+
+    if (brochureIdx !== -1) {
+      const found = brochureHyperlinks.filter(Boolean).length;
+      console.log(`[Market Sync] Brochure URLs found: ${found}/${brochureHyperlinks.length}`);
+    }
+
+    const stagedListings: Record<string, unknown>[] = [];
+    const seenListingIds = new Set<string>();
+    const skippedBreakdown = {
+      inactive: 0,
+      missing_fields: 0,
+      duplicate_listing_id: 0,
+    };
+
+    for (let i = 0; i < dataRows.length; i++) {
+      const row = dataRows[i];
+      const filterResult = shouldIncludeRow(row, headers);
+      if (!filterResult.include) {
+        if (filterResult.reason === 'inactive') skippedBreakdown.inactive++;
+        continue;
+      }
+
+      const listing = mapRowToListing(row, headers, user.id, orgId);
+
+      // Fallback brochure link from hyperlink metadata
+      if (!listing.link && brochureHyperlinks.length) {
+        const sheetRowNumber = headerRow + 1 + i;
+        const url = brochureHyperlinks[sheetRowNumber - 1];
+        if (url) listing.link = url;
+      }
+
+      const listingId = (listing.listing_id as string)?.trim();
+
+      if (!listingId) {
+        skippedBreakdown.missing_fields++;
+        continue;
+      }
+
+      if (seenListingIds.has(listingId)) {
+        skippedBreakdown.duplicate_listing_id++;
+        continue;
+      }
+
+      seenListingIds.add(listingId);
+
+      // Preserve existing geocoding (especially manual pins)
+      const existing = existingMap.get(listingId);
+      if (existing && existing.lat && existing.lng) {
+        const isManual = (existing.geocodeSource || '').toLowerCase() === 'manual';
+        const addressChanged = existing.address !== listing.address || existing.city !== listing.city;
+
+        if (isManual) {
+          listing.latitude = existing.lat;
+          listing.longitude = existing.lng;
+          listing.geocoded_at = existing.geocodedAt;
+          listing.geocode_source = 'manual';
+        } else if (!addressChanged) {
+          listing.latitude = existing.lat;
+          listing.longitude = existing.lng;
+          listing.geocoded_at = existing.geocodedAt;
+          listing.geocode_source = existing.geocodeSource || 'mapbox';
+        }
+      }
+
+      stagedListings.push(listing);
+    }
+
+    const rowsSkipped = Object.values(skippedBreakdown).reduce((a, b) => a + b, 0);
+
+    console.log(`[Market Sync] Staged ${stagedListings.length} listings, skipped ${rowsSkipped}`);
+
+    if (stagedListings.length === 0) {
+      await adminClient.from('market_sync_logs').update({
+        status: 'failed',
+        completed_at: new Date().toISOString(),
+        error_message: 'No valid listings found after applying filters',
+        rows_read: dataRows.length,
+        rows_skipped: rowsSkipped,
+        skipped_breakdown: skippedBreakdown,
+      }).eq('id', logId);
+
+      return new Response(JSON.stringify({ error: 'No valid listings found' }), {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    // Geocode listings that don't have coordinates
+    let geocodedCount = 0;
+    const toGeocode = stagedListings.filter(l => !l.latitude || !l.longitude);
+    console.log(`[Market Sync] ${toGeocode.length} listings need geocoding (limit: ${GEOCODE_BATCH_LIMIT})`);
+
+    for (const listing of toGeocode) {
+      if (geocodedCount >= GEOCODE_BATCH_LIMIT) {
+        console.log(`[Market Sync] Reached geocode limit (${GEOCODE_BATCH_LIMIT})`);
+        break;
+      }
+
+      const address = listing.address as string;
+      const city = listing.city as string;
+      
+      if (address && city) {
+        const coords = await geocodeAddress(address, city);
+        if (coords) {
+          listing.latitude = coords.lat;
+          listing.longitude = coords.lng;
+          listing.geocoded_at = new Date().toISOString();
+          listing.geocode_source = 'mapbox';
+          geocodedCount++;
+        }
+      }
+
+      if (geocodedCount < GEOCODE_BATCH_LIMIT && geocodedCount < toGeocode.length) {
+        await new Promise(resolve => setTimeout(resolve, 100));
+      }
+    }
+
+    console.log(`[Market Sync] Geocoded ${geocodedCount} listings`);
+
+    // Delete existing market listings for this org and insert new ones
+    console.log(`[Market Sync] Deleting existing market_listings for org: ${orgId}`);
+    await adminClient.from('market_listings').delete().eq('org_id', orgId);
+
+    console.log(`[Market Sync] Inserting ${stagedListings.length} new market listings`);
+    const { error: insertError } = await adminClient
+      .from('market_listings')
+      .upsert(stagedListings, { onConflict: 'org_id,listing_id' });
+
+    if (insertError) {
+      console.error('[Market Sync] Insert error:', insertError);
+      
+      await adminClient.from('market_sync_logs').update({
+        status: 'failed',
+        completed_at: new Date().toISOString(),
+        error_message: `Failed to insert listings: ${insertError.message}`,
+      }).eq('id', logId);
+
+      return new Response(JSON.stringify({ error: 'Failed to insert listings' }), {
+        status: 500,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    // Update market sync log
+    await adminClient.from('market_sync_logs').update({
+      status: 'success',
+      completed_at: new Date().toISOString(),
+      rows_read: dataRows.length,
+      rows_imported: stagedListings.length,
+      rows_skipped: rowsSkipped,
+      skipped_breakdown: skippedBreakdown,
+    }).eq('id', logId);
+
+    const listingsWithCoords = stagedListings.filter(l => l.latitude && l.longitude).length;
+    const distributionCount = stagedListings.filter(l => l.is_distribution_warehouse).length;
+    
+    console.log(`[Market Sync] Complete: ${stagedListings.length} imported (${distributionCount} distribution), ${rowsSkipped} skipped, ${listingsWithCoords} geocoded`);
+
+    return new Response(
+      JSON.stringify({
+        success: true,
+        rows_imported: stagedListings.length,
+        rows_skipped: rowsSkipped,
+        skipped_breakdown: skippedBreakdown,
+        distribution_count: distributionCount,
+        geocoded_this_run: geocodedCount,
+        total_with_coordinates: listingsWithCoords,
+      }),
+      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    );
+
+  } catch (error) {
+    console.error('[Market Sync] Error:', error);
+    const message = error instanceof Error ? error.message : 'Unknown error';
+    return new Response(
+      JSON.stringify({ error: message }),
+      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    );
+  }
+});
