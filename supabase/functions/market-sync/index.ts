@@ -24,10 +24,13 @@ const FIELD_MAPPINGS = [
   { header: 'Drive-in Doors', dbColumn: 'drive_in_doors', type: 'number' },
   { header: 'Power (Amps)', dbColumn: 'power_amps', type: 'string' },
   { header: 'Voltage', dbColumn: 'voltage', type: 'string' },
+  { header: 'Yard', dbColumn: 'yard', type: 'yesno' },
   { header: 'Yard Area', dbColumn: 'yard_area', type: 'string' },
   { header: 'Sprinklered', dbColumn: 'sprinkler', type: 'string' },
   { header: 'Cranes', dbColumn: 'cranes', type: 'string' },
   { header: 'Crane Tons', dbColumn: 'crane_tons', type: 'string' },
+  { header: 'Cross Dock', dbColumn: 'cross_dock', type: 'yesno' },
+  { header: 'Trailer Parking', dbColumn: 'trailer_parking', type: 'yesno' },
   { header: 'Building Depth', dbColumn: 'building_depth', type: 'string' },
   { header: 'Land Acres', dbColumn: 'land_acres', type: 'string' },
   { header: 'Zoning', dbColumn: 'zoning', type: 'string' },
@@ -268,6 +271,16 @@ function mapRowToListing(row: unknown[], headers: string[], userId: string, orgI
       const val = rawValue.toLowerCase();
       const isTruthy = ['true', 'yes', 'y', '1', 'checked', 'x'].includes(val);
       listing[mapping.dbColumn] = isTruthy;
+    } else if (mapping.type === 'yesno') {
+      // Handle Yes/No/Unknown fields
+      const val = rawValue.toLowerCase();
+      if (['yes', 'y', 'true', '1'].includes(val)) {
+        listing[mapping.dbColumn] = 'Yes';
+      } else if (['no', 'n', 'false', '0'].includes(val)) {
+        listing[mapping.dbColumn] = 'No';
+      } else {
+        listing[mapping.dbColumn] = 'Unknown';
+      }
     } else if (mapping.dbColumn === 'link') {
       const url = extractHyperlinkUrl(rawValue);
       if (url) {
@@ -308,10 +321,12 @@ function mapRowToListing(row: unknown[], headers: string[], userId: string, orgI
   const rawStatus = (listing.status as string || '').trim();
   listing.status = validStatuses.find(s => s.toLowerCase() === rawStatus.toLowerCase()) || 'Active';
 
-  // Yes/No/Unknown fields
+  // Default Yes/No/Unknown fields if not set from sheet
   const yesNoFields = ['yard', 'cross_dock', 'trailer_parking'];
   for (const field of yesNoFields) {
-    listing[field] = 'Unknown';
+    if (!listing[field]) {
+      listing[field] = 'Unknown';
+    }
   }
 
   return listing;
