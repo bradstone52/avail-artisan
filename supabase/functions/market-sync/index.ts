@@ -316,19 +316,23 @@ function mapRowToListing(row: unknown[], headers: string[], userId: string, orgI
   if (!listing.size_sf) listing.size_sf = 0;
   if (listing.is_distribution_warehouse === undefined) listing.is_distribution_warehouse = false;
 
-  // Normalize status - includes all valid statuses
-  const validStatuses = ['Active', 'Leased', 'Removed', 'OnHold', 'Sold', 'On Hold', 'Under Offer'];
+  // Normalize status
+  // IMPORTANT: we should preserve non-standard dropdown values from the sheet
+  // (e.g., "Under Contract", "Sold/Leased", "Unknown/Removed") instead of coercing to "Active".
   const rawStatus = (listing.status as string || '').trim();
-  
+
   // Log non-Active statuses for debugging
   if (rawStatus && rawStatus.toLowerCase() !== 'active') {
     console.log(`[Market Sync] Non-Active status found: "${rawStatus}" for listing ${listing.listing_id}`);
   }
-  
-  // Normalize status with flexible matching
-  let normalizedStatus = 'Active';
+
   const lowerStatus = rawStatus.toLowerCase();
-  if (lowerStatus === 'leased' || lowerStatus === 'lease') {
+  let normalizedStatus = rawStatus || 'Active';
+
+  // Common canonicalizations
+  if (lowerStatus === 'active') {
+    normalizedStatus = 'Active';
+  } else if (lowerStatus === 'leased' || lowerStatus === 'lease') {
     normalizedStatus = 'Leased';
   } else if (lowerStatus === 'removed' || lowerStatus === 'remove' || lowerStatus === 'deleted') {
     normalizedStatus = 'Removed';
@@ -336,11 +340,17 @@ function mapRowToListing(row: unknown[], headers: string[], userId: string, orgI
     normalizedStatus = 'OnHold';
   } else if (lowerStatus === 'sold' || lowerStatus === 'sale') {
     normalizedStatus = 'Sold';
-  } else if (lowerStatus === 'active') {
-    normalizedStatus = 'Active';
-  } else if (rawStatus) {
-    console.log(`[Market Sync] Unrecognized status: "${rawStatus}" - defaulting to Active`);
   }
+
+  // Sheet-specific dropdown values we’ve seen in logs
+  if (lowerStatus.includes('under') && lowerStatus.includes('contract')) {
+    normalizedStatus = 'Under Contract';
+  } else if (lowerStatus.includes('sold') && lowerStatus.includes('leased')) {
+    normalizedStatus = 'Sold/Leased';
+  } else if (lowerStatus.includes('unknown') && lowerStatus.includes('removed')) {
+    normalizedStatus = 'Unknown/Removed';
+  }
+
   listing.status = normalizedStatus;
 
   // Default Yes/No/Unknown fields if not set from sheet
