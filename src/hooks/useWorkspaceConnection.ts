@@ -414,7 +414,42 @@ export function useWorkspaceConnection() {
         throw new Error('No valid listings found after applying filters');
       }
 
-      // PHASE 2: Atomic swap - delete only this org's listings
+      // PHASE 2: Preserve manually set coordinates before atomic swap
+      console.log(`[Sync] Fetching manually geocoded listings to preserve...`);
+      const { data: manualGeocodedListings } = await supabase
+        .from('listings')
+        .select('listing_id, latitude, longitude, geocode_source, geocoded_at')
+        .eq('org_id', orgId)
+        .eq('geocode_source', 'manual');
+
+      // Create lookup map for manual coordinates by listing_id
+      const manualCoordsMap = new Map<string, { lat: number; lng: number; geocoded_at: string }>();
+      if (manualGeocodedListings) {
+        for (const l of manualGeocodedListings) {
+          if (l.latitude && l.longitude) {
+            manualCoordsMap.set(l.listing_id, {
+              lat: l.latitude,
+              lng: l.longitude,
+              geocoded_at: l.geocoded_at || new Date().toISOString(),
+            });
+          }
+        }
+        console.log(`[Sync] Found ${manualCoordsMap.size} listings with manual coordinates to preserve`);
+      }
+
+      // Apply preserved manual coordinates to staged listings
+      for (const listing of stagedListings) {
+        const listingId = listing.listing_id as string;
+        const manualCoords = manualCoordsMap.get(listingId);
+        if (manualCoords) {
+          listing.latitude = manualCoords.lat;
+          listing.longitude = manualCoords.lng;
+          listing.geocode_source = 'manual';
+          listing.geocoded_at = manualCoords.geocoded_at;
+        }
+      }
+
+      // PHASE 3: Atomic swap - delete only this org's listings
       console.log(`[Sync] Deleting existing listings for org: ${orgId}`);
       const { error: deleteError } = await supabase
         .from('listings')
