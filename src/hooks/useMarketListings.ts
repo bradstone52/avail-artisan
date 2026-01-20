@@ -143,6 +143,11 @@ export function useMarketListings() {
       return null;
     }
 
+    if (!orgId) {
+      toast.error('No organization found');
+      return null;
+    }
+
     setIsSyncing(true);
 
     try {
@@ -150,6 +155,7 @@ export function useMarketListings() {
         headers: {
           Authorization: `Bearer ${session.access_token}`,
         },
+        body: { orgId },
       });
 
       if (error) throw error;
