@@ -212,21 +212,24 @@ async function fetchHyperlinksForColumn(params: {
 }
 
 /**
- * For market sync, we include ALL Active listings (not just distribution ones)
+ * For market sync, we include ALL listings regardless of status.
+ * Valid statuses: Active, Leased, Removed, OnHold, Sold
+ * Only skip rows that have no ListingID (truly empty rows)
  */
 function shouldIncludeRow(row: unknown[], headers: string[]): { include: boolean; reason?: string } {
-  const statusIdx = findHeaderIndex(headers, 'Status');
+  const listingIdIdx = findHeaderIndex(headers, 'ListingID');
   
   const cellToString = (value: unknown): string => {
     if (value === null || value === undefined) return '';
-    if (typeof value === 'string') return value.trim().toLowerCase();
+    if (typeof value === 'string') return value.trim();
     if (typeof value === 'boolean') return value ? 'true' : 'false';
-    return String(value).trim().toLowerCase();
+    return String(value).trim();
   };
   
-  const statusValue = statusIdx !== -1 ? cellToString(row[statusIdx]) : '';
-  if (statusValue !== 'active') {
-    return { include: false, reason: 'inactive' };
+  // Skip rows without a ListingID (empty rows)
+  const listingId = listingIdIdx !== -1 ? cellToString(row[listingIdIdx]) : '';
+  if (!listingId) {
+    return { include: false, reason: 'no_listing_id' };
   }
   
   return { include: true };
@@ -300,8 +303,8 @@ function mapRowToListing(row: unknown[], headers: string[], userId: string, orgI
   if (!listing.size_sf) listing.size_sf = 0;
   if (listing.is_distribution_warehouse === undefined) listing.is_distribution_warehouse = false;
 
-  // Normalize status
-  const validStatuses = ['Active', 'Leased', 'Removed', 'OnHold'];
+  // Normalize status - now includes Sold
+  const validStatuses = ['Active', 'Leased', 'Removed', 'OnHold', 'Sold'];
   const rawStatus = (listing.status as string || '').trim();
   listing.status = validStatuses.find(s => s.toLowerCase() === rawStatus.toLowerCase()) || 'Active';
 

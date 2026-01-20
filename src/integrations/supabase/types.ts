@@ -1206,6 +1206,117 @@ export type Database = {
         }
         Relationships: []
       }
+      transactions: {
+        Row: {
+          address: string
+          buyer_tenant_company: string | null
+          buyer_tenant_name: string | null
+          city: string
+          closing_date: string | null
+          commission_amount: number | null
+          commission_percent: number | null
+          created_at: string
+          created_by: string | null
+          display_address: string | null
+          id: string
+          lease_rate_psf: number | null
+          lease_term_months: number | null
+          listing_broker_company: string | null
+          listing_broker_name: string | null
+          listing_id: string | null
+          market_listing_id: string | null
+          notes: string | null
+          org_id: string | null
+          sale_price: number | null
+          seller_landlord_company: string | null
+          seller_landlord_name: string | null
+          selling_broker_company: string | null
+          selling_broker_name: string | null
+          size_sf: number
+          submarket: string
+          transaction_date: string | null
+          transaction_type: string
+          updated_at: string
+        }
+        Insert: {
+          address: string
+          buyer_tenant_company?: string | null
+          buyer_tenant_name?: string | null
+          city?: string
+          closing_date?: string | null
+          commission_amount?: number | null
+          commission_percent?: number | null
+          created_at?: string
+          created_by?: string | null
+          display_address?: string | null
+          id?: string
+          lease_rate_psf?: number | null
+          lease_term_months?: number | null
+          listing_broker_company?: string | null
+          listing_broker_name?: string | null
+          listing_id?: string | null
+          market_listing_id?: string | null
+          notes?: string | null
+          org_id?: string | null
+          sale_price?: number | null
+          seller_landlord_company?: string | null
+          seller_landlord_name?: string | null
+          selling_broker_company?: string | null
+          selling_broker_name?: string | null
+          size_sf?: number
+          submarket?: string
+          transaction_date?: string | null
+          transaction_type: string
+          updated_at?: string
+        }
+        Update: {
+          address?: string
+          buyer_tenant_company?: string | null
+          buyer_tenant_name?: string | null
+          city?: string
+          closing_date?: string | null
+          commission_amount?: number | null
+          commission_percent?: number | null
+          created_at?: string
+          created_by?: string | null
+          display_address?: string | null
+          id?: string
+          lease_rate_psf?: number | null
+          lease_term_months?: number | null
+          listing_broker_company?: string | null
+          listing_broker_name?: string | null
+          listing_id?: string | null
+          market_listing_id?: string | null
+          notes?: string | null
+          org_id?: string | null
+          sale_price?: number | null
+          seller_landlord_company?: string | null
+          seller_landlord_name?: string | null
+          selling_broker_company?: string | null
+          selling_broker_name?: string | null
+          size_sf?: number
+          submarket?: string
+          transaction_date?: string | null
+          transaction_type?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "transactions_market_listing_id_fkey"
+            columns: ["market_listing_id"]
+            isOneToOne: false
+            referencedRelation: "market_listings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "transactions_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "orgs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_roles: {
         Row: {
           created_at: string
