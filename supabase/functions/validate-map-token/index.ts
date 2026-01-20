@@ -16,6 +16,7 @@ interface ShareLink {
   report_type: string;
   filters: Record<string, unknown>;
   listing_ids: string[] | null;
+  listing_snapshot: PublicListing[] | null;
   is_active: boolean;
   org_id: string | null;
 }
@@ -97,10 +98,31 @@ serve(async (req) => {
       }
     }
 
-    console.log(`[validate-map-token] Token valid, org_id: ${link.org_id}, listing_ids: ${link.listing_ids?.length || 0}`);
+    console.log(`[validate-map-token] Token valid, org_id: ${link.org_id}, listing_ids: ${link.listing_ids?.length || 0}, has_snapshot: ${!!link.listing_snapshot}`);
 
-    // Build query for listings
-    // PRIORITY: If listing_ids are specified, use ONLY those (ensures PDF and map match exactly)
+    // PRIORITY 1: Use listing_snapshot if available (frozen data from PDF generation)
+    // This ensures PDFs always show the exact same data even after syncs/edits/deletions
+    if (link.listing_snapshot && Array.isArray(link.listing_snapshot) && link.listing_snapshot.length > 0) {
+      const snapshotListings = link.listing_snapshot as PublicListing[];
+      const withCoords = snapshotListings.filter(l => l.latitude && l.longitude).length;
+      console.log(`[validate-map-token] Using frozen snapshot: ${snapshotListings.length} listings (${withCoords} with coordinates)`);
+
+      return new Response(
+        JSON.stringify({
+          valid: true,
+          listings: snapshotListings,
+          report_type: link.report_type,
+          expires_at: link.expires_at,
+          org_id: link.org_id,
+          snapshot_used: true,
+        }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // PRIORITY 2: Fallback to database query for legacy links without snapshots
+    console.log(`[validate-map-token] No snapshot found, falling back to database query`);
+
     let query = supabase
       .from("listings")
       .select(`
@@ -120,8 +142,7 @@ serve(async (req) => {
         longitude
       `);
 
-    // CRITICAL: listing_ids now stores listing_id (stable) instead of id (UUID)
-    // This ensures the map shows the same listings even after syncs change UUIDs
+    // If listing_ids are specified, use them (legacy behavior)
     if (link.listing_ids && link.listing_ids.length > 0) {
       query = query.in("listing_id", link.listing_ids);
       console.log(`[validate-map-token] Using explicit listing_id filter: ${link.listing_ids.length} IDs`);
@@ -209,6 +230,7 @@ serve(async (req) => {
         report_type: link.report_type,
         expires_at: link.expires_at,
         org_id: link.org_id,
+        snapshot_used: false,
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
