@@ -26,11 +26,8 @@ import { Loader2 } from 'lucide-react';
 const STATUS_OPTIONS = [
   { value: 'Active', label: 'Active', color: 'bg-blue-600 text-white' },
   { value: 'Under Contract', label: 'Under Contract', color: 'bg-amber-500 text-white' },
-  { value: 'Sold/Leased', label: 'Sold/Leased', color: 'bg-red-600 text-white' },
-  { value: 'Leased', label: 'Leased', color: 'bg-red-600 text-white' },
-  { value: 'Sold', label: 'Sold', color: 'bg-red-600 text-white' },
   { value: 'OnHold', label: 'On Hold', color: 'bg-amber-500 text-white' },
-  { value: 'Removed', label: 'Removed', color: 'bg-gray-300 text-gray-600' },
+  { value: 'Sold/Leased', label: 'Sold/Leased', color: 'bg-red-600 text-white' },
   { value: 'Unknown/Removed', label: 'Unknown/Removed', color: 'bg-gray-300 text-gray-600' },
 ];
 
@@ -48,10 +45,9 @@ export function StatusDropdown({ listing, onStatusChanged }: StatusDropdownProps
   const handleStatusChange = async (newStatus: string) => {
     if (newStatus === listing.status) return;
 
-    // Check if changing to a "closed" status
-    const closedStatuses = ['Sold/Leased', 'Sold', 'Leased'];
-    const wasOpen = !closedStatuses.includes(listing.status);
-    const isNowClosed = closedStatuses.includes(newStatus);
+    // Check if changing to "Sold/Leased" status
+    const wasOpen = listing.status !== 'Sold/Leased';
+    const isNowClosed = newStatus === 'Sold/Leased';
 
     if (wasOpen && isNowClosed) {
       setPendingStatus(newStatus);
