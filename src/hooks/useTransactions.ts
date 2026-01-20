@@ -202,7 +202,7 @@ export function useTransactions() {
     }
   };
 
-  const getTransaction = async (id: string): Promise<Transaction | null> => {
+  const getTransaction = useCallback(async (id: string): Promise<Transaction | null> => {
     try {
       const { data, error } = await supabase
         .from('transactions')
@@ -225,7 +225,7 @@ export function useTransactions() {
       console.error('Error fetching transaction:', error);
       return null;
     }
-  };
+  }, []);
 
   const undoTransaction = async (id: string): Promise<boolean> => {
     try {

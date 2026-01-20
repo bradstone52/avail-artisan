@@ -81,14 +81,19 @@ export default function TransactionDetail() {
   const [isDeleting, setIsDeleting] = useState(false);
 
   useEffect(() => {
+    let cancelled = false;
     async function load() {
       if (!id) return;
       setIsLoading(true);
       const data = await getTransaction(id);
+      if (cancelled) return;
       setTransaction(data);
       setIsLoading(false);
     }
     load();
+    return () => {
+      cancelled = true;
+    };
   }, [id, getTransaction]);
 
   const handleDelete = async () => {
