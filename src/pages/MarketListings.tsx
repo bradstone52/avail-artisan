@@ -12,7 +12,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { RefreshCw, Database, ExternalLink, MapPin, CheckCircle, XCircle, Clock, Search, X, Filter } from 'lucide-react';
+import { RefreshCw, Database, ExternalLink, MapPin, CheckCircle, XCircle, Clock, Search, X, Filter, Link2 } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import {
   Table,
@@ -56,8 +56,10 @@ export default function MarketListings() {
     listings, 
     syncLogs,
     loading, 
-    isSyncing, 
+    isSyncing,
+    isValidatingLinks,
     syncMarketListings,
+    validateLinks,
   } = useMarketListings();
 
   // Filter state
@@ -135,6 +137,10 @@ export default function MarketListings() {
 
   const lastSync = syncLogs[0];
   const distributionCount = listings.filter(l => l.is_distribution_warehouse).length;
+  const linksWithUrl = listings.filter(l => l.link && l.link !== '');
+  const linksOk = linksWithUrl.filter(l => l.link_status === 'ok').length;
+  const linksBroken = linksWithUrl.filter(l => l.link_status === 'broken').length;
+  const linksUnchecked = linksWithUrl.filter(l => !l.link_status).length;
 
   if (loading) {
     return (
@@ -157,17 +163,27 @@ export default function MarketListings() {
               {listings.length} total listings • {distributionCount} distribution warehouses
             </p>
           </div>
-          <Button 
-            onClick={syncMarketListings}
-            disabled={isSyncing}
-          >
-            <RefreshCw className={`w-4 h-4 mr-2 ${isSyncing ? 'animate-spin' : ''}`} />
-            {isSyncing ? 'Syncing...' : 'Sync Market Data'}
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button 
+              variant="outline"
+              onClick={validateLinks}
+              disabled={isValidatingLinks || linksWithUrl.length === 0}
+            >
+              <Link2 className={`w-4 h-4 mr-2 ${isValidatingLinks ? 'animate-pulse' : ''}`} />
+              {isValidatingLinks ? 'Checking...' : 'Check Links'}
+            </Button>
+            <Button 
+              onClick={syncMarketListings}
+              disabled={isSyncing}
+            >
+              <RefreshCw className={`w-4 h-4 mr-2 ${isSyncing ? 'animate-spin' : ''}`} />
+              {isSyncing ? 'Syncing...' : 'Sync Market Data'}
+            </Button>
+          </div>
         </div>
 
         {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+        <div className="grid grid-cols-1 md:grid-cols-5 gap-4 mb-6">
           <Card>
             <CardHeader className="pb-2">
               <CardDescription>Total Listings</CardDescription>
@@ -187,6 +203,22 @@ export default function MarketListings() {
                 {listings.filter(l => l.latitude && l.longitude).length}
               </CardTitle>
             </CardHeader>
+          </Card>
+          <Card>
+            <CardHeader className="pb-2">
+              <CardDescription>Link Health</CardDescription>
+              <CardTitle className="text-lg">
+                <span className="text-green-600">{linksOk}</span>
+                {linksBroken > 0 && <span className="text-destructive"> / {linksBroken} broken</span>}
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="pt-0">
+              {linksUnchecked > 0 ? (
+                <span className="text-xs text-muted-foreground">{linksUnchecked} unchecked</span>
+              ) : linksWithUrl.length > 0 ? (
+                <Badge variant="outline" className="text-xs">All checked</Badge>
+              ) : null}
+            </CardContent>
           </Card>
           <Card>
             <CardHeader className="pb-2">
