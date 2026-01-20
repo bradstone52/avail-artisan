@@ -12,7 +12,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { RefreshCw, Database, ExternalLink, MapPin, CheckCircle, XCircle, Clock, Search, X, Filter, Link2 } from 'lucide-react';
+import { RefreshCw, Database, ExternalLink, MapPin, CheckCircle, XCircle, Clock, Search, X, Filter, Link2, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import {
   Table,
@@ -68,6 +68,10 @@ export default function MarketListings() {
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [sizeFilter, setSizeFilter] = useState<string>('all');
   const [distWarehouseFilter, setDistWarehouseFilter] = useState<string>('all');
+
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const pageSize = 50;
 
   // Get unique values for filters
   const uniqueSubmarkets = useMemo(() => {
@@ -127,13 +131,28 @@ export default function MarketListings() {
 
   const hasActiveFilters = searchQuery || submarketFilter !== 'all' || statusFilter !== 'all' || sizeFilter !== 'all' || distWarehouseFilter !== 'all';
 
+  // Pagination calculations
+  const totalPages = Math.ceil(filteredListings.length / pageSize);
+  const startIndex = (currentPage - 1) * pageSize;
+  const endIndex = startIndex + pageSize;
+  const paginatedListings = filteredListings.slice(startIndex, endIndex);
+
+  // Reset to page 1 when filters change
   const clearFilters = () => {
     setSearchQuery('');
     setSubmarketFilter('all');
     setStatusFilter('all');
     setSizeFilter('all');
     setDistWarehouseFilter('all');
+    setCurrentPage(1);
   };
+
+  // Reset page when filtered results change
+  useMemo(() => {
+    if (currentPage > 1 && currentPage > totalPages) {
+      setCurrentPage(Math.max(1, totalPages));
+    }
+  }, [filteredListings.length, currentPage, totalPages]);
 
   const lastSync = syncLogs[0];
   const distributionCount = listings.filter(l => l.is_distribution_warehouse).length;
@@ -418,7 +437,7 @@ export default function MarketListings() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {filteredListings.slice(0, 100).map((listing) => (
+                    {paginatedListings.map((listing) => (
                       <TableRow key={listing.id}>
                         <TableCell className="font-medium max-w-[250px]">
                           <div className="truncate" title={listing.address}>
@@ -473,11 +492,56 @@ export default function MarketListings() {
                   </TableBody>
                 </Table>
               </div>
-              {filteredListings.length > 100 && (
-                <div className="p-4 text-center text-sm text-muted-foreground border-t">
-                  Showing first 100 of {filteredListings.length} filtered listings
+              
+              {/* Pagination Controls */}
+              <div className="flex items-center justify-between p-4 border-t">
+                <div className="text-sm text-muted-foreground">
+                  Showing {startIndex + 1}-{Math.min(endIndex, filteredListings.length)} of {filteredListings.length} listings
                 </div>
-              )}
+                <div className="flex items-center gap-1">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setCurrentPage(1)}
+                    disabled={currentPage === 1}
+                    className="h-8 w-8 p-0"
+                  >
+                    <ChevronsLeft className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                    disabled={currentPage === 1}
+                    className="h-8 w-8 p-0"
+                  >
+                    <ChevronLeft className="h-4 w-4" />
+                  </Button>
+                  <div className="flex items-center gap-1 px-2">
+                    <span className="text-sm font-medium">{currentPage}</span>
+                    <span className="text-sm text-muted-foreground">of</span>
+                    <span className="text-sm font-medium">{totalPages}</span>
+                  </div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                    disabled={currentPage === totalPages}
+                    className="h-8 w-8 p-0"
+                  >
+                    <ChevronRight className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setCurrentPage(totalPages)}
+                    disabled={currentPage === totalPages}
+                    className="h-8 w-8 p-0"
+                  >
+                    <ChevronsRight className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
             </CardContent>
           </Card>
         )}
