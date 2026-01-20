@@ -582,8 +582,9 @@ body {
   text-decoration: none;
   box-shadow: 4px 4px 0 var(--ink);
   cursor: pointer;
-  /* Prince/DocRaptor: open link in new window/tab */
-  -prince-link: url(attr(href)) new-window;
+  /* Prince/DocRaptor: request opening in a new window/tab */
+  -prince-link: url(attr(href));
+  -prince-pdf-link-type: new-window;
 }
 
 .map-button:hover {
