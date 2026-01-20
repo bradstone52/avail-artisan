@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { useTransactions, Transaction } from '@/hooks/useTransactions';
+import { useTransactions, Transaction, MarketListingData } from '@/hooks/useTransactions';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -143,7 +143,9 @@ export default function TransactionDetail() {
     );
   }
 
-  const listing = transaction.market_listing;
+  // Use snapshot for property details (since listing is deleted after transaction)
+  const listing: MarketListingData | null = transaction.market_listing_snapshot || transaction.market_listing || null;
+  const canUndo = !!transaction.market_listing_snapshot;
 
   return (
     <AppLayout>
@@ -172,7 +174,7 @@ export default function TransactionDetail() {
             </p>
           </div>
           <div className="flex gap-2">
-            {transaction.market_listing_id && (
+            {canUndo && (
               <AlertDialog>
                 <AlertDialogTrigger asChild>
                   <Button variant="outline" disabled={isUndoing}>
