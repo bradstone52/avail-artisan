@@ -1,4 +1,4 @@
-import { useRef, useEffect } from 'react';
+import { useRef, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { MarketListing } from '@/hooks/useMarketListings';
 import { Badge } from '@/components/ui/badge';
@@ -28,7 +28,7 @@ interface MarketListingsTableProps {
 
 function formatSF(sf: number | null): string {
   if (!sf) return '-';
-  return sf.toLocaleString() + ' SF';
+  return sf.toLocaleString();
 }
 
 function formatDate(dateStr: string | null): string {
@@ -48,20 +48,18 @@ function formatCurrency(value: string | null): string {
 export function MarketListingsTable({ listings, onEdit, onRefresh }: MarketListingsTableProps) {
   const navigate = useNavigate();
   const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const [isHovered, setIsHovered] = useState(false);
 
-  // Keyboard horizontal scroll
+  // Keyboard horizontal scroll - works when hovering over the table
   useEffect(() => {
     const container = scrollContainerRef.current;
     if (!container) return;
 
     const handleKeyDown = (e: KeyboardEvent) => {
-      // Only respond if the container or table is focused or in view
-      const activeElement = document.activeElement;
-      const isInTable = container.contains(activeElement) || activeElement === document.body;
-      
-      if (!isInTable) return;
+      // Only respond when mouse is over the table area
+      if (!isHovered) return;
 
-      const scrollAmount = 200;
+      const scrollAmount = 300;
       
       if (e.key === 'ArrowLeft') {
         e.preventDefault();
@@ -74,78 +72,79 @@ export function MarketListingsTable({ listings, onEdit, onRefresh }: MarketListi
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, []);
+  }, [isHovered]);
 
   return (
     <div 
       ref={scrollContainerRef}
-      className="overflow-x-auto focus:outline-none"
-      tabIndex={0}
+      className="overflow-x-auto"
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
       role="region"
       aria-label="Market listings table - use left and right arrow keys to scroll"
     >
-      <Table className="min-w-[2400px]">
+      <Table className="min-w-[3200px]">
         <TableHeader>
-          <TableRow>
-            <TableHead className="sticky left-0 bg-background z-10 min-w-[200px]">Address</TableHead>
-            <TableHead className="min-w-[100px]">Listing ID</TableHead>
-            <TableHead className="min-w-[120px]">Submarket</TableHead>
+          <TableRow className="bg-muted/50">
+            <TableHead className="sticky left-0 bg-muted/50 z-20 min-w-[180px] shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]">Address</TableHead>
+            <TableHead className="min-w-[140px]">Listing ID</TableHead>
+            <TableHead className="min-w-[130px]">Submarket</TableHead>
             <TableHead className="min-w-[100px]">City</TableHead>
-            <TableHead className="min-w-[100px]">Status</TableHead>
-            <TableHead className="min-w-[100px]">Type</TableHead>
+            <TableHead className="min-w-[130px]">Status</TableHead>
+            <TableHead className="min-w-[80px]">Type</TableHead>
             <TableHead className="text-right min-w-[100px]">Size (SF)</TableHead>
-            <TableHead className="text-right min-w-[100px]">Warehouse SF</TableHead>
-            <TableHead className="text-right min-w-[80px]">Office SF</TableHead>
-            <TableHead className="text-right min-w-[80px]">Clear Height</TableHead>
-            <TableHead className="text-right min-w-[80px]">Dock Doors</TableHead>
-            <TableHead className="text-right min-w-[80px]">Drive-In</TableHead>
-            <TableHead className="min-w-[100px]">Power (Amps)</TableHead>
+            <TableHead className="text-right min-w-[110px]">Warehouse SF</TableHead>
+            <TableHead className="text-right min-w-[90px]">Office SF</TableHead>
+            <TableHead className="text-right min-w-[90px]">Clear Ht</TableHead>
+            <TableHead className="text-right min-w-[70px]">Docks</TableHead>
+            <TableHead className="text-right min-w-[70px]">Drive-In</TableHead>
+            <TableHead className="min-w-[90px]">Power</TableHead>
             <TableHead className="min-w-[80px]">Voltage</TableHead>
-            <TableHead className="min-w-[80px]">Sprinkler</TableHead>
-            <TableHead className="min-w-[80px]">Cranes</TableHead>
-            <TableHead className="min-w-[80px]">Crane Tons</TableHead>
-            <TableHead className="min-w-[80px]">Yard</TableHead>
-            <TableHead className="min-w-[100px]">Yard Area</TableHead>
-            <TableHead className="min-w-[80px]">Cross-Dock</TableHead>
-            <TableHead className="min-w-[100px]">Trailer Parking</TableHead>
-            <TableHead className="min-w-[80px]">Land Acres</TableHead>
+            <TableHead className="min-w-[90px]">Sprinkler</TableHead>
+            <TableHead className="min-w-[70px]">Cranes</TableHead>
+            <TableHead className="min-w-[80px]">Crane T</TableHead>
+            <TableHead className="min-w-[60px]">Yard</TableHead>
+            <TableHead className="min-w-[90px]">Yard Area</TableHead>
+            <TableHead className="min-w-[80px]">X-Dock</TableHead>
+            <TableHead className="min-w-[90px]">Trailer</TableHead>
+            <TableHead className="min-w-[80px]">Acres</TableHead>
             <TableHead className="min-w-[80px]">Zoning</TableHead>
-            <TableHead className="min-w-[80px]">MUA</TableHead>
-            <TableHead className="min-w-[100px]">Asking Rate</TableHead>
-            <TableHead className="min-w-[100px]">Gross Rate</TableHead>
-            <TableHead className="min-w-[100px]">Op Costs</TableHead>
+            <TableHead className="min-w-[60px]">MUA</TableHead>
+            <TableHead className="min-w-[90px]">Ask Rate</TableHead>
+            <TableHead className="min-w-[90px]">Gross</TableHead>
+            <TableHead className="min-w-[80px]">Op Cost</TableHead>
             <TableHead className="min-w-[100px]">Sale Price</TableHead>
-            <TableHead className="min-w-[100px]">Sublease Exp</TableHead>
-            <TableHead className="min-w-[100px]">Availability</TableHead>
-            <TableHead className="min-w-[150px]">Landlord</TableHead>
-            <TableHead className="min-w-[150px]">Broker</TableHead>
-            <TableHead className="min-w-[80px]">Dist WH</TableHead>
-            <TableHead className="min-w-[80px]">Geocoded</TableHead>
-            <TableHead className="min-w-[80px]">Link</TableHead>
-            <TableHead className="min-w-[200px]">Notes</TableHead>
-            <TableHead className="sticky right-0 bg-background z-10 min-w-[100px]">Actions</TableHead>
+            <TableHead className="min-w-[90px]">Sub Exp</TableHead>
+            <TableHead className="min-w-[90px]">Avail</TableHead>
+            <TableHead className="min-w-[140px]">Landlord</TableHead>
+            <TableHead className="min-w-[140px]">Broker</TableHead>
+            <TableHead className="min-w-[60px]">DW</TableHead>
+            <TableHead className="min-w-[50px]">Geo</TableHead>
+            <TableHead className="min-w-[50px]">Link</TableHead>
+            <TableHead className="min-w-[180px]">Notes</TableHead>
+            <TableHead className="sticky right-0 bg-muted/50 z-20 min-w-[90px] shadow-[-2px_0_5px_-2px_rgba(0,0,0,0.1)]">Actions</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
           {listings.map((listing) => (
-            <TableRow key={listing.id}>
+            <TableRow key={listing.id} className="hover:bg-muted/30">
               {/* Address - Sticky */}
-              <TableCell className="sticky left-0 bg-background z-10 font-medium max-w-[200px]">
-                <div className="truncate" title={listing.address}>
+              <TableCell className="sticky left-0 bg-background z-10 font-medium shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]">
+                <div className="truncate max-w-[170px]" title={listing.address}>
                   {listing.display_address || listing.address}
                 </div>
               </TableCell>
               
               {/* Listing ID */}
-              <TableCell className="text-xs text-muted-foreground">
+              <TableCell className="text-xs font-mono text-muted-foreground">
                 {listing.listing_id}
               </TableCell>
               
               {/* Submarket */}
-              <TableCell>{listing.submarket || '-'}</TableCell>
+              <TableCell className="text-sm">{listing.submarket || '-'}</TableCell>
               
               {/* City */}
-              <TableCell>{listing.city || '-'}</TableCell>
+              <TableCell className="text-sm">{listing.city || '-'}</TableCell>
               
               {/* Status */}
               <TableCell>
@@ -153,104 +152,102 @@ export function MarketListingsTable({ listings, onEdit, onRefresh }: MarketListi
               </TableCell>
               
               {/* Type */}
-              <TableCell className="text-sm text-muted-foreground">
-                {listing.listing_type || '-'}
-              </TableCell>
+              <TableCell className="text-sm">{listing.listing_type || '-'}</TableCell>
               
               {/* Size */}
-              <TableCell className="text-right font-mono">
+              <TableCell className="text-right font-mono text-sm">
                 {formatSF(listing.size_sf)}
               </TableCell>
               
               {/* Warehouse SF */}
-              <TableCell className="text-right font-mono">
+              <TableCell className="text-right font-mono text-sm">
                 {listing.warehouse_sf ? listing.warehouse_sf.toLocaleString() : '-'}
               </TableCell>
               
               {/* Office SF */}
-              <TableCell className="text-right font-mono">
+              <TableCell className="text-right font-mono text-sm">
                 {listing.office_sf ? listing.office_sf.toLocaleString() : '-'}
               </TableCell>
               
               {/* Clear Height */}
-              <TableCell className="text-right">
+              <TableCell className="text-right text-sm">
                 {listing.clear_height_ft ? `${listing.clear_height_ft}'` : '-'}
               </TableCell>
               
               {/* Dock Doors */}
-              <TableCell className="text-right">
+              <TableCell className="text-right text-sm">
                 {listing.dock_doors ?? '-'}
               </TableCell>
               
               {/* Drive-In Doors */}
-              <TableCell className="text-right">
+              <TableCell className="text-right text-sm">
                 {listing.drive_in_doors ?? '-'}
               </TableCell>
               
               {/* Power (Amps) */}
-              <TableCell>{listing.power_amps || '-'}</TableCell>
+              <TableCell className="text-sm">{listing.power_amps || '-'}</TableCell>
               
               {/* Voltage */}
-              <TableCell>{listing.voltage || '-'}</TableCell>
+              <TableCell className="text-sm">{listing.voltage || '-'}</TableCell>
               
               {/* Sprinkler */}
-              <TableCell>{listing.sprinkler || '-'}</TableCell>
+              <TableCell className="text-sm">{listing.sprinkler || '-'}</TableCell>
               
               {/* Cranes */}
-              <TableCell>{listing.cranes || '-'}</TableCell>
+              <TableCell className="text-sm">{listing.cranes || '-'}</TableCell>
               
               {/* Crane Tons */}
-              <TableCell>{listing.crane_tons || '-'}</TableCell>
+              <TableCell className="text-sm">{listing.crane_tons || '-'}</TableCell>
               
               {/* Yard */}
-              <TableCell>{listing.yard || '-'}</TableCell>
+              <TableCell className="text-sm">{listing.yard || '-'}</TableCell>
               
               {/* Yard Area */}
-              <TableCell>{listing.yard_area || '-'}</TableCell>
+              <TableCell className="text-sm">{listing.yard_area || '-'}</TableCell>
               
               {/* Cross-Dock */}
-              <TableCell>{listing.cross_dock || '-'}</TableCell>
+              <TableCell className="text-sm">{listing.cross_dock || '-'}</TableCell>
               
               {/* Trailer Parking */}
-              <TableCell>{listing.trailer_parking || '-'}</TableCell>
+              <TableCell className="text-sm">{listing.trailer_parking || '-'}</TableCell>
               
               {/* Land Acres */}
-              <TableCell>{listing.land_acres || '-'}</TableCell>
+              <TableCell className="text-sm">{listing.land_acres || '-'}</TableCell>
               
               {/* Zoning */}
-              <TableCell>{listing.zoning || '-'}</TableCell>
+              <TableCell className="text-sm">{listing.zoning || '-'}</TableCell>
               
               {/* MUA */}
-              <TableCell>{listing.mua || '-'}</TableCell>
+              <TableCell className="text-sm">{listing.mua || '-'}</TableCell>
               
               {/* Asking Rate */}
-              <TableCell>{formatCurrency(listing.asking_rate_psf)}</TableCell>
+              <TableCell className="text-sm">{formatCurrency(listing.asking_rate_psf)}</TableCell>
               
               {/* Gross Rate */}
-              <TableCell>{formatCurrency(listing.gross_rate)}</TableCell>
+              <TableCell className="text-sm">{formatCurrency(listing.gross_rate)}</TableCell>
               
               {/* Op Costs */}
-              <TableCell>{formatCurrency(listing.op_costs)}</TableCell>
+              <TableCell className="text-sm">{formatCurrency(listing.op_costs)}</TableCell>
               
               {/* Sale Price */}
-              <TableCell>{formatCurrency(listing.sale_price)}</TableCell>
+              <TableCell className="text-sm">{formatCurrency(listing.sale_price)}</TableCell>
               
               {/* Sublease Exp */}
-              <TableCell>{listing.sublease_exp || '-'}</TableCell>
+              <TableCell className="text-sm">{listing.sublease_exp || '-'}</TableCell>
               
               {/* Availability */}
-              <TableCell>{formatDate(listing.availability_date)}</TableCell>
+              <TableCell className="text-sm">{formatDate(listing.availability_date)}</TableCell>
               
               {/* Landlord */}
-              <TableCell className="max-w-[150px]">
-                <div className="truncate" title={listing.landlord || ''}>
+              <TableCell>
+                <div className="truncate max-w-[130px] text-sm" title={listing.landlord || ''}>
                   {listing.landlord || '-'}
                 </div>
               </TableCell>
               
               {/* Broker */}
-              <TableCell className="max-w-[150px]">
-                <div className="truncate" title={listing.broker_source || ''}>
+              <TableCell>
+                <div className="truncate max-w-[130px] text-sm" title={listing.broker_source || ''}>
                   {listing.broker_source || '-'}
                 </div>
               </TableCell>
@@ -258,18 +255,18 @@ export function MarketListingsTable({ listings, onEdit, onRefresh }: MarketListi
               {/* Distribution Warehouse */}
               <TableCell>
                 {listing.is_distribution_warehouse ? (
-                  <Badge className="bg-primary/10 text-primary">Yes</Badge>
+                  <Badge variant="outline" className="text-xs bg-primary/10 text-primary border-primary/20">Y</Badge>
                 ) : (
-                  <span className="text-muted-foreground">No</span>
+                  <span className="text-muted-foreground text-sm">-</span>
                 )}
               </TableCell>
               
               {/* Geocoded */}
               <TableCell>
                 {listing.latitude && listing.longitude ? (
-                  <MapPin className="w-4 h-4 text-green-500" />
+                  <MapPin className="w-4 h-4 text-green-600" />
                 ) : (
-                  <span className="text-muted-foreground">-</span>
+                  <span className="text-muted-foreground text-sm">-</span>
                 )}
               </TableCell>
               
@@ -280,35 +277,35 @@ export function MarketListingsTable({ listings, onEdit, onRefresh }: MarketListi
                     href={listing.link} 
                     target="_blank" 
                     rel="noopener noreferrer"
-                    className="inline-flex items-center text-primary hover:underline"
+                    className="inline-flex items-center text-primary hover:text-primary/80"
                     onClick={(e) => e.stopPropagation()}
                   >
                     <ExternalLink className="w-4 h-4" />
                   </a>
                 ) : (
-                  <span className="text-muted-foreground">-</span>
+                  <span className="text-muted-foreground text-sm">-</span>
                 )}
               </TableCell>
               
               {/* Notes */}
-              <TableCell className="max-w-[200px]">
-                <div className="truncate text-sm text-muted-foreground" title={listing.notes_public || ''}>
+              <TableCell>
+                <div className="truncate max-w-[170px] text-sm text-muted-foreground" title={listing.notes_public || ''}>
                   {listing.notes_public || '-'}
                 </div>
               </TableCell>
               
               {/* Actions - Sticky */}
-              <TableCell className="sticky right-0 bg-background z-10">
-                <div className="flex items-center gap-1">
+              <TableCell className="sticky right-0 bg-background z-10 shadow-[-2px_0_5px_-2px_rgba(0,0,0,0.1)]">
+                <div className="flex items-center gap-0.5">
                   <Tooltip>
                     <TooltipTrigger asChild>
                       <Button
                         variant="ghost"
                         size="icon"
-                        className="h-8 w-8"
+                        className="h-7 w-7"
                         onClick={() => onEdit(listing)}
                       >
-                        <Pencil className="h-4 w-4" />
+                        <Pencil className="h-3.5 w-3.5" />
                       </Button>
                     </TooltipTrigger>
                     <TooltipContent>Edit Listing</TooltipContent>
@@ -318,10 +315,10 @@ export function MarketListingsTable({ listings, onEdit, onRefresh }: MarketListi
                       <Button
                         variant="ghost"
                         size="icon"
-                        className="h-8 w-8"
+                        className="h-7 w-7"
                         onClick={() => navigate(`/transactions/new?listing=${listing.id}`)}
                       >
-                        <Receipt className="h-4 w-4" />
+                        <Receipt className="h-3.5 w-3.5" />
                       </Button>
                     </TooltipTrigger>
                     <TooltipContent>Log Transaction</TooltipContent>
