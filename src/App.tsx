@@ -9,6 +9,9 @@ import Auth from "./pages/Auth";
 import Dashboard from "./pages/Dashboard";
 import Listings from "./pages/Listings";
 import MarketListings from "./pages/MarketListings";
+import Transactions from "./pages/Transactions";
+import TransactionDetail from "./pages/TransactionDetail";
+import TransactionForm from "./pages/TransactionForm";
 import IssueBuilder from "./pages/IssueBuilder";
 import SharePage from "./pages/SharePage";
 import AdminUsers from "./pages/AdminUsers";
@@ -35,6 +38,10 @@ const App = () => (
             <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/listings" element={<Listings />} />
             <Route path="/market-listings" element={<MarketListings />} />
+            <Route path="/transactions" element={<Transactions />} />
+            <Route path="/transactions/new" element={<TransactionForm />} />
+            <Route path="/transactions/:id" element={<TransactionDetail />} />
+            <Route path="/transactions/:id/edit" element={<TransactionForm />} />
             <Route path="/issue-builder" element={<IssueBuilder />} />
             <Route path="/share/:token" element={<SharePage />} />
             <Route path="/r/:trackingToken" element={<TrackingRedirect />} />

@@ -1,4 +1,5 @@
 import { useState, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { useMarketListings, MarketListing } from '@/hooks/useMarketListings';
 import { Button } from '@/components/ui/button';
@@ -12,7 +13,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { RefreshCw, Database, ExternalLink, MapPin, CheckCircle, XCircle, Clock, Search, X, Filter, Link2, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from 'lucide-react';
+import { RefreshCw, Database, ExternalLink, MapPin, CheckCircle, XCircle, Clock, Search, X, Filter, Link2, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Receipt } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import {
   Table,
@@ -23,6 +24,11 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { format } from 'date-fns';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
 
 function formatSF(sf: number | null): string {
   if (!sf) return '-';
@@ -52,6 +58,7 @@ const SIZE_RANGES = [
 ];
 
 export default function MarketListings() {
+  const navigate = useNavigate();
   const { 
     listings, 
     syncLogs,
@@ -434,6 +441,7 @@ export default function MarketListings() {
                       <TableHead>Dist WH?</TableHead>
                       <TableHead>Geocoded</TableHead>
                       <TableHead>Link</TableHead>
+                      <TableHead className="w-[80px]">Actions</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -486,6 +494,21 @@ export default function MarketListings() {
                           ) : (
                             <span className="text-muted-foreground">-</span>
                           )}
+                        </TableCell>
+                        <TableCell>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-8 w-8"
+                                onClick={() => navigate(`/transactions/new?listing=${listing.id}`)}
+                              >
+                                <Receipt className="h-4 w-4" />
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>Log Transaction</TooltipContent>
+                          </Tooltip>
                         </TableCell>
                       </TableRow>
                     ))}
