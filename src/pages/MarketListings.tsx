@@ -13,7 +13,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { RefreshCw, Database, ExternalLink, MapPin, CheckCircle, XCircle, Clock, Search, X, Filter, Link2, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Receipt } from 'lucide-react';
+import { RefreshCw, Database, ExternalLink, MapPin, Search, X, Filter, Link2, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Receipt, Pencil } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import {
   Table,
@@ -29,47 +29,14 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from '@/components/ui/tooltip';
+import { StatusDropdown } from '@/components/market/StatusDropdown';
+import { MarketListingEditDialog } from '@/components/market/MarketListingEditDialog';
 
 function formatSF(sf: number | null): string {
   if (!sf) return '-';
   return sf.toLocaleString() + ' SF';
 }
 
-function LinkStatusBadge({ status }: { status: string | null }) {
-  if (!status) return <Badge variant="outline">Unchecked</Badge>;
-  
-  switch (status) {
-    case 'ok':
-      return <Badge className="bg-green-500/10 text-green-600 border-green-500/20"><CheckCircle className="w-3 h-3 mr-1" />OK</Badge>;
-    case 'broken':
-      return <Badge variant="destructive"><XCircle className="w-3 h-3 mr-1" />Broken</Badge>;
-    default:
-      return <Badge variant="outline"><Clock className="w-3 h-3 mr-1" />{status}</Badge>;
-  }
-}
-
-function ListingStatusBadge({ status }: { status: string }) {
-  switch (status) {
-    case 'Active':
-      return <Badge className="bg-blue-600 text-white">Active</Badge>;
-    case 'Under Contract':
-      return <Badge className="bg-amber-500 text-white">Under Contract</Badge>;
-    case 'Sold/Leased':
-      return <Badge className="bg-red-600 text-white">Sold/Leased</Badge>;
-    case 'Unknown/Removed':
-      return <Badge className="bg-gray-300 text-gray-600">Unknown/Removed</Badge>;
-    case 'Leased':
-      return <Badge className="bg-red-600 text-white">Leased</Badge>;
-    case 'Sold':
-      return <Badge className="bg-red-600 text-white">Sold</Badge>;
-    case 'OnHold':
-      return <Badge className="bg-amber-500 text-white">On Hold</Badge>;
-    case 'Removed':
-      return <Badge className="bg-gray-300 text-gray-600">Removed</Badge>;
-    default:
-      return <Badge variant="secondary">{status}</Badge>;
-  }
-}
 
 const SIZE_RANGES = [
   { label: 'All Sizes', value: 'all', min: 0, max: Infinity },
@@ -90,6 +57,7 @@ export default function MarketListings() {
     isValidatingLinks,
     syncMarketListings,
     validateLinks,
+    refreshListings,
   } = useMarketListings();
 
   // Filter state
@@ -102,6 +70,9 @@ export default function MarketListings() {
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
   const pageSize = 50;
+
+  // Edit dialog state
+  const [editingListing, setEditingListing] = useState<MarketListing | null>(null);
 
   // Get unique values for filters
   const uniqueSubmarkets = useMemo(() => {
@@ -481,7 +452,7 @@ export default function MarketListings() {
                           {formatSF(listing.size_sf)}
                         </TableCell>
                         <TableCell>
-                          <ListingStatusBadge status={listing.status} />
+                          <StatusDropdown listing={listing} onStatusChanged={refreshListings} />
                         </TableCell>
                         <TableCell>
                           <span className="text-sm text-muted-foreground">
@@ -517,19 +488,34 @@ export default function MarketListings() {
                           )}
                         </TableCell>
                         <TableCell>
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                className="h-8 w-8"
-                                onClick={() => navigate(`/transactions/new?listing=${listing.id}`)}
-                              >
-                                <Receipt className="h-4 w-4" />
-                              </Button>
-                            </TooltipTrigger>
-                            <TooltipContent>Log Transaction</TooltipContent>
-                          </Tooltip>
+                          <div className="flex items-center gap-1">
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-8 w-8"
+                                  onClick={() => setEditingListing(listing)}
+                                >
+                                  <Pencil className="h-4 w-4" />
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent>Edit Listing</TooltipContent>
+                            </Tooltip>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-8 w-8"
+                                  onClick={() => navigate(`/transactions/new?listing=${listing.id}`)}
+                                >
+                                  <Receipt className="h-4 w-4" />
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent>Log Transaction</TooltipContent>
+                            </Tooltip>
+                          </div>
                         </TableCell>
                       </TableRow>
                     ))}
@@ -589,6 +575,16 @@ export default function MarketListings() {
             </CardContent>
           </Card>
         )}
+
+        {/* Edit Dialog */}
+        <MarketListingEditDialog
+          listing={editingListing}
+          open={editingListing !== null}
+          onOpenChange={(open) => {
+            if (!open) setEditingListing(null);
+          }}
+          onSaved={refreshListings}
+        />
       </div>
     </AppLayout>
   );
