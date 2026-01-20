@@ -1,5 +1,4 @@
 import { useState, useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { useMarketListings, MarketListing } from '@/hooks/useMarketListings';
 import { Button } from '@/components/ui/button';
@@ -13,30 +12,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { RefreshCw, Database, ExternalLink, MapPin, Search, X, Filter, Link2, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Receipt, Pencil, Plus } from 'lucide-react';
+import { RefreshCw, Database, Search, X, Filter, Link2, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Plus } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table';
 import { format } from 'date-fns';
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from '@/components/ui/tooltip';
-import { StatusDropdown } from '@/components/market/StatusDropdown';
 import { MarketListingEditDialog } from '@/components/market/MarketListingEditDialog';
-
-function formatSF(sf: number | null): string {
-  if (!sf) return '-';
-  return sf.toLocaleString() + ' SF';
-}
-
+import { MarketListingsTable } from '@/components/market/MarketListingsTable';
 
 const SIZE_RANGES = [
   { label: 'All Sizes', value: 'all', min: 0, max: Infinity },
@@ -48,7 +28,6 @@ const SIZE_RANGES = [
 ];
 
 export default function MarketListings() {
-  const navigate = useNavigate();
   const { 
     listings, 
     syncLogs,
@@ -429,110 +408,17 @@ export default function MarketListings() {
         ) : (
           <Card>
             <CardContent className="p-0">
-              <div className="overflow-x-auto">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Address</TableHead>
-                      <TableHead>Submarket</TableHead>
-                      <TableHead className="text-right">Size</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead>Type</TableHead>
-                      <TableHead>Dist WH?</TableHead>
-                      <TableHead>Geocoded</TableHead>
-                      <TableHead>Link</TableHead>
-                      <TableHead className="w-[80px]">Actions</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {paginatedListings.map((listing) => (
-                      <TableRow key={listing.id}>
-                        <TableCell className="font-medium max-w-[250px]">
-                          <div className="truncate" title={listing.address}>
-                            {listing.display_address || listing.address}
-                          </div>
-                          <div className="text-xs text-muted-foreground">{listing.listing_id}</div>
-                        </TableCell>
-                        <TableCell>{listing.submarket}</TableCell>
-                        <TableCell className="text-right font-mono">
-                          {formatSF(listing.size_sf)}
-                        </TableCell>
-                        <TableCell>
-                          <StatusDropdown listing={listing} onStatusChanged={refreshListings} />
-                        </TableCell>
-                        <TableCell>
-                          <span className="text-sm text-muted-foreground">
-                            {listing.listing_type || '-'}
-                          </span>
-                        </TableCell>
-                        <TableCell>
-                          {listing.is_distribution_warehouse ? (
-                            <Badge className="bg-primary/10 text-primary">Yes</Badge>
-                          ) : (
-                            <span className="text-muted-foreground">No</span>
-                          )}
-                        </TableCell>
-                        <TableCell>
-                          {listing.latitude && listing.longitude ? (
-                            <MapPin className="w-4 h-4 text-green-500" />
-                          ) : (
-                            <span className="text-muted-foreground">-</span>
-                          )}
-                        </TableCell>
-                        <TableCell>
-                          {listing.link ? (
-                            <a 
-                              href={listing.link} 
-                              target="_blank" 
-                              rel="noopener noreferrer"
-                              className="inline-flex items-center text-primary hover:underline"
-                            >
-                              <ExternalLink className="w-4 h-4" />
-                            </a>
-                          ) : (
-                            <span className="text-muted-foreground">-</span>
-                          )}
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex items-center gap-1">
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  className="h-8 w-8"
-                                  onClick={() => setEditingListing(listing)}
-                                >
-                                  <Pencil className="h-4 w-4" />
-                                </Button>
-                              </TooltipTrigger>
-                              <TooltipContent>Edit Listing</TooltipContent>
-                            </Tooltip>
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  className="h-8 w-8"
-                                  onClick={() => navigate(`/transactions/new?listing=${listing.id}`)}
-                                >
-                                  <Receipt className="h-4 w-4" />
-                                </Button>
-                              </TooltipTrigger>
-                              <TooltipContent>Log Transaction</TooltipContent>
-                            </Tooltip>
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </div>
+              <MarketListingsTable 
+                listings={paginatedListings} 
+                onEdit={setEditingListing} 
+                onRefresh={refreshListings}
+              />
               
               {/* Pagination Controls */}
               <div className="flex items-center justify-between p-4 border-t">
                 <div className="text-sm text-muted-foreground">
                   Showing {startIndex + 1}-{Math.min(endIndex, filteredListings.length)} of {filteredListings.length} listings
+                  <span className="ml-2 text-xs">(Use ← → arrow keys to scroll table)</span>
                 </div>
                 <div className="flex items-center gap-1">
                   <Button
