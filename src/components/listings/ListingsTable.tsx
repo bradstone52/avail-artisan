@@ -24,17 +24,26 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from '@/components/ui/tooltip';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { 
   Search, 
   Filter, 
   X, 
-  AlertTriangle,
-  CheckCircle2,
   ExternalLink,
   MapPin,
-  MapPinOff
+  MapPinOff,
+  Hand,
+  RotateCcw,
+  Pencil,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
 import { EditPinLocationDialog } from './EditPinLocationDialog';
 
 interface ListingsTableProps {
@@ -337,28 +346,65 @@ export function ListingsTable({ listings, onToggleInclude, onListingUpdated }: L
                     {getStatusBadge(listing.status)}
                   </TableCell>
                   <TableCell className="text-center">
-                    <Tooltip>
-                      <TooltipTrigger asChild>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
                         <Button 
                           variant="ghost" 
                           size="icon" 
-                          className="h-8 w-8"
-                          onClick={() => setEditPinListing(listing)}
+                          className={cn(
+                            "h-8 w-8 relative",
+                            listing.geocode_source === 'manual' && "ring-2 ring-warning ring-offset-1"
+                          )}
                         >
                           {listing.latitude && listing.longitude ? (
-                            <MapPin className="w-4 h-4 text-primary" />
+                            <>
+                              <MapPin className={cn(
+                                "w-4 h-4",
+                                listing.geocode_source === 'manual' ? "text-warning" : "text-primary"
+                              )} />
+                              {listing.geocode_source === 'manual' && (
+                                <Hand className="w-2.5 h-2.5 absolute -top-0.5 -right-0.5 text-warning" />
+                              )}
+                            </>
                           ) : (
                             <MapPinOff className="w-4 h-4 text-muted-foreground" />
                           )}
                         </Button>
-                      </TooltipTrigger>
-                      <TooltipContent>
-                        {listing.latitude && listing.longitude 
-                          ? `Edit pin location (${listing.geocode_source || 'unknown source'})`
-                          : 'Set pin location'
-                        }
-                      </TooltipContent>
-                    </Tooltip>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem onClick={() => setEditPinListing(listing)}>
+                          <Pencil className="w-4 h-4 mr-2" />
+                          Edit pin location
+                        </DropdownMenuItem>
+                        {listing.geocode_source === 'manual' && (
+                          <DropdownMenuItem 
+                            onClick={async () => {
+                              try {
+                                const { error } = await supabase
+                                  .from('listings')
+                                  .update({
+                                    latitude: null,
+                                    longitude: null,
+                                    geocode_source: null,
+                                    geocoded_at: null,
+                                  })
+                                  .eq('id', listing.id);
+                                
+                                if (error) throw error;
+                                toast.success('Pin reset - will be auto-geocoded on next sync');
+                                onListingUpdated?.();
+                              } catch (err) {
+                                console.error('Failed to reset pin:', err);
+                                toast.error('Failed to reset pin location');
+                              }
+                            }}
+                          >
+                            <RotateCcw className="w-4 h-4 mr-2" />
+                            Reset to auto-geocode
+                          </DropdownMenuItem>
+                        )}
+                      </DropdownMenuContent>
+                    </DropdownMenu>
                   </TableCell>
                   <TableCell>
                     {listing.link && (
