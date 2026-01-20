@@ -33,16 +33,21 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Loader2 } from 'lucide-react';
+import { useOrg } from '@/hooks/useOrg';
+import { useAuth } from '@/contexts/AuthContext';
 
 const STATUS_OPTIONS = [
   { value: 'Active', label: 'Active' },
   { value: 'Under Contract', label: 'Under Contract' },
   { value: 'Sold/Leased', label: 'Sold/Leased' },
-  { value: 'Leased', label: 'Leased' },
-  { value: 'Sold', label: 'Sold' },
-  { value: 'OnHold', label: 'On Hold' },
-  { value: 'Removed', label: 'Removed' },
   { value: 'Unknown/Removed', label: 'Unknown/Removed' },
+];
+
+const LISTING_TYPE_OPTIONS = [
+  { value: 'Lease', label: 'Lease' },
+  { value: 'Sale', label: 'Sale' },
+  { value: 'Sublease', label: 'Sublease' },
+  { value: 'Sale/Lease', label: 'Sale/Lease' },
 ];
 
 interface MarketListingEditDialogProps {
@@ -50,6 +55,7 @@ interface MarketListingEditDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onSaved: () => void;
+  mode?: 'edit' | 'create';
 }
 
 export function MarketListingEditDialog({
@@ -57,40 +63,91 @@ export function MarketListingEditDialog({
   open,
   onOpenChange,
   onSaved,
+  mode = 'edit',
 }: MarketListingEditDialogProps) {
   const navigate = useNavigate();
+  const { user } = useAuth();
+  const { org } = useOrg();
   const [isSaving, setIsSaving] = useState(false);
   const [showTransactionPrompt, setShowTransactionPrompt] = useState(false);
   const [pendingStatus, setPendingStatus] = useState<string | null>(null);
 
-  // Form state
+  const isCreateMode = mode === 'create';
+
+  // Form state - Core fields for create
+  const [listingId, setListingId] = useState('');
+  const [address, setAddress] = useState('');
+  const [displayAddress, setDisplayAddress] = useState('');
+  const [city, setCity] = useState('');
+  const [submarket, setSubmarket] = useState('');
+  const [sizeSf, setSizeSf] = useState('');
+  
+  // Form state - Additional fields
   const [status, setStatus] = useState('Active');
   const [listingType, setListingType] = useState('');
   const [askingRate, setAskingRate] = useState('');
   const [salePrice, setSalePrice] = useState('');
   const [availabilityDate, setAvailabilityDate] = useState('');
   const [landlord, setLandlord] = useState('');
+  const [brokerSource, setBrokerSource] = useState('');
+  const [link, setLink] = useState('');
   const [notesPublic, setNotesPublic] = useState('');
   const [internalNote, setInternalNote] = useState('');
 
-  // Reset form when listing changes
+  // Building specs
+  const [clearHeight, setClearHeight] = useState('');
+  const [dockDoors, setDockDoors] = useState('');
+  const [driveInDoors, setDriveInDoors] = useState('');
+
+  // Reset form when listing changes or dialog opens
   useEffect(() => {
-    if (listing) {
+    if (isCreateMode) {
+      // Reset to empty for create mode
+      setListingId('');
+      setAddress('');
+      setDisplayAddress('');
+      setCity('');
+      setSubmarket('');
+      setSizeSf('');
+      setStatus('Active');
+      setListingType('');
+      setAskingRate('');
+      setSalePrice('');
+      setAvailabilityDate('');
+      setLandlord('');
+      setBrokerSource('');
+      setLink('');
+      setNotesPublic('');
+      setInternalNote('');
+      setClearHeight('');
+      setDockDoors('');
+      setDriveInDoors('');
+    } else if (listing) {
+      setListingId(listing.listing_id || '');
+      setAddress(listing.address || '');
+      setDisplayAddress(listing.display_address || '');
+      setCity(listing.city || '');
+      setSubmarket(listing.submarket || '');
+      setSizeSf(listing.size_sf?.toString() || '');
       setStatus(listing.status || 'Active');
       setListingType(listing.listing_type || '');
       setAskingRate(listing.asking_rate_psf || '');
       setSalePrice(listing.sale_price || '');
       setAvailabilityDate(listing.availability_date || '');
       setLandlord(listing.landlord || '');
+      setBrokerSource(listing.broker_source || '');
+      setLink(listing.link || '');
       setNotesPublic(listing.notes_public || '');
       setInternalNote(listing.internal_note || '');
+      setClearHeight(listing.clear_height_ft?.toString() || '');
+      setDockDoors(listing.dock_doors?.toString() || '');
+      setDriveInDoors(listing.drive_in_doors?.toString() || '');
     }
-  }, [listing]);
+  }, [listing, isCreateMode, open]);
 
   const handleStatusChange = (newStatus: string) => {
-    // Check if changing to a "closed" status
-    const closedStatuses = ['Sold/Leased', 'Sold', 'Leased'];
-    if (closedStatuses.includes(newStatus) && !closedStatuses.includes(status)) {
+    // Check if changing to "Sold/Leased" status (only in edit mode)
+    if (!isCreateMode && newStatus === 'Sold/Leased' && status !== 'Sold/Leased') {
       setPendingStatus(newStatus);
       setShowTransactionPrompt(true);
     } else {
@@ -104,7 +161,6 @@ export function MarketListingEditDialog({
     }
     setShowTransactionPrompt(false);
     setPendingStatus(null);
-    // Navigate to transaction form after save
   };
 
   const handleSkipTransaction = () => {
@@ -116,6 +172,79 @@ export function MarketListingEditDialog({
   };
 
   const handleSave = async () => {
+    if (isCreateMode) {
+      await handleCreate();
+    } else {
+      await handleUpdate();
+    }
+  };
+
+  const handleCreate = async () => {
+    if (!user || !org) {
+      toast.error('You must be logged in to create a listing');
+      return;
+    }
+
+    // Validate required fields
+    if (!listingId.trim()) {
+      toast.error('Listing ID is required');
+      return;
+    }
+    if (!address.trim()) {
+      toast.error('Address is required');
+      return;
+    }
+    if (!submarket.trim()) {
+      toast.error('Submarket is required');
+      return;
+    }
+
+    setIsSaving(true);
+    try {
+      const { error } = await supabase
+        .from('market_listings')
+        .insert({
+          listing_id: listingId.trim(),
+          address: address.trim(),
+          display_address: displayAddress.trim() || address.trim(),
+          city: city.trim() || '',
+          submarket: submarket.trim(),
+          size_sf: parseInt(sizeSf) || 0,
+          status,
+          listing_type: listingType || null,
+          asking_rate_psf: askingRate || null,
+          sale_price: salePrice || null,
+          availability_date: availabilityDate || null,
+          landlord: landlord || null,
+          broker_source: brokerSource || null,
+          link: link || null,
+          notes_public: notesPublic || null,
+          internal_note: internalNote || null,
+          clear_height_ft: clearHeight ? parseFloat(clearHeight) : null,
+          dock_doors: dockDoors ? parseInt(dockDoors) : 0,
+          drive_in_doors: driveInDoors ? parseInt(driveInDoors) : 0,
+          user_id: user.id,
+          org_id: org.id,
+        });
+
+      if (error) throw error;
+
+      toast.success('Listing created successfully');
+      onSaved();
+      onOpenChange(false);
+    } catch (err: any) {
+      console.error('Error creating listing:', err);
+      if (err.code === '23505') {
+        toast.error('A listing with this ID already exists');
+      } else {
+        toast.error('Failed to create listing');
+      }
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleUpdate = async () => {
     if (!listing) return;
 
     setIsSaving(true);
@@ -123,14 +252,20 @@ export function MarketListingEditDialog({
       const { error } = await supabase
         .from('market_listings')
         .update({
+          display_address: displayAddress || null,
           status,
           listing_type: listingType || null,
           asking_rate_psf: askingRate || null,
           sale_price: salePrice || null,
           availability_date: availabilityDate || null,
           landlord: landlord || null,
+          broker_source: brokerSource || null,
+          link: link || null,
           notes_public: notesPublic || null,
           internal_note: internalNote || null,
+          clear_height_ft: clearHeight ? parseFloat(clearHeight) : null,
+          dock_doors: dockDoors ? parseInt(dockDoors) : null,
+          drive_in_doors: driveInDoors ? parseInt(driveInDoors) : null,
           updated_at: new Date().toISOString(),
         })
         .eq('id', listing.id);
@@ -141,10 +276,9 @@ export function MarketListingEditDialog({
       onSaved();
       onOpenChange(false);
 
-      // If status was changed to a closed status, offer to create transaction
-      const closedStatuses = ['Sold/Leased', 'Sold', 'Leased'];
-      if (closedStatuses.includes(status) && pendingStatus === null) {
-        // We already handled this via the prompt
+      // If status was changed to Sold/Leased, offer to create transaction
+      if (status === 'Sold/Leased' && pendingStatus === 'Sold/Leased') {
+        navigate(`/transactions/new?listing=${listing.id}`);
       }
     } catch (err) {
       console.error('Error updating listing:', err);
@@ -154,56 +288,114 @@ export function MarketListingEditDialog({
     }
   };
 
-  const handleSaveAndCreateTransaction = async () => {
-    if (!listing) return;
-
-    setIsSaving(true);
-    try {
-      const { error } = await supabase
-        .from('market_listings')
-        .update({
-          status,
-          listing_type: listingType || null,
-          asking_rate_psf: askingRate || null,
-          sale_price: salePrice || null,
-          availability_date: availabilityDate || null,
-          landlord: landlord || null,
-          notes_public: notesPublic || null,
-          internal_note: internalNote || null,
-          updated_at: new Date().toISOString(),
-        })
-        .eq('id', listing.id);
-
-      if (error) throw error;
-
-      toast.success('Listing updated');
-      onSaved();
-      onOpenChange(false);
-      
-      // Navigate to transaction form with listing pre-filled
-      navigate(`/transactions/new?listing=${listing.id}`);
-    } catch (err) {
-      console.error('Error updating listing:', err);
-      toast.error('Failed to update listing');
-    } finally {
-      setIsSaving(false);
-    }
-  };
-
-  if (!listing) return null;
+  // For edit mode, require listing
+  if (!isCreateMode && !listing) return null;
 
   return (
     <>
       <Dialog open={open} onOpenChange={onOpenChange}>
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Edit Listing</DialogTitle>
+            <DialogTitle>{isCreateMode ? 'Add New Listing' : 'Edit Listing'}</DialogTitle>
             <DialogDescription>
-              {listing.display_address || listing.address} • {listing.listing_id}
+              {isCreateMode 
+                ? 'Enter the details for the new market listing.'
+                : `${listing?.display_address || listing?.address} • ${listing?.listing_id}`
+              }
             </DialogDescription>
           </DialogHeader>
 
           <div className="grid gap-4 py-4">
+            {/* Core Fields - Show in create mode or as read-only in edit */}
+            {isCreateMode && (
+              <>
+                {/* Listing ID */}
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="listingId" className="text-right">
+                    Listing ID *
+                  </Label>
+                  <Input
+                    id="listingId"
+                    value={listingId}
+                    onChange={(e) => setListingId(e.target.value)}
+                    className="col-span-3"
+                    placeholder="e.g., ML-2026-001"
+                  />
+                </div>
+
+                {/* Address */}
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="address" className="text-right">
+                    Address *
+                  </Label>
+                  <Input
+                    id="address"
+                    value={address}
+                    onChange={(e) => setAddress(e.target.value)}
+                    className="col-span-3"
+                    placeholder="e.g., 123 Industrial Way"
+                  />
+                </div>
+
+                {/* Display Address */}
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="displayAddress" className="text-right">
+                    Display Address
+                  </Label>
+                  <Input
+                    id="displayAddress"
+                    value={displayAddress}
+                    onChange={(e) => setDisplayAddress(e.target.value)}
+                    className="col-span-3"
+                    placeholder="e.g., 123 Industrial Way — Unit 4"
+                  />
+                </div>
+
+                {/* City */}
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="city" className="text-right">
+                    City
+                  </Label>
+                  <Input
+                    id="city"
+                    value={city}
+                    onChange={(e) => setCity(e.target.value)}
+                    className="col-span-3"
+                    placeholder="e.g., Calgary"
+                  />
+                </div>
+
+                {/* Submarket */}
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="submarket" className="text-right">
+                    Submarket *
+                  </Label>
+                  <Input
+                    id="submarket"
+                    value={submarket}
+                    onChange={(e) => setSubmarket(e.target.value)}
+                    className="col-span-3"
+                    placeholder="e.g., SE Industrial"
+                  />
+                </div>
+
+                {/* Size */}
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="sizeSf" className="text-right">
+                    Size (SF)
+                  </Label>
+                  <Input
+                    id="sizeSf"
+                    type="number"
+                    value={sizeSf}
+                    onChange={(e) => setSizeSf(e.target.value)}
+                    className="col-span-3"
+                    placeholder="e.g., 150000"
+                  />
+                </div>
+              </>
+            )}
+
             {/* Status */}
             <div className="grid grid-cols-4 items-center gap-4">
               <Label htmlFor="status" className="text-right">
@@ -236,13 +428,28 @@ export function MarketListingEditDialog({
                     <SelectValue placeholder="Select type" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="Lease">Lease</SelectItem>
-                    <SelectItem value="Sale">Sale</SelectItem>
-                    <SelectItem value="Sublease">Sublease</SelectItem>
-                    <SelectItem value="Sale/Lease">Sale/Lease</SelectItem>
+                    {LISTING_TYPE_OPTIONS.map((opt) => (
+                      <SelectItem key={opt.value} value={opt.value}>
+                        {opt.label}
+                      </SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>
+            </div>
+
+            {/* Broker Source */}
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="brokerSource" className="text-right">
+                Broker
+              </Label>
+              <Input
+                id="brokerSource"
+                value={brokerSource}
+                onChange={(e) => setBrokerSource(e.target.value)}
+                className="col-span-3"
+                placeholder="e.g., CBRE"
+              />
             </div>
 
             {/* Asking Rate */}
@@ -300,6 +507,52 @@ export function MarketListingEditDialog({
               />
             </div>
 
+            {/* Brochure Link */}
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="link" className="text-right">
+                Brochure Link
+              </Label>
+              <Input
+                id="link"
+                value={link}
+                onChange={(e) => setLink(e.target.value)}
+                className="col-span-3"
+                placeholder="https://..."
+              />
+            </div>
+
+            {/* Building Specs */}
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label className="text-right">Clear Height (ft)</Label>
+              <Input
+                type="number"
+                value={clearHeight}
+                onChange={(e) => setClearHeight(e.target.value)}
+                className="col-span-1"
+                placeholder="32"
+              />
+              <Label className="text-right">Dock Doors</Label>
+              <Input
+                type="number"
+                value={dockDoors}
+                onChange={(e) => setDockDoors(e.target.value)}
+                className="col-span-1"
+                placeholder="10"
+              />
+            </div>
+
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label className="text-right">Drive-In Doors</Label>
+              <Input
+                type="number"
+                value={driveInDoors}
+                onChange={(e) => setDriveInDoors(e.target.value)}
+                className="col-span-1"
+                placeholder="2"
+              />
+              <div className="col-span-2" />
+            </div>
+
             {/* Public Notes */}
             <div className="grid grid-cols-4 items-start gap-4">
               <Label htmlFor="notesPublic" className="text-right pt-2">
@@ -336,7 +589,7 @@ export function MarketListingEditDialog({
             </Button>
             <Button onClick={handleSave} disabled={isSaving}>
               {isSaving && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
-              Save Changes
+              {isCreateMode ? 'Create Listing' : 'Save Changes'}
             </Button>
           </DialogFooter>
         </DialogContent>

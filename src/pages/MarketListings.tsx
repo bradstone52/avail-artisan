@@ -13,7 +13,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { RefreshCw, Database, ExternalLink, MapPin, Search, X, Filter, Link2, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Receipt, Pencil } from 'lucide-react';
+import { RefreshCw, Database, ExternalLink, MapPin, Search, X, Filter, Link2, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Receipt, Pencil, Plus } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import {
   Table,
@@ -71,8 +71,9 @@ export default function MarketListings() {
   const [currentPage, setCurrentPage] = useState(1);
   const pageSize = 50;
 
-  // Edit dialog state
+  // Edit/Create dialog state
   const [editingListing, setEditingListing] = useState<MarketListing | null>(null);
+  const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
 
   // Get unique values for filters
   const uniqueSubmarkets = useMemo(() => {
@@ -193,11 +194,16 @@ export default function MarketListings() {
               {isValidatingLinks ? 'Checking...' : 'Check Links'}
             </Button>
             <Button 
+              variant="outline"
               onClick={syncMarketListings}
               disabled={isSyncing}
             >
               <RefreshCw className={`w-4 h-4 mr-2 ${isSyncing ? 'animate-spin' : ''}`} />
-              {isSyncing ? 'Syncing...' : 'Sync Market Data'}
+              {isSyncing ? 'Syncing...' : 'Sync'}
+            </Button>
+            <Button onClick={() => setIsCreateDialogOpen(true)}>
+              <Plus className="w-4 h-4 mr-2" />
+              Add Listing
             </Button>
           </div>
         </div>
@@ -584,6 +590,16 @@ export default function MarketListings() {
             if (!open) setEditingListing(null);
           }}
           onSaved={refreshListings}
+          mode="edit"
+        />
+
+        {/* Create Dialog */}
+        <MarketListingEditDialog
+          listing={null}
+          open={isCreateDialogOpen}
+          onOpenChange={setIsCreateDialogOpen}
+          onSaved={refreshListings}
+          mode="create"
         />
       </div>
     </AppLayout>
