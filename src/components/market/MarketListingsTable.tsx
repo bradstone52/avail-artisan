@@ -82,11 +82,17 @@ export function MarketListingsTable({ listings, onEdit, onRefresh }: MarketListi
     let animationId: number | null = null;
     let scrollDirection = 0; // -1 for left, 1 for right, 0 for stopped
     let velocity = 0;
-    const maxVelocity = 12; // pixels per frame at max speed
-    const acceleration = 0.8; // how quickly we reach max speed
-    const deceleration = 0.92; // how quickly we slow down (closer to 1 = slower stop)
+    let lastTime = performance.now();
+    
+    const maxVelocity = 18; // pixels per frame at max speed (increased from 12)
+    const acceleration = 0.25; // how quickly we reach max speed (increased from 0.08)
+    const deceleration = 0.88; // how quickly we slow down (faster stop)
 
-    const animate = () => {
+    const animate = (currentTime: number) => {
+      // Calculate delta time for frame-rate independent animation
+      const deltaTime = Math.min((currentTime - lastTime) / 8.33, 3); // normalize to ~120fps, cap at 3x
+      lastTime = currentTime;
+
       const container = scrollContainerRef.current?.querySelector('.overflow-auto, [class*="overflow-auto"]') as HTMLElement;
       if (!container) {
         animationId = requestAnimationFrame(animate);
@@ -95,14 +101,14 @@ export function MarketListingsTable({ listings, onEdit, onRefresh }: MarketListi
 
       // Accelerate towards target velocity or decelerate to stop
       if (scrollDirection !== 0) {
-        velocity += (scrollDirection * maxVelocity - velocity) * acceleration * 0.1;
+        velocity += (scrollDirection * maxVelocity - velocity) * acceleration * deltaTime;
       } else {
-        velocity *= deceleration;
+        velocity *= Math.pow(deceleration, deltaTime);
       }
 
       // Apply scroll if there's meaningful velocity
       if (Math.abs(velocity) > 0.1) {
-        container.scrollBy({ left: velocity, behavior: 'auto' });
+        container.scrollBy({ left: velocity * deltaTime, behavior: 'auto' });
       }
 
       animationId = requestAnimationFrame(animate);
