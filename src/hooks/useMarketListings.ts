@@ -178,11 +178,7 @@ export function useMarketListings() {
       if (data?.error) throw new Error(data.error);
 
       const message = `Checked ${data.checked} links: ${data.ok} ok, ${data.broken} broken`;
-      if (data.remaining > 0) {
-        toast.success(`${message}. ${data.remaining} remaining - run again to continue.`);
-      } else {
-        toast.success(message);
-      }
+      toast.success(message);
       
       // Refresh listings to show updated status
       await fetchListings();
