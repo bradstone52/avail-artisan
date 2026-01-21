@@ -39,8 +39,6 @@ import { useAuth } from '@/contexts/AuthContext';
 const STATUS_OPTIONS = [
   { value: 'Active', label: 'Active' },
   { value: 'Under Contract', label: 'Under Contract' },
-  { value: 'Sold/Leased', label: 'Sold/Leased' },
-  { value: 'Unknown/Removed', label: 'Unknown/Removed' },
 ];
 
 // Get status background color to match table styling
