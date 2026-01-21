@@ -118,7 +118,6 @@ export function MarketListingsTable({ listings, onEdit, onRefresh }: MarketListi
             <TableHead className="sticky left-0 z-20 min-w-[180px] bg-zinc-700 dark:bg-zinc-600 text-background shadow-[2px_0_5px_-2px_rgba(0,0,0,0.3)]">Address</TableHead>
             <TableHead className="text-background min-w-[130px]">Submarket</TableHead>
             <TableHead className="text-background min-w-[100px]">City</TableHead>
-            <TableHead className="text-background min-w-[130px]">Status</TableHead>
             <TableHead className="text-background min-w-[80px]">Type</TableHead>
             <TableHead className="text-background text-right min-w-[100px]">Size (SF)</TableHead>
             <TableHead className="text-background text-right min-w-[110px]">Warehouse SF</TableHead>
@@ -150,6 +149,7 @@ export function MarketListingsTable({ listings, onEdit, onRefresh }: MarketListi
             <TableHead className="text-background min-w-[50px]">Geo</TableHead>
             <TableHead className="text-background min-w-[50px]">Link</TableHead>
             <TableHead className="text-background min-w-[180px]">Notes</TableHead>
+            <TableHead className="text-background min-w-[130px]">Status</TableHead>
             <TableHead className="sticky right-0 z-20 min-w-[90px] bg-zinc-700 dark:bg-zinc-600 text-background shadow-[-2px_0_5px_-2px_rgba(0,0,0,0.3)]">Actions</TableHead>
           </TableRow>
         </TableHeader>
@@ -195,11 +195,6 @@ export function MarketListingsTable({ listings, onEdit, onRefresh }: MarketListi
               
               {/* City */}
               <TableCell className="text-sm">{listing.city || '-'}</TableCell>
-              
-              {/* Status */}
-              <TableCell>
-                <StatusDropdown listing={listing} onStatusChanged={onRefresh} />
-              </TableCell>
               
               {/* Type */}
               <TableCell className="text-sm">{listing.listing_type || '-'}</TableCell>
@@ -342,6 +337,11 @@ export function MarketListingsTable({ listings, onEdit, onRefresh }: MarketListi
                 <div className="truncate max-w-[170px] text-sm text-muted-foreground" title={listing.notes_public || ''}>
                   {listing.notes_public || '-'}
                 </div>
+              </TableCell>
+              
+              {/* Status - Near end since most are Active until transaction */}
+              <TableCell>
+                <StatusDropdown listing={listing} onStatusChanged={onRefresh} />
               </TableCell>
               
               {/* Actions - Sticky */}
