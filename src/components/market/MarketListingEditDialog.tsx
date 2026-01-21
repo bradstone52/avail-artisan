@@ -165,7 +165,7 @@ export function MarketListingEditDialog({
       setAddress('');
       setDisplayAddress('');
       setDisplayAddressManuallyEdited(false);
-      setCity('');
+      setCity('Calgary');
       setSubmarket('');
       setSizeSf('');
       setStatus('Active');
@@ -510,7 +510,6 @@ export function MarketListingEditDialog({
                     value={displayAddress}
                     onChange={(e) => handleDisplayAddressChange(e.target.value)}
                     className="col-span-3"
-                    placeholder="e.g., 123 Industrial Way — Unit 4"
                   />
                 </div>
 
@@ -559,7 +558,6 @@ export function MarketListingEditDialog({
                       value={submarket}
                       onChange={(e) => setSubmarket(e.target.value)}
                       className="col-span-3"
-                      placeholder="e.g., SE Industrial"
                     />
                   )}
                 </div>
@@ -575,7 +573,6 @@ export function MarketListingEditDialog({
                     value={sizeSf}
                     onChange={(e) => setSizeSf(e.target.value)}
                     className="col-span-3"
-                    placeholder="e.g., 150000"
                   />
                 </div>
 
@@ -587,7 +584,6 @@ export function MarketListingEditDialog({
                     value={warehouseSf}
                     onChange={(e) => setWarehouseSf(e.target.value)}
                     className="col-span-1"
-                    placeholder="120000"
                   />
                   <Label className="text-right">Office SF</Label>
                   <Input
@@ -595,7 +591,6 @@ export function MarketListingEditDialog({
                     value={officeSf}
                     onChange={(e) => setOfficeSf(e.target.value)}
                     className="col-span-1"
-                    placeholder="5000"
                   />
                 </div>
               </>
@@ -653,7 +648,6 @@ export function MarketListingEditDialog({
                 value={brokerSource}
                 onChange={(e) => setBrokerSource(e.target.value)}
                 className="col-span-3"
-                placeholder="e.g., CBRE"
               />
             </div>
 
@@ -664,14 +658,12 @@ export function MarketListingEditDialog({
                 value={askingRate}
                 onChange={(e) => setAskingRate(e.target.value)}
                 className="col-span-1"
-                placeholder="$12.50"
               />
               <Label className="text-right">Op Costs</Label>
               <Input
                 value={opCosts}
                 onChange={(e) => setOpCosts(e.target.value)}
                 className="col-span-1"
-                placeholder="$4.50"
               />
             </div>
 
@@ -682,14 +674,12 @@ export function MarketListingEditDialog({
                 value={salePrice}
                 onChange={(e) => setSalePrice(e.target.value)}
                 className="col-span-1"
-                placeholder="$5,000,000"
               />
               <Label className="text-right">Sublease Exp</Label>
               <Input
                 value={subleaseExp}
                 onChange={(e) => setSubleaseExp(e.target.value)}
                 className="col-span-1"
-                placeholder="Dec 2027"
               />
             </div>
 
@@ -703,7 +693,6 @@ export function MarketListingEditDialog({
                 value={availabilityDate}
                 onChange={(e) => setAvailabilityDate(e.target.value)}
                 className="col-span-3"
-                placeholder="e.g., Immediate, Q2 2026"
               />
             </div>
 
@@ -730,7 +719,6 @@ export function MarketListingEditDialog({
                 value={link}
                 onChange={(e) => setLink(e.target.value)}
                 className="col-span-3"
-                placeholder="https://..."
               />
             </div>
 
@@ -771,7 +759,6 @@ export function MarketListingEditDialog({
                 value={powerAmps}
                 onChange={(e) => setPowerAmps(e.target.value)}
                 className="col-span-1"
-                placeholder="2000"
               />
             </div>
 
@@ -782,14 +769,12 @@ export function MarketListingEditDialog({
                 value={voltage}
                 onChange={(e) => setVoltage(e.target.value)}
                 className="col-span-1"
-                placeholder="600V"
               />
               <Label className="text-right">Sprinkler</Label>
               <Input
                 value={sprinkler}
                 onChange={(e) => setSprinkler(e.target.value)}
                 className="col-span-1"
-                placeholder="ESFR"
               />
             </div>
 
@@ -800,14 +785,12 @@ export function MarketListingEditDialog({
                 value={cranes}
                 onChange={(e) => setCranes(e.target.value)}
                 className="col-span-1"
-                placeholder="2"
               />
               <Label className="text-right">Crane Tons</Label>
               <Input
                 value={craneTons}
                 onChange={(e) => setCraneTons(e.target.value)}
                 className="col-span-1"
-                placeholder="10T"
               />
             </div>
 
@@ -818,14 +801,12 @@ export function MarketListingEditDialog({
                 value={yard}
                 onChange={(e) => setYard(e.target.value)}
                 className="col-span-1"
-                placeholder="Yes/No"
               />
               <Label className="text-right">Yard Area</Label>
               <Input
                 value={yardArea}
                 onChange={(e) => setYardArea(e.target.value)}
                 className="col-span-1"
-                placeholder="2 acres"
               />
             </div>
 
@@ -836,14 +817,12 @@ export function MarketListingEditDialog({
                 value={crossDock}
                 onChange={(e) => setCrossDock(e.target.value)}
                 className="col-span-1"
-                placeholder="Yes/No"
               />
               <Label className="text-right">Trailer Parking</Label>
               <Input
                 value={trailerParking}
                 onChange={(e) => setTrailerParking(e.target.value)}
                 className="col-span-1"
-                placeholder="20 stalls"
               />
             </div>
 
@@ -854,14 +833,12 @@ export function MarketListingEditDialog({
                 value={landAcres}
                 onChange={(e) => setLandAcres(e.target.value)}
                 className="col-span-1"
-                placeholder="5.2"
               />
               <Label className="text-right">Zoning</Label>
               <Input
                 value={zoning}
                 onChange={(e) => setZoning(e.target.value)}
                 className="col-span-1"
-                placeholder="I-G"
               />
             </div>
 
@@ -872,7 +849,6 @@ export function MarketListingEditDialog({
                 value={mua}
                 onChange={(e) => setMua(e.target.value)}
                 className="col-span-1"
-                placeholder="Yes/No"
               />
               <Label className="text-right">Dist. Warehouse</Label>
               <div className="col-span-1 flex items-center">
@@ -916,7 +892,6 @@ export function MarketListingEditDialog({
                 onChange={(e) => setInternalNote(e.target.value)}
                 className="col-span-3"
                 rows={2}
-                placeholder="Private notes (not shown externally)"
               />
             </div>
           </div>
