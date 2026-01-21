@@ -131,13 +131,13 @@ export function MarketListingEditDialog({
   const [sprinkler, setSprinkler] = useState('');
   const [cranes, setCranes] = useState('');
   const [craneTons, setCraneTons] = useState('');
-  const [yard, setYard] = useState('');
+  const [yard, setYard] = useState(false);
   const [yardArea, setYardArea] = useState('');
-  const [crossDock, setCrossDock] = useState('');
+  const [crossDock, setCrossDock] = useState(false);
   const [trailerParking, setTrailerParking] = useState('');
   const [landAcres, setLandAcres] = useState('');
   const [zoning, setZoning] = useState('');
-  const [mua, setMua] = useState('');
+  const [mua, setMua] = useState(false);
   const [isDistributionWarehouse, setIsDistributionWarehouse] = useState(false);
 
   // Handle address change - mirror to displayAddress if not manually edited
@@ -204,13 +204,13 @@ export function MarketListingEditDialog({
       setSprinkler('');
       setCranes('');
       setCraneTons('');
-      setYard('');
+      setYard(false);
       setYardArea('');
-      setCrossDock('');
+      setCrossDock(false);
       setTrailerParking('');
       setLandAcres('');
       setZoning('');
-      setMua('');
+      setMua(false);
       setIsDistributionWarehouse(false);
     } else if (listing) {
       setListingId(listing.listing_id || '');
@@ -242,13 +242,13 @@ export function MarketListingEditDialog({
       setSprinkler(listing.sprinkler || '');
       setCranes(listing.cranes || '');
       setCraneTons(listing.crane_tons || '');
-      setYard(listing.yard || '');
+      setYard(listing.yard === 'Yes' || listing.yard === 'yes' || listing.yard === 'Y');
       setYardArea(listing.yard_area || '');
-      setCrossDock(listing.cross_dock || '');
+      setCrossDock(listing.cross_dock === 'Yes' || listing.cross_dock === 'yes' || listing.cross_dock === 'Y');
       setTrailerParking(listing.trailer_parking || '');
       setLandAcres(listing.land_acres || '');
       setZoning(listing.zoning || '');
-      setMua(listing.mua || '');
+      setMua(listing.mua === 'Yes' || listing.mua === 'yes' || listing.mua === 'Y');
       setIsDistributionWarehouse(listing.is_distribution_warehouse || false);
     }
   }, [listing, isCreateMode, open]);
@@ -339,13 +339,13 @@ export function MarketListingEditDialog({
           sprinkler: sprinkler || null,
           cranes: cranes || null,
           crane_tons: craneTons || null,
-          yard: yard || null,
+          yard: yard ? 'Yes' : 'No',
           yard_area: yardArea || null,
-          cross_dock: crossDock || null,
+          cross_dock: crossDock ? 'Yes' : 'No',
           trailer_parking: trailerParking || null,
           land_acres: landAcres || null,
           zoning: zoning || null,
-          mua: mua || null,
+          mua: mua ? 'Yes' : 'No',
           is_distribution_warehouse: isDistributionWarehouse,
           user_id: user.id,
           org_id: org.id,
@@ -832,12 +832,20 @@ export function MarketListingEditDialog({
             {/* Yard / Yard Area */}
             <div className="grid grid-cols-4 items-center gap-4">
               <Label className="text-right">Yard</Label>
-              <Input
-                value={yard}
-                onChange={(e) => setYard(e.target.value)}
-                className={`col-span-1 placeholder-light ${yard ? 'input-filled' : ''}`}
-                placeholder="Yes/No"
-              />
+              <div className="col-span-1">
+                <button
+                  type="button"
+                  onClick={() => setYard(!yard)}
+                  className={`px-3 py-1.5 text-xs font-bold uppercase tracking-wide border-2 border-foreground transition-all ${
+                    yard 
+                      ? 'bg-primary text-primary-foreground shadow-[2px_2px_0_hsl(var(--foreground))]' 
+                      : 'bg-destructive text-destructive-foreground shadow-[2px_2px_0_hsl(var(--foreground))]'
+                  }`}
+                  style={{ borderRadius: 'var(--radius)' }}
+                >
+                  {yard ? 'Yes' : 'No'}
+                </button>
+              </div>
               <Label className="text-right">Yard Area</Label>
               <Input
                 value={yardArea}
@@ -850,12 +858,20 @@ export function MarketListingEditDialog({
             {/* Cross-Dock / Trailer Parking */}
             <div className="grid grid-cols-4 items-center gap-4">
               <Label className="text-right">Cross-Dock</Label>
-              <Input
-                value={crossDock}
-                onChange={(e) => setCrossDock(e.target.value)}
-                className={`col-span-1 placeholder-light ${crossDock ? 'input-filled' : ''}`}
-                placeholder="Yes/No"
-              />
+              <div className="col-span-1">
+                <button
+                  type="button"
+                  onClick={() => setCrossDock(!crossDock)}
+                  className={`px-3 py-1.5 text-xs font-bold uppercase tracking-wide border-2 border-foreground transition-all ${
+                    crossDock 
+                      ? 'bg-primary text-primary-foreground shadow-[2px_2px_0_hsl(var(--foreground))]' 
+                      : 'bg-destructive text-destructive-foreground shadow-[2px_2px_0_hsl(var(--foreground))]'
+                  }`}
+                  style={{ borderRadius: 'var(--radius)' }}
+                >
+                  {crossDock ? 'Yes' : 'No'}
+                </button>
+              </div>
               <Label className="text-right">Trailer Parking</Label>
               <Input
                 value={trailerParking}
@@ -886,12 +902,20 @@ export function MarketListingEditDialog({
             {/* MUA / Distribution Warehouse */}
             <div className="grid grid-cols-4 items-center gap-4">
               <Label className="text-right">MUA</Label>
-              <Input
-                value={mua}
-                onChange={(e) => setMua(e.target.value)}
-                className={`col-span-1 placeholder-light ${mua ? 'input-filled' : ''}`}
-                placeholder="Yes/No"
-              />
+              <div className="col-span-1">
+                <button
+                  type="button"
+                  onClick={() => setMua(!mua)}
+                  className={`px-3 py-1.5 text-xs font-bold uppercase tracking-wide border-2 border-foreground transition-all ${
+                    mua 
+                      ? 'bg-primary text-primary-foreground shadow-[2px_2px_0_hsl(var(--foreground))]' 
+                      : 'bg-destructive text-destructive-foreground shadow-[2px_2px_0_hsl(var(--foreground))]'
+                  }`}
+                  style={{ borderRadius: 'var(--radius)' }}
+                >
+                  {mua ? 'Yes' : 'No'}
+                </button>
+              </div>
               <Label className="text-right">Dist. Warehouse</Label>
               <div className="col-span-1">
                 <button
