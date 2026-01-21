@@ -175,14 +175,14 @@ export function MarketListingsTable({ listings, onEdit, onRefresh }: MarketListi
               : isEvenRow
                 ? 'group-hover:!bg-pink-300 dark:group-hover:!bg-pink-800'
                 : 'group-hover:!bg-pink-200 dark:group-hover:!bg-pink-900/50';
-            // Neo-brutalist border styling - full border around row
-            const borderClass = isSelected
-              ? 'border-2 border-amber-600 dark:border-amber-500 hover:border-amber-700'
-              : 'border-2 border-foreground hover:!border-pink-500 dark:hover:!border-pink-400';
+            // Neo-brutalist border styling - using outline for full border that doesn't conflict with adjacent rows
+            const outlineClass = isSelected
+              ? 'outline outline-2 outline-amber-600 dark:outline-amber-500 -outline-offset-1'
+              : 'outline-0 hover:outline hover:outline-2 hover:outline-pink-500 dark:hover:outline-pink-400 hover:-outline-offset-1';
             return (
             <TableRow 
               key={listing.id} 
-              className={`group cursor-pointer transition-colors ${hoverClass} ${borderClass} ${
+              className={`group cursor-pointer transition-all !border-b-2 !border-foreground ${hoverClass} ${outlineClass} ${
                 isSelected ? '!bg-secondary' : ''
               }`}
               onClick={() => setSelectedRowId(isSelected ? null : listing.id)}
