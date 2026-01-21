@@ -175,10 +175,10 @@ export function MarketListingsTable({ listings, onEdit, onRefresh }: MarketListi
               : isEvenRow
                 ? 'group-hover:!bg-pink-300 dark:group-hover:!bg-pink-800'
                 : 'group-hover:!bg-pink-200 dark:group-hover:!bg-pink-900/50';
-            // Neo-brutalist border styling
+            // Neo-brutalist border styling - full border around row
             const borderClass = isSelected
-              ? 'border-b-2 border-amber-600 dark:border-amber-500 hover:border-amber-700'
-              : 'border-b-2 border-foreground hover:!border-pink-500 dark:hover:!border-pink-400';
+              ? 'border-2 border-amber-600 dark:border-amber-500 hover:border-amber-700'
+              : 'border-2 border-foreground hover:!border-pink-500 dark:hover:!border-pink-400';
             return (
             <TableRow 
               key={listing.id} 
@@ -187,8 +187,8 @@ export function MarketListingsTable({ listings, onEdit, onRefresh }: MarketListi
               }`}
               onClick={() => setSelectedRowId(isSelected ? null : listing.id)}
             >
-              {/* Address - Sticky */}
-              <TableCell className={`sticky left-0 z-10 font-medium shadow-[2px_0_5px_-2px_rgba(0,0,0,0.2)] transition-colors ${stickyBg} ${stickyHoverClass}`}>
+              {/* Address - Sticky with grey right border */}
+              <TableCell className={`sticky left-0 z-10 font-medium border-r border-gray-300 dark:border-gray-600 transition-colors ${stickyBg} ${stickyHoverClass}`}>
                 <div className="truncate max-w-[170px]" title={listing.address}>
                   {listing.display_address || listing.address}
                 </div>
@@ -348,8 +348,8 @@ export function MarketListingsTable({ listings, onEdit, onRefresh }: MarketListi
                 <StatusDropdown listing={listing} onStatusChanged={onRefresh} />
               </TableCell>
               
-              {/* Actions - Sticky */}
-              <TableCell className={`sticky right-0 z-10 shadow-[-2px_0_5px_-2px_rgba(0,0,0,0.2)] transition-colors ${stickyBg} ${stickyHoverClass}`}>
+              {/* Actions - Sticky with grey left border */}
+              <TableCell className={`sticky right-0 z-10 border-l border-gray-300 dark:border-gray-600 transition-colors ${stickyBg} ${stickyHoverClass}`}>
                 <div className="flex items-center gap-0.5">
                   <Tooltip>
                     <TooltipTrigger asChild>
