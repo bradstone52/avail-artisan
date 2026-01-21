@@ -43,6 +43,22 @@ const STATUS_OPTIONS = [
   { value: 'Unknown/Removed', label: 'Unknown/Removed' },
 ];
 
+// Get status background color to match table styling
+const getStatusColor = (status: string) => {
+  switch (status) {
+    case 'Active':
+      return 'bg-blue-600 text-white border-blue-700';
+    case 'Under Contract':
+      return 'bg-amber-500 text-white border-amber-600';
+    case 'Sold/Leased':
+      return 'bg-red-600 text-white border-red-700';
+    case 'Unknown/Removed':
+      return 'bg-gray-300 text-gray-700 border-gray-400';
+    default:
+      return '';
+  }
+};
+
 const LISTING_TYPE_OPTIONS = [
   { value: 'Lease', label: 'Lease' },
   { value: 'Sale', label: 'Sale' },
@@ -608,7 +624,7 @@ export function MarketListingEditDialog({
               </Label>
               <div className="col-span-3">
                 <Select value={status} onValueChange={handleStatusChange}>
-                  <SelectTrigger>
+                  <SelectTrigger className={`${getStatusColor(status)} font-semibold`}>
                     <SelectValue placeholder="Select status" />
                   </SelectTrigger>
                   <SelectContent>
