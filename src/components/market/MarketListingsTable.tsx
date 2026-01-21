@@ -157,23 +157,34 @@ export function MarketListingsTable({ listings, onEdit, onRefresh }: MarketListi
           {listings.map((listing, index) => {
             const isSelected = selectedRowId === listing.id;
             const isEvenRow = index % 2 === 1;
+            // Sticky columns match the rest of the table's striping
             const stickyBg = isSelected 
               ? 'bg-secondary' 
               : isEvenRow 
-                ? 'bg-[hsl(var(--table-stripe))]' 
-                : 'bg-background';
+                ? 'bg-table-stripe' 
+                : 'bg-card';
+            // Pink hover - darker on striped rows to blend
+            const hoverClass = isSelected 
+              ? 'hover:!bg-secondary/90' 
+              : isEvenRow
+                ? 'hover:!bg-pink-300 dark:hover:!bg-pink-800'
+                : 'hover:!bg-pink-200 dark:hover:!bg-pink-900/50';
+            // Sticky hover matches
+            const stickyHoverClass = isSelected
+              ? ''
+              : isEvenRow
+                ? 'group-hover:!bg-pink-300 dark:group-hover:!bg-pink-800'
+                : 'group-hover:!bg-pink-200 dark:group-hover:!bg-pink-900/50';
             return (
             <TableRow 
               key={listing.id} 
-              className={`cursor-pointer transition-colors ${
-                isSelected 
-                  ? '!bg-secondary hover:!bg-secondary/90' 
-                  : 'hover:bg-secondary/20'
+              className={`group cursor-pointer transition-colors ${hoverClass} ${
+                isSelected ? '!bg-secondary' : ''
               }`}
               onClick={() => setSelectedRowId(isSelected ? null : listing.id)}
             >
               {/* Address - Sticky */}
-              <TableCell className={`sticky left-0 z-10 font-medium shadow-[2px_0_5px_-2px_rgba(0,0,0,0.2)] ${stickyBg}`}>
+              <TableCell className={`sticky left-0 z-10 font-medium shadow-[2px_0_5px_-2px_rgba(0,0,0,0.2)] transition-colors ${stickyBg} ${stickyHoverClass}`}>
                 <div className="truncate max-w-[170px]" title={listing.address}>
                   {listing.display_address || listing.address}
                 </div>
@@ -334,7 +345,7 @@ export function MarketListingsTable({ listings, onEdit, onRefresh }: MarketListi
               </TableCell>
               
               {/* Actions - Sticky */}
-              <TableCell className={`sticky right-0 z-10 shadow-[-2px_0_5px_-2px_rgba(0,0,0,0.2)] ${stickyBg}`}>
+              <TableCell className={`sticky right-0 z-10 shadow-[-2px_0_5px_-2px_rgba(0,0,0,0.2)] transition-colors ${stickyBg} ${stickyHoverClass}`}>
                 <div className="flex items-center gap-0.5">
                   <Tooltip>
                     <TooltipTrigger asChild>
