@@ -86,6 +86,30 @@ export function useMarketListings() {
   const [loading, setLoading] = useState(true);
   const [isValidatingLinks, setIsValidatingLinks] = useState(false);
   const [linkCheckTotal, setLinkCheckTotal] = useState(0); // Total links to check
+  const [linkCheckStartedAt, setLinkCheckStartedAt] = useState<string | null>(null);
+
+  // Auto-finish link validation state once we've observed all rows updated for this run.
+  useEffect(() => {
+    if (!isValidatingLinks || !linkCheckStartedAt || linkCheckTotal <= 0) return;
+
+    const checkedThisRun = listings.filter(
+      (l) => !!l.link && l.link !== '' && l.link_last_checked === linkCheckStartedAt
+    ).length;
+
+    if (checkedThisRun >= linkCheckTotal) {
+      const ok = listings.filter(
+        (l) => !!l.link && l.link !== '' && l.link_last_checked === linkCheckStartedAt && l.link_status === 'ok'
+      ).length;
+      const broken = listings.filter(
+        (l) => !!l.link && l.link !== '' && l.link_last_checked === linkCheckStartedAt && l.link_status === 'broken'
+      ).length;
+
+      setIsValidatingLinks(false);
+      setLinkCheckTotal(0);
+      setLinkCheckStartedAt(null);
+      toast.success(`Link check complete: ${ok} ok, ${broken} broken`);
+    }
+  }, [isValidatingLinks, linkCheckStartedAt, linkCheckTotal, listings]);
 
   // Fetch market listings for the org
   const fetchListings = useCallback(async () => {
@@ -167,10 +191,8 @@ export function useMarketListings() {
     }
 
     setIsValidatingLinks(true);
-    
-    // Count total links with URLs to show progress
-    const totalLinksWithUrl = listings.filter(l => l.link && l.link !== '').length;
-    setLinkCheckTotal(totalLinksWithUrl);
+    setLinkCheckStartedAt(null);
+    setLinkCheckTotal(0);
 
     try {
       const { data, error } = await supabase.functions.invoke('validate-brochure-links', {
@@ -183,20 +205,24 @@ export function useMarketListings() {
       if (error) throw error;
       if (data?.error) throw new Error(data.error);
 
-      const message = `Checked ${data.checked} links: ${data.ok} ok, ${data.broken} broken`;
-      toast.success(message);
-      
-      // Refresh listings to show updated status
-      await fetchListings();
-      
+      // We return immediately now; progress is shown via realtime updates.
+      const startedAt = typeof data?.run_started_at === 'string' ? data.run_started_at : null;
+      const total = typeof data?.total === 'number' ? data.total : 0;
+
+      setLinkCheckStartedAt(startedAt);
+      setLinkCheckTotal(total);
+
+      toast.success(`Checking ${total} links...`);
+
+      // No await here; edge function runs in background.
       return data;
     } catch (err) {
       console.error('Link validation error:', err);
       toast.error(err instanceof Error ? err.message : 'Validation failed');
       return null;
     } finally {
-      setIsValidatingLinks(false);
-      setLinkCheckTotal(0);
+      // Keep isValidatingLinks true while the background job runs; the UI will
+      // turn it off when it detects completion.
     }
   };
 
@@ -212,6 +238,7 @@ export function useMarketListings() {
     isSyncing: false, // No longer syncing from Google Sheets
     isValidatingLinks,
     linkCheckTotal,
+    linkCheckStartedAt,
     syncMarketListings: async () => {
       toast.info('Google Sheets sync has been disabled. Manage listings directly in the app.');
       return null;
