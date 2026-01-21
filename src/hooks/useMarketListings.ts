@@ -85,6 +85,7 @@ export function useMarketListings() {
   const [syncLogs, setSyncLogs] = useState<MarketSyncLog[]>([]);
   const [loading, setLoading] = useState(true);
   const [isValidatingLinks, setIsValidatingLinks] = useState(false);
+  const [linkCheckTotal, setLinkCheckTotal] = useState(0); // Total links to check
 
   // Fetch market listings for the org
   const fetchListings = useCallback(async () => {
@@ -166,12 +167,17 @@ export function useMarketListings() {
     }
 
     setIsValidatingLinks(true);
+    
+    // Count total links with URLs to show progress
+    const totalLinksWithUrl = listings.filter(l => l.link && l.link !== '').length;
+    setLinkCheckTotal(totalLinksWithUrl);
 
     try {
       const { data, error } = await supabase.functions.invoke('validate-brochure-links', {
         headers: {
           Authorization: `Bearer ${session.access_token}`,
         },
+        body: { force: true }, // Always re-check all links
       });
 
       if (error) throw error;
@@ -190,6 +196,7 @@ export function useMarketListings() {
       return null;
     } finally {
       setIsValidatingLinks(false);
+      setLinkCheckTotal(0);
     }
   };
 
@@ -204,6 +211,7 @@ export function useMarketListings() {
     loading,
     isSyncing: false, // No longer syncing from Google Sheets
     isValidatingLinks,
+    linkCheckTotal,
     syncMarketListings: async () => {
       toast.info('Google Sheets sync has been disabled. Manage listings directly in the app.');
       return null;
