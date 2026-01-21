@@ -36,6 +36,7 @@ export interface MarketListing {
   updated_at: string;
   org_id: string | null;
   user_id: string;
+  last_verified_date: string | null;
   // Additional fields
   yard: string | null;
   yard_area: string | null;
