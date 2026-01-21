@@ -85,6 +85,7 @@ export function MarketListingEditDialog({
   const [listingId, setListingId] = useState('');
   const [address, setAddress] = useState('');
   const [displayAddress, setDisplayAddress] = useState('');
+  const [displayAddressManuallyEdited, setDisplayAddressManuallyEdited] = useState(false);
   const [city, setCity] = useState('');
   const [submarket, setSubmarket] = useState('');
   const [sizeSf, setSizeSf] = useState('');
@@ -93,8 +94,10 @@ export function MarketListingEditDialog({
   const [status, setStatus] = useState('Active');
   const [listingType, setListingType] = useState('');
   const [askingRate, setAskingRate] = useState('');
+  const [opCosts, setOpCosts] = useState('');
   const [salePrice, setSalePrice] = useState('');
   const [availabilityDate, setAvailabilityDate] = useState('');
+  const [subleaseExp, setSubleaseExp] = useState('');
   const [landlord, setLandlord] = useState('');
   const [brokerSource, setBrokerSource] = useState('');
   const [link, setLink] = useState('');
@@ -102,9 +105,45 @@ export function MarketListingEditDialog({
   const [internalNote, setInternalNote] = useState('');
 
   // Building specs
+  const [warehouseSf, setWarehouseSf] = useState('');
+  const [officeSf, setOfficeSf] = useState('');
   const [clearHeight, setClearHeight] = useState('');
   const [dockDoors, setDockDoors] = useState('');
   const [driveInDoors, setDriveInDoors] = useState('');
+  const [powerAmps, setPowerAmps] = useState('');
+  const [voltage, setVoltage] = useState('');
+  const [sprinkler, setSprinkler] = useState('');
+  const [cranes, setCranes] = useState('');
+  const [craneTons, setCraneTons] = useState('');
+  const [yard, setYard] = useState('');
+  const [yardArea, setYardArea] = useState('');
+  const [crossDock, setCrossDock] = useState('');
+  const [trailerParking, setTrailerParking] = useState('');
+  const [landAcres, setLandAcres] = useState('');
+  const [zoning, setZoning] = useState('');
+  const [mua, setMua] = useState('');
+  const [isDistributionWarehouse, setIsDistributionWarehouse] = useState(false);
+
+  // Handle address change - mirror to displayAddress if not manually edited
+  const handleAddressChange = (value: string) => {
+    setAddress(value);
+    if (!displayAddressManuallyEdited) {
+      setDisplayAddress(value);
+    }
+  };
+
+  // Handle displayAddress change
+  const handleDisplayAddressChange = (value: string) => {
+    setDisplayAddress(value);
+    if (value === '') {
+      // User cleared the field - reset to mirroring mode
+      setDisplayAddressManuallyEdited(false);
+      setDisplayAddress(address);
+    } else if (value !== address) {
+      // User made a different value - mark as manually edited
+      setDisplayAddressManuallyEdited(true);
+    }
+  };
 
   // Generate a unique listing ID
   const generateListingId = () => {
@@ -123,42 +162,78 @@ export function MarketListingEditDialog({
       setListingId(generateListingId());
       setAddress('');
       setDisplayAddress('');
+      setDisplayAddressManuallyEdited(false);
       setCity('');
       setSubmarket('');
       setSizeSf('');
       setStatus('Active');
       setListingType('');
       setAskingRate('');
+      setOpCosts('');
       setSalePrice('');
       setAvailabilityDate('');
+      setSubleaseExp('');
       setLandlord('');
       setBrokerSource('');
       setLink('');
       setNotesPublic('');
       setInternalNote('');
+      setWarehouseSf('');
+      setOfficeSf('');
       setClearHeight('');
       setDockDoors('');
       setDriveInDoors('');
+      setPowerAmps('');
+      setVoltage('');
+      setSprinkler('');
+      setCranes('');
+      setCraneTons('');
+      setYard('');
+      setYardArea('');
+      setCrossDock('');
+      setTrailerParking('');
+      setLandAcres('');
+      setZoning('');
+      setMua('');
+      setIsDistributionWarehouse(false);
     } else if (listing) {
       setListingId(listing.listing_id || '');
       setAddress(listing.address || '');
       setDisplayAddress(listing.display_address || '');
+      setDisplayAddressManuallyEdited(listing.display_address !== listing.address);
       setCity(listing.city || '');
       setSubmarket(listing.submarket || '');
       setSizeSf(listing.size_sf?.toString() || '');
       setStatus(listing.status || 'Active');
       setListingType(listing.listing_type || '');
       setAskingRate(listing.asking_rate_psf || '');
+      setOpCosts(listing.op_costs || '');
       setSalePrice(listing.sale_price || '');
       setAvailabilityDate(listing.availability_date || '');
+      setSubleaseExp(listing.sublease_exp || '');
       setLandlord(listing.landlord || '');
       setBrokerSource(listing.broker_source || '');
       setLink(listing.link || '');
       setNotesPublic(listing.notes_public || '');
       setInternalNote(listing.internal_note || '');
+      setWarehouseSf(listing.warehouse_sf?.toString() || '');
+      setOfficeSf(listing.office_sf?.toString() || '');
       setClearHeight(listing.clear_height_ft?.toString() || '');
       setDockDoors(listing.dock_doors?.toString() || '');
       setDriveInDoors(listing.drive_in_doors?.toString() || '');
+      setPowerAmps(listing.power_amps || '');
+      setVoltage(listing.voltage || '');
+      setSprinkler(listing.sprinkler || '');
+      setCranes(listing.cranes || '');
+      setCraneTons(listing.crane_tons || '');
+      setYard(listing.yard || '');
+      setYardArea(listing.yard_area || '');
+      setCrossDock(listing.cross_dock || '');
+      setTrailerParking(listing.trailer_parking || '');
+      setLandAcres(listing.land_acres || '');
+      setZoning(listing.zoning || '');
+      setMua(listing.mua || '');
+      setIsDistributionWarehouse(listing.is_distribution_warehouse || false);
     }
   }, [listing, isCreateMode, open]);
 
@@ -207,8 +282,9 @@ export function MarketListingEditDialog({
       toast.error('Address is required');
       return;
     }
-    if (!submarket.trim()) {
-      toast.error('Submarket is required');
+    // Submarket required only if city is not Calgary (Calgary will auto-assign)
+    if (city !== 'Calgary' && !submarket.trim()) {
+      toast.error('Submarket is required for non-Calgary listings');
       return;
     }
 
@@ -220,22 +296,39 @@ export function MarketListingEditDialog({
           listing_id: listingId.trim(),
           address: address.trim(),
           display_address: displayAddress.trim() || address.trim(),
-          city: city.trim() || '',
-          submarket: submarket.trim(),
+          city: city || '',
+          submarket: city === 'Calgary' ? (submarket.trim() || 'Pending') : submarket.trim(),
           size_sf: parseInt(sizeSf) || 0,
           status,
           listing_type: listingType || null,
           asking_rate_psf: askingRate || null,
+          op_costs: opCosts || null,
           sale_price: salePrice || null,
           availability_date: availabilityDate || null,
+          sublease_exp: subleaseExp || null,
           landlord: landlord || null,
           broker_source: brokerSource || null,
           link: link || null,
           notes_public: notesPublic || null,
           internal_note: internalNote || null,
+          warehouse_sf: warehouseSf ? parseInt(warehouseSf) : null,
+          office_sf: officeSf ? parseInt(officeSf) : null,
           clear_height_ft: clearHeight ? parseFloat(clearHeight) : null,
-          dock_doors: dockDoors ? parseInt(dockDoors) : 0,
-          drive_in_doors: driveInDoors ? parseInt(driveInDoors) : 0,
+          dock_doors: dockDoors ? parseInt(dockDoors) : null,
+          drive_in_doors: driveInDoors ? parseInt(driveInDoors) : null,
+          power_amps: powerAmps || null,
+          voltage: voltage || null,
+          sprinkler: sprinkler || null,
+          cranes: cranes || null,
+          crane_tons: craneTons || null,
+          yard: yard || null,
+          yard_area: yardArea || null,
+          cross_dock: crossDock || null,
+          trailer_parking: trailerParking || null,
+          land_acres: landAcres || null,
+          zoning: zoning || null,
+          mua: mua || null,
+          is_distribution_warehouse: isDistributionWarehouse,
           user_id: user.id,
           org_id: org.id,
         });
@@ -344,13 +437,13 @@ export function MarketListingEditDialog({
                   <Input
                     id="address"
                     value={address}
-                    onChange={(e) => setAddress(e.target.value)}
+                    onChange={(e) => handleAddressChange(e.target.value)}
                     className="col-span-3"
                     placeholder="e.g., 123 Industrial Way"
                   />
                 </div>
 
-                {/* Display Address */}
+                {/* Display Address - mirrors Address unless manually edited */}
                 <div className="grid grid-cols-4 items-center gap-4">
                   <Label htmlFor="displayAddress" className="text-right">
                     Display Address
@@ -358,7 +451,7 @@ export function MarketListingEditDialog({
                   <Input
                     id="displayAddress"
                     value={displayAddress}
-                    onChange={(e) => setDisplayAddress(e.target.value)}
+                    onChange={(e) => handleDisplayAddressChange(e.target.value)}
                     className="col-span-3"
                     placeholder="e.g., 123 Industrial Way — Unit 4"
                   />
@@ -385,18 +478,33 @@ export function MarketListingEditDialog({
                   </div>
                 </div>
 
-                {/* Submarket */}
+                {/* Submarket - auto-assigned for Calgary, manual input for others */}
                 <div className="grid grid-cols-4 items-center gap-4">
                   <Label htmlFor="submarket" className="text-right">
-                    Submarket *
+                    Submarket {city !== 'Calgary' && '*'}
                   </Label>
-                  <Input
-                    id="submarket"
-                    value={submarket}
-                    onChange={(e) => setSubmarket(e.target.value)}
-                    className="col-span-3"
-                    placeholder="e.g., SE Industrial"
-                  />
+                  {city === 'Calgary' ? (
+                    <div className="col-span-3">
+                      <Input
+                        id="submarket"
+                        value={submarket || 'Auto-assigned on save'}
+                        readOnly
+                        disabled
+                        className="bg-muted cursor-not-allowed text-muted-foreground"
+                      />
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Submarket will be auto-assigned based on geocoded location
+                      </p>
+                    </div>
+                  ) : (
+                    <Input
+                      id="submarket"
+                      value={submarket}
+                      onChange={(e) => setSubmarket(e.target.value)}
+                      className="col-span-3"
+                      placeholder="e.g., SE Industrial"
+                    />
+                  )}
                 </div>
 
                 {/* Size */}
@@ -411,6 +519,26 @@ export function MarketListingEditDialog({
                     onChange={(e) => setSizeSf(e.target.value)}
                     className="col-span-3"
                     placeholder="e.g., 150000"
+                  />
+                </div>
+
+                {/* Warehouse / Office SF */}
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label className="text-right">Warehouse SF</Label>
+                  <Input
+                    type="number"
+                    value={warehouseSf}
+                    onChange={(e) => setWarehouseSf(e.target.value)}
+                    className="col-span-1"
+                    placeholder="120000"
+                  />
+                  <Label className="text-right">Office SF</Label>
+                  <Input
+                    type="number"
+                    value={officeSf}
+                    onChange={(e) => setOfficeSf(e.target.value)}
+                    className="col-span-1"
+                    placeholder="5000"
                   />
                 </div>
               </>
@@ -472,31 +600,39 @@ export function MarketListingEditDialog({
               />
             </div>
 
-            {/* Asking Rate */}
+            {/* Asking Rate / Op Costs */}
             <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="askingRate" className="text-right">
-                Asking Rate (PSF)
-              </Label>
+              <Label className="text-right">Asking Rate (PSF)</Label>
               <Input
-                id="askingRate"
                 value={askingRate}
                 onChange={(e) => setAskingRate(e.target.value)}
-                className="col-span-3"
-                placeholder="e.g., $12.50"
+                className="col-span-1"
+                placeholder="$12.50"
+              />
+              <Label className="text-right">Op Costs</Label>
+              <Input
+                value={opCosts}
+                onChange={(e) => setOpCosts(e.target.value)}
+                className="col-span-1"
+                placeholder="$4.50"
               />
             </div>
 
-            {/* Sale Price */}
+            {/* Sale Price / Sublease Exp */}
             <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="salePrice" className="text-right">
-                Sale Price
-              </Label>
+              <Label className="text-right">Sale Price</Label>
               <Input
-                id="salePrice"
                 value={salePrice}
                 onChange={(e) => setSalePrice(e.target.value)}
-                className="col-span-3"
-                placeholder="e.g., $5,000,000"
+                className="col-span-1"
+                placeholder="$5,000,000"
+              />
+              <Label className="text-right">Sublease Exp</Label>
+              <Input
+                value={subleaseExp}
+                onChange={(e) => setSubleaseExp(e.target.value)}
+                className="col-span-1"
+                placeholder="Dec 2027"
               />
             </div>
 
@@ -541,7 +677,12 @@ export function MarketListingEditDialog({
               />
             </div>
 
-            {/* Building Specs */}
+            {/* Building Specs Section Header */}
+            <div className="border-t pt-4 mt-2">
+              <p className="text-sm font-semibold text-muted-foreground mb-3">Building Specs</p>
+            </div>
+
+            {/* Clear Height / Dock Doors */}
             <div className="grid grid-cols-4 items-center gap-4">
               <Label className="text-right">Clear Height (ft)</Label>
               <Input
@@ -549,7 +690,6 @@ export function MarketListingEditDialog({
                 value={clearHeight}
                 onChange={(e) => setClearHeight(e.target.value)}
                 className="col-span-1"
-                placeholder="32"
               />
               <Label className="text-right">Dock Doors</Label>
               <Input
@@ -557,10 +697,10 @@ export function MarketListingEditDialog({
                 value={dockDoors}
                 onChange={(e) => setDockDoors(e.target.value)}
                 className="col-span-1"
-                placeholder="10"
               />
             </div>
 
+            {/* Drive-In / Power */}
             <div className="grid grid-cols-4 items-center gap-4">
               <Label className="text-right">Drive-In Doors</Label>
               <Input
@@ -568,9 +708,130 @@ export function MarketListingEditDialog({
                 value={driveInDoors}
                 onChange={(e) => setDriveInDoors(e.target.value)}
                 className="col-span-1"
+              />
+              <Label className="text-right">Power (Amps)</Label>
+              <Input
+                value={powerAmps}
+                onChange={(e) => setPowerAmps(e.target.value)}
+                className="col-span-1"
+                placeholder="2000"
+              />
+            </div>
+
+            {/* Voltage / Sprinkler */}
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label className="text-right">Voltage</Label>
+              <Input
+                value={voltage}
+                onChange={(e) => setVoltage(e.target.value)}
+                className="col-span-1"
+                placeholder="600V"
+              />
+              <Label className="text-right">Sprinkler</Label>
+              <Input
+                value={sprinkler}
+                onChange={(e) => setSprinkler(e.target.value)}
+                className="col-span-1"
+                placeholder="ESFR"
+              />
+            </div>
+
+            {/* Cranes / Crane Tons */}
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label className="text-right">Cranes</Label>
+              <Input
+                value={cranes}
+                onChange={(e) => setCranes(e.target.value)}
+                className="col-span-1"
                 placeholder="2"
               />
-              <div className="col-span-2" />
+              <Label className="text-right">Crane Tons</Label>
+              <Input
+                value={craneTons}
+                onChange={(e) => setCraneTons(e.target.value)}
+                className="col-span-1"
+                placeholder="10T"
+              />
+            </div>
+
+            {/* Yard / Yard Area */}
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label className="text-right">Yard</Label>
+              <Input
+                value={yard}
+                onChange={(e) => setYard(e.target.value)}
+                className="col-span-1"
+                placeholder="Yes/No"
+              />
+              <Label className="text-right">Yard Area</Label>
+              <Input
+                value={yardArea}
+                onChange={(e) => setYardArea(e.target.value)}
+                className="col-span-1"
+                placeholder="2 acres"
+              />
+            </div>
+
+            {/* Cross-Dock / Trailer Parking */}
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label className="text-right">Cross-Dock</Label>
+              <Input
+                value={crossDock}
+                onChange={(e) => setCrossDock(e.target.value)}
+                className="col-span-1"
+                placeholder="Yes/No"
+              />
+              <Label className="text-right">Trailer Parking</Label>
+              <Input
+                value={trailerParking}
+                onChange={(e) => setTrailerParking(e.target.value)}
+                className="col-span-1"
+                placeholder="20 stalls"
+              />
+            </div>
+
+            {/* Land Acres / Zoning */}
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label className="text-right">Land Acres</Label>
+              <Input
+                value={landAcres}
+                onChange={(e) => setLandAcres(e.target.value)}
+                className="col-span-1"
+                placeholder="5.2"
+              />
+              <Label className="text-right">Zoning</Label>
+              <Input
+                value={zoning}
+                onChange={(e) => setZoning(e.target.value)}
+                className="col-span-1"
+                placeholder="I-G"
+              />
+            </div>
+
+            {/* MUA / Distribution Warehouse */}
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label className="text-right">MUA</Label>
+              <Input
+                value={mua}
+                onChange={(e) => setMua(e.target.value)}
+                className="col-span-1"
+                placeholder="Yes/No"
+              />
+              <Label className="text-right">Dist. Warehouse</Label>
+              <div className="col-span-1 flex items-center">
+                <input
+                  type="checkbox"
+                  checked={isDistributionWarehouse}
+                  onChange={(e) => setIsDistributionWarehouse(e.target.checked)}
+                  className="h-4 w-4 rounded border-foreground"
+                />
+                <span className="ml-2 text-sm">{isDistributionWarehouse ? 'Yes' : 'No'}</span>
+              </div>
+            </div>
+
+            {/* Notes Section Header */}
+            <div className="border-t pt-4 mt-2">
+              <p className="text-sm font-semibold text-muted-foreground mb-3">Notes</p>
             </div>
 
             {/* Public Notes */}
