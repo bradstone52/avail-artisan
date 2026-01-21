@@ -638,10 +638,10 @@ export function MarketListingEditDialog({
               </div>
             </div>
 
-            {/* Broker Source */}
+            {/* Brokerage */}
             <div className="grid grid-cols-4 items-center gap-4">
               <Label htmlFor="brokerSource" className="text-right">
-                Broker
+                Brokerage
               </Label>
               <Input
                 id="brokerSource"

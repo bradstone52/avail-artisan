@@ -218,7 +218,7 @@ export function MarketListingsTable({ listings, onEdit, onRefresh, sortColumn, s
             <TableHead className="text-background min-w-[90px]">Sub Exp</TableHead>
             <TableHead className="text-background min-w-[90px]">Avail</TableHead>
             <TableHead className="text-background min-w-[140px]">Landlord</TableHead>
-            <TableHead className="text-background min-w-[140px]">Broker</TableHead>
+            <TableHead className="text-background min-w-[140px]">Brokerage</TableHead>
             <TableHead className="text-background min-w-[60px]">DW</TableHead>
             <TableHead className="text-background min-w-[50px]">Geo</TableHead>
             <TableHead className="text-background min-w-[50px]">Link</TableHead>
