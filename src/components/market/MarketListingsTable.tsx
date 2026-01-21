@@ -317,6 +317,7 @@ export function MarketListingsTable({ listings, onEdit, onRefresh, sortColumn, s
             <TableHead className="text-background min-w-[130px]">Submarket</TableHead>
             <TableHead className="text-background min-w-[100px]">City</TableHead>
             <TableHead className="text-background min-w-[80px]">Type</TableHead>
+            <TableHead className="text-background min-w-[60px]">DW</TableHead>
             <SortableHeader column="size_sf" className="text-right min-w-[100px]">Size (SF)</SortableHeader>
             <SortableHeader column="warehouse_sf" className="text-right min-w-[110px]">Warehouse SF</SortableHeader>
             <SortableHeader column="office_sf" className="text-right min-w-[90px]">Office SF</SortableHeader>
@@ -343,7 +344,7 @@ export function MarketListingsTable({ listings, onEdit, onRefresh, sortColumn, s
             <TableHead className="text-background min-w-[90px]">Avail</TableHead>
             <TableHead className="text-background min-w-[140px]">Landlord</TableHead>
             <TableHead className="text-background min-w-[140px]">Brokerage</TableHead>
-            <TableHead className="text-background min-w-[60px]">DW</TableHead>
+            <TableHead className="text-background min-w-[50px]">Geo</TableHead>
             <TableHead className="text-background min-w-[50px]">Geo</TableHead>
             <TableHead className="text-background min-w-[50px]">Link</TableHead>
             <TableHead className="text-background min-w-[180px]">Notes</TableHead>
@@ -422,6 +423,26 @@ export function MarketListingsTable({ listings, onEdit, onRefresh, sortColumn, s
               
               {/* Type */}
               <TableCell className="text-sm">{listing.listing_type || '-'}</TableCell>
+              
+              {/* Distribution Warehouse */}
+              <TableCell>
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleToggleDW(listing);
+                  }}
+                  disabled={updatingDW === listing.id}
+                  className={`px-2 py-1 text-xs font-bold uppercase border-2 border-foreground transition-all disabled:opacity-50 ${
+                    listing.is_distribution_warehouse 
+                      ? 'bg-primary text-primary-foreground shadow-[2px_2px_0_hsl(var(--foreground))]' 
+                      : 'bg-destructive text-destructive-foreground shadow-[2px_2px_0_hsl(var(--foreground))]'
+                  }`}
+                  style={{ borderRadius: 'var(--radius)' }}
+                >
+                  {listing.is_distribution_warehouse ? 'Y' : 'N'}
+                </button>
+              </TableCell>
               
               {/* Size */}
               <TableCell className="text-right font-mono text-sm">
@@ -519,26 +540,6 @@ export function MarketListingsTable({ listings, onEdit, onRefresh, sortColumn, s
                 <div className="truncate max-w-[130px] text-sm" title={listing.broker_source || ''}>
                   {listing.broker_source || '-'}
                 </div>
-              </TableCell>
-              
-              {/* Distribution Warehouse */}
-              <TableCell>
-                <button
-                  type="button"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleToggleDW(listing);
-                  }}
-                  disabled={updatingDW === listing.id}
-                  className={`px-2 py-1 text-xs font-bold uppercase border-2 border-foreground transition-all disabled:opacity-50 ${
-                    listing.is_distribution_warehouse 
-                      ? 'bg-primary text-primary-foreground shadow-[2px_2px_0_hsl(var(--foreground))]' 
-                      : 'bg-destructive text-destructive-foreground shadow-[2px_2px_0_hsl(var(--foreground))]'
-                  }`}
-                  style={{ borderRadius: 'var(--radius)' }}
-                >
-                  {listing.is_distribution_warehouse ? 'Y' : 'N'}
-                </button>
               </TableCell>
               
               {/* Geocoded - with edit functionality */}
