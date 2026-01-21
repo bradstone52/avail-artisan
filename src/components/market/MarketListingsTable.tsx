@@ -79,12 +79,13 @@ export function MarketListingsTable({ listings, onEdit, onRefresh }: MarketListi
 
   // Keyboard horizontal scroll - works when hovering over the table
   useEffect(() => {
-    const container = scrollContainerRef.current;
-    if (!container) return;
-
     const handleKeyDown = (e: KeyboardEvent) => {
       // Only respond when mouse is over the table area
       if (!isHovered) return;
+
+      // Find the scrollable container (Table component's inner div)
+      const container = scrollContainerRef.current?.querySelector('.overflow-auto, [class*="overflow-auto"]') as HTMLElement;
+      if (!container) return;
 
       const scrollAmount = 300;
       
@@ -106,7 +107,7 @@ export function MarketListingsTable({ listings, onEdit, onRefresh }: MarketListi
   return (
     <div 
       ref={scrollContainerRef}
-      className="overflow-x-auto"
+      className="relative"
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
       role="region"
