@@ -19,6 +19,8 @@ import {
 import { StatusDropdown } from '@/components/market/StatusDropdown';
 import { ExternalLink, MapPin, Pencil, Receipt, ArrowUp, ArrowDown, ArrowUpDown } from 'lucide-react';
 import { format } from 'date-fns';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
 
 export type SortDirection = 'asc' | 'desc' | null;
 export type SortableColumn = 'size_sf' | 'warehouse_sf' | 'office_sf' | 'dock_doors' | 'drive_in_doors' | 'power_amps';
@@ -82,6 +84,27 @@ export function MarketListingsTable({ listings, onEdit, onRefresh, sortColumn, s
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const [isHovered, setIsHovered] = useState(false);
   const [selectedRowId, setSelectedRowId] = useState<string | null>(null);
+  const [updatingDW, setUpdatingDW] = useState<string | null>(null);
+
+  // Toggle distribution warehouse flag
+  const handleToggleDW = async (listing: MarketListing) => {
+    setUpdatingDW(listing.id);
+    try {
+      const newValue = !listing.is_distribution_warehouse;
+      const { error } = await supabase
+        .from('market_listings')
+        .update({ is_distribution_warehouse: newValue, updated_at: new Date().toISOString() })
+        .eq('id', listing.id);
+
+      if (error) throw error;
+      onRefresh();
+    } catch (err) {
+      console.error('Error updating DW flag:', err);
+      toast.error('Failed to update');
+    } finally {
+      setUpdatingDW(null);
+    }
+  };
 
   // Sortable header component
   const SortableHeader = ({ column, children, className = '' }: { column: SortableColumn; children: React.ReactNode; className?: string }) => {
@@ -377,11 +400,19 @@ export function MarketListingsTable({ listings, onEdit, onRefresh, sortColumn, s
               
               {/* Distribution Warehouse */}
               <TableCell>
-                {listing.is_distribution_warehouse ? (
-                  <Badge variant="outline" className="text-xs bg-primary/10 text-primary border-primary/20">Y</Badge>
-                ) : (
-                  <span className="text-muted-foreground text-sm">-</span>
-                )}
+                <button
+                  type="button"
+                  onClick={() => handleToggleDW(listing)}
+                  disabled={updatingDW === listing.id}
+                  className={`px-2 py-1 text-xs font-bold uppercase border-2 border-foreground transition-all disabled:opacity-50 ${
+                    listing.is_distribution_warehouse 
+                      ? 'bg-primary text-primary-foreground shadow-[2px_2px_0_hsl(var(--foreground))]' 
+                      : 'bg-destructive text-destructive-foreground shadow-[2px_2px_0_hsl(var(--foreground))]'
+                  }`}
+                  style={{ borderRadius: 'var(--radius)' }}
+                >
+                  {listing.is_distribution_warehouse ? 'Y' : 'N'}
+                </button>
               </TableCell>
               
               {/* Geocoded */}

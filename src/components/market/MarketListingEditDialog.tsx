@@ -879,14 +879,19 @@ export function MarketListingEditDialog({
                 placeholder="Yes/No"
               />
               <Label className="text-right">Dist. Warehouse</Label>
-              <div className="col-span-1 flex items-center">
-                <input
-                  type="checkbox"
-                  checked={isDistributionWarehouse}
-                  onChange={(e) => setIsDistributionWarehouse(e.target.checked)}
-                  className="h-4 w-4 rounded border-foreground"
-                />
-                <span className="ml-2 text-sm">{isDistributionWarehouse ? 'Yes' : 'No'}</span>
+              <div className="col-span-1">
+                <button
+                  type="button"
+                  onClick={() => setIsDistributionWarehouse(!isDistributionWarehouse)}
+                  className={`px-3 py-1.5 text-xs font-bold uppercase tracking-wide border-2 border-foreground transition-all ${
+                    isDistributionWarehouse 
+                      ? 'bg-primary text-primary-foreground shadow-[2px_2px_0_hsl(var(--foreground))]' 
+                      : 'bg-destructive text-destructive-foreground shadow-[2px_2px_0_hsl(var(--foreground))]'
+                  }`}
+                  style={{ borderRadius: 'var(--radius)' }}
+                >
+                  {isDistributionWarehouse ? 'Yes' : 'No'}
+                </button>
               </div>
             </div>
 
