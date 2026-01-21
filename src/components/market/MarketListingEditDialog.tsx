@@ -949,7 +949,7 @@ export function MarketListingEditDialog({
                 onChange={(e) => setNotesPublic(e.target.value)}
                 className={`col-span-3 placeholder-light ${notesPublic ? 'input-filled' : ''}`}
                 rows={2}
-                placeholder="e.g., Visible on reports"
+                placeholder="Visible on reports"
               />
             </div>
 
@@ -964,7 +964,7 @@ export function MarketListingEditDialog({
                 onChange={(e) => setInternalNote(e.target.value)}
                 className={`col-span-3 placeholder-light ${internalNote ? 'input-filled' : ''}`}
                 rows={2}
-                placeholder="e.g., Private notes (not shown externally)"
+                placeholder="Private notes (not shown externally)"
               />
             </div>
           </div>
