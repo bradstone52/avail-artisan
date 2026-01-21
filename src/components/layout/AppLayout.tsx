@@ -29,13 +29,13 @@ const navigation = [
   { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
   { name: 'Listings', href: '/listings', icon: FileSpreadsheet },
   { name: 'Create Issue', href: '/issue-builder', icon: FilePlus },
+  { name: 'Recipients', href: '/recipients', icon: Mail },
+  { name: 'Market Listings', href: '/market-listings', icon: Database },
+  { name: 'Transactions', href: '/transactions', icon: Receipt },
 ];
 
 const adminNavigation = [
   { name: 'User Management', href: '/admin/users', icon: Users },
-  { name: 'Recipients', href: '/recipients', icon: Mail },
-  { name: 'Market Listings', href: '/market-listings', icon: Database },
-  { name: 'Transactions', href: '/transactions', icon: Receipt },
 ];
 
 export function AppLayout({ children }: AppLayoutProps) {
