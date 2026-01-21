@@ -191,12 +191,18 @@ export function FixLinksDialog({ open, onOpenChange, listings, onListingUpdated 
               <Button
                 size="sm"
                 variant="outline"
-                onClick={() => window.open(buildGoogleSearchUrl(listing), '_blank')}
+                asChild
                 className="h-7 text-xs"
               >
-                <Search className="w-3 h-3 mr-1" />
-                Google Search
-                <ExternalLink className="w-3 h-3 ml-1" />
+                <a 
+                  href={buildGoogleSearchUrl(listing)} 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                >
+                  <Search className="w-3 h-3 mr-1" />
+                  Google Search
+                  <ExternalLink className="w-3 h-3 ml-1" />
+                </a>
               </Button>
               <Button
                 size="sm"
