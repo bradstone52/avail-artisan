@@ -36,14 +36,14 @@ export default function DistributionMapViewer() {
         setLoading(true);
 
         // Fetch listings for this org
+        // Fetch distribution listings from market_listings table
         const { data: listingsData, error: listingsError } = await supabase
-          .from("listings")
+          .from("market_listings")
           .select(`
             id,
             listing_id,
             address,
             display_address,
-            property_name,
             city,
             submarket,
             size_sf,
@@ -56,7 +56,7 @@ export default function DistributionMapViewer() {
           `)
           .eq("org_id", org.id)
           .eq("status", "Active")
-          .eq("include_in_issue", true)
+          .eq("is_distribution_warehouse", true)
           .order("size_sf", { ascending: false });
 
         if (listingsError) {
@@ -64,8 +64,26 @@ export default function DistributionMapViewer() {
           throw new Error(listingsError.message);
         }
 
-        setListings(listingsData || []);
-        console.log(`[DistributionMapViewer] Loaded ${listingsData?.length || 0} listings`);
+        // Map to expected format (market_listings uses display_address instead of property_name)
+        const mappedListings: MapListing[] = (listingsData || []).map(ml => ({
+          id: ml.id,
+          listing_id: ml.listing_id,
+          address: ml.address,
+          display_address: ml.display_address,
+          property_name: ml.display_address, // Use display_address as property_name
+          city: ml.city,
+          submarket: ml.submarket,
+          size_sf: ml.size_sf,
+          clear_height_ft: ml.clear_height_ft,
+          dock_doors: ml.dock_doors,
+          drive_in_doors: ml.drive_in_doors,
+          availability_date: ml.availability_date,
+          latitude: ml.latitude,
+          longitude: ml.longitude,
+        }));
+
+        setListings(mappedListings);
+        console.log(`[DistributionMapViewer] Loaded ${mappedListings.length} distribution listings`);
 
         // Fetch Google Maps API key via authenticated endpoint
         const { data: tokenData, error: tokenError } = await supabase.functions.invoke("get-google-maps-token", {
