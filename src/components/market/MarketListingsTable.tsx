@@ -402,7 +402,10 @@ export function MarketListingsTable({ listings, onEdit, onRefresh, sortColumn, s
               <TableCell>
                 <button
                   type="button"
-                  onClick={() => handleToggleDW(listing)}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleToggleDW(listing);
+                  }}
                   disabled={updatingDW === listing.id}
                   className={`px-2 py-1 text-xs font-bold uppercase border-2 border-foreground transition-all disabled:opacity-50 ${
                     listing.is_distribution_warehouse 
