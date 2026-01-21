@@ -24,8 +24,8 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { StatusDropdown } from '@/components/market/StatusDropdown';
 import { EditMarketPinDialog } from '@/components/market/EditMarketPinDialog';
-import { ExternalLink, MapPin, MapPinOff, Hand, Pencil, Receipt, RotateCcw, ArrowUp, ArrowDown, ArrowUpDown } from 'lucide-react';
-import { format } from 'date-fns';
+import { ExternalLink, MapPin, MapPinOff, Hand, Pencil, Receipt, RotateCcw, ArrowUp, ArrowDown, ArrowUpDown, CheckCircle } from 'lucide-react';
+import { format, differenceInDays, parseISO } from 'date-fns';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
@@ -93,7 +93,40 @@ export function MarketListingsTable({ listings, onEdit, onRefresh, sortColumn, s
   const [isHovered, setIsHovered] = useState(false);
   const [selectedRowId, setSelectedRowId] = useState<string | null>(null);
   const [updatingDW, setUpdatingDW] = useState<string | null>(null);
+  const [verifyingId, setVerifyingId] = useState<string | null>(null);
   const [editPinListing, setEditPinListing] = useState<MarketListing | null>(null);
+
+  // Check if listing is stale (not verified in past 30 days)
+  const isStale = (listing: MarketListing): boolean => {
+    if (!listing.last_verified_date) return true;
+    try {
+      const verifiedDate = parseISO(listing.last_verified_date);
+      return differenceInDays(new Date(), verifiedDate) > 30;
+    } catch {
+      return true;
+    }
+  };
+
+  // Mark listing as verified today
+  const handleVerify = async (listing: MarketListing) => {
+    setVerifyingId(listing.id);
+    try {
+      const today = format(new Date(), 'yyyy-MM-dd');
+      const { error } = await supabase
+        .from('market_listings')
+        .update({ last_verified_date: today, updated_at: new Date().toISOString() })
+        .eq('id', listing.id);
+
+      if (error) throw error;
+      toast.success('Listing verified');
+      onRefresh();
+    } catch (err) {
+      console.error('Failed to verify listing:', err);
+      toast.error('Failed to verify listing');
+    } finally {
+      setVerifyingId(null);
+    }
+  };
 
   // Reset pin to auto-geocode
   const handleResetPin = async (listing: MarketListing) => {
@@ -278,31 +311,42 @@ export function MarketListingsTable({ listings, onEdit, onRefresh, sortColumn, s
             <TableHead className="text-background min-w-[50px]">Link</TableHead>
             <TableHead className="text-background min-w-[180px]">Notes</TableHead>
             <TableHead className="text-background min-w-[130px]">Status</TableHead>
-            <TableHead className="sticky right-0 z-20 min-w-[90px] bg-zinc-700 dark:bg-zinc-600 text-background shadow-[-2px_0_5px_-2px_rgba(0,0,0,0.3)]">Actions</TableHead>
+            <TableHead className="text-background min-w-[100px]">Verified</TableHead>
+            <TableHead className="sticky right-0 z-20 min-w-[120px] bg-zinc-700 dark:bg-zinc-600 text-background shadow-[-2px_0_5px_-2px_rgba(0,0,0,0.3)]">Actions</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
           {listings.map((listing, index) => {
             const isSelected = selectedRowId === listing.id;
             const isEvenRow = index % 2 === 1;
+            const stale = isStale(listing);
+            // Stale styling - bold red background for unverified listings
+            const staleRowBg = stale ? 'bg-red-700 dark:bg-red-800' : '';
+            const staleTextClass = stale ? 'text-white' : '';
             // Sticky columns match the rest of the table's striping
             const stickyBg = isSelected 
               ? 'bg-secondary' 
-              : isEvenRow 
-                ? 'bg-table-stripe' 
-                : 'bg-card';
-            // Pink hover - darker on striped rows to blend
+              : stale
+                ? 'bg-red-700 dark:bg-red-800'
+                : isEvenRow 
+                  ? 'bg-table-stripe' 
+                  : 'bg-card';
+            // Pink hover - darker on striped rows to blend (override stale on hover)
             const hoverClass = isSelected 
               ? 'hover:!bg-secondary/90' 
-              : isEvenRow
-                ? 'hover:!bg-pink-300 dark:hover:!bg-pink-800'
-                : 'hover:!bg-pink-200 dark:hover:!bg-pink-900/50';
+              : stale
+                ? 'hover:!bg-red-600 dark:hover:!bg-red-700'
+                : isEvenRow
+                  ? 'hover:!bg-pink-300 dark:hover:!bg-pink-800'
+                  : 'hover:!bg-pink-200 dark:hover:!bg-pink-900/50';
             // Sticky hover matches
             const stickyHoverClass = isSelected
               ? ''
-              : isEvenRow
-                ? 'group-hover:!bg-pink-300 dark:group-hover:!bg-pink-800'
-                : 'group-hover:!bg-pink-200 dark:group-hover:!bg-pink-900/50';
+              : stale
+                ? 'group-hover:!bg-red-600 dark:group-hover:!bg-red-700'
+                : isEvenRow
+                  ? 'group-hover:!bg-pink-300 dark:group-hover:!bg-pink-800'
+                  : 'group-hover:!bg-pink-200 dark:group-hover:!bg-pink-900/50';
             // Neo-brutalist border styling - using outline for full border that doesn't conflict with adjacent rows
             const outlineClass = isSelected
               ? 'outline outline-2 outline-amber-600 dark:outline-amber-500 -outline-offset-1'
@@ -311,8 +355,8 @@ export function MarketListingsTable({ listings, onEdit, onRefresh, sortColumn, s
             <TableRow 
               key={listing.id} 
               className={`group cursor-pointer transition-all !border-b-2 !border-foreground ${hoverClass} ${outlineClass} ${
-                isSelected ? '!bg-secondary' : ''
-              }`}
+                isSelected ? '!bg-secondary' : stale ? staleRowBg : ''
+              } ${stale && !isSelected ? staleTextClass : ''}`}
               onClick={() => setSelectedRowId(isSelected ? null : listing.id)}
             >
               {/* Address - Sticky with grey right border */}
@@ -523,9 +567,31 @@ export function MarketListingsTable({ listings, onEdit, onRefresh, sortColumn, s
                 <StatusDropdown listing={listing} onStatusChanged={onRefresh} />
               </TableCell>
               
+              {/* Last Verified */}
+              <TableCell className="text-sm">
+                {listing.last_verified_date 
+                  ? format(parseISO(listing.last_verified_date), 'MMM d, yyyy')
+                  : <span className="text-white/80 font-medium">Never</span>
+                }
+              </TableCell>
+              
               {/* Actions - Sticky with grey left border */}
               <TableCell className={`sticky right-0 z-10 border-l border-gray-300 dark:border-gray-600 transition-colors ${stickyBg} ${stickyHoverClass}`}>
                 <div className="flex items-center gap-0.5">
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        variant={stale ? "default" : "ghost"}
+                        size="icon"
+                        className={cn("h-7 w-7", stale && "bg-green-600 hover:bg-green-700 text-white")}
+                        onClick={(e) => { e.stopPropagation(); handleVerify(listing); }}
+                        disabled={verifyingId === listing.id}
+                      >
+                        <CheckCircle className="h-3.5 w-3.5" />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>Verify Listing</TooltipContent>
+                  </Tooltip>
                   <Tooltip>
                     <TooltipTrigger asChild>
                       <Button
