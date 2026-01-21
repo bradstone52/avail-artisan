@@ -99,11 +99,21 @@ export function MarketListingEditDialog({
   const [dockDoors, setDockDoors] = useState('');
   const [driveInDoors, setDriveInDoors] = useState('');
 
+  // Generate a unique listing ID
+  const generateListingId = () => {
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, '0');
+    const day = String(now.getDate()).padStart(2, '0');
+    const random = Math.random().toString(36).substring(2, 6).toUpperCase();
+    return `ML-${year}${month}${day}-${random}`;
+  };
+
   // Reset form when listing changes or dialog opens
   useEffect(() => {
     if (isCreateMode) {
-      // Reset to empty for create mode
-      setListingId('');
+      // Auto-generate listing ID for create mode
+      setListingId(generateListingId());
       setAddress('');
       setDisplayAddress('');
       setCity('');
@@ -186,10 +196,6 @@ export function MarketListingEditDialog({
     }
 
     // Validate required fields
-    if (!listingId.trim()) {
-      toast.error('Listing ID is required');
-      return;
-    }
     if (!address.trim()) {
       toast.error('Address is required');
       return;
@@ -309,17 +315,17 @@ export function MarketListingEditDialog({
             {/* Core Fields - Show in create mode or as read-only in edit */}
             {isCreateMode && (
               <>
-                {/* Listing ID */}
+                {/* Listing ID - Auto-generated and locked */}
                 <div className="grid grid-cols-4 items-center gap-4">
                   <Label htmlFor="listingId" className="text-right">
-                    Listing ID *
+                    Listing ID
                   </Label>
                   <Input
                     id="listingId"
                     value={listingId}
-                    onChange={(e) => setListingId(e.target.value)}
-                    className="col-span-3"
-                    placeholder="e.g., ML-2026-001"
+                    readOnly
+                    disabled
+                    className="col-span-3 bg-muted cursor-not-allowed"
                   />
                 </div>
 
