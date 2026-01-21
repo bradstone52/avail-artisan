@@ -308,7 +308,7 @@ serve(async (req) => {
     // Fetch the listing
     const { data: listing, error: fetchError } = await adminClient
       .from('market_listings')
-      .select('id, listing_id, address, city, submarket, latitude, longitude')
+      .select('id, listing_id, address, city, submarket, latitude, longitude, geocode_source')
       .eq('listing_id', listingId)
       .single();
 
@@ -320,12 +320,12 @@ serve(async (req) => {
       });
     }
 
-    // Only process Calgary listings for auto-submarket assignment
-    if (listing.city !== 'Calgary') {
-      console.log('[Geocode Market Listing] Not a Calgary listing, skipping submarket assignment');
-      return new Response(JSON.stringify({ 
-        success: true, 
-        message: 'Non-Calgary listing, no submarket assignment needed',
+    // Never overwrite manual pins
+    if (listing.geocode_source === 'manual') {
+      console.log('[Geocode Market Listing] Manual pin detected, skipping');
+      return new Response(JSON.stringify({
+        success: true,
+        message: 'Listing has a manual pin; skipping auto-geocode',
         geocoded: false,
         submarket_assigned: false,
       }), {
@@ -333,13 +333,16 @@ serve(async (req) => {
       });
     }
 
-    // Check if already has valid coordinates and submarket
-    if (listing.latitude && listing.longitude && listing.submarket && 
-        listing.submarket !== 'Pending' && listing.submarket !== '') {
-      console.log('[Geocode Market Listing] Already geocoded and has submarket');
+    const shouldAssignSubmarket = listing.city === 'Calgary';
+
+    // If already has valid coordinates (and for Calgary, a real submarket), do nothing
+    const hasCoords = !!(listing.latitude && listing.longitude);
+    const hasValidSubmarket = !!(listing.submarket && listing.submarket !== 'Pending' && listing.submarket !== '');
+    if (hasCoords && (!shouldAssignSubmarket || hasValidSubmarket)) {
+      console.log('[Geocode Market Listing] Already geocoded; nothing to do');
       return new Response(JSON.stringify({ 
         success: true, 
-        message: 'Listing already has coordinates and submarket',
+        message: 'Listing already has coordinates',
         geocoded: false,
         submarket_assigned: false,
         existing_submarket: listing.submarket,
@@ -373,21 +376,30 @@ serve(async (req) => {
       });
     }
 
-    // Determine submarket using ArcGIS polygon lookup
-    const submarket = await determineSubmarket(geocodeResult.lat, geocodeResult.lng);
+    // Determine submarket (Calgary only)
+    const submarket = shouldAssignSubmarket
+      ? await determineSubmarket(geocodeResult.lat, geocodeResult.lng)
+      : null;
 
-    console.log(`[Geocode Market Listing] Assigned submarket: ${submarket || '(outside Calgary)'}`);
+    if (shouldAssignSubmarket) {
+      console.log(`[Geocode Market Listing] Assigned submarket: ${submarket || '(outside Calgary)'}`);
+    }
+
+    const updatePayload: Record<string, unknown> = {
+      latitude: geocodeResult.lat,
+      longitude: geocodeResult.lng,
+      geocoded_at: new Date().toISOString(),
+      geocode_source: 'google',
+    };
+
+    if (shouldAssignSubmarket) {
+      updatePayload.submarket = submarket || '';
+    }
 
     // Update the listing
     const { error: updateError } = await adminClient
       .from('market_listings')
-      .update({
-        latitude: geocodeResult.lat,
-        longitude: geocodeResult.lng,
-        submarket: submarket || '', // Empty string if outside Calgary
-        geocoded_at: new Date().toISOString(),
-        geocode_source: 'google',
-      })
+      .update(updatePayload)
       .eq('id', listing.id);
 
     if (updateError) {
@@ -403,10 +415,10 @@ serve(async (req) => {
     return new Response(JSON.stringify({ 
       success: true, 
       geocoded: true,
-      submarket_assigned: !!submarket,
+      submarket_assigned: shouldAssignSubmarket && !!submarket,
       latitude: geocodeResult.lat,
       longitude: geocodeResult.lng,
-      submarket: submarket || '',
+      submarket: shouldAssignSubmarket ? (submarket || '') : listing.submarket,
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });

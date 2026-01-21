@@ -1,5 +1,6 @@
 import { useState, useMemo } from 'react';
 import { Listing, ListingFilter } from '@/lib/types';
+import { useAuth } from '@/contexts/AuthContext';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -51,10 +52,46 @@ interface DistributionListingsTableProps {
 }
 
 export function DistributionListingsTable({ listings, onListingUpdated }: DistributionListingsTableProps) {
+  const { session } = useAuth();
   const [search, setSearch] = useState('');
   const [filters, setFilters] = useState<ListingFilter>({});
   const [showFilters, setShowFilters] = useState(false);
   const [editPinListing, setEditPinListing] = useState<Listing | null>(null);
+  const [geocodingId, setGeocodingId] = useState<string | null>(null);
+
+  const handleAutoGeocode = async (listing: Listing) => {
+    const accessToken = session?.access_token;
+    if (!accessToken) {
+      toast.error('Not authenticated');
+      return;
+    }
+
+    setGeocodingId(listing.id);
+    try {
+      const { data, error } = await supabase.functions.invoke('geocode-market-listing', {
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+        },
+        body: { listingId: listing.listing_id },
+      });
+
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+
+      if (data?.geocoded) {
+        toast.success('Geocode updated');
+      } else {
+        toast.message(data?.message || 'No changes');
+      }
+
+      onListingUpdated?.();
+    } catch (err) {
+      console.error('Failed to auto-geocode:', err);
+      toast.error(err instanceof Error ? err.message : 'Failed to auto-geocode');
+    } finally {
+      setGeocodingId(null);
+    }
+  };
 
   // Get unique values for filters
   const submarkets = useMemo(() => 
@@ -317,6 +354,15 @@ export function DistributionListingsTable({ listings, onListingUpdated }: Distri
                           <Pencil className="w-4 h-4 mr-2" />
                           Edit pin location
                         </DropdownMenuItem>
+                        {listing.geocode_source !== 'manual' && (
+                          <DropdownMenuItem
+                            onClick={() => handleAutoGeocode(listing)}
+                            disabled={geocodingId === listing.id}
+                          >
+                            <MapPin className="w-4 h-4 mr-2" />
+                            {geocodingId === listing.id ? 'Auto-geocoding…' : 'Auto-geocode now'}
+                          </DropdownMenuItem>
+                        )}
                         {listing.geocode_source === 'manual' && (
                           <DropdownMenuItem 
                             onClick={async () => {
@@ -332,7 +378,7 @@ export function DistributionListingsTable({ listings, onListingUpdated }: Distri
                                   .eq('id', listing.id);
                                 
                                 if (error) throw error;
-                                toast.success('Pin reset - will be auto-geocoded on next sync');
+                                toast.success('Pin reset — use Auto-geocode to regenerate');
                                 onListingUpdated?.();
                               } catch (err) {
                                 console.error('Failed to reset pin:', err);
