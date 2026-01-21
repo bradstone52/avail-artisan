@@ -36,9 +36,18 @@ import { Loader2, Trash2 } from 'lucide-react';
 import { useOrg } from '@/hooks/useOrg';
 import { useAuth } from '@/contexts/AuthContext';
 
-const STATUS_OPTIONS = [
+// Create mode: only Active/Under Contract (no Sold/Leased or Unknown/Removed for new listings)
+const STATUS_OPTIONS_CREATE = [
   { value: 'Active', label: 'Active' },
   { value: 'Under Contract', label: 'Under Contract' },
+];
+
+// Edit mode: all status options available
+const STATUS_OPTIONS_EDIT = [
+  { value: 'Active', label: 'Active' },
+  { value: 'Under Contract', label: 'Under Contract' },
+  { value: 'Sold/Leased', label: 'Sold/Leased' },
+  { value: 'Unknown/Removed', label: 'Unknown/Removed' },
 ];
 
 // Get status background color to match table styling
@@ -626,7 +635,7 @@ export function MarketListingEditDialog({
                     <SelectValue placeholder="Select status" />
                   </SelectTrigger>
                   <SelectContent>
-                    {STATUS_OPTIONS.map((opt) => (
+                    {(isCreateMode ? STATUS_OPTIONS_CREATE : STATUS_OPTIONS_EDIT).map((opt) => (
                       <SelectItem key={opt.value} value={opt.value}>
                         {opt.label}
                       </SelectItem>
