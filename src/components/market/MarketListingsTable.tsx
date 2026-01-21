@@ -150,11 +150,7 @@ export function MarketListingsTable({ listings, onEdit, onRefresh }: MarketListi
   return (
     <div 
       ref={scrollContainerRef}
-      className={`relative transition-all duration-200 ${
-        isHovered 
-          ? 'ring-4 ring-primary ring-offset-2 ring-offset-background' 
-          : ''
-      }`}
+      className="relative"
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
       role="region"
@@ -162,8 +158,8 @@ export function MarketListingsTable({ listings, onEdit, onRefresh }: MarketListi
     >
       {/* Keyboard scroll indicator */}
       {isHovered && (
-        <div className="absolute -top-8 left-1/2 -translate-x-1/2 z-30 px-3 py-1 bg-foreground text-background text-xs font-bold uppercase tracking-wider rounded shadow-[2px_2px_0_hsl(var(--primary))]">
-          ← → Arrow keys to scroll
+        <div className="absolute -top-10 left-1/2 -translate-x-1/2 z-30 px-4 py-2 bg-primary text-primary-foreground text-sm font-black uppercase tracking-widest rounded-none border-3 border-foreground shadow-[4px_4px_0_hsl(var(--foreground))] animate-pulse">
+          ⌨️ ← → SCROLL
         </div>
       )}
       <Table className="min-w-[3000px]">
