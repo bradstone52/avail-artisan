@@ -150,12 +150,22 @@ export function MarketListingsTable({ listings, onEdit, onRefresh }: MarketListi
   return (
     <div 
       ref={scrollContainerRef}
-      className="relative"
+      className={`relative transition-all duration-200 ${
+        isHovered 
+          ? 'ring-4 ring-primary ring-offset-2 ring-offset-background' 
+          : ''
+      }`}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
       role="region"
       aria-label="Market listings table - use left and right arrow keys to scroll"
     >
+      {/* Keyboard scroll indicator */}
+      {isHovered && (
+        <div className="absolute -top-8 left-1/2 -translate-x-1/2 z-30 px-3 py-1 bg-foreground text-background text-xs font-bold uppercase tracking-wider rounded shadow-[2px_2px_0_hsl(var(--primary))]">
+          ← → Arrow keys to scroll
+        </div>
+      )}
       <Table className="min-w-[3000px]">
         <TableHeader>
           <TableRow className="bg-foreground">
