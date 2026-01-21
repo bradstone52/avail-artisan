@@ -509,7 +509,8 @@ export function MarketListingEditDialog({
                     id="displayAddress"
                     value={displayAddress}
                     onChange={(e) => handleDisplayAddressChange(e.target.value)}
-                    className="col-span-3"
+                    className={`col-span-3 placeholder-light ${displayAddress ? 'input-filled' : ''}`}
+                    placeholder="e.g., 123 Industrial Way — Unit 4"
                   />
                 </div>
 
@@ -557,7 +558,8 @@ export function MarketListingEditDialog({
                       id="submarket"
                       value={submarket}
                       onChange={(e) => setSubmarket(e.target.value)}
-                      className="col-span-3"
+                      className={`col-span-3 placeholder-light ${submarket ? 'input-filled' : ''}`}
+                      placeholder="e.g., SE Industrial"
                     />
                   )}
                 </div>
@@ -572,7 +574,8 @@ export function MarketListingEditDialog({
                     type="number"
                     value={sizeSf}
                     onChange={(e) => setSizeSf(e.target.value)}
-                    className="col-span-3"
+                    className={`col-span-3 placeholder-light ${sizeSf ? 'input-filled' : ''}`}
+                    placeholder="e.g., 150000"
                   />
                 </div>
 
@@ -583,14 +586,16 @@ export function MarketListingEditDialog({
                     type="number"
                     value={warehouseSf}
                     onChange={(e) => setWarehouseSf(e.target.value)}
-                    className="col-span-1"
+                    className={`col-span-1 placeholder-light ${warehouseSf ? 'input-filled' : ''}`}
+                    placeholder="120000"
                   />
                   <Label className="text-right">Office SF</Label>
                   <Input
                     type="number"
                     value={officeSf}
                     onChange={(e) => setOfficeSf(e.target.value)}
-                    className="col-span-1"
+                    className={`col-span-1 placeholder-light ${officeSf ? 'input-filled' : ''}`}
+                    placeholder="5000"
                   />
                 </div>
               </>
@@ -647,7 +652,8 @@ export function MarketListingEditDialog({
                 id="brokerSource"
                 value={brokerSource}
                 onChange={(e) => setBrokerSource(e.target.value)}
-                className="col-span-3"
+                className={`col-span-3 placeholder-light ${brokerSource ? 'input-filled' : ''}`}
+                placeholder="e.g., CBRE"
               />
             </div>
 
@@ -657,13 +663,15 @@ export function MarketListingEditDialog({
               <Input
                 value={askingRate}
                 onChange={(e) => setAskingRate(e.target.value)}
-                className="col-span-1"
+                className={`col-span-1 placeholder-light ${askingRate ? 'input-filled' : ''}`}
+                placeholder="$12.50"
               />
               <Label className="text-right">Op Costs</Label>
               <Input
                 value={opCosts}
                 onChange={(e) => setOpCosts(e.target.value)}
-                className="col-span-1"
+                className={`col-span-1 placeholder-light ${opCosts ? 'input-filled' : ''}`}
+                placeholder="$4.50"
               />
             </div>
 
@@ -673,13 +681,15 @@ export function MarketListingEditDialog({
               <Input
                 value={salePrice}
                 onChange={(e) => setSalePrice(e.target.value)}
-                className="col-span-1"
+                className={`col-span-1 placeholder-light ${salePrice ? 'input-filled' : ''}`}
+                placeholder="$5,000,000"
               />
               <Label className="text-right">Sublease Exp</Label>
               <Input
                 value={subleaseExp}
                 onChange={(e) => setSubleaseExp(e.target.value)}
-                className="col-span-1"
+                className={`col-span-1 placeholder-light ${subleaseExp ? 'input-filled' : ''}`}
+                placeholder="Dec 2027"
               />
             </div>
 
@@ -692,7 +702,8 @@ export function MarketListingEditDialog({
                 id="availability"
                 value={availabilityDate}
                 onChange={(e) => setAvailabilityDate(e.target.value)}
-                className="col-span-3"
+                className={`col-span-3 placeholder-light ${availabilityDate ? 'input-filled' : ''}`}
+                placeholder="e.g., Immediate, Q2 2026"
               />
             </div>
 
@@ -705,7 +716,8 @@ export function MarketListingEditDialog({
                 id="landlord"
                 value={landlord}
                 onChange={(e) => setLandlord(e.target.value)}
-                className="col-span-3"
+                className={`col-span-3 placeholder-light ${landlord ? 'input-filled' : ''}`}
+                placeholder="e.g., Morguard, Oxford"
               />
             </div>
 
@@ -718,7 +730,8 @@ export function MarketListingEditDialog({
                 id="link"
                 value={link}
                 onChange={(e) => setLink(e.target.value)}
-                className="col-span-3"
+                className={`col-span-3 placeholder-light ${link ? 'input-filled' : ''}`}
+                placeholder="https://..."
               />
             </div>
 
@@ -734,14 +747,16 @@ export function MarketListingEditDialog({
                 type="number"
                 value={clearHeight}
                 onChange={(e) => setClearHeight(e.target.value)}
-                className="col-span-1"
+                className={`col-span-1 placeholder-light ${clearHeight ? 'input-filled' : ''}`}
+                placeholder="32"
               />
               <Label className="text-right">Dock Doors</Label>
               <Input
                 type="number"
                 value={dockDoors}
                 onChange={(e) => setDockDoors(e.target.value)}
-                className="col-span-1"
+                className={`col-span-1 placeholder-light ${dockDoors ? 'input-filled' : ''}`}
+                placeholder="12"
               />
             </div>
 
@@ -752,13 +767,15 @@ export function MarketListingEditDialog({
                 type="number"
                 value={driveInDoors}
                 onChange={(e) => setDriveInDoors(e.target.value)}
-                className="col-span-1"
+                className={`col-span-1 placeholder-light ${driveInDoors ? 'input-filled' : ''}`}
+                placeholder="2"
               />
               <Label className="text-right">Power (Amps)</Label>
               <Input
                 value={powerAmps}
                 onChange={(e) => setPowerAmps(e.target.value)}
-                className="col-span-1"
+                className={`col-span-1 placeholder-light ${powerAmps ? 'input-filled' : ''}`}
+                placeholder="2000"
               />
             </div>
 
@@ -768,13 +785,15 @@ export function MarketListingEditDialog({
               <Input
                 value={voltage}
                 onChange={(e) => setVoltage(e.target.value)}
-                className="col-span-1"
+                className={`col-span-1 placeholder-light ${voltage ? 'input-filled' : ''}`}
+                placeholder="600V"
               />
               <Label className="text-right">Sprinkler</Label>
               <Input
                 value={sprinkler}
                 onChange={(e) => setSprinkler(e.target.value)}
-                className="col-span-1"
+                className={`col-span-1 placeholder-light ${sprinkler ? 'input-filled' : ''}`}
+                placeholder="ESFR"
               />
             </div>
 
@@ -784,13 +803,15 @@ export function MarketListingEditDialog({
               <Input
                 value={cranes}
                 onChange={(e) => setCranes(e.target.value)}
-                className="col-span-1"
+                className={`col-span-1 placeholder-light ${cranes ? 'input-filled' : ''}`}
+                placeholder="2"
               />
               <Label className="text-right">Crane Tons</Label>
               <Input
                 value={craneTons}
                 onChange={(e) => setCraneTons(e.target.value)}
-                className="col-span-1"
+                className={`col-span-1 placeholder-light ${craneTons ? 'input-filled' : ''}`}
+                placeholder="10T"
               />
             </div>
 
@@ -800,13 +821,15 @@ export function MarketListingEditDialog({
               <Input
                 value={yard}
                 onChange={(e) => setYard(e.target.value)}
-                className="col-span-1"
+                className={`col-span-1 placeholder-light ${yard ? 'input-filled' : ''}`}
+                placeholder="Yes/No"
               />
               <Label className="text-right">Yard Area</Label>
               <Input
                 value={yardArea}
                 onChange={(e) => setYardArea(e.target.value)}
-                className="col-span-1"
+                className={`col-span-1 placeholder-light ${yardArea ? 'input-filled' : ''}`}
+                placeholder="2 acres"
               />
             </div>
 
@@ -816,13 +839,15 @@ export function MarketListingEditDialog({
               <Input
                 value={crossDock}
                 onChange={(e) => setCrossDock(e.target.value)}
-                className="col-span-1"
+                className={`col-span-1 placeholder-light ${crossDock ? 'input-filled' : ''}`}
+                placeholder="Yes/No"
               />
               <Label className="text-right">Trailer Parking</Label>
               <Input
                 value={trailerParking}
                 onChange={(e) => setTrailerParking(e.target.value)}
-                className="col-span-1"
+                className={`col-span-1 placeholder-light ${trailerParking ? 'input-filled' : ''}`}
+                placeholder="20 stalls"
               />
             </div>
 
@@ -832,13 +857,15 @@ export function MarketListingEditDialog({
               <Input
                 value={landAcres}
                 onChange={(e) => setLandAcres(e.target.value)}
-                className="col-span-1"
+                className={`col-span-1 placeholder-light ${landAcres ? 'input-filled' : ''}`}
+                placeholder="5.2"
               />
               <Label className="text-right">Zoning</Label>
               <Input
                 value={zoning}
                 onChange={(e) => setZoning(e.target.value)}
-                className="col-span-1"
+                className={`col-span-1 placeholder-light ${zoning ? 'input-filled' : ''}`}
+                placeholder="I-G"
               />
             </div>
 
@@ -848,7 +875,8 @@ export function MarketListingEditDialog({
               <Input
                 value={mua}
                 onChange={(e) => setMua(e.target.value)}
-                className="col-span-1"
+                className={`col-span-1 placeholder-light ${mua ? 'input-filled' : ''}`}
+                placeholder="Yes/No"
               />
               <Label className="text-right">Dist. Warehouse</Label>
               <div className="col-span-1 flex items-center">
@@ -876,8 +904,9 @@ export function MarketListingEditDialog({
                 id="notesPublic"
                 value={notesPublic}
                 onChange={(e) => setNotesPublic(e.target.value)}
-                className="col-span-3"
+                className={`col-span-3 placeholder-light ${notesPublic ? 'input-filled' : ''}`}
                 rows={2}
+                placeholder="Visible on reports"
               />
             </div>
 
@@ -890,8 +919,9 @@ export function MarketListingEditDialog({
                 id="internalNote"
                 value={internalNote}
                 onChange={(e) => setInternalNote(e.target.value)}
-                className="col-span-3"
+                className={`col-span-3 placeholder-light ${internalNote ? 'input-filled' : ''}`}
                 rows={2}
+                placeholder="Private notes (not shown externally)"
               />
             </div>
           </div>
