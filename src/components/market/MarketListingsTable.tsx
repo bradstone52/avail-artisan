@@ -1,6 +1,7 @@
 import { useRef, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { MarketListing } from '@/hooks/useMarketListings';
+import { useAuth } from '@/contexts/AuthContext';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
@@ -89,11 +90,13 @@ function calculateGrossRate(askRate: string | null, opCosts: string | null): str
 
 export function MarketListingsTable({ listings, onEdit, onRefresh, sortColumn, sortDirection, onSort }: MarketListingsTableProps) {
   const navigate = useNavigate();
+  const { session } = useAuth();
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const [isHovered, setIsHovered] = useState(false);
   const [selectedRowId, setSelectedRowId] = useState<string | null>(null);
   const [updatingDW, setUpdatingDW] = useState<string | null>(null);
   const [verifyingId, setVerifyingId] = useState<string | null>(null);
+  const [geocodingId, setGeocodingId] = useState<string | null>(null);
   const [editPinListing, setEditPinListing] = useState<MarketListing | null>(null);
 
   // Check if listing is stale (not verified in past 30 days)
@@ -142,11 +145,45 @@ export function MarketListingsTable({ listings, onEdit, onRefresh, sortColumn, s
         .eq('id', listing.id);
       
       if (error) throw error;
-      toast.success('Pin reset - will be auto-geocoded on next sync');
+      toast.success('Pin reset — use Auto-geocode to regenerate');
       onRefresh();
     } catch (err) {
       console.error('Failed to reset pin:', err);
       toast.error('Failed to reset pin location');
+    }
+  };
+
+  const handleAutoGeocode = async (listing: MarketListing) => {
+    const accessToken = session?.access_token;
+    if (!accessToken) {
+      toast.error('Not authenticated');
+      return;
+    }
+
+    setGeocodingId(listing.id);
+    try {
+      const { data, error } = await supabase.functions.invoke('geocode-market-listing', {
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+        },
+        body: { listingId: listing.listing_id },
+      });
+
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+
+      if (data?.geocoded) {
+        toast.success('Geocode updated');
+      } else {
+        toast.message(data?.message || 'No changes');
+      }
+
+      onRefresh();
+    } catch (err) {
+      console.error('Failed to auto-geocode:', err);
+      toast.error(err instanceof Error ? err.message : 'Failed to auto-geocode');
+    } finally {
+      setGeocodingId(null);
     }
   };
 
@@ -537,6 +574,18 @@ export function MarketListingsTable({ listings, onEdit, onRefresh, sortColumn, s
                       <Pencil className="w-4 h-4 mr-2" />
                       Edit pin location
                     </DropdownMenuItem>
+                    {listing.geocode_source !== 'manual' && (
+                      <DropdownMenuItem
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleAutoGeocode(listing);
+                        }}
+                        disabled={geocodingId === listing.id}
+                      >
+                        <MapPin className="w-4 h-4 mr-2" />
+                        {geocodingId === listing.id ? 'Auto-geocoding…' : 'Auto-geocode now'}
+                      </DropdownMenuItem>
+                    )}
                     {listing.geocode_source === 'manual' && (
                       <DropdownMenuItem 
                         onClick={(e) => { e.stopPropagation(); handleResetPin(listing); }}
