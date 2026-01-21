@@ -87,14 +87,15 @@ export function MarketListingsTable({ listings, onEdit, onRefresh }: MarketListi
       const container = scrollContainerRef.current?.querySelector('.overflow-auto, [class*="overflow-auto"]') as HTMLElement;
       if (!container) return;
 
-      const scrollAmount = 300;
+      // Smaller scroll amount for finer control, instant behavior for faster repeat rate
+      const scrollAmount = 120;
       
       if (e.key === 'ArrowLeft') {
         e.preventDefault();
-        container.scrollBy({ left: -scrollAmount, behavior: 'smooth' });
+        container.scrollBy({ left: -scrollAmount, behavior: 'auto' });
       } else if (e.key === 'ArrowRight') {
         e.preventDefault();
-        container.scrollBy({ left: scrollAmount, behavior: 'smooth' });
+        container.scrollBy({ left: scrollAmount, behavior: 'auto' });
       } else if (e.key === 'Escape') {
         setSelectedRowId(null);
       }
