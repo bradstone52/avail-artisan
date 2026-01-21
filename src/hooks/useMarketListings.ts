@@ -87,29 +87,8 @@ export function useMarketListings() {
   const [isValidatingLinks, setIsValidatingLinks] = useState(false);
   const [linkCheckTotal, setLinkCheckTotal] = useState(0); // Total links to check
   const [linkCheckStartedAt, setLinkCheckStartedAt] = useState<string | null>(null);
-
-  // Auto-finish link validation state once we've observed all rows updated for this run.
-  useEffect(() => {
-    if (!isValidatingLinks || !linkCheckStartedAt || linkCheckTotal <= 0) return;
-
-    const checkedThisRun = listings.filter(
-      (l) => !!l.link && l.link !== '' && l.link_last_checked === linkCheckStartedAt
-    ).length;
-
-    if (checkedThisRun >= linkCheckTotal) {
-      const ok = listings.filter(
-        (l) => !!l.link && l.link !== '' && l.link_last_checked === linkCheckStartedAt && l.link_status === 'ok'
-      ).length;
-      const broken = listings.filter(
-        (l) => !!l.link && l.link !== '' && l.link_last_checked === linkCheckStartedAt && l.link_status === 'broken'
-      ).length;
-
-      setIsValidatingLinks(false);
-      setLinkCheckTotal(0);
-      setLinkCheckStartedAt(null);
-      toast.success(`Link check complete: ${ok} ok, ${broken} broken`);
-    }
-  }, [isValidatingLinks, linkCheckStartedAt, linkCheckTotal, listings]);
+  const [linkCheckBaseline, setLinkCheckBaseline] = useState<Record<string, string | null>>({});
+  const [linkCheckChecked, setLinkCheckChecked] = useState(0);
 
   // Fetch market listings for the org
   const fetchListings = useCallback(async () => {
@@ -171,9 +150,28 @@ export function useMarketListings() {
           table: 'market_listings',
           filter: `org_id=eq.${orgId}`,
         },
-        () => {
-          // Refetch on any change
-          fetchListings();
+        (payload) => {
+          // Avoid refetching the whole table for every row update (link check updates hundreds of rows).
+          // Instead, patch local state; this keeps the "X left" counter responsive.
+          const evt = payload.eventType;
+          const next = payload.new as Partial<MarketListing> | null;
+          const prev = payload.old as Partial<MarketListing> | null;
+
+          if (evt === 'UPDATE' && next?.id) {
+            setListings((curr) => curr.map((row) => (row.id === next.id ? ({ ...row, ...next } as MarketListing) : row)));
+            return;
+          }
+
+          // For INSERT/DELETE (rare here), fall back to a refetch to keep ordering consistent.
+          if (evt === 'INSERT' || evt === 'DELETE') {
+            fetchListings();
+            return;
+          }
+
+          // If we can't safely patch, refetch.
+          if (prev?.id || next?.id) {
+            fetchListings();
+          }
         }
       )
       .subscribe();
@@ -190,9 +188,17 @@ export function useMarketListings() {
       return null;
     }
 
+    // Snapshot current link_last_checked so we can compute progress reliably even if
+    // the database formats timestamps differently.
+    const baseline: Record<string, string | null> = {};
+    const linksWithUrl = listings.filter((l) => !!l.link && l.link !== '');
+    for (const l of linksWithUrl) baseline[l.id] = l.link_last_checked;
+
     setIsValidatingLinks(true);
+    setLinkCheckBaseline(baseline);
+    setLinkCheckChecked(0);
     setLinkCheckStartedAt(null);
-    setLinkCheckTotal(0);
+    setLinkCheckTotal(linksWithUrl.length);
 
     try {
       const { data, error } = await supabase.functions.invoke('validate-brochure-links', {
@@ -210,7 +216,8 @@ export function useMarketListings() {
       const total = typeof data?.total === 'number' ? data.total : 0;
 
       setLinkCheckStartedAt(startedAt);
-      setLinkCheckTotal(total);
+      // Prefer backend total (source of truth), but fall back to our computed value.
+      setLinkCheckTotal(total || linksWithUrl.length);
 
       toast.success(`Checking ${total} links...`);
 
@@ -219,12 +226,38 @@ export function useMarketListings() {
     } catch (err) {
       console.error('Link validation error:', err);
       toast.error(err instanceof Error ? err.message : 'Validation failed');
+      setIsValidatingLinks(false);
+      setLinkCheckTotal(0);
+      setLinkCheckStartedAt(null);
+      setLinkCheckBaseline({});
+      setLinkCheckChecked(0);
       return null;
     } finally {
       // Keep isValidatingLinks true while the background job runs; the UI will
       // turn it off when it detects completion.
     }
   };
+
+  // Compute progress based on baseline snapshot.
+  useEffect(() => {
+    if (!isValidatingLinks || linkCheckTotal <= 0) return;
+
+    const linksWithUrl = listings.filter((l) => !!l.link && l.link !== '');
+    const changed = linksWithUrl.filter((l) => (linkCheckBaseline[l.id] ?? null) !== l.link_last_checked).length;
+    setLinkCheckChecked(changed);
+
+    if (changed >= linkCheckTotal) {
+      const ok = linksWithUrl.filter((l) => (linkCheckBaseline[l.id] ?? null) !== l.link_last_checked && l.link_status === 'ok').length;
+      const broken = linksWithUrl.filter((l) => (linkCheckBaseline[l.id] ?? null) !== l.link_last_checked && l.link_status === 'broken').length;
+
+      setIsValidatingLinks(false);
+      setLinkCheckTotal(0);
+      setLinkCheckStartedAt(null);
+      setLinkCheckBaseline({});
+      setLinkCheckChecked(0);
+      toast.success(`Link check complete: ${ok} ok, ${broken} broken`);
+    }
+  }, [isValidatingLinks, linkCheckTotal, linkCheckBaseline, listings]);
 
   // Refresh listings
   const refreshListings = async () => {
@@ -239,6 +272,7 @@ export function useMarketListings() {
     isValidatingLinks,
     linkCheckTotal,
     linkCheckStartedAt,
+    linkCheckChecked,
     syncMarketListings: async () => {
       toast.info('Google Sheets sync has been disabled. Manage listings directly in the app.');
       return null;
