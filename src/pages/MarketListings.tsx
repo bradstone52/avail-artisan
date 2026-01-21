@@ -37,6 +37,7 @@ export default function MarketListings() {
     isValidatingLinks,
     linkCheckTotal,
     linkCheckStartedAt,
+    linkCheckChecked,
     validateLinks,
     refreshListings,
   } = useMarketListings();
@@ -279,15 +280,10 @@ export default function MarketListings() {
   const linksBroken = linksWithUrl.filter(l => l.link_status === 'broken').length;
   const linksUnchecked = linksWithUrl.filter(l => !l.link_status).length;
 
-  const linksCheckedThisRun = useMemo(() => {
-    if (!linkCheckStartedAt) return 0;
-    return linksWithUrl.filter(l => l.link_last_checked === linkCheckStartedAt).length;
-  }, [linksWithUrl, linkCheckStartedAt]);
-
   const linksLeftThisRun = useMemo(() => {
-    if (!linkCheckStartedAt || !linkCheckTotal) return 0;
-    return Math.max(0, linkCheckTotal - linksCheckedThisRun);
-  }, [linkCheckStartedAt, linkCheckTotal, linksCheckedThisRun]);
+    if (!isValidatingLinks || !linkCheckTotal) return 0;
+    return Math.max(0, linkCheckTotal - linkCheckChecked);
+  }, [isValidatingLinks, linkCheckTotal, linkCheckChecked]);
 
   if (loading) {
     return (
@@ -364,7 +360,7 @@ export default function MarketListings() {
               </CardTitle>
             </CardHeader>
             <CardContent className="pt-0">
-              {isValidatingLinks && linkCheckStartedAt && linkCheckTotal > 0 ? (
+              {isValidatingLinks && linkCheckTotal > 0 ? (
                 <span className="text-xs text-muted-foreground">
                   {linksLeftThisRun} of {linkCheckTotal} left to check...
                 </span>
