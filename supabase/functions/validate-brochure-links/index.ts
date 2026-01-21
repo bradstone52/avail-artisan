@@ -197,19 +197,21 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Get user's org
-    const { data: orgMember } = await supabase
+    // Get user's org (use first org if user belongs to multiple)
+    const { data: orgMembers } = await supabase
       .from("org_members")
       .select("org_id")
       .eq("user_id", user.id)
-      .single();
+      .limit(1);
 
-    if (!orgMember) {
+    if (!orgMembers || orgMembers.length === 0) {
       return new Response(JSON.stringify({ error: "No org found" }), {
         status: 400,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
+
+    const orgId = orgMembers[0].org_id;
 
     // Fetch listings with links that haven't been checked recently or never checked
     const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
@@ -217,7 +219,7 @@ Deno.serve(async (req) => {
     const { data: listings, error: fetchError } = await supabase
       .from("market_listings")
       .select("id, link")
-      .eq("org_id", orgMember.org_id)
+      .eq("org_id", orgId)
       .not("link", "is", null)
       .neq("link", "")
       .or(`link_last_checked.is.null,link_last_checked.lt.${oneDayAgo}`)
@@ -299,7 +301,7 @@ Deno.serve(async (req) => {
     const { count: remainingCount } = await supabase
       .from("market_listings")
       .select("id", { count: "exact", head: true })
-      .eq("org_id", orgMember.org_id)
+      .eq("org_id", orgId)
       .not("link", "is", null)
       .neq("link", "")
       .or(`link_last_checked.is.null,link_last_checked.lt.${oneDayAgo}`);
