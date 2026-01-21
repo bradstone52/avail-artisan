@@ -84,9 +84,9 @@ export function MarketListingsTable({ listings, onEdit, onRefresh }: MarketListi
     let velocity = 0;
     let lastTime = performance.now();
     
-    const maxVelocity = 18; // pixels per frame at max speed (increased from 12)
-    const acceleration = 0.25; // how quickly we reach max speed (increased from 0.08)
-    const deceleration = 0.88; // how quickly we slow down (faster stop)
+    const maxVelocity = 15; // pixels per frame at max speed
+    const acceleration = 0.12; // how quickly we reach max speed
+    const deceleration = 0.92; // how quickly we slow down
 
     const animate = (currentTime: number) => {
       // Calculate delta time for frame-rate independent animation
