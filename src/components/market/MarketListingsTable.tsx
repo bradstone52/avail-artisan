@@ -351,12 +351,23 @@ export function MarketListingsTable({ listings, onEdit, onRefresh, sortColumn, s
             const outlineClass = isSelected
               ? 'outline outline-2 outline-amber-600 dark:outline-amber-500 -outline-offset-1'
               : 'outline-0 hover:outline hover:outline-2 hover:outline-pink-500 dark:hover:outline-pink-400 hover:-outline-offset-1';
+            // Zebra striping - stale rows override, then selected, then normal stripe
+            const rowBg = isSelected 
+              ? '!bg-secondary' 
+              : stale 
+                ? '!bg-red-700 dark:!bg-red-800 text-white' 
+                : isEvenRow 
+                  ? 'bg-table-stripe' 
+                  : '';
             return (
             <TableRow 
               key={listing.id} 
-              className={`group cursor-pointer transition-all !border-b-2 !border-foreground ${hoverClass} ${outlineClass} ${
-                isSelected ? '!bg-secondary' : stale ? staleRowBg : ''
-              } ${stale && !isSelected ? staleTextClass : ''}`}
+              className={cn(
+                'group cursor-pointer transition-all !border-b-2 !border-foreground',
+                rowBg,
+                hoverClass,
+                outlineClass
+              )}
               onClick={() => setSelectedRowId(isSelected ? null : listing.id)}
             >
               {/* Address - Sticky with grey right border */}
