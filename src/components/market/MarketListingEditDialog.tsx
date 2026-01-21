@@ -32,7 +32,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Loader2 } from 'lucide-react';
+import { Loader2, Trash2 } from 'lucide-react';
 import { useOrg } from '@/hooks/useOrg';
 import { useAuth } from '@/contexts/AuthContext';
 
@@ -76,7 +76,9 @@ export function MarketListingEditDialog({
   const { user } = useAuth();
   const { org } = useOrg();
   const [isSaving, setIsSaving] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
   const [showTransactionPrompt, setShowTransactionPrompt] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [pendingStatus, setPendingStatus] = useState<string | null>(null);
 
   const isCreateMode = mode === 'create';
@@ -422,6 +424,30 @@ export function MarketListingEditDialog({
       toast.error('Failed to update listing');
     } finally {
       setIsSaving(false);
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!listing) return;
+
+    setIsDeleting(true);
+    try {
+      const { error } = await supabase
+        .from('market_listings')
+        .delete()
+        .eq('id', listing.id);
+
+      if (error) throw error;
+
+      toast.success('Listing deleted');
+      setShowDeleteConfirm(false);
+      onSaved();
+      onOpenChange(false);
+    } catch (err) {
+      console.error('Error deleting listing:', err);
+      toast.error('Failed to delete listing');
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -895,14 +921,26 @@ export function MarketListingEditDialog({
             </div>
           </div>
 
-          <DialogFooter>
-            <Button variant="outline" onClick={() => onOpenChange(false)}>
-              Cancel
-            </Button>
-            <Button onClick={handleSave} disabled={isSaving}>
-              {isSaving && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
-              {isCreateMode ? 'Create Listing' : 'Save Changes'}
-            </Button>
+          <DialogFooter className="flex justify-between sm:justify-between">
+            {!isCreateMode && (
+              <Button 
+                variant="destructive" 
+                onClick={() => setShowDeleteConfirm(true)}
+                disabled={isSaving || isDeleting}
+              >
+                <Trash2 className="w-4 h-4 mr-2" />
+                Delete
+              </Button>
+            )}
+            <div className="flex gap-2">
+              <Button variant="outline" onClick={() => onOpenChange(false)}>
+                Cancel
+              </Button>
+              <Button onClick={handleSave} disabled={isSaving || isDeleting}>
+                {isSaving && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+                {isCreateMode ? 'Create Listing' : 'Save Changes'}
+              </Button>
+            </div>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -923,6 +961,35 @@ export function MarketListingEditDialog({
             </AlertDialogCancel>
             <AlertDialogAction onClick={handleConfirmTransaction}>
               Yes, Create Transaction
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Delete Confirmation */}
+      <AlertDialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Listing?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete "{listing?.display_address || listing?.address}"? 
+              This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDelete}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {isDeleting ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Deleting...
+                </>
+              ) : (
+                'Delete Listing'
+              )}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
