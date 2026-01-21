@@ -1,4 +1,4 @@
-import { useRef, useEffect, useState, useMemo } from 'react';
+import { useRef, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { MarketListing } from '@/hooks/useMarketListings';
 import { Badge } from '@/components/ui/badge';
@@ -20,13 +20,16 @@ import { StatusDropdown } from '@/components/market/StatusDropdown';
 import { ExternalLink, MapPin, Pencil, Receipt, ArrowUp, ArrowDown, ArrowUpDown } from 'lucide-react';
 import { format } from 'date-fns';
 
-type SortDirection = 'asc' | 'desc' | null;
-type SortableColumn = 'size_sf' | 'warehouse_sf' | 'office_sf' | 'dock_doors' | 'drive_in_doors' | 'power_amps';
+export type SortDirection = 'asc' | 'desc' | null;
+export type SortableColumn = 'size_sf' | 'warehouse_sf' | 'office_sf' | 'dock_doors' | 'drive_in_doors' | 'power_amps';
 
 interface MarketListingsTableProps {
   listings: MarketListing[];
   onEdit: (listing: MarketListing) => void;
   onRefresh: () => void;
+  sortColumn: SortableColumn | null;
+  sortDirection: SortDirection;
+  onSort: (column: SortableColumn) => void;
 }
 
 function formatSF(sf: number | null): string {
@@ -74,83 +77,11 @@ function calculateGrossRate(askRate: string | null, opCosts: string | null): str
   return `$${gross.toFixed(2)}`;
 }
 
-export function MarketListingsTable({ listings, onEdit, onRefresh }: MarketListingsTableProps) {
+export function MarketListingsTable({ listings, onEdit, onRefresh, sortColumn, sortDirection, onSort }: MarketListingsTableProps) {
   const navigate = useNavigate();
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const [isHovered, setIsHovered] = useState(false);
   const [selectedRowId, setSelectedRowId] = useState<string | null>(null);
-  const [sortColumn, setSortColumn] = useState<SortableColumn | null>(null);
-  const [sortDirection, setSortDirection] = useState<SortDirection>(null);
-
-  // Handle column sorting
-  const handleSort = (column: SortableColumn) => {
-    if (sortColumn === column) {
-      // Cycle through: asc -> desc -> null
-      if (sortDirection === 'asc') {
-        setSortDirection('desc');
-      } else if (sortDirection === 'desc') {
-        setSortColumn(null);
-        setSortDirection(null);
-      }
-    } else {
-      setSortColumn(column);
-      setSortDirection('asc');
-    }
-  };
-
-  // Sort listings
-  const sortedListings = useMemo(() => {
-    if (!sortColumn || !sortDirection) return listings;
-    
-    return [...listings].sort((a, b) => {
-      let aVal: number | string | null = null;
-      let bVal: number | string | null = null;
-      
-      switch (sortColumn) {
-        case 'size_sf':
-          aVal = a.size_sf;
-          bVal = b.size_sf;
-          break;
-        case 'warehouse_sf':
-          aVal = a.warehouse_sf;
-          bVal = b.warehouse_sf;
-          break;
-        case 'office_sf':
-          aVal = a.office_sf;
-          bVal = b.office_sf;
-          break;
-        case 'dock_doors':
-          aVal = a.dock_doors;
-          bVal = b.dock_doors;
-          break;
-        case 'drive_in_doors':
-          aVal = a.drive_in_doors;
-          bVal = b.drive_in_doors;
-          break;
-        case 'power_amps':
-          aVal = a.power_amps;
-          bVal = b.power_amps;
-          break;
-      }
-      
-      // Handle nulls - push to end
-      if (aVal === null && bVal === null) return 0;
-      if (aVal === null) return 1;
-      if (bVal === null) return -1;
-      
-      // For power_amps (string), parse numeric value
-      if (sortColumn === 'power_amps') {
-        const aNum = parseFloat(String(aVal).replace(/[^0-9.-]/g, '')) || 0;
-        const bNum = parseFloat(String(bVal).replace(/[^0-9.-]/g, '')) || 0;
-        return sortDirection === 'asc' ? aNum - bNum : bNum - aNum;
-      }
-      
-      // Numeric comparison
-      const aNum = typeof aVal === 'number' ? aVal : 0;
-      const bNum = typeof bVal === 'number' ? bVal : 0;
-      return sortDirection === 'asc' ? aNum - bNum : bNum - aNum;
-    });
-  }, [listings, sortColumn, sortDirection]);
 
   // Sortable header component
   const SortableHeader = ({ column, children, className = '' }: { column: SortableColumn; children: React.ReactNode; className?: string }) => {
@@ -158,7 +89,7 @@ export function MarketListingsTable({ listings, onEdit, onRefresh }: MarketListi
     return (
       <TableHead 
         className={`text-background cursor-pointer select-none hover:bg-zinc-600 transition-colors ${className}`}
-        onClick={() => handleSort(column)}
+        onClick={() => onSort(column)}
       >
         <div className="flex items-center gap-1">
           {children}
@@ -169,6 +100,8 @@ export function MarketListingsTable({ listings, onEdit, onRefresh }: MarketListi
       </TableHead>
     );
   };
+
+  // Smooth keyboard horizontal scroll - trackpad-like experience
   useEffect(() => {
     let animationId: number | null = null;
     let scrollDirection = 0; // -1 for left, 1 for right, 0 for stopped
@@ -295,7 +228,7 @@ export function MarketListingsTable({ listings, onEdit, onRefresh }: MarketListi
           </TableRow>
         </TableHeader>
         <TableBody>
-          {sortedListings.map((listing, index) => {
+          {listings.map((listing, index) => {
             const isSelected = selectedRowId === listing.id;
             const isEvenRow = index % 2 === 1;
             // Sticky columns match the rest of the table's striping

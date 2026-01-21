@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useCallback } from 'react';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { useMarketListings, MarketListing } from '@/hooks/useMarketListings';
 import { Button } from '@/components/ui/button';
@@ -18,7 +18,7 @@ import { RefreshCw, Database, Search, X, Filter, Link2, ChevronLeft, ChevronRigh
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { format } from 'date-fns';
 import { MarketListingEditDialog } from '@/components/market/MarketListingEditDialog';
-import { MarketListingsTable } from '@/components/market/MarketListingsTable';
+import { MarketListingsTable, SortableColumn, SortDirection } from '@/components/market/MarketListingsTable';
 
 const SIZE_RANGES = [
   { label: 'All Sizes', value: 'all', min: 0, max: Infinity },
@@ -57,9 +57,29 @@ export default function MarketListings() {
   const [currentPage, setCurrentPage] = useState(1);
   const pageSize = 50;
 
+  // Sort state
+  const [sortColumn, setSortColumn] = useState<SortableColumn | null>(null);
+  const [sortDirection, setSortDirection] = useState<SortDirection>(null);
+
   // Edit/Create dialog state
   const [editingListing, setEditingListing] = useState<MarketListing | null>(null);
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
+
+  // Handle column sorting
+  const handleSort = useCallback((column: SortableColumn) => {
+    if (sortColumn === column) {
+      if (sortDirection === 'asc') {
+        setSortDirection('desc');
+      } else if (sortDirection === 'desc') {
+        setSortColumn(null);
+        setSortDirection(null);
+      }
+    } else {
+      setSortColumn(column);
+      setSortDirection('asc');
+    }
+    setCurrentPage(1); // Reset to first page when sorting
+  }, [sortColumn, sortDirection]);
 
   // Get unique values for filters
   const uniqueSubmarkets = useMemo(() => {
@@ -163,11 +183,65 @@ export default function MarketListings() {
 
   const hasActiveFilters = searchQuery || submarketFilter.length > 0 || statusFilter !== 'all' || sizeFilter !== 'all' || distWarehouseFilter !== 'all' || brokerFilter !== 'all' || listingTypeFilter !== 'all' || landlordFilter !== 'all' || docksFilter !== 'all' || driveInFilter !== 'all';
 
-  // Pagination calculations
-  const totalPages = Math.ceil(filteredListings.length / pageSize);
+  // Sort filtered listings
+  const sortedListings = useMemo(() => {
+    if (!sortColumn || !sortDirection) return filteredListings;
+    
+    return [...filteredListings].sort((a, b) => {
+      let aVal: number | string | null = null;
+      let bVal: number | string | null = null;
+      
+      switch (sortColumn) {
+        case 'size_sf':
+          aVal = a.size_sf;
+          bVal = b.size_sf;
+          break;
+        case 'warehouse_sf':
+          aVal = a.warehouse_sf;
+          bVal = b.warehouse_sf;
+          break;
+        case 'office_sf':
+          aVal = a.office_sf;
+          bVal = b.office_sf;
+          break;
+        case 'dock_doors':
+          aVal = a.dock_doors;
+          bVal = b.dock_doors;
+          break;
+        case 'drive_in_doors':
+          aVal = a.drive_in_doors;
+          bVal = b.drive_in_doors;
+          break;
+        case 'power_amps':
+          aVal = a.power_amps;
+          bVal = b.power_amps;
+          break;
+      }
+      
+      // Handle nulls - push to end
+      if (aVal === null && bVal === null) return 0;
+      if (aVal === null) return 1;
+      if (bVal === null) return -1;
+      
+      // For power_amps (string), parse numeric value
+      if (sortColumn === 'power_amps') {
+        const aNum = parseFloat(String(aVal).replace(/[^0-9.-]/g, '')) || 0;
+        const bNum = parseFloat(String(bVal).replace(/[^0-9.-]/g, '')) || 0;
+        return sortDirection === 'asc' ? aNum - bNum : bNum - aNum;
+      }
+      
+      // Numeric comparison
+      const aNum = typeof aVal === 'number' ? aVal : 0;
+      const bNum = typeof bVal === 'number' ? bVal : 0;
+      return sortDirection === 'asc' ? aNum - bNum : bNum - aNum;
+    });
+  }, [filteredListings, sortColumn, sortDirection]);
+
+  // Pagination calculations - now uses sorted listings
+  const totalPages = Math.ceil(sortedListings.length / pageSize);
   const startIndex = (currentPage - 1) * pageSize;
   const endIndex = startIndex + pageSize;
-  const paginatedListings = filteredListings.slice(startIndex, endIndex);
+  const paginatedListings = sortedListings.slice(startIndex, endIndex);
 
   // Reset to page 1 when filters change
   const clearFilters = () => {
@@ -197,7 +271,7 @@ export default function MarketListings() {
     if (currentPage > 1 && currentPage > totalPages) {
       setCurrentPage(Math.max(1, totalPages));
     }
-  }, [filteredListings.length, currentPage, totalPages]);
+  }, [sortedListings.length, currentPage, totalPages]);
 
   const lastSync = syncLogs[0];
   const distributionCount = listings.filter(l => l.is_distribution_warehouse).length;
@@ -587,12 +661,15 @@ export default function MarketListings() {
                 listings={paginatedListings} 
                 onEdit={setEditingListing} 
                 onRefresh={refreshListings}
+                sortColumn={sortColumn}
+                sortDirection={sortDirection}
+                onSort={handleSort}
               />
               
               {/* Pagination Controls */}
               <div className="flex items-center justify-between p-4 border-t">
                 <div className="text-sm text-muted-foreground">
-                  Showing {startIndex + 1}-{Math.min(endIndex, filteredListings.length)} of {filteredListings.length} listings
+                  Showing {startIndex + 1}-{Math.min(endIndex, sortedListings.length)} of {sortedListings.length} listings
                   <span className="ml-2 text-xs">(Use ← → arrow keys to scroll table)</span>
                 </div>
                 <div className="flex items-center gap-1">
