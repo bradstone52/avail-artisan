@@ -180,6 +180,17 @@ Deno.serve(async (req) => {
       });
     }
 
+    // Parse request body to check for force flag
+    let forceRecheck = true; // Default to always re-check
+    try {
+      const body = await req.json();
+      if (typeof body.force === "boolean") {
+        forceRecheck = body.force;
+      }
+    } catch {
+      // No body or invalid JSON, use default
+    }
+
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
@@ -213,16 +224,20 @@ Deno.serve(async (req) => {
 
     const orgId = orgMembers[0].org_id;
 
-    // Fetch ALL listings with links that haven't been checked recently or never checked
-    const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
-    
-    const { data: listings, error: fetchError } = await supabase
+    // Build query - either all links (force) or only unchecked/stale links
+    let query = supabase
       .from("market_listings")
       .select("id, link")
       .eq("org_id", orgId)
       .not("link", "is", null)
-      .neq("link", "")
-      .or(`link_last_checked.is.null,link_last_checked.lt.${oneDayAgo}`);
+      .neq("link", "");
+    
+    if (!forceRecheck) {
+      const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+      query = query.or(`link_last_checked.is.null,link_last_checked.lt.${oneDayAgo}`);
+    }
+
+    const { data: listings, error: fetchError } = await query;
 
     if (fetchError) {
       console.error("Error fetching listings:", fetchError);
@@ -236,6 +251,7 @@ Deno.serve(async (req) => {
       return new Response(JSON.stringify({
         message: "No links to validate",
         checked: 0,
+        total: 0,
         ok: 0,
         broken: 0,
       }), {
@@ -310,6 +326,7 @@ Deno.serve(async (req) => {
     return new Response(JSON.stringify({
       message: "Link validation complete",
       checked: checkedCount,
+      total: listings.length,
       ok: okCount,
       broken: brokenCount,
       errors: errorCount,

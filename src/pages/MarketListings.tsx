@@ -35,6 +35,7 @@ export default function MarketListings() {
     listings, 
     loading, 
     isValidatingLinks,
+    linkCheckTotal,
     validateLinks,
     refreshListings,
   } = useMarketListings();
@@ -352,7 +353,11 @@ export default function MarketListings() {
               </CardTitle>
             </CardHeader>
             <CardContent className="pt-0">
-              {linksUnchecked > 0 ? (
+              {isValidatingLinks && linkCheckTotal > 0 ? (
+                <span className="text-xs text-muted-foreground">
+                  {linksUnchecked} of {linkCheckTotal} left to check...
+                </span>
+              ) : linksUnchecked > 0 ? (
                 <span className="text-xs text-muted-foreground">{linksUnchecked} unchecked</span>
               ) : linksWithUrl.length > 0 ? (
                 <Badge variant="outline" className="text-xs">All checked</Badge>
