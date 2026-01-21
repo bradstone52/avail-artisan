@@ -77,32 +77,68 @@ export function MarketListingsTable({ listings, onEdit, onRefresh }: MarketListi
   const [isHovered, setIsHovered] = useState(false);
   const [selectedRowId, setSelectedRowId] = useState<string | null>(null);
 
-  // Keyboard horizontal scroll - works when hovering over the table
+  // Smooth keyboard horizontal scroll - trackpad-like experience
   useEffect(() => {
+    let animationId: number | null = null;
+    let scrollDirection = 0; // -1 for left, 1 for right, 0 for stopped
+    let velocity = 0;
+    const maxVelocity = 12; // pixels per frame at max speed
+    const acceleration = 0.8; // how quickly we reach max speed
+    const deceleration = 0.92; // how quickly we slow down (closer to 1 = slower stop)
+
+    const animate = () => {
+      const container = scrollContainerRef.current?.querySelector('.overflow-auto, [class*="overflow-auto"]') as HTMLElement;
+      if (!container) {
+        animationId = requestAnimationFrame(animate);
+        return;
+      }
+
+      // Accelerate towards target velocity or decelerate to stop
+      if (scrollDirection !== 0) {
+        velocity += (scrollDirection * maxVelocity - velocity) * acceleration * 0.1;
+      } else {
+        velocity *= deceleration;
+      }
+
+      // Apply scroll if there's meaningful velocity
+      if (Math.abs(velocity) > 0.1) {
+        container.scrollBy({ left: velocity, behavior: 'auto' });
+      }
+
+      animationId = requestAnimationFrame(animate);
+    };
+
     const handleKeyDown = (e: KeyboardEvent) => {
-      // Only respond when mouse is over the table area
       if (!isHovered) return;
 
-      // Find the scrollable container (Table component's inner div)
-      const container = scrollContainerRef.current?.querySelector('.overflow-auto, [class*="overflow-auto"]') as HTMLElement;
-      if (!container) return;
-
-      // Smaller scroll amount for finer control, instant behavior for faster repeat rate
-      const scrollAmount = 120;
-      
       if (e.key === 'ArrowLeft') {
         e.preventDefault();
-        container.scrollBy({ left: -scrollAmount, behavior: 'auto' });
+        scrollDirection = -1;
       } else if (e.key === 'ArrowRight') {
         e.preventDefault();
-        container.scrollBy({ left: scrollAmount, behavior: 'auto' });
+        scrollDirection = 1;
       } else if (e.key === 'Escape') {
         setSelectedRowId(null);
       }
     };
 
+    const handleKeyUp = (e: KeyboardEvent) => {
+      if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
+        scrollDirection = 0;
+      }
+    };
+
+    // Start animation loop
+    animationId = requestAnimationFrame(animate);
+
     window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
+    window.addEventListener('keyup', handleKeyUp);
+    
+    return () => {
+      if (animationId) cancelAnimationFrame(animationId);
+      window.removeEventListener('keydown', handleKeyDown);
+      window.removeEventListener('keyup', handleKeyUp);
+    };
   }, [isHovered]);
 
   return (
