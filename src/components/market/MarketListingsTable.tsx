@@ -175,10 +175,14 @@ export function MarketListingsTable({ listings, onEdit, onRefresh }: MarketListi
               : isEvenRow
                 ? 'group-hover:!bg-pink-300 dark:group-hover:!bg-pink-800'
                 : 'group-hover:!bg-pink-200 dark:group-hover:!bg-pink-900/50';
+            // Neo-brutalist border styling
+            const borderClass = isSelected
+              ? 'border-b-2 border-amber-600 dark:border-amber-500 hover:border-amber-700'
+              : 'border-b-2 border-foreground hover:!border-pink-500 dark:hover:!border-pink-400';
             return (
             <TableRow 
               key={listing.id} 
-              className={`group cursor-pointer transition-colors ${hoverClass} ${
+              className={`group cursor-pointer transition-colors ${hoverClass} ${borderClass} ${
                 isSelected ? '!bg-secondary' : ''
               }`}
               onClick={() => setSelectedRowId(isSelected ? null : listing.id)}
