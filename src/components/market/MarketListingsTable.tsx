@@ -114,43 +114,43 @@ export function MarketListingsTable({ listings, onEdit, onRefresh }: MarketListi
     >
       <Table className="min-w-[3000px]">
         <TableHeader>
-          <TableRow>
-            <TableHead className="sticky left-0 z-20 min-w-[180px] bg-muted text-foreground shadow-[2px_0_5px_-2px_rgba(0,0,0,0.15)]">Address</TableHead>
-            <TableHead className="min-w-[130px]">Submarket</TableHead>
-            <TableHead className="min-w-[100px]">City</TableHead>
-            <TableHead className="min-w-[130px]">Status</TableHead>
-            <TableHead className="min-w-[80px]">Type</TableHead>
-            <TableHead className="text-right min-w-[100px]">Size (SF)</TableHead>
-            <TableHead className="text-right min-w-[110px]">Warehouse SF</TableHead>
-            <TableHead className="text-right min-w-[90px]">Office SF</TableHead>
-            <TableHead className="text-right min-w-[90px]">Clear Ht</TableHead>
-            <TableHead className="text-right min-w-[70px]">Docks</TableHead>
-            <TableHead className="text-right min-w-[70px]">Drive-In</TableHead>
-            <TableHead className="min-w-[90px]">Power</TableHead>
-            <TableHead className="min-w-[80px]">Voltage</TableHead>
-            <TableHead className="min-w-[90px]">Sprinkler</TableHead>
-            <TableHead className="min-w-[70px]">Cranes</TableHead>
-            <TableHead className="min-w-[80px]">Crane T</TableHead>
-            <TableHead className="min-w-[60px]">Yard</TableHead>
-            <TableHead className="min-w-[90px]">Yard Area</TableHead>
-            <TableHead className="min-w-[80px]">X-Dock</TableHead>
-            <TableHead className="min-w-[90px]">Trailer</TableHead>
-            <TableHead className="min-w-[80px]">Acres</TableHead>
-            <TableHead className="min-w-[80px]">Zoning</TableHead>
-            <TableHead className="min-w-[60px]">MUA</TableHead>
-            <TableHead className="min-w-[90px]">Ask Rate</TableHead>
-            <TableHead className="min-w-[80px]">Op Cost</TableHead>
-            <TableHead className="min-w-[90px]">Gross</TableHead>
-            <TableHead className="min-w-[100px]">Sale Price</TableHead>
-            <TableHead className="min-w-[90px]">Sub Exp</TableHead>
-            <TableHead className="min-w-[90px]">Avail</TableHead>
-            <TableHead className="min-w-[140px]">Landlord</TableHead>
-            <TableHead className="min-w-[140px]">Broker</TableHead>
-            <TableHead className="min-w-[60px]">DW</TableHead>
-            <TableHead className="min-w-[50px]">Geo</TableHead>
-            <TableHead className="min-w-[50px]">Link</TableHead>
-            <TableHead className="min-w-[180px]">Notes</TableHead>
-            <TableHead className="sticky right-0 z-20 min-w-[90px] bg-muted text-foreground shadow-[-2px_0_5px_-2px_rgba(0,0,0,0.15)]">Actions</TableHead>
+          <TableRow className="bg-foreground">
+            <TableHead className="sticky left-0 z-20 min-w-[180px] bg-foreground text-background shadow-[2px_0_5px_-2px_rgba(0,0,0,0.3)]">Address</TableHead>
+            <TableHead className="text-background min-w-[130px]">Submarket</TableHead>
+            <TableHead className="text-background min-w-[100px]">City</TableHead>
+            <TableHead className="text-background min-w-[130px]">Status</TableHead>
+            <TableHead className="text-background min-w-[80px]">Type</TableHead>
+            <TableHead className="text-background text-right min-w-[100px]">Size (SF)</TableHead>
+            <TableHead className="text-background text-right min-w-[110px]">Warehouse SF</TableHead>
+            <TableHead className="text-background text-right min-w-[90px]">Office SF</TableHead>
+            <TableHead className="text-background text-right min-w-[90px]">Clear Ht</TableHead>
+            <TableHead className="text-background text-right min-w-[70px]">Docks</TableHead>
+            <TableHead className="text-background text-right min-w-[70px]">Drive-In</TableHead>
+            <TableHead className="text-background min-w-[90px]">Power</TableHead>
+            <TableHead className="text-background min-w-[80px]">Voltage</TableHead>
+            <TableHead className="text-background min-w-[90px]">Sprinkler</TableHead>
+            <TableHead className="text-background min-w-[70px]">Cranes</TableHead>
+            <TableHead className="text-background min-w-[80px]">Crane T</TableHead>
+            <TableHead className="text-background min-w-[60px]">Yard</TableHead>
+            <TableHead className="text-background min-w-[90px]">Yard Area</TableHead>
+            <TableHead className="text-background min-w-[80px]">X-Dock</TableHead>
+            <TableHead className="text-background min-w-[90px]">Trailer</TableHead>
+            <TableHead className="text-background min-w-[80px]">Acres</TableHead>
+            <TableHead className="text-background min-w-[80px]">Zoning</TableHead>
+            <TableHead className="text-background min-w-[60px]">MUA</TableHead>
+            <TableHead className="text-background min-w-[90px]">Ask Rate</TableHead>
+            <TableHead className="text-background min-w-[80px]">Op Cost</TableHead>
+            <TableHead className="text-background min-w-[90px]">Gross</TableHead>
+            <TableHead className="text-background min-w-[100px]">Sale Price</TableHead>
+            <TableHead className="text-background min-w-[90px]">Sub Exp</TableHead>
+            <TableHead className="text-background min-w-[90px]">Avail</TableHead>
+            <TableHead className="text-background min-w-[140px]">Landlord</TableHead>
+            <TableHead className="text-background min-w-[140px]">Broker</TableHead>
+            <TableHead className="text-background min-w-[60px]">DW</TableHead>
+            <TableHead className="text-background min-w-[50px]">Geo</TableHead>
+            <TableHead className="text-background min-w-[50px]">Link</TableHead>
+            <TableHead className="text-background min-w-[180px]">Notes</TableHead>
+            <TableHead className="sticky right-0 z-20 min-w-[90px] bg-foreground text-background shadow-[-2px_0_5px_-2px_rgba(0,0,0,0.3)]">Actions</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -161,14 +161,14 @@ export function MarketListingsTable({ listings, onEdit, onRefresh }: MarketListi
               key={listing.id} 
               className={`cursor-pointer transition-colors ${
                 isSelected 
-                  ? '!bg-amber-200 dark:!bg-amber-700 hover:!bg-amber-300 dark:hover:!bg-amber-600' 
-                  : 'hover:bg-muted/30'
+                  ? '!bg-secondary hover:!bg-secondary/90' 
+                  : 'hover:bg-secondary/20'
               }`}
               onClick={() => setSelectedRowId(isSelected ? null : listing.id)}
             >
               {/* Address - Sticky */}
-              <TableCell className={`sticky left-0 z-10 font-medium shadow-[2px_0_5px_-2px_rgba(0,0,0,0.15)] ${
-                isSelected ? 'bg-amber-200 dark:bg-amber-700' : 'bg-background'
+              <TableCell className={`sticky left-0 z-10 font-medium shadow-[2px_0_5px_-2px_rgba(0,0,0,0.2)] ${
+                isSelected ? 'bg-secondary' : 'bg-background'
               }`}>
                 <div className="truncate max-w-[170px]" title={listing.address}>
                   {listing.display_address || listing.address}
@@ -330,8 +330,8 @@ export function MarketListingsTable({ listings, onEdit, onRefresh }: MarketListi
               </TableCell>
               
               {/* Actions - Sticky */}
-              <TableCell className={`sticky right-0 z-10 shadow-[-2px_0_5px_-2px_rgba(0,0,0,0.15)] ${
-                isSelected ? 'bg-amber-200 dark:bg-amber-700' : 'bg-background'
+              <TableCell className={`sticky right-0 z-10 shadow-[-2px_0_5px_-2px_rgba(0,0,0,0.2)] ${
+                isSelected ? 'bg-secondary' : 'bg-background'
               }`}>
                 <div className="flex items-center gap-0.5">
                   <Tooltip>
