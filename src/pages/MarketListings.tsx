@@ -33,11 +33,8 @@ const SIZE_RANGES = [
 export default function MarketListings() {
   const { 
     listings, 
-    syncLogs,
     loading, 
-    isSyncing,
     isValidatingLinks,
-    syncMarketListings,
     validateLinks,
     refreshListings,
   } = useMarketListings();
@@ -274,7 +271,6 @@ export default function MarketListings() {
     }
   }, [sortedListings.length, currentPage, totalPages]);
 
-  const lastSync = syncLogs[0];
   const distributionCount = listings.filter(l => l.is_distribution_warehouse).length;
   const linksWithUrl = listings.filter(l => l.link && l.link !== '');
   const linksOk = linksWithUrl.filter(l => l.link_status === 'ok').length;
@@ -313,11 +309,10 @@ export default function MarketListings() {
             </Button>
             <Button 
               variant="outline"
-              onClick={syncMarketListings}
-              disabled={isSyncing}
+              onClick={refreshListings}
             >
-              <RefreshCw className={`w-4 h-4 mr-2 ${isSyncing ? 'animate-spin' : ''}`} />
-              {isSyncing ? 'Syncing...' : 'Sync'}
+              <RefreshCw className="w-4 h-4 mr-2" />
+              Refresh
             </Button>
             <Button onClick={() => setIsCreateDialogOpen(true)}>
               <Plus className="w-4 h-4 mr-2" />
@@ -364,63 +359,7 @@ export default function MarketListings() {
               ) : null}
             </CardContent>
           </Card>
-          <Card>
-            <CardHeader className="pb-2">
-              <CardDescription>Last Sync</CardDescription>
-              <CardTitle className="text-lg">
-                {lastSync 
-                  ? format(new Date(lastSync.started_at), 'MMM d, h:mm a')
-                  : 'Never'}
-              </CardTitle>
-            </CardHeader>
-            {lastSync && (
-              <CardContent className="pt-0">
-                <Badge variant={lastSync.status === 'completed' ? 'default' : 'destructive'}>
-                  {lastSync.status}
-                </Badge>
-              </CardContent>
-            )}
-          </Card>
         </div>
-
-        {/* Sync Logs - Collapsible */}
-        {syncLogs.length > 0 && (
-          <Collapsible className="mb-6">
-            <Card>
-              <CollapsibleTrigger asChild>
-                <CardHeader className="cursor-pointer hover:bg-muted/50 transition-colors py-3">
-                  <div className="flex items-center justify-between">
-                    <CardTitle className="text-lg">Recent Syncs</CardTitle>
-                    <ChevronDown className="h-4 w-4 text-muted-foreground transition-transform duration-200 [[data-state=open]>&]:rotate-180" />
-                  </div>
-                </CardHeader>
-              </CollapsibleTrigger>
-              <CollapsibleContent>
-                <CardContent className="pt-0 pb-3">
-                  <div className="space-y-1">
-                    {syncLogs.slice(0, 5).map(log => (
-                      <div key={log.id} className="flex items-center justify-between text-sm py-1.5 px-2 bg-muted/50 rounded">
-                        <div className="flex items-center gap-3">
-                          <Badge variant={log.status === 'completed' ? 'default' : 'destructive'} className="text-xs">
-                            {log.status}
-                          </Badge>
-                          <span className="text-muted-foreground text-xs">
-                            {format(new Date(log.started_at), 'MMM d, h:mm a')}
-                          </span>
-                        </div>
-                        <div className="flex items-center gap-3 text-muted-foreground text-xs">
-                          <span>{log.rows_read || 0} read</span>
-                          <span>{log.rows_imported || 0} imported</span>
-                          <span>{log.rows_skipped || 0} skipped</span>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </CardContent>
-              </CollapsibleContent>
-            </Card>
-          </Collapsible>
-        )}
 
         {/* Filters */}
         {listings.length > 0 && (
@@ -656,11 +595,11 @@ export default function MarketListings() {
             <Database className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
             <h3 className="text-lg font-display font-semibold mb-2">No Market Listings</h3>
             <p className="text-muted-foreground mb-4 max-w-md mx-auto">
-              Click "Sync Market Data" to import listings from the Vacancy_List sheet.
+              Click "Add Listing" to create your first market listing.
             </p>
-            <Button onClick={syncMarketListings} disabled={isSyncing}>
-              <RefreshCw className={`w-4 h-4 mr-2 ${isSyncing ? 'animate-spin' : ''}`} />
-              Sync Market Data
+            <Button onClick={() => setIsCreateDialogOpen(true)}>
+              <Plus className="w-4 h-4 mr-2" />
+              Add Listing
             </Button>
           </div>
         ) : filteredListings.length === 0 ? (

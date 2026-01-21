@@ -1,11 +1,8 @@
 import { useNavigate } from 'react-router-dom';
 import { AppLayout } from '@/components/layout/AppLayout';
-import { OnboardingChecklist } from '@/components/dashboard/OnboardingChecklist';
 import { StatCard } from '@/components/dashboard/StatCard';
 import { IssueCard } from '@/components/dashboard/IssueCard';
-import { SyncReportSummary } from '@/components/dashboard/SyncReportSummary';
-import { OrgIntegrationCard } from '@/components/admin/OrgIntegrationCard';
-import { useOrgIntegration } from '@/hooks/useOrgIntegration';
+import { useMarketListings } from '@/hooks/useMarketListings';
 import { useOrg } from '@/hooks/useOrg';
 import { useIssues } from '@/hooks/useIssues';
 import { Button } from '@/components/ui/button';
@@ -13,30 +10,16 @@ import {
   FileSpreadsheet, 
   Building2, 
   FilePlus, 
-  Download,
   Sparkles,
   Trash2,
-  MapPin
+  MapPin,
+  Database
 } from 'lucide-react';
-import { generateTemplateCSV, generateSampleData, downloadCSV } from '@/lib/sheet-parser';
 import { toast } from 'sonner';
 
 export default function Dashboard() {
   const navigate = useNavigate();
-  const { 
-    integration,
-    listings, 
-    loading: sheetLoading, 
-    isSyncing,
-    isOrgAdmin,
-    hasGoogleConnection,
-    hasSheetConfigured,
-    lastSyncReport,
-    connectGoogle,
-    disconnectGoogle,
-    updateSheetSettings,
-    syncListings,
-  } = useOrgIntegration();
+  const { listings, loading: listingsLoading } = useMarketListings();
   const { orgName } = useOrg();
   const { issues, loading: issuesLoading, refreshIssues, deleteAllIssues } = useIssues();
 
@@ -55,59 +38,7 @@ export default function Dashboard() {
   };
 
   const activeListings = listings.filter(l => l.status === 'Active');
-
-  const checklistItems = [
-    {
-      id: 'connect',
-      title: 'Connect Google Sheet',
-      description: 'Link your distribution listings spreadsheet',
-      completed: hasGoogleConnection && hasSheetConfigured,
-      action: connectGoogle,
-      actionLabel: 'Connect',
-    },
-    {
-      id: 'sync',
-      title: 'Sync Listings',
-      description: 'Import property data from your sheet',
-      completed: listings.length > 0,
-      action: syncListings,
-      actionLabel: 'Sync',
-    },
-    {
-      id: 'create',
-      title: 'Create Issue',
-      description: 'Build your first distribution snapshot',
-      completed: issues.length > 0,
-      action: () => navigate('/issue-builder'),
-      actionLabel: 'Create',
-    },
-    {
-      id: 'generate',
-      title: 'Generate PDF',
-      description: 'Export a polished market report',
-      completed: issues.some(i => i.pdf_url),
-    },
-    {
-      id: 'share',
-      title: 'Share Report',
-      description: 'Distribute to your clients and team',
-      completed: issues.some(i => i.is_public),
-    },
-  ];
-
-  const handleDownloadTemplate = () => {
-    downloadCSV(generateTemplateCSV(), 'distribution_template.csv');
-    toast.success('Template downloaded');
-  };
-
-  const handleLoadSampleData = async () => {
-    if (!hasSheetConfigured) {
-      toast.error('Please configure a sheet first');
-      return;
-    }
-    toast.info('To load sample data, paste the sample CSV content into your Google Sheet');
-    downloadCSV(generateSampleData(), 'sample_data.csv');
-  };
+  const distributionListings = listings.filter(l => l.is_distribution_warehouse);
 
   return (
     <AppLayout>
@@ -121,9 +52,9 @@ export default function Dashboard() {
             </p>
           </div>
           <div className="flex items-center gap-3">
-            <Button variant="outline" size="sm" onClick={handleDownloadTemplate}>
-              <Download className="w-4 h-4 mr-2" />
-              Template
+            <Button variant="outline" onClick={() => navigate('/market-listings')}>
+              <Database className="w-4 h-4 mr-2" />
+              Market Listings
             </Button>
             <Button onClick={() => navigate('/issue-builder')}>
               <FilePlus className="w-4 h-4 mr-2" />
@@ -145,9 +76,9 @@ export default function Dashboard() {
                 icon={<FileSpreadsheet className="w-5 h-5" />}
               />
               <StatCard
-                title="Active Properties"
-                value={activeListings.length}
-                description="Currently available"
+                title="Distribution Warehouses"
+                value={distributionListings.length}
+                description="Large-format properties"
                 icon={<Building2 className="w-5 h-5" />}
                 variant="primary"
               />
@@ -203,42 +134,30 @@ export default function Dashboard() {
             </div>
           </div>
 
-          {/* Right Column - Checklist, Integration, and Invite */}
+          {/* Right Column - Quick Actions */}
           <div className="space-y-6">
-            <OnboardingChecklist items={checklistItems} />
-            
-            {/* Org Integration Card */}
-            <OrgIntegrationCard
-              integration={integration}
-              hasGoogleConnection={hasGoogleConnection}
-              hasSheetConfigured={hasSheetConfigured}
-              isAdmin={isOrgAdmin}
-              isSyncing={isSyncing}
-              onConnectGoogle={connectGoogle}
-              onDisconnectGoogle={disconnectGoogle}
-              onUpdateSettings={updateSheetSettings}
-              onSync={syncListings}
-            />
-
-            {/* Sync Report Summary */}
-            {lastSyncReport && (
-              <SyncReportSummary report={{
-                timestamp: new Date().toISOString(),
-                rows_read: lastSyncReport.rows_imported + lastSyncReport.rows_skipped,
-                rows_imported: lastSyncReport.rows_imported,
-                rows_skipped: lastSyncReport.rows_skipped,
-                skipped_breakdown: lastSyncReport.skipped_breakdown,
-                skipped_details: [],
-                missing_headers: [],
-                success: true,
-              }} />
-            )}
-
-
             {/* Quick Actions */}
             <div className="bg-card border border-border rounded-xl p-5">
               <h3 className="font-display font-semibold mb-3">Quick Actions</h3>
               <div className="space-y-2">
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  className="w-full justify-start"
+                  onClick={() => navigate('/market-listings')}
+                >
+                  <Database className="w-4 h-4 mr-2" />
+                  Manage Market Listings
+                </Button>
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  className="w-full justify-start"
+                  onClick={() => navigate('/listings')}
+                >
+                  <Building2 className="w-4 h-4 mr-2" />
+                  Distribution Listings
+                </Button>
                 <Button 
                   variant="outline" 
                   size="sm" 
@@ -250,24 +169,25 @@ export default function Dashboard() {
                     Open Distribution Map
                   </a>
                 </Button>
-                <Button 
-                  variant="outline" 
-                  size="sm" 
-                  className="w-full justify-start"
-                  onClick={handleDownloadTemplate}
-                >
-                  <Download className="w-4 h-4 mr-2" />
-                  Download Sheet Template
-                </Button>
-                <Button 
-                  variant="outline" 
-                  size="sm" 
-                  className="w-full justify-start"
-                  onClick={handleLoadSampleData}
-                >
-                  <FileSpreadsheet className="w-4 h-4 mr-2" />
-                  Download Sample Data
-                </Button>
+              </div>
+            </div>
+
+            {/* Stats Summary */}
+            <div className="bg-card border border-border rounded-xl p-5">
+              <h3 className="font-display font-semibold mb-3">Data Summary</h3>
+              <div className="space-y-3 text-sm">
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Active listings</span>
+                  <span className="font-medium">{activeListings.length}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Geocoded</span>
+                  <span className="font-medium">{listings.filter(l => l.latitude && l.longitude).length}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">With brochure links</span>
+                  <span className="font-medium">{listings.filter(l => l.link).length}</span>
+                </div>
               </div>
             </div>
           </div>

@@ -84,7 +84,6 @@ export function useMarketListings() {
   const [listings, setListings] = useState<MarketListing[]>([]);
   const [syncLogs, setSyncLogs] = useState<MarketSyncLog[]>([]);
   const [loading, setLoading] = useState(true);
-  const [isSyncing, setIsSyncing] = useState(false);
   const [isValidatingLinks, setIsValidatingLinks] = useState(false);
 
   // Fetch market listings for the org
@@ -105,7 +104,7 @@ export function useMarketListings() {
     }
   }, [user, orgId]);
 
-  // Fetch sync logs
+  // Fetch sync logs (for historical reference only)
   const fetchSyncLogs = useCallback(async () => {
     if (!user || !orgId) return;
 
@@ -136,46 +135,6 @@ export function useMarketListings() {
       init();
     }
   }, [user, orgId, orgLoading, fetchListings, fetchSyncLogs]);
-
-  // Trigger market sync
-  const syncMarketListings = async () => {
-    if (!user || !session?.access_token) {
-      toast.error('Not authenticated');
-      return null;
-    }
-
-    if (!orgId) {
-      toast.error('No organization found');
-      return null;
-    }
-
-    setIsSyncing(true);
-
-    try {
-      const { data, error } = await supabase.functions.invoke('market-sync', {
-        headers: {
-          Authorization: `Bearer ${session.access_token}`,
-        },
-        body: { orgId },
-      });
-
-      if (error) throw error;
-      if (data?.error) throw new Error(data.error);
-
-      toast.success(`Synced ${data.rows_imported} market listings`);
-      
-      // Refresh data
-      await Promise.all([fetchListings(), fetchSyncLogs()]);
-      
-      return data;
-    } catch (err) {
-      console.error('Market sync error:', err);
-      toast.error(err instanceof Error ? err.message : 'Sync failed');
-      return null;
-    } finally {
-      setIsSyncing(false);
-    }
-  };
 
   // Validate brochure links
   const validateLinks = async () => {
@@ -225,9 +184,12 @@ export function useMarketListings() {
     listings,
     syncLogs,
     loading,
-    isSyncing,
+    isSyncing: false, // No longer syncing from Google Sheets
     isValidatingLinks,
-    syncMarketListings,
+    syncMarketListings: async () => {
+      toast.info('Google Sheets sync has been disabled. Manage listings directly in the app.');
+      return null;
+    },
     validateLinks,
     refreshListings,
     refetchSyncLogs: fetchSyncLogs,

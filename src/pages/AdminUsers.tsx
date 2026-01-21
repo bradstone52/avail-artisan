@@ -23,10 +23,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Shield, Users, Loader2, ShieldAlert, Clock, Zap, RefreshCw, Mail } from 'lucide-react';
+import { Shield, Users, Loader2, ShieldAlert, Zap, RefreshCw, Mail } from 'lucide-react';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
-import { SyncScheduleSettings } from '@/components/admin/SyncScheduleSettings';
 import { InviteManagement } from '@/components/admin/InviteManagement';
 
 interface UserWithRole {
@@ -212,7 +211,7 @@ export default function AdminUsers() {
           </div>
           <div>
             <h1 className="text-2xl font-display font-bold">Admin Settings</h1>
-            <p className="text-muted-foreground">Manage users, roles, and sync schedules</p>
+            <p className="text-muted-foreground">Manage users and roles</p>
           </div>
         </div>
 
@@ -225,10 +224,6 @@ export default function AdminUsers() {
             <TabsTrigger value="invites" className="flex items-center gap-2">
               <Mail className="w-4 h-4" />
               Invites
-            </TabsTrigger>
-            <TabsTrigger value="schedule" className="flex items-center gap-2">
-              <Clock className="w-4 h-4" />
-              Sync Schedule
             </TabsTrigger>
           </TabsList>
 
@@ -258,7 +253,7 @@ export default function AdminUsers() {
                   Admin
                 </Badge>
                 <span className="text-sm text-muted-foreground">
-                  Full access: connect Google, sync data, manage users, edit schedule
+                  Full access: manage users, edit listings, create issues
                 </span>
               </div>
               <div className="flex items-center gap-2">
@@ -267,7 +262,7 @@ export default function AdminUsers() {
                   Sync Operator
                 </Badge>
                 <span className="text-sm text-muted-foreground">
-                  Can run manual sync and view sync logs
+                  Can manage listings and run data operations
                 </span>
               </div>
               <div className="flex items-center gap-2">
@@ -342,10 +337,6 @@ export default function AdminUsers() {
 
           <TabsContent value="invites">
             <InviteManagement />
-          </TabsContent>
-
-          <TabsContent value="schedule">
-            <SyncScheduleSettings />
           </TabsContent>
         </Tabs>
       </div>
