@@ -123,17 +123,39 @@ export function useMarketListings() {
     }
   }, [user, orgId]);
 
-  // Initial fetch
+  // Initial fetch and realtime subscription
   useEffect(() => {
+    if (!user || !orgId || orgLoading) return;
+
     const init = async () => {
       setLoading(true);
       await Promise.all([fetchListings(), fetchSyncLogs()]);
       setLoading(false);
     };
 
-    if (user && orgId && !orgLoading) {
-      init();
-    }
+    init();
+
+    // Subscribe to realtime changes
+    const channel = supabase
+      .channel('market_listings_changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'market_listings',
+          filter: `org_id=eq.${orgId}`,
+        },
+        () => {
+          // Refetch on any change
+          fetchListings();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, [user, orgId, orgLoading, fetchListings, fetchSyncLogs]);
 
   // Validate brochure links
