@@ -115,7 +115,7 @@ export function MarketListingsTable({ listings, onEdit, onRefresh }: MarketListi
       <Table className="min-w-[3000px]">
         <TableHeader>
           <TableRow className="bg-foreground">
-            <TableHead className="sticky left-0 z-20 min-w-[180px] bg-foreground text-background shadow-[2px_0_5px_-2px_rgba(0,0,0,0.3)]">Address</TableHead>
+            <TableHead className="sticky left-0 z-20 min-w-[180px] bg-zinc-700 dark:bg-zinc-600 text-background shadow-[2px_0_5px_-2px_rgba(0,0,0,0.3)]">Address</TableHead>
             <TableHead className="text-background min-w-[130px]">Submarket</TableHead>
             <TableHead className="text-background min-w-[100px]">City</TableHead>
             <TableHead className="text-background min-w-[130px]">Status</TableHead>
@@ -150,12 +150,18 @@ export function MarketListingsTable({ listings, onEdit, onRefresh }: MarketListi
             <TableHead className="text-background min-w-[50px]">Geo</TableHead>
             <TableHead className="text-background min-w-[50px]">Link</TableHead>
             <TableHead className="text-background min-w-[180px]">Notes</TableHead>
-            <TableHead className="sticky right-0 z-20 min-w-[90px] bg-foreground text-background shadow-[-2px_0_5px_-2px_rgba(0,0,0,0.3)]">Actions</TableHead>
+            <TableHead className="sticky right-0 z-20 min-w-[90px] bg-zinc-700 dark:bg-zinc-600 text-background shadow-[-2px_0_5px_-2px_rgba(0,0,0,0.3)]">Actions</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
-          {listings.map((listing) => {
+          {listings.map((listing, index) => {
             const isSelected = selectedRowId === listing.id;
+            const isEvenRow = index % 2 === 1;
+            const stickyBg = isSelected 
+              ? 'bg-secondary' 
+              : isEvenRow 
+                ? 'bg-[hsl(var(--table-stripe))]' 
+                : 'bg-background';
             return (
             <TableRow 
               key={listing.id} 
@@ -167,9 +173,7 @@ export function MarketListingsTable({ listings, onEdit, onRefresh }: MarketListi
               onClick={() => setSelectedRowId(isSelected ? null : listing.id)}
             >
               {/* Address - Sticky */}
-              <TableCell className={`sticky left-0 z-10 font-medium shadow-[2px_0_5px_-2px_rgba(0,0,0,0.2)] ${
-                isSelected ? 'bg-secondary' : 'bg-background'
-              }`}>
+              <TableCell className={`sticky left-0 z-10 font-medium shadow-[2px_0_5px_-2px_rgba(0,0,0,0.2)] ${stickyBg}`}>
                 <div className="truncate max-w-[170px]" title={listing.address}>
                   {listing.display_address || listing.address}
                 </div>
@@ -330,9 +334,7 @@ export function MarketListingsTable({ listings, onEdit, onRefresh }: MarketListi
               </TableCell>
               
               {/* Actions - Sticky */}
-              <TableCell className={`sticky right-0 z-10 shadow-[-2px_0_5px_-2px_rgba(0,0,0,0.2)] ${
-                isSelected ? 'bg-secondary' : 'bg-background'
-              }`}>
+              <TableCell className={`sticky right-0 z-10 shadow-[-2px_0_5px_-2px_rgba(0,0,0,0.2)] ${stickyBg}`}>
                 <div className="flex items-center gap-0.5">
                   <Tooltip>
                     <TooltipTrigger asChild>
