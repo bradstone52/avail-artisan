@@ -384,9 +384,9 @@
     background-color: hsl(217 50% 20%) !important;
   }
 
-  /* Very light placeholder text */
+  /* Very light orange placeholder text */
   .placeholder-light::placeholder {
-    color: hsl(var(--muted-foreground) / 0.35);
+    color: hsl(30 80% 75%);
   }
 
   /* =====================================================
