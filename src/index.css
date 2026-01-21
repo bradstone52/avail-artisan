@@ -386,7 +386,7 @@
 
   /* Very light orange placeholder text */
   .placeholder-light::placeholder {
-    color: hsl(30 80% 75%);
+    color: hsl(30 70% 80%) !important;
   }
 
   /* =====================================================
