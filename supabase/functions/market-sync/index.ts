@@ -81,7 +81,7 @@ function normalizeAddress(address: string): string {
   return normalized;
 }
 
-const GEOCODE_BATCH_LIMIT = 50;
+const GEOCODE_BATCH_LIMIT = 100;
 
 function normalizeHeader(header: string): string {
   return header.trim().toLowerCase();
@@ -383,6 +383,43 @@ async function refreshAccessToken(refreshToken: string): Promise<{ access_token?
 }
 
 async function geocodeAddress(address: string, city: string): Promise<{ lat: number; lng: number } | null> {
+  // Use Google Geocoding API for better accuracy (especially for Alberta addresses)
+  const googleApiKey = Deno.env.get('GOOGLE_GEOCODING_API_KEY');
+  if (!googleApiKey) {
+    console.log('[Market Sync] No GOOGLE_GEOCODING_API_KEY available, trying Mapbox fallback');
+    return geocodeWithMapbox(address, city);
+  }
+
+  const query = `${address}, ${city}, Alberta, Canada`;
+  const encodedQuery = encodeURIComponent(query);
+  
+  try {
+    const response = await fetch(
+      `https://maps.googleapis.com/maps/api/geocode/json?address=${encodedQuery}&region=ca&key=${googleApiKey}`
+    );
+    
+    if (!response.ok) {
+      console.error(`[Market Sync] Google Geocoding API error: ${response.status}`);
+      return geocodeWithMapbox(address, city);
+    }
+
+    const data = await response.json();
+    
+    if (data.status === 'OK' && data.results && data.results.length > 0) {
+      const location = data.results[0].geometry.location;
+      console.log(`[Market Sync] Google geocoded: "${query}" -> [${location.lat}, ${location.lng}]`);
+      return { lat: location.lat, lng: location.lng };
+    }
+    
+    console.log(`[Market Sync] No Google results for: "${query}", trying Mapbox fallback`);
+    return geocodeWithMapbox(address, city);
+  } catch (error) {
+    console.error('[Market Sync] Google geocode error:', error);
+    return geocodeWithMapbox(address, city);
+  }
+}
+
+async function geocodeWithMapbox(address: string, city: string): Promise<{ lat: number; lng: number } | null> {
   const mapboxToken = Deno.env.get('MAPBOX_ACCESS_TOKEN');
   if (!mapboxToken) {
     console.log('[Market Sync] No MAPBOX_ACCESS_TOKEN available');
@@ -406,14 +443,14 @@ async function geocodeAddress(address: string, city: string): Promise<{ lat: num
     
     if (data.features && data.features.length > 0) {
       const [lng, lat] = data.features[0].center;
-      console.log(`[Market Sync] Geocoded: "${query}" -> [${lat}, ${lng}]`);
+      console.log(`[Market Sync] Mapbox geocoded: "${query}" -> [${lat}, ${lng}]`);
       return { lat, lng };
     }
     
-    console.log(`[Market Sync] No results for: "${query}"`);
+    console.log(`[Market Sync] No Mapbox results for: "${query}"`);
     return null;
   } catch (error) {
-    console.error('[Market Sync] Geocode error:', error);
+    console.error('[Market Sync] Mapbox geocode error:', error);
     return null;
   }
 }
@@ -755,7 +792,7 @@ serve(async (req) => {
           listing.latitude = coords.lat;
           listing.longitude = coords.lng;
           listing.geocoded_at = new Date().toISOString();
-          listing.geocode_source = 'mapbox';
+          listing.geocode_source = 'google';
           geocodedCount++;
         }
       }
