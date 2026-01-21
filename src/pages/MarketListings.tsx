@@ -15,11 +15,12 @@ import {
 import { Checkbox } from '@/components/ui/checkbox';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
-import { RefreshCw, Database, Search, X, Filter, Link2, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Plus, ChevronDown } from 'lucide-react';
+import { RefreshCw, Database, Search, X, Filter, Link2, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Plus, ChevronDown, Wrench } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { format } from 'date-fns';
 import { MarketListingEditDialog } from '@/components/market/MarketListingEditDialog';
 import { MarketListingsTable, SortableColumn, SortDirection } from '@/components/market/MarketListingsTable';
+import { FixLinksDialog } from '@/components/market/FixLinksDialog';
 
 const SIZE_RANGES = [
   { label: 'All Sizes', value: 'all', min: 0, max: Infinity },
@@ -65,6 +66,7 @@ export default function MarketListings() {
   // Edit/Create dialog state
   const [editingListing, setEditingListing] = useState<MarketListing | null>(null);
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
+  const [isFixLinksDialogOpen, setIsFixLinksDialogOpen] = useState(false);
 
   // Handle column sorting
   const handleSort = useCallback((column: SortableColumn) => {
@@ -276,9 +278,11 @@ export default function MarketListings() {
 
   const distributionCount = listings.filter(l => l.is_distribution_warehouse).length;
   const linksWithUrl = listings.filter(l => l.link && l.link !== '');
+  const linksMissing = listings.filter(l => !l.link || l.link === '').length;
   const linksOk = linksWithUrl.filter(l => l.link_status === 'ok').length;
   const linksBroken = linksWithUrl.filter(l => l.link_status === 'broken').length;
   const linksUnchecked = linksWithUrl.filter(l => !l.link_status).length;
+  const hasLinkIssues = linksBroken > 0 || linksMissing > 0;
 
   const linksLeftThisRun = useMemo(() => {
     if (!isValidatingLinks || !linkCheckTotal) return 0;
@@ -357,9 +361,10 @@ export default function MarketListings() {
               <CardTitle className="text-lg">
                 <span className="text-green-600">{linksOk}</span>
                 {linksBroken > 0 && <span className="text-destructive"> / {linksBroken} broken</span>}
+                {linksMissing > 0 && <span className="text-muted-foreground"> / {linksMissing} missing</span>}
               </CardTitle>
             </CardHeader>
-            <CardContent className="pt-0">
+            <CardContent className="pt-0 space-y-2">
               {isValidatingLinks && linkCheckTotal > 0 ? (
                 <span className="text-xs text-muted-foreground">
                   {linksLeftThisRun} of {linkCheckTotal} left to check...
@@ -369,6 +374,17 @@ export default function MarketListings() {
               ) : linksWithUrl.length > 0 ? (
                 <Badge variant="outline" className="text-xs">All checked</Badge>
               ) : null}
+              {hasLinkIssues && !isValidatingLinks && (
+                <Button 
+                  size="sm" 
+                  variant="outline" 
+                  onClick={() => setIsFixLinksDialogOpen(true)}
+                  className="w-full h-7 text-xs"
+                >
+                  <Wrench className="w-3 h-3 mr-1" />
+                  Fix Links
+                </Button>
+              )}
             </CardContent>
           </Card>
         </div>
@@ -709,6 +725,14 @@ export default function MarketListings() {
           onOpenChange={setIsCreateDialogOpen}
           onSaved={refreshListings}
           mode="create"
+        />
+
+        {/* Fix Links Dialog */}
+        <FixLinksDialog
+          open={isFixLinksDialogOpen}
+          onOpenChange={setIsFixLinksDialogOpen}
+          listings={listings}
+          onListingUpdated={refreshListings}
         />
       </div>
     </AppLayout>
