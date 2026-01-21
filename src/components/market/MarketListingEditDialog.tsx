@@ -50,6 +50,13 @@ const LISTING_TYPE_OPTIONS = [
   { value: 'Sale/Lease', label: 'Sale/Lease' },
 ];
 
+const CITY_OPTIONS = [
+  { value: 'Calgary', label: 'Calgary' },
+  { value: 'Rocky View County', label: 'Rocky View County' },
+  { value: 'Foothills County', label: 'Foothills County' },
+  { value: 'Wheatland County', label: 'Wheatland County' },
+];
+
 interface MarketListingEditDialogProps {
   listing: MarketListing | null;
   open: boolean;
@@ -362,13 +369,20 @@ export function MarketListingEditDialog({
                   <Label htmlFor="city" className="text-right">
                     City
                   </Label>
-                  <Input
-                    id="city"
-                    value={city}
-                    onChange={(e) => setCity(e.target.value)}
-                    className="col-span-3"
-                    placeholder="e.g., Calgary"
-                  />
+                  <div className="col-span-3">
+                    <Select value={city} onValueChange={setCity}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select city" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {CITY_OPTIONS.map((opt) => (
+                          <SelectItem key={opt.value} value={opt.value}>
+                            {opt.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
                 </div>
 
                 {/* Submarket */}
