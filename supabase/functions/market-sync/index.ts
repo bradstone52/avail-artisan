@@ -383,11 +383,11 @@ async function refreshAccessToken(refreshToken: string): Promise<{ access_token?
 }
 
 async function geocodeAddress(address: string, city: string): Promise<{ lat: number; lng: number } | null> {
-  // Use Google Geocoding API for better accuracy (especially for Alberta addresses)
+  // Use Google Geocoding API exclusively
   const googleApiKey = Deno.env.get('GOOGLE_GEOCODING_API_KEY');
   if (!googleApiKey) {
-    console.log('[Market Sync] No GOOGLE_GEOCODING_API_KEY available, trying Mapbox fallback');
-    return geocodeWithMapbox(address, city);
+    console.error('[Market Sync] GOOGLE_GEOCODING_API_KEY not configured');
+    return null;
   }
 
   const query = `${address}, ${city}, Alberta, Canada`;
@@ -400,57 +400,21 @@ async function geocodeAddress(address: string, city: string): Promise<{ lat: num
     
     if (!response.ok) {
       console.error(`[Market Sync] Google Geocoding API error: ${response.status}`);
-      return geocodeWithMapbox(address, city);
+      return null;
     }
 
     const data = await response.json();
     
     if (data.status === 'OK' && data.results && data.results.length > 0) {
       const location = data.results[0].geometry.location;
-      console.log(`[Market Sync] Google geocoded: "${query}" -> [${location.lat}, ${location.lng}]`);
+      console.log(`[Market Sync] Geocoded: "${query}" -> [${location.lat}, ${location.lng}]`);
       return { lat: location.lat, lng: location.lng };
     }
     
-    console.log(`[Market Sync] No Google results for: "${query}", trying Mapbox fallback`);
-    return geocodeWithMapbox(address, city);
-  } catch (error) {
-    console.error('[Market Sync] Google geocode error:', error);
-    return geocodeWithMapbox(address, city);
-  }
-}
-
-async function geocodeWithMapbox(address: string, city: string): Promise<{ lat: number; lng: number } | null> {
-  const mapboxToken = Deno.env.get('MAPBOX_ACCESS_TOKEN');
-  if (!mapboxToken) {
-    console.log('[Market Sync] No MAPBOX_ACCESS_TOKEN available');
-    return null;
-  }
-
-  const query = `${address}, ${city}, Alberta, Canada`;
-  const encodedQuery = encodeURIComponent(query);
-  
-  try {
-    const response = await fetch(
-      `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodedQuery}.json?access_token=${mapboxToken}&limit=1&types=address,poi`
-    );
-    
-    if (!response.ok) {
-      console.error(`[Market Sync] Mapbox API error: ${response.status}`);
-      return null;
-    }
-
-    const data = await response.json();
-    
-    if (data.features && data.features.length > 0) {
-      const [lng, lat] = data.features[0].center;
-      console.log(`[Market Sync] Mapbox geocoded: "${query}" -> [${lat}, ${lng}]`);
-      return { lat, lng };
-    }
-    
-    console.log(`[Market Sync] No Mapbox results for: "${query}"`);
+    console.log(`[Market Sync] No results for: "${query}"`);
     return null;
   } catch (error) {
-    console.error('[Market Sync] Mapbox geocode error:', error);
+    console.error('[Market Sync] Geocode error:', error);
     return null;
   }
 }
