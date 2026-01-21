@@ -245,22 +245,24 @@ Deno.serve(async (req) => {
 
     console.log(`[validate-brochure-links] Checking ${listings.length} links...`);
 
-    // Process in concurrent batches to avoid overwhelming servers
-    const allResults: ValidationResult[] = [];
+    const now = new Date().toISOString();
+    let okCount = 0;
+    let brokenCount = 0;
+    let errorCount = 0;
+    let checkedCount = 0;
+
+    // Process in concurrent batches and update DB after each batch for live progress
     for (let i = 0; i < listings.length; i += CONCURRENT_BATCH_SIZE) {
       const batch = listings.slice(i, i + CONCURRENT_BATCH_SIZE);
+      
+      // Validate batch
       const batchResults = await Promise.all(
         batch.map(listing => validateLink(listing.id, listing.link!))
       );
-      allResults.push(...batchResults);
-    }
 
-    // For "ok" HTML responses, do additional soft 404 check (also in batches)
-    const refinedResults: ValidationResult[] = [];
-    for (let i = 0; i < allResults.length; i += CONCURRENT_BATCH_SIZE) {
-      const batch = allResults.slice(i, i + CONCURRENT_BATCH_SIZE);
-      const batchRefined = await Promise.all(
-        batch.map(async (result) => {
+      // Refine with soft 404 check
+      const refinedBatch = await Promise.all(
+        batchResults.map(async (result) => {
           if (result.status === "ok") {
             const isSoft404 = await checkForSoft404(result.link);
             if (isSoft404) {
@@ -270,47 +272,44 @@ Deno.serve(async (req) => {
           return result;
         })
       );
-      refinedResults.push(...batchRefined);
-    }
 
-    // Update database
-    const now = new Date().toISOString();
-    let okCount = 0;
-    let brokenCount = 0;
-    let errorCount = 0;
+      // Update database immediately for each result (enables live realtime updates)
+      for (const result of refinedBatch) {
+        let linkStatus: string;
+        if (result.status === "ok" || result.status === "restricted" || result.status === "redirect") {
+          linkStatus = "ok";
+          okCount++;
+        } else if (result.status === "broken") {
+          linkStatus = "broken";
+          brokenCount++;
+        } else {
+          linkStatus = "error";
+          errorCount++;
+        }
 
-    for (const result of refinedResults) {
-      // Map status to stored value (restricted counts as ok since file exists)
-      let linkStatus: string;
-      if (result.status === "ok" || result.status === "restricted" || result.status === "redirect") {
-        linkStatus = "ok";
-        okCount++;
-      } else if (result.status === "broken") {
-        linkStatus = "broken";
-        brokenCount++;
-      } else {
-        linkStatus = "error";
-        errorCount++;
+        const { error: updateError } = await supabase
+          .from("market_listings")
+          .update({
+            link_status: linkStatus,
+            link_last_checked: now,
+          })
+          .eq("id", result.id);
+
+        if (updateError) {
+          console.error(`Failed to update listing ${result.id}:`, updateError);
+        }
+        
+        checkedCount++;
       }
 
-      const { error: updateError } = await supabase
-        .from("market_listings")
-        .update({
-          link_status: linkStatus,
-          link_last_checked: now,
-        })
-        .eq("id", result.id);
-
-      if (updateError) {
-        console.error(`Failed to update listing ${result.id}:`, updateError);
-      }
+      console.log(`[validate-brochure-links] Progress: ${checkedCount}/${listings.length}`);
     }
 
     console.log(`[validate-brochure-links] Completed: ${okCount} ok, ${brokenCount} broken, ${errorCount} errors`);
 
     return new Response(JSON.stringify({
       message: "Link validation complete",
-      checked: refinedResults.length,
+      checked: checkedCount,
       ok: okCount,
       broken: brokenCount,
       errors: errorCount,
