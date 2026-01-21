@@ -7,7 +7,7 @@ import { SelectListingsStep } from "@/components/issue-builder/SelectListingsSte
 import { GenerateContentStep } from "@/components/issue-builder/GenerateContentStep";
 import { PreviewStep } from "@/components/issue-builder/PreviewStep";
 import { ShareStep } from "@/components/issue-builder/ShareStep";
-import { useWorkspaceConnection } from "@/hooks/useWorkspaceConnection";
+import { useDistributionListings } from "@/hooks/useDistributionListings";
 import { useIssues } from "@/hooks/useIssues";
 import { IssueSettings, Issue } from "@/lib/types";
 import { Button } from "@/components/ui/button";
@@ -25,7 +25,7 @@ const WIZARD_STEPS = [
 
 export default function IssueBuilder() {
   const navigate = useNavigate();
-  const { listings, loading: listingsLoading } = useWorkspaceConnection();
+  const { listings, loading: listingsLoading } = useDistributionListings();
   const { createIssue, getLatestIssue } = useIssues();
 
   const [currentStep, setCurrentStep] = useState(0);
@@ -175,11 +175,11 @@ export default function IssueBuilder() {
         <div className="p-6 lg:p-8 max-w-2xl mx-auto">
           <div className="text-center py-16 bg-muted/30 rounded-xl border border-dashed border-border">
             <FileSpreadsheet className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-            <h3 className="text-lg font-display font-semibold mb-2">No Listings Available</h3>
+            <h3 className="text-lg font-display font-semibold mb-2">No Distribution Listings Available</h3>
             <p className="text-muted-foreground mb-4 max-w-md mx-auto">
-              You need to connect a Google Sheet and sync your listings before creating an issue.
+              You need to add distribution warehouse listings before creating an issue. Go to Market Listings and mark properties as distribution warehouses.
             </p>
-            <Button onClick={() => navigate("/dashboard")}>Go to Dashboard</Button>
+            <Button onClick={() => navigate("/market-listings")}>Go to Market Listings</Button>
           </div>
         </div>
       </AppLayout>
