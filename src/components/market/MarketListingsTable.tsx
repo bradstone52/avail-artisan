@@ -16,11 +16,19 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from '@/components/ui/tooltip';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { StatusDropdown } from '@/components/market/StatusDropdown';
-import { ExternalLink, MapPin, Pencil, Receipt, ArrowUp, ArrowDown, ArrowUpDown } from 'lucide-react';
+import { EditMarketPinDialog } from '@/components/market/EditMarketPinDialog';
+import { ExternalLink, MapPin, MapPinOff, Hand, Pencil, Receipt, RotateCcw, ArrowUp, ArrowDown, ArrowUpDown } from 'lucide-react';
 import { format } from 'date-fns';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { cn } from '@/lib/utils';
 
 export type SortDirection = 'asc' | 'desc' | null;
 export type SortableColumn = 'size_sf' | 'warehouse_sf' | 'office_sf' | 'dock_doors' | 'drive_in_doors' | 'power_amps';
@@ -85,6 +93,29 @@ export function MarketListingsTable({ listings, onEdit, onRefresh, sortColumn, s
   const [isHovered, setIsHovered] = useState(false);
   const [selectedRowId, setSelectedRowId] = useState<string | null>(null);
   const [updatingDW, setUpdatingDW] = useState<string | null>(null);
+  const [editPinListing, setEditPinListing] = useState<MarketListing | null>(null);
+
+  // Reset pin to auto-geocode
+  const handleResetPin = async (listing: MarketListing) => {
+    try {
+      const { error } = await supabase
+        .from('market_listings')
+        .update({
+          latitude: null,
+          longitude: null,
+          geocode_source: null,
+          geocoded_at: null,
+        })
+        .eq('id', listing.id);
+      
+      if (error) throw error;
+      toast.success('Pin reset - will be auto-geocoded on next sync');
+      onRefresh();
+    } catch (err) {
+      console.error('Failed to reset pin:', err);
+      toast.error('Failed to reset pin location');
+    }
+  };
 
   // Toggle distribution warehouse flag
   const handleToggleDW = async (listing: MarketListing) => {
@@ -418,13 +449,49 @@ export function MarketListingsTable({ listings, onEdit, onRefresh, sortColumn, s
                 </button>
               </TableCell>
               
-              {/* Geocoded */}
+              {/* Geocoded - with edit functionality */}
               <TableCell>
-                {listing.latitude && listing.longitude ? (
-                  <MapPin className="w-4 h-4 text-green-600" />
-                ) : (
-                  <span className="text-muted-foreground text-sm">-</span>
-                )}
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button 
+                      variant="ghost" 
+                      size="icon" 
+                      className={cn(
+                        "h-8 w-8 relative",
+                        listing.geocode_source === 'manual' && "ring-2 ring-warning ring-offset-1"
+                      )}
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      {listing.latitude && listing.longitude ? (
+                        <>
+                          <MapPin className={cn(
+                            "w-4 h-4",
+                            listing.geocode_source === 'manual' ? "text-warning" : "text-green-600"
+                          )} />
+                          {listing.geocode_source === 'manual' && (
+                            <Hand className="w-2.5 h-2.5 absolute -top-0.5 -right-0.5 text-warning" />
+                          )}
+                        </>
+                      ) : (
+                        <MapPinOff className="w-4 h-4 text-muted-foreground" />
+                      )}
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    <DropdownMenuItem onClick={(e) => { e.stopPropagation(); setEditPinListing(listing); }}>
+                      <Pencil className="w-4 h-4 mr-2" />
+                      Edit pin location
+                    </DropdownMenuItem>
+                    {listing.geocode_source === 'manual' && (
+                      <DropdownMenuItem 
+                        onClick={(e) => { e.stopPropagation(); handleResetPin(listing); }}
+                      >
+                        <RotateCcw className="w-4 h-4 mr-2" />
+                        Reset to auto-geocode
+                      </DropdownMenuItem>
+                    )}
+                  </DropdownMenuContent>
+                </DropdownMenu>
               </TableCell>
               
               {/* Link */}
@@ -491,6 +558,19 @@ export function MarketListingsTable({ listings, onEdit, onRefresh, sortColumn, s
           );})}
         </TableBody>
       </Table>
+
+      {/* Edit Pin Location Dialog */}
+      <EditMarketPinDialog
+        listing={editPinListing}
+        open={editPinListing !== null}
+        onOpenChange={(open) => {
+          if (!open) setEditPinListing(null);
+        }}
+        onSave={() => {
+          setEditPinListing(null);
+          onRefresh();
+        }}
+      />
     </div>
   );
 }
