@@ -45,6 +45,32 @@ function formatCurrency(value: string | null): string {
   return value;
 }
 
+function formatSalePrice(value: string | null): string {
+  if (!value) return '-';
+  // Parse the number and format as currency without decimals
+  const numValue = parseFloat(value.replace(/[^0-9.-]/g, ''));
+  if (isNaN(numValue)) return value;
+  return new Intl.NumberFormat('en-US', {
+    style: 'currency',
+    currency: 'USD',
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0,
+  }).format(numValue);
+}
+
+function calculateGrossRate(askRate: string | null, opCosts: string | null): string {
+  if (!askRate || !opCosts) return '-';
+  
+  // Parse numeric values
+  const askNum = parseFloat(askRate.replace(/[^0-9.-]/g, ''));
+  const opNum = parseFloat(opCosts.replace(/[^0-9.-]/g, ''));
+  
+  if (isNaN(askNum) || isNaN(opNum)) return '-';
+  
+  const gross = askNum + opNum;
+  return `$${gross.toFixed(2)}`;
+}
+
 export function MarketListingsTable({ listings, onEdit, onRefresh }: MarketListingsTableProps) {
   const navigate = useNavigate();
   const scrollContainerRef = useRef<HTMLDivElement>(null);
@@ -86,11 +112,10 @@ export function MarketListingsTable({ listings, onEdit, onRefresh }: MarketListi
       role="region"
       aria-label="Market listings table - use left and right arrow keys to scroll"
     >
-      <Table className="min-w-[3200px]">
+      <Table className="min-w-[3000px]">
         <TableHeader>
-          <TableRow className="bg-muted/50">
-            <TableHead className="sticky left-0 bg-muted/50 z-20 min-w-[180px] shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]">Address</TableHead>
-            <TableHead className="min-w-[140px]">Listing ID</TableHead>
+          <TableRow>
+            <TableHead className="sticky left-0 z-20 min-w-[180px] bg-muted shadow-[2px_0_5px_-2px_rgba(0,0,0,0.15)]">Address</TableHead>
             <TableHead className="min-w-[130px]">Submarket</TableHead>
             <TableHead className="min-w-[100px]">City</TableHead>
             <TableHead className="min-w-[130px]">Status</TableHead>
@@ -114,8 +139,8 @@ export function MarketListingsTable({ listings, onEdit, onRefresh }: MarketListi
             <TableHead className="min-w-[80px]">Zoning</TableHead>
             <TableHead className="min-w-[60px]">MUA</TableHead>
             <TableHead className="min-w-[90px]">Ask Rate</TableHead>
-            <TableHead className="min-w-[90px]">Gross</TableHead>
             <TableHead className="min-w-[80px]">Op Cost</TableHead>
+            <TableHead className="min-w-[90px]">Gross</TableHead>
             <TableHead className="min-w-[100px]">Sale Price</TableHead>
             <TableHead className="min-w-[90px]">Sub Exp</TableHead>
             <TableHead className="min-w-[90px]">Avail</TableHead>
@@ -125,7 +150,7 @@ export function MarketListingsTable({ listings, onEdit, onRefresh }: MarketListi
             <TableHead className="min-w-[50px]">Geo</TableHead>
             <TableHead className="min-w-[50px]">Link</TableHead>
             <TableHead className="min-w-[180px]">Notes</TableHead>
-            <TableHead className="sticky right-0 bg-muted/50 z-20 min-w-[90px] shadow-[-2px_0_5px_-2px_rgba(0,0,0,0.1)]">Actions</TableHead>
+            <TableHead className="sticky right-0 z-20 min-w-[90px] bg-muted shadow-[-2px_0_5px_-2px_rgba(0,0,0,0.15)]">Actions</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -136,23 +161,18 @@ export function MarketListingsTable({ listings, onEdit, onRefresh }: MarketListi
               key={listing.id} 
               className={`cursor-pointer transition-colors ${
                 isSelected 
-                  ? 'bg-primary/15 hover:bg-primary/20' 
+                  ? '!bg-amber-200 dark:!bg-amber-700 hover:!bg-amber-300 dark:hover:!bg-amber-600' 
                   : 'hover:bg-muted/30'
               }`}
               onClick={() => setSelectedRowId(isSelected ? null : listing.id)}
             >
               {/* Address - Sticky */}
-              <TableCell className={`sticky left-0 z-10 font-medium shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)] ${
-                isSelected ? 'bg-primary/15' : 'bg-background'
+              <TableCell className={`sticky left-0 z-10 font-medium shadow-[2px_0_5px_-2px_rgba(0,0,0,0.15)] ${
+                isSelected ? 'bg-amber-200 dark:bg-amber-700' : 'bg-background'
               }`}>
                 <div className="truncate max-w-[170px]" title={listing.address}>
                   {listing.display_address || listing.address}
                 </div>
-              </TableCell>
-              
-              {/* Listing ID */}
-              <TableCell className="text-xs font-mono text-muted-foreground">
-                {listing.listing_id}
               </TableCell>
               
               {/* Submarket */}
@@ -238,14 +258,14 @@ export function MarketListingsTable({ listings, onEdit, onRefresh }: MarketListi
               {/* Asking Rate */}
               <TableCell className="text-sm">{formatCurrency(listing.asking_rate_psf)}</TableCell>
               
-              {/* Gross Rate */}
-              <TableCell className="text-sm">{formatCurrency(listing.gross_rate)}</TableCell>
-              
               {/* Op Costs */}
               <TableCell className="text-sm">{formatCurrency(listing.op_costs)}</TableCell>
               
-              {/* Sale Price */}
-              <TableCell className="text-sm">{formatCurrency(listing.sale_price)}</TableCell>
+              {/* Gross Rate - Calculated from Ask + Op Cost */}
+              <TableCell className="text-sm">{calculateGrossRate(listing.asking_rate_psf, listing.op_costs)}</TableCell>
+              
+              {/* Sale Price - Currency formatted */}
+              <TableCell className="text-sm">{formatSalePrice(listing.sale_price)}</TableCell>
               
               {/* Sublease Exp */}
               <TableCell className="text-sm">{listing.sublease_exp || '-'}</TableCell>
@@ -310,8 +330,8 @@ export function MarketListingsTable({ listings, onEdit, onRefresh }: MarketListi
               </TableCell>
               
               {/* Actions - Sticky */}
-              <TableCell className={`sticky right-0 z-10 shadow-[-2px_0_5px_-2px_rgba(0,0,0,0.1)] ${
-                isSelected ? 'bg-primary/15' : 'bg-background'
+              <TableCell className={`sticky right-0 z-10 shadow-[-2px_0_5px_-2px_rgba(0,0,0,0.15)] ${
+                isSelected ? 'bg-amber-200 dark:bg-amber-700' : 'bg-background'
               }`}>
                 <div className="flex items-center gap-0.5">
                   <Tooltip>

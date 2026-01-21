@@ -12,7 +12,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { RefreshCw, Database, Search, X, Filter, Link2, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Plus } from 'lucide-react';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { RefreshCw, Database, Search, X, Filter, Link2, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Plus, ChevronDown } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { format } from 'date-fns';
 import { MarketListingEditDialog } from '@/components/market/MarketListingEditDialog';
@@ -41,7 +43,7 @@ export default function MarketListings() {
 
   // Filter state
   const [searchQuery, setSearchQuery] = useState('');
-  const [submarketFilter, setSubmarketFilter] = useState<string>('all');
+  const [submarketFilter, setSubmarketFilter] = useState<string[]>([]);
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [sizeFilter, setSizeFilter] = useState<string>('all');
   const [distWarehouseFilter, setDistWarehouseFilter] = useState<string>('all');
@@ -101,8 +103,8 @@ export default function MarketListings() {
         if (!matchesSearch) return false;
       }
 
-      // Submarket filter
-      if (submarketFilter !== 'all' && listing.submarket !== submarketFilter) {
+      // Submarket filter (multi-select)
+      if (submarketFilter.length > 0 && !submarketFilter.includes(listing.submarket)) {
         return false;
       }
 
@@ -159,7 +161,7 @@ export default function MarketListings() {
     });
   }, [listings, searchQuery, submarketFilter, statusFilter, sizeFilter, distWarehouseFilter, brokerFilter, listingTypeFilter, landlordFilter, docksFilter, driveInFilter]);
 
-  const hasActiveFilters = searchQuery || submarketFilter !== 'all' || statusFilter !== 'all' || sizeFilter !== 'all' || distWarehouseFilter !== 'all' || brokerFilter !== 'all' || listingTypeFilter !== 'all' || landlordFilter !== 'all' || docksFilter !== 'all' || driveInFilter !== 'all';
+  const hasActiveFilters = searchQuery || submarketFilter.length > 0 || statusFilter !== 'all' || sizeFilter !== 'all' || distWarehouseFilter !== 'all' || brokerFilter !== 'all' || listingTypeFilter !== 'all' || landlordFilter !== 'all' || docksFilter !== 'all' || driveInFilter !== 'all';
 
   // Pagination calculations
   const totalPages = Math.ceil(filteredListings.length / pageSize);
@@ -170,7 +172,7 @@ export default function MarketListings() {
   // Reset to page 1 when filters change
   const clearFilters = () => {
     setSearchQuery('');
-    setSubmarketFilter('all');
+    setSubmarketFilter([]);
     setStatusFilter('all');
     setSizeFilter('all');
     setDistWarehouseFilter('all');
@@ -180,6 +182,14 @@ export default function MarketListings() {
     setDocksFilter('all');
     setDriveInFilter('all');
     setCurrentPage(1);
+  };
+
+  const toggleSubmarket = (submarket: string) => {
+    setSubmarketFilter(prev => 
+      prev.includes(submarket) 
+        ? prev.filter(s => s !== submarket)
+        : [...prev, submarket]
+    );
   };
 
   // Reset page when filtered results change
@@ -362,20 +372,53 @@ export default function MarketListings() {
                   </div>
                 </div>
 
-                {/* Submarket */}
+                {/* Submarket - Multi-select */}
                 <div>
                   <Label className="text-xs text-muted-foreground mb-1.5 block">Submarket</Label>
-                  <Select value={submarketFilter} onValueChange={setSubmarketFilter}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="All Submarkets" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">All Submarkets</SelectItem>
-                      {uniqueSubmarkets.map(submarket => (
-                        <SelectItem key={submarket} value={submarket}>{submarket}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button 
+                        variant="outline" 
+                        className="w-full justify-between font-normal"
+                      >
+                        <span className="truncate">
+                          {submarketFilter.length === 0 
+                            ? 'All Submarkets' 
+                            : submarketFilter.length === 1 
+                              ? submarketFilter[0]
+                              : `${submarketFilter.length} selected`}
+                        </span>
+                        <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-[200px] p-2 bg-background z-50" align="start">
+                      <div className="space-y-1 max-h-[250px] overflow-y-auto">
+                        {submarketFilter.length > 0 && (
+                          <Button 
+                            variant="ghost" 
+                            size="sm" 
+                            className="w-full justify-start text-muted-foreground mb-1"
+                            onClick={() => setSubmarketFilter([])}
+                          >
+                            Clear selection
+                          </Button>
+                        )}
+                        {uniqueSubmarkets.map(submarket => (
+                          <div 
+                            key={submarket} 
+                            className="flex items-center space-x-2 px-2 py-1.5 rounded hover:bg-muted cursor-pointer"
+                            onClick={() => toggleSubmarket(submarket)}
+                          >
+                            <Checkbox 
+                              checked={submarketFilter.includes(submarket)}
+                              onCheckedChange={() => toggleSubmarket(submarket)}
+                            />
+                            <span className="text-sm">{submarket}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </PopoverContent>
+                  </Popover>
                 </div>
 
                 {/* Status */}
