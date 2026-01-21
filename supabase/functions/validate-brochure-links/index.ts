@@ -5,8 +5,8 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-// Batch size for processing
-const BATCH_SIZE = 25;
+// Process all links, but in parallel batches to avoid overwhelming servers
+const CONCURRENT_BATCH_SIZE = 10;
 
 // Patterns indicating soft 404 or error pages
 const SOFT_404_PATTERNS = [
@@ -213,7 +213,7 @@ Deno.serve(async (req) => {
 
     const orgId = orgMembers[0].org_id;
 
-    // Fetch listings with links that haven't been checked recently or never checked
+    // Fetch ALL listings with links that haven't been checked recently or never checked
     const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
     
     const { data: listings, error: fetchError } = await supabase
@@ -222,8 +222,7 @@ Deno.serve(async (req) => {
       .eq("org_id", orgId)
       .not("link", "is", null)
       .neq("link", "")
-      .or(`link_last_checked.is.null,link_last_checked.lt.${oneDayAgo}`)
-      .limit(BATCH_SIZE);
+      .or(`link_last_checked.is.null,link_last_checked.lt.${oneDayAgo}`);
 
     if (fetchError) {
       console.error("Error fetching listings:", fetchError);
@@ -246,23 +245,33 @@ Deno.serve(async (req) => {
 
     console.log(`[validate-brochure-links] Checking ${listings.length} links...`);
 
-    // Validate all links in parallel
-    const results = await Promise.all(
-      listings.map(listing => validateLink(listing.id, listing.link!))
-    );
+    // Process in concurrent batches to avoid overwhelming servers
+    const allResults: ValidationResult[] = [];
+    for (let i = 0; i < listings.length; i += CONCURRENT_BATCH_SIZE) {
+      const batch = listings.slice(i, i + CONCURRENT_BATCH_SIZE);
+      const batchResults = await Promise.all(
+        batch.map(listing => validateLink(listing.id, listing.link!))
+      );
+      allResults.push(...batchResults);
+    }
 
-    // For "ok" HTML responses, do additional soft 404 check
-    const refinedResults = await Promise.all(
-      results.map(async (result) => {
-        if (result.status === "ok") {
-          const isSoft404 = await checkForSoft404(result.link);
-          if (isSoft404) {
-            return { ...result, status: "broken" as const, error: "Soft 404 detected" };
+    // For "ok" HTML responses, do additional soft 404 check (also in batches)
+    const refinedResults: ValidationResult[] = [];
+    for (let i = 0; i < allResults.length; i += CONCURRENT_BATCH_SIZE) {
+      const batch = allResults.slice(i, i + CONCURRENT_BATCH_SIZE);
+      const batchRefined = await Promise.all(
+        batch.map(async (result) => {
+          if (result.status === "ok") {
+            const isSoft404 = await checkForSoft404(result.link);
+            if (isSoft404) {
+              return { ...result, status: "broken" as const, error: "Soft 404 detected" };
+            }
           }
-        }
-        return result;
-      })
-    );
+          return result;
+        })
+      );
+      refinedResults.push(...batchRefined);
+    }
 
     // Update database
     const now = new Date().toISOString();
@@ -297,15 +306,6 @@ Deno.serve(async (req) => {
       }
     }
 
-    // Check remaining count
-    const { count: remainingCount } = await supabase
-      .from("market_listings")
-      .select("id", { count: "exact", head: true })
-      .eq("org_id", orgId)
-      .not("link", "is", null)
-      .neq("link", "")
-      .or(`link_last_checked.is.null,link_last_checked.lt.${oneDayAgo}`);
-
     console.log(`[validate-brochure-links] Completed: ${okCount} ok, ${brokenCount} broken, ${errorCount} errors`);
 
     return new Response(JSON.stringify({
@@ -314,7 +314,6 @@ Deno.serve(async (req) => {
       ok: okCount,
       broken: brokenCount,
       errors: errorCount,
-      remaining: remainingCount || 0,
     }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
