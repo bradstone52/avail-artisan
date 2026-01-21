@@ -6,135 +6,18 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+// ArcGIS FeatureServer layers (same as Google Sheet code.gs)
+const COMMUNITY_LAYERS = [
+  'https://services.arcgis.com/xYjDUN35YwdCEcMm/ArcGIS/rest/services/Calgary_Communities_Boundary/FeatureServer/0',
+  'https://services.arcgis.com/xYjDUN35YwdCEcMm/ArcGIS/rest/services/Community_Districts/FeatureServer/0'
+];
+const COMMUNITY_NAME_FIELD = 'NAME';
+
+const CITY_BOUNDARY_LAYER = 
+  'https://services.arcgis.com/xYjDUN35YwdCEcMm/ArcGIS/rest/services/Aspect_Chloropleth_WFL1/FeatureServer/1';
+
 // Directional indicators that should always remain uppercase
 const DIRECTIONAL_INDICATORS = ['NW', 'NE', 'SW', 'SE', 'N', 'S', 'E', 'W'];
-
-// Calgary submarket mappings based on community districts
-// See: https://data.calgary.ca/Base-Maps/Community-District-Boundaries/surr-xmvs
-const CALGARY_SUBMARKET_MAPPING: Record<string, string> = {
-  // Northeast quadrant communities
-  'SADDLE RIDGE': 'NE Industrial',
-  'SADDLE RIDGE INDUSTRIAL': 'NE Industrial',
-  'STONEY 1': 'NE Industrial',
-  'STONEY 2': 'NE Industrial',
-  'STONEY INDUSTRIAL': 'NE Industrial',
-  'SKYVIEW RANCH': 'NE Industrial',
-  'REDSTONE': 'NE Industrial',
-  'CORNERSTONE': 'NE Industrial',
-  'CITYSCAPE': 'NE Industrial',
-  'HOMESTEAD': 'NE Industrial',
-  
-  // Southeast quadrant communities  
-  'FOOTHILLS INDUSTRIAL': 'SE Industrial',
-  'STARFIELD': 'SE Industrial',
-  'DOUGLAS GLEN': 'SE Industrial',
-  'DOUGLASDALE/GLEN': 'SE Industrial',
-  'QUARRY PARK': 'SE Industrial',
-  'RIVERBEND': 'SE Industrial',
-  'OGDEN': 'SE Industrial',
-  'LYNNWOOD': 'SE Industrial',
-  'MILLICAN': 'SE Industrial',
-  'GREAT PLAINS': 'SE Industrial',
-  'DEERFOOT BUSINESS CENTRE': 'SE Industrial',
-  'EAST SHEPARD': 'SE Industrial',
-  'SHEPARD INDUSTRIAL': 'SE Industrial',
-  'SOUTH FOOTHILLS': 'SE Industrial',
-  
-  // South quadrant communities
-  'SOUTH CALGARY': 'South',
-  'MANCHESTER': 'South',
-  'MANCHESTER INDUSTRIAL': 'South',
-  'FAIRVIEW': 'South',
-  'CHINOOK PARK': 'South',
-  'KINGSLAND': 'South',
-  'SHAWNESSY': 'South',
-  'MIDNAPORE': 'South',
-  'SUNDANCE': 'South',
-  'CHAPARRAL': 'South',
-  'CRANSTON': 'South',
-  'AUBURN BAY': 'South',
-  'MAHOGANY': 'South',
-  'SETON': 'South',
-  
-  // Southwest quadrant communities
-  'CURRIE BARRACKS': 'SW Industrial',
-  'GLAMORGAN': 'SW Industrial',
-  'GLENBROOK': 'SW Industrial',
-  'KILLARNEY/GLENGARRY': 'SW Industrial',
-  'ROSSCARROCK': 'SW Industrial',
-  'WESTGATE': 'SW Industrial',
-  'ASPEN WOODS': 'SW Industrial',
-  'SPRINGBANK HILL': 'SW Industrial',
-  'SIGNAL HILL': 'SW Industrial',
-  'STRATHCONA PARK': 'SW Industrial',
-  'COACH HILL': 'SW Industrial',
-  'PATTERSON': 'SW Industrial',
-  'DISCOVERY RIDGE': 'SW Industrial',
-  
-  // Northwest quadrant communities
-  'DALHOUSIE': 'NW Industrial',
-  'VARSITY': 'NW Industrial',
-  'BRENTWOOD': 'NW Industrial',
-  'UNIVERSITY HEIGHTS': 'NW Industrial',
-  'BOWNESS': 'NW Industrial',
-  'GREENWOOD/GREENBRIAR': 'NW Industrial',
-  'ARBOUR LAKE': 'NW Industrial',
-  'CITADEL': 'NW Industrial',
-  'HAWKWOOD': 'NW Industrial',
-  'ROYAL OAK': 'NW Industrial',
-  'ROCKY RIDGE': 'NW Industrial',
-  'TUSCANY': 'NW Industrial',
-  'EVANSTON': 'NW Industrial',
-  'KINCORA': 'NW Industrial',
-  'SAGE HILL': 'NW Industrial',
-  'SHERWOOD': 'NW Industrial',
-  'NOLAN HILL': 'NW Industrial',
-  'LIVINGSTON': 'NW Industrial',
-  
-  // Central/Downtown
-  'DOWNTOWN COMMERCIAL CORE': 'Central',
-  'BELTLINE': 'Central',
-  'VICTORIA PARK': 'Central',
-  'CHINATOWN': 'Central',
-  'EAU CLAIRE': 'Central',
-  'WEST END': 'Central',
-  'SUNALTA': 'Central',
-  'MISSION': 'Central',
-  'CLIFF BUNGALOW': 'Central',
-  'ERLTON': 'Central',
-  'INGLEWOOD': 'Central',
-  'RAMSAY': 'Central',
-  'BRIDGELAND/RIVERSIDE': 'Central',
-  'SUNNYSIDE': 'Central',
-  'HILLHURST': 'Central',
-  'KENSINGTON': 'Central',
-  'CAPITOL HILL': 'Central',
-  'MOUNT PLEASANT': 'Central',
-  'TUXEDO PARK': 'Central',
-  'RENFREW': 'Central',
-  'CRESCENT HEIGHTS': 'Central',
-  'WINSTON HEIGHTS/MOUNTVIEW': 'Central',
-  
-  // Major industrial areas - explicit mappings
-  'ALYTH/BONNYBROOK': 'SE Industrial',
-  'HIGHFIELD': 'SE Industrial',
-  'BONNYBROOK': 'SE Industrial',
-  'BURNS INDUSTRIAL': 'SE Industrial',
-  'EAST FAIRVIEW INDUSTRIAL': 'SE Industrial',
-  'FAIRVIEW INDUSTRIAL': 'SE Industrial',
-  'FRANKLIN': 'SE Industrial',
-  'GLENDEER BUSINESS PARK': 'SE Industrial',
-  'HASKAYNE': 'NW Industrial',
-  'HORIZON': 'NE Industrial',
-  'HUNT INDUSTRIAL': 'SE Industrial',
-  'MAYLAND HEIGHTS': 'NE Industrial',
-  'MAYLAND': 'NE Industrial',
-  'MERIDIAN': 'NE Industrial',
-  'PEGASUS': 'NE Industrial',
-  'POINT TROTTER INDUSTRIAL': 'SE Industrial',
-  'SUNRIDGE': 'NE Industrial',
-  'VISTA HEIGHTS': 'NE Industrial',
-};
 
 function toTitleCase(str: string): string {
   return str.split(' ').map(word => {
@@ -158,23 +41,17 @@ function normalizeAddress(address: string): string {
   return normalized;
 }
 
-interface GeocodeResult {
-  lat: number;
-  lng: number;
-  neighborhood?: string;
-}
-
 /**
- * Geocode an address using Google Geocoding API and extract neighborhood info
+ * Geocode an address using Google Geocoding API
  */
 async function geocodeWithGoogle(
   address: string, 
   city: string, 
   googleApiKey: string
-): Promise<GeocodeResult | null> {
+): Promise<{ lat: number; lng: number } | null> {
   try {
     const normalizedAddress = normalizeAddress(address);
-    const fullAddress = `${normalizedAddress}, ${city}, Alberta, Canada`;
+    const fullAddress = `${normalizedAddress}, ${city}, AB, Canada`;
     const encodedAddress = encodeURIComponent(fullAddress);
     
     const url = `https://maps.googleapis.com/maps/api/geocode/json?address=${encodedAddress}&region=ca&key=${googleApiKey}`;
@@ -190,25 +67,9 @@ async function geocodeWithGoogle(
     const data = await response.json();
     
     if (data.status === 'OK' && data.results && data.results.length > 0) {
-      const result = data.results[0];
-      const location = result.geometry.location;
-      
-      // Extract neighborhood from address components
-      let neighborhood: string | undefined;
-      for (const component of result.address_components || []) {
-        if (component.types.includes('neighborhood') || component.types.includes('sublocality')) {
-          neighborhood = component.long_name.toUpperCase();
-          break;
-        }
-        // Calgary uses "locality" subdivisions sometimes
-        if (component.types.includes('sublocality_level_1')) {
-          neighborhood = component.long_name.toUpperCase();
-          break;
-        }
-      }
-      
-      console.log(`[Geocode] Success: lat=${location.lat}, lng=${location.lng}, neighborhood=${neighborhood || 'none'}`);
-      return { lat: location.lat, lng: location.lng, neighborhood };
+      const location = data.results[0].geometry.location;
+      console.log(`[Geocode] Success: lat=${location.lat}, lng=${location.lng}`);
+      return { lat: location.lat, lng: location.lng };
     }
     
     console.log(`[Geocode] No results for: ${fullAddress}`);
@@ -220,39 +81,182 @@ async function geocodeWithGoogle(
 }
 
 /**
- * Determine submarket based on coordinates using quadrant logic for Calgary
+ * Point-in-ring algorithm (ray casting)
  */
-function determineSubmarketFromCoords(lat: number, lng: number, neighborhood?: string): string {
-  // Check if we have a direct neighborhood mapping
-  if (neighborhood) {
-    const mapped = CALGARY_SUBMARKET_MAPPING[neighborhood];
-    if (mapped) {
-      console.log(`[Submarket] Matched neighborhood "${neighborhood}" to "${mapped}"`);
-      return mapped;
+function pointInRing(pt: [number, number], ring: number[][]): boolean {
+  const x = pt[0], y = pt[1];
+  let inside = false;
+  for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) {
+    const xi = ring[i][0], yi = ring[i][1];
+    const xj = ring[j][0], yj = ring[j][1];
+    const intersect = ((yi > y) !== (yj > y)) &&
+      (x < (xj - xi) * (y - yi) / ((yj - yi) || 1e-12) + xi);
+    if (intersect) inside = !inside;
+  }
+  return inside;
+}
+
+/**
+ * Check if point is inside a polygon (with holes support)
+ */
+function pointInPolygon(pt: [number, number], polygon: number[][][]): boolean {
+  if (!polygon || !polygon.length) return false;
+  // Must be inside outer ring
+  if (!pointInRing(pt, polygon[0])) return false;
+  // Must not be inside any holes
+  for (let h = 1; h < polygon.length; h++) {
+    if (pointInRing(pt, polygon[h])) return false;
+  }
+  return true;
+}
+
+/**
+ * Check if point is inside any of the polygons
+ */
+function pointInAnyPolygon(pt: [number, number], polygons: number[][][][]): boolean {
+  for (const poly of polygons) {
+    if (pointInPolygon(pt, poly)) return true;
+  }
+  return false;
+}
+
+interface GeoJSONFeature {
+  type: string;
+  properties: Record<string, unknown>;
+  geometry: {
+    type: string;
+    coordinates: number[][][] | number[][][][];
+  };
+}
+
+interface GeoJSONFeatureCollection {
+  type: string;
+  features: GeoJSONFeature[];
+}
+
+/**
+ * Find the feature that contains the given point
+ */
+function findContainingFeature(pt: [number, number], features: GeoJSONFeature[]): GeoJSONFeature | null {
+  for (const f of features) {
+    const g = f?.geometry;
+    if (!g) continue;
+    
+    if (g.type === 'Polygon') {
+      if (pointInPolygon(pt, g.coordinates as number[][][])) return f;
+    } else if (g.type === 'MultiPolygon') {
+      for (const poly of g.coordinates as number[][][][]) {
+        if (pointInPolygon(pt, poly)) return f;
+      }
+    }
+  }
+  return null;
+}
+
+/**
+ * Convert GeoJSON to array of polygons
+ */
+function geojsonToPolys(gj: GeoJSONFeatureCollection): number[][][][] {
+  const polys: number[][][][] = [];
+  for (const f of (gj.features || [])) {
+    const g = f.geometry;
+    if (!g) continue;
+    if (g.type === 'Polygon') {
+      polys.push(g.coordinates as number[][][]);
+    } else if (g.type === 'MultiPolygon') {
+      for (const p of g.coordinates as number[][][][]) {
+        polys.push(p);
+      }
+    }
+  }
+  return polys;
+}
+
+/**
+ * Fetch community boundaries from ArcGIS
+ */
+async function fetchCommunityBoundaries(): Promise<GeoJSONFeature[]> {
+  for (const base of COMMUNITY_LAYERS) {
+    const url = `${base}/query?f=geojson&where=1%3D1&outSR=4326&returnGeometry=true&outFields=${encodeURIComponent(COMMUNITY_NAME_FIELD)}`;
+    
+    try {
+      console.log(`[ArcGIS] Fetching communities from: ${base}`);
+      const response = await fetch(url);
+      
+      if (!response.ok) {
+        console.error(`[ArcGIS] Communities HTTP ${response.status}`);
+        continue;
+      }
+      
+      const gj = await response.json() as GeoJSONFeatureCollection;
+      
+      if (gj && gj.type === 'FeatureCollection' && gj.features?.length) {
+        console.log(`[ArcGIS] Loaded ${gj.features.length} community features`);
+        return gj.features;
+      }
+    } catch (error) {
+      console.error(`[ArcGIS] Communities fetch error:`, error);
     }
   }
   
-  // Calgary city center coordinates (approximately Centre St & 17 Ave)
-  const CALGARY_CENTER_LAT = 51.0447;
-  const CALGARY_CENTER_LNG = -114.0719;
+  throw new Error('Failed to download Community polygons from ArcGIS');
+}
+
+/**
+ * Fetch Calgary city boundary from ArcGIS
+ */
+async function fetchCityBoundary(): Promise<number[][][][]> {
+  const url = `${CITY_BOUNDARY_LAYER}/query?f=geojson&where=1%3D1&outSR=4326&returnGeometry=true&outFields=city_name`;
   
-  // Industrial areas are generally:
-  // - NE: East of Deerfoot Trail (roughly -114.0) and north of 16 Ave
-  // - SE: East of Deerfoot and south of 17 Ave
-  // - SW: West of downtown core, south of Bow River
-  // - NW: West of downtown, north of Bow
+  console.log(`[ArcGIS] Fetching city boundary`);
+  const response = await fetch(url);
   
-  const isNorth = lat > CALGARY_CENTER_LAT;
-  const isEast = lng > CALGARY_CENTER_LNG;
+  if (!response.ok) {
+    throw new Error(`City boundary HTTP ${response.status}`);
+  }
   
-  if (isNorth && isEast) {
-    return 'NE Industrial';
-  } else if (!isNorth && isEast) {
-    return 'SE Industrial';
-  } else if (isNorth && !isEast) {
-    return 'NW Industrial';
-  } else {
-    return 'SW Industrial';
+  const gj = await response.json() as GeoJSONFeatureCollection;
+  
+  if (!gj || gj.type !== 'FeatureCollection' || !gj.features?.length) {
+    throw new Error('City boundary returned no features');
+  }
+  
+  console.log(`[ArcGIS] Loaded city boundary with ${gj.features.length} features`);
+  return geojsonToPolys(gj);
+}
+
+/**
+ * Determine submarket (community name) using ArcGIS polygon lookup
+ */
+async function determineSubmarket(lat: number, lng: number): Promise<string | null> {
+  const pt: [number, number] = [lng, lat]; // GeoJSON uses [lng, lat]
+  
+  try {
+    // First check if point is inside Calgary city boundary
+    const cityPolys = await fetchCityBoundary();
+    const insideCity = pointInAnyPolygon(pt, cityPolys);
+    
+    if (!insideCity) {
+      console.log(`[Submarket] Point is outside Calgary city boundary`);
+      return null; // Outside Calgary - leave blank
+    }
+    
+    // Find the community that contains this point
+    const communities = await fetchCommunityBoundaries();
+    const feature = findContainingFeature(pt, communities);
+    
+    if (feature) {
+      const name = String(feature.properties?.[COMMUNITY_NAME_FIELD] || '').trim();
+      console.log(`[Submarket] Found community: ${name}`);
+      return name || 'No community match';
+    }
+    
+    console.log(`[Submarket] Inside Calgary but no community match`);
+    return 'No community match';
+    
+  } catch (error) {
+    console.error(`[Submarket] Error:`, error);
+    return null;
   }
 }
 
@@ -329,8 +333,9 @@ serve(async (req) => {
       });
     }
 
-    // Check if already has valid coordinates
-    if (listing.latitude && listing.longitude && listing.submarket && listing.submarket !== 'Pending') {
+    // Check if already has valid coordinates and submarket
+    if (listing.latitude && listing.longitude && listing.submarket && 
+        listing.submarket !== 'Pending' && listing.submarket !== '') {
       console.log('[Geocode Market Listing] Already geocoded and has submarket');
       return new Response(JSON.stringify({ 
         success: true, 
@@ -368,14 +373,10 @@ serve(async (req) => {
       });
     }
 
-    // Determine submarket from coordinates and neighborhood
-    const submarket = determineSubmarketFromCoords(
-      geocodeResult.lat, 
-      geocodeResult.lng, 
-      geocodeResult.neighborhood
-    );
+    // Determine submarket using ArcGIS polygon lookup
+    const submarket = await determineSubmarket(geocodeResult.lat, geocodeResult.lng);
 
-    console.log(`[Geocode Market Listing] Assigned submarket: ${submarket}`);
+    console.log(`[Geocode Market Listing] Assigned submarket: ${submarket || '(outside Calgary)'}`);
 
     // Update the listing
     const { error: updateError } = await adminClient
@@ -383,7 +384,7 @@ serve(async (req) => {
       .update({
         latitude: geocodeResult.lat,
         longitude: geocodeResult.lng,
-        submarket: submarket,
+        submarket: submarket || '', // Empty string if outside Calgary
         geocoded_at: new Date().toISOString(),
         geocode_source: 'google',
       })
@@ -393,7 +394,7 @@ serve(async (req) => {
       console.error('[Geocode Market Listing] Update failed:', updateError);
       return new Response(JSON.stringify({ error: 'Failed to update listing' }), { 
         status: 500, 
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }, 
       });
     }
 
@@ -402,11 +403,10 @@ serve(async (req) => {
     return new Response(JSON.stringify({ 
       success: true, 
       geocoded: true,
-      submarket_assigned: true,
+      submarket_assigned: !!submarket,
       latitude: geocodeResult.lat,
       longitude: geocodeResult.lng,
-      submarket: submarket,
-      neighborhood: geocodeResult.neighborhood,
+      submarket: submarket || '',
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
