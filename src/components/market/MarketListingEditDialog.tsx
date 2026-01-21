@@ -290,6 +290,8 @@ export function MarketListingEditDialog({
 
     setIsSaving(true);
     try {
+      const { data: session } = await supabase.auth.getSession();
+      
       const { error } = await supabase
         .from('market_listings')
         .insert({
@@ -297,7 +299,7 @@ export function MarketListingEditDialog({
           address: address.trim(),
           display_address: displayAddress.trim() || address.trim(),
           city: city || '',
-          submarket: city === 'Calgary' ? (submarket.trim() || 'Pending') : submarket.trim(),
+          submarket: city === 'Calgary' ? 'Pending' : submarket.trim(),
           size_sf: parseInt(sizeSf) || 0,
           status,
           listing_type: listingType || null,
@@ -334,6 +336,35 @@ export function MarketListingEditDialog({
         });
 
       if (error) throw error;
+
+      // For Calgary listings, trigger geocoding and submarket assignment
+      if (city === 'Calgary' && session?.session?.access_token) {
+        try {
+          console.log('[Create Listing] Triggering geocoding for Calgary listing...');
+          const { data: geocodeResult, error: geocodeError } = await supabase.functions.invoke(
+            'geocode-market-listing',
+            {
+              headers: {
+                Authorization: `Bearer ${session.session.access_token}`,
+              },
+              body: { listingId: listingId.trim() },
+            }
+          );
+          
+          if (geocodeError) {
+            console.error('[Create Listing] Geocoding error:', geocodeError);
+          } else if (geocodeResult?.submarket_assigned) {
+            console.log('[Create Listing] Submarket assigned:', geocodeResult.submarket);
+            toast.success(`Listing created — submarket: ${geocodeResult.submarket}`);
+            onSaved();
+            onOpenChange(false);
+            return;
+          }
+        } catch (geoErr) {
+          console.error('[Create Listing] Geocoding failed:', geoErr);
+          // Don't fail the whole operation, just log and continue
+        }
+      }
 
       toast.success('Listing created successfully');
       onSaved();
