@@ -375,6 +375,20 @@
     border-radius: var(--radius);
   }
 
+  /* Input filled state - bold blue background */
+  .input-filled {
+    background-color: hsl(217 91% 95%) !important;
+  }
+  
+  .dark .input-filled {
+    background-color: hsl(217 50% 20%) !important;
+  }
+
+  /* Very light placeholder text */
+  .placeholder-light::placeholder {
+    color: hsl(var(--muted-foreground) / 0.35);
+  }
+
   /* =====================================================
      NEO-BRUTALIST PAGE HEADER
      ===================================================== */
