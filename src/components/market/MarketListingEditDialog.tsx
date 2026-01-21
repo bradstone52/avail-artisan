@@ -601,7 +601,7 @@ export function MarketListingEditDialog({
                     value={warehouseSf}
                     onChange={(e) => setWarehouseSf(e.target.value)}
                     className={`col-span-1 placeholder-light ${warehouseSf ? 'input-filled' : ''}`}
-                    placeholder="120000"
+                    placeholder="e.g., 120000"
                   />
                   <Label className="text-right">Office SF</Label>
                   <Input
@@ -609,7 +609,7 @@ export function MarketListingEditDialog({
                     value={officeSf}
                     onChange={(e) => setOfficeSf(e.target.value)}
                     className={`col-span-1 placeholder-light ${officeSf ? 'input-filled' : ''}`}
-                    placeholder="5000"
+                    placeholder="e.g., 5000"
                   />
                 </div>
               </>
@@ -678,14 +678,14 @@ export function MarketListingEditDialog({
                 value={askingRate}
                 onChange={(e) => setAskingRate(e.target.value)}
                 className={`col-span-1 placeholder-light ${askingRate ? 'input-filled' : ''}`}
-                placeholder="$12.50"
+                placeholder="e.g., $12.50"
               />
               <Label className="text-right">Op Costs</Label>
               <Input
                 value={opCosts}
                 onChange={(e) => setOpCosts(e.target.value)}
                 className={`col-span-1 placeholder-light ${opCosts ? 'input-filled' : ''}`}
-                placeholder="$4.50"
+                placeholder="e.g., $4.50"
               />
             </div>
 
@@ -696,14 +696,14 @@ export function MarketListingEditDialog({
                 value={salePrice}
                 onChange={(e) => setSalePrice(e.target.value)}
                 className={`col-span-1 placeholder-light ${salePrice ? 'input-filled' : ''}`}
-                placeholder="$5,000,000"
+                placeholder="e.g., $5,000,000"
               />
               <Label className="text-right">Sublease Exp</Label>
               <Input
                 value={subleaseExp}
                 onChange={(e) => setSubleaseExp(e.target.value)}
                 className={`col-span-1 placeholder-light ${subleaseExp ? 'input-filled' : ''}`}
-                placeholder="Dec 2027"
+                placeholder="e.g., Dec 2027"
               />
             </div>
 
@@ -745,7 +745,7 @@ export function MarketListingEditDialog({
                 value={link}
                 onChange={(e) => setLink(e.target.value)}
                 className={`col-span-3 placeholder-light ${link ? 'input-filled' : ''}`}
-                placeholder="https://..."
+                placeholder="e.g., https://..."
               />
             </div>
 
@@ -762,7 +762,7 @@ export function MarketListingEditDialog({
                 value={clearHeight}
                 onChange={(e) => setClearHeight(e.target.value)}
                 className={`col-span-1 placeholder-light ${clearHeight ? 'input-filled' : ''}`}
-                placeholder="32"
+                placeholder="e.g., 32"
               />
               <Label className="text-right">Dock Doors</Label>
               <Input
@@ -770,7 +770,7 @@ export function MarketListingEditDialog({
                 value={dockDoors}
                 onChange={(e) => setDockDoors(e.target.value)}
                 className={`col-span-1 placeholder-light ${dockDoors ? 'input-filled' : ''}`}
-                placeholder="12"
+                placeholder="e.g., 12"
               />
             </div>
 
@@ -782,14 +782,14 @@ export function MarketListingEditDialog({
                 value={driveInDoors}
                 onChange={(e) => setDriveInDoors(e.target.value)}
                 className={`col-span-1 placeholder-light ${driveInDoors ? 'input-filled' : ''}`}
-                placeholder="2"
+                placeholder="e.g., 2"
               />
               <Label className="text-right">Power (Amps)</Label>
               <Input
                 value={powerAmps}
                 onChange={(e) => setPowerAmps(e.target.value)}
                 className={`col-span-1 placeholder-light ${powerAmps ? 'input-filled' : ''}`}
-                placeholder="2000"
+                placeholder="e.g., 2000"
               />
             </div>
 
@@ -800,14 +800,14 @@ export function MarketListingEditDialog({
                 value={voltage}
                 onChange={(e) => setVoltage(e.target.value)}
                 className={`col-span-1 placeholder-light ${voltage ? 'input-filled' : ''}`}
-                placeholder="600V"
+                placeholder="e.g., 600V"
               />
               <Label className="text-right">Sprinkler</Label>
               <Input
                 value={sprinkler}
                 onChange={(e) => setSprinkler(e.target.value)}
                 className={`col-span-1 placeholder-light ${sprinkler ? 'input-filled' : ''}`}
-                placeholder="ESFR"
+                placeholder="e.g., ESFR"
               />
             </div>
 
@@ -818,14 +818,14 @@ export function MarketListingEditDialog({
                 value={cranes}
                 onChange={(e) => setCranes(e.target.value)}
                 className={`col-span-1 placeholder-light ${cranes ? 'input-filled' : ''}`}
-                placeholder="2"
+                placeholder="e.g., 2"
               />
               <Label className="text-right">Crane Tons</Label>
               <Input
                 value={craneTons}
                 onChange={(e) => setCraneTons(e.target.value)}
                 className={`col-span-1 placeholder-light ${craneTons ? 'input-filled' : ''}`}
-                placeholder="10T"
+                placeholder="e.g., 10T"
               />
             </div>
 
@@ -851,7 +851,7 @@ export function MarketListingEditDialog({
                 value={yardArea}
                 onChange={(e) => setYardArea(e.target.value)}
                 className={`col-span-1 placeholder-light ${yardArea ? 'input-filled' : ''}`}
-                placeholder="2 acres"
+                placeholder="e.g., 2 acres"
               />
             </div>
 
@@ -877,7 +877,7 @@ export function MarketListingEditDialog({
                 value={trailerParking}
                 onChange={(e) => setTrailerParking(e.target.value)}
                 className={`col-span-1 placeholder-light ${trailerParking ? 'input-filled' : ''}`}
-                placeholder="20 stalls"
+                placeholder="e.g., 20 stalls"
               />
             </div>
 
@@ -888,14 +888,14 @@ export function MarketListingEditDialog({
                 value={landAcres}
                 onChange={(e) => setLandAcres(e.target.value)}
                 className={`col-span-1 placeholder-light ${landAcres ? 'input-filled' : ''}`}
-                placeholder="5.2"
+                placeholder="e.g., 5.2"
               />
               <Label className="text-right">Zoning</Label>
               <Input
                 value={zoning}
                 onChange={(e) => setZoning(e.target.value)}
                 className={`col-span-1 placeholder-light ${zoning ? 'input-filled' : ''}`}
-                placeholder="I-G"
+                placeholder="e.g., I-G"
               />
             </div>
 
@@ -949,7 +949,7 @@ export function MarketListingEditDialog({
                 onChange={(e) => setNotesPublic(e.target.value)}
                 className={`col-span-3 placeholder-light ${notesPublic ? 'input-filled' : ''}`}
                 rows={2}
-                placeholder="Visible on reports"
+                placeholder="e.g., Visible on reports"
               />
             </div>
 
@@ -964,7 +964,7 @@ export function MarketListingEditDialog({
                 onChange={(e) => setInternalNote(e.target.value)}
                 className={`col-span-3 placeholder-light ${internalNote ? 'input-filled' : ''}`}
                 rows={2}
-                placeholder="Private notes (not shown externally)"
+                placeholder="e.g., Private notes (not shown externally)"
               />
             </div>
           </div>
