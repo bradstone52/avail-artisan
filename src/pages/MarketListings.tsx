@@ -14,6 +14,7 @@ import {
 } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { RefreshCw, Database, Search, X, Filter, Link2, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Plus, ChevronDown } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { format } from 'date-fns';
@@ -382,34 +383,43 @@ export default function MarketListings() {
           </Card>
         </div>
 
-        {/* Sync Logs */}
+        {/* Sync Logs - Collapsible */}
         {syncLogs.length > 0 && (
-          <Card className="mb-6">
-            <CardHeader>
-              <CardTitle className="text-lg">Recent Syncs</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-2">
-                {syncLogs.slice(0, 5).map(log => (
-                  <div key={log.id} className="flex items-center justify-between text-sm p-2 bg-muted/50 rounded">
-                    <div className="flex items-center gap-3">
-                      <Badge variant={log.status === 'completed' ? 'default' : 'destructive'}>
-                        {log.status}
-                      </Badge>
-                      <span className="text-muted-foreground">
-                        {format(new Date(log.started_at), 'MMM d, h:mm a')}
-                      </span>
-                    </div>
-                    <div className="flex items-center gap-4 text-muted-foreground">
-                      <span>{log.rows_read || 0} read</span>
-                      <span>{log.rows_imported || 0} imported</span>
-                      <span>{log.rows_skipped || 0} skipped</span>
-                    </div>
+          <Collapsible className="mb-6">
+            <Card>
+              <CollapsibleTrigger asChild>
+                <CardHeader className="cursor-pointer hover:bg-muted/50 transition-colors py-3">
+                  <div className="flex items-center justify-between">
+                    <CardTitle className="text-lg">Recent Syncs</CardTitle>
+                    <ChevronDown className="h-4 w-4 text-muted-foreground transition-transform duration-200 [[data-state=open]>&]:rotate-180" />
                   </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
+                </CardHeader>
+              </CollapsibleTrigger>
+              <CollapsibleContent>
+                <CardContent className="pt-0 pb-3">
+                  <div className="space-y-1">
+                    {syncLogs.slice(0, 5).map(log => (
+                      <div key={log.id} className="flex items-center justify-between text-sm py-1.5 px-2 bg-muted/50 rounded">
+                        <div className="flex items-center gap-3">
+                          <Badge variant={log.status === 'completed' ? 'default' : 'destructive'} className="text-xs">
+                            {log.status}
+                          </Badge>
+                          <span className="text-muted-foreground text-xs">
+                            {format(new Date(log.started_at), 'MMM d, h:mm a')}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-3 text-muted-foreground text-xs">
+                          <span>{log.rows_read || 0} read</span>
+                          <span>{log.rows_imported || 0} imported</span>
+                          <span>{log.rows_skipped || 0} skipped</span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </CollapsibleContent>
+            </Card>
+          </Collapsible>
         )}
 
         {/* Filters */}
@@ -465,7 +475,7 @@ export default function MarketListings() {
                         <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                       </Button>
                     </PopoverTrigger>
-                    <PopoverContent className="w-[200px] p-2 bg-background z-50" align="start">
+                    <PopoverContent className="w-[--radix-popover-trigger-width] min-w-[200px] p-2 bg-background z-50" align="start">
                       <div className="space-y-1 max-h-[250px] overflow-y-auto">
                         {submarketFilter.length > 0 && (
                           <Button 
