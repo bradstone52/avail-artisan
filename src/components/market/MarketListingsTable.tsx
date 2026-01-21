@@ -115,7 +115,7 @@ export function MarketListingsTable({ listings, onEdit, onRefresh }: MarketListi
       <Table className="min-w-[3000px]">
         <TableHeader>
           <TableRow>
-            <TableHead className="sticky left-0 z-20 min-w-[180px] bg-muted shadow-[2px_0_5px_-2px_rgba(0,0,0,0.15)]">Address</TableHead>
+            <TableHead className="sticky left-0 z-20 min-w-[180px] bg-muted text-foreground shadow-[2px_0_5px_-2px_rgba(0,0,0,0.15)]">Address</TableHead>
             <TableHead className="min-w-[130px]">Submarket</TableHead>
             <TableHead className="min-w-[100px]">City</TableHead>
             <TableHead className="min-w-[130px]">Status</TableHead>
@@ -150,7 +150,7 @@ export function MarketListingsTable({ listings, onEdit, onRefresh }: MarketListi
             <TableHead className="min-w-[50px]">Geo</TableHead>
             <TableHead className="min-w-[50px]">Link</TableHead>
             <TableHead className="min-w-[180px]">Notes</TableHead>
-            <TableHead className="sticky right-0 z-20 min-w-[90px] bg-muted shadow-[-2px_0_5px_-2px_rgba(0,0,0,0.15)]">Actions</TableHead>
+            <TableHead className="sticky right-0 z-20 min-w-[90px] bg-muted text-foreground shadow-[-2px_0_5px_-2px_rgba(0,0,0,0.15)]">Actions</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
