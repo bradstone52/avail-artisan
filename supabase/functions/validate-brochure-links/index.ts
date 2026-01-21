@@ -259,80 +259,101 @@ Deno.serve(async (req) => {
       });
     }
 
-    console.log(`[validate-brochure-links] Checking ${listings.length} links...`);
-
     const now = new Date().toISOString();
-    let okCount = 0;
-    let brokenCount = 0;
-    let errorCount = 0;
-    let checkedCount = 0;
 
-    // Process in concurrent batches and update DB after each batch for live progress
-    for (let i = 0; i < listings.length; i += CONCURRENT_BATCH_SIZE) {
-      const batch = listings.slice(i, i + CONCURRENT_BATCH_SIZE);
-      
-      // Validate batch
-      const batchResults = await Promise.all(
-        batch.map(listing => validateLink(listing.id, listing.link!))
-      );
+    // Run validation asynchronously so the HTTP request returns quickly
+    // (prevents the browser from hanging / timing out while we process hundreds of links)
+    const runValidation = async () => {
+      console.log(`[validate-brochure-links] Checking ${listings.length} links...`);
 
-      // Refine with soft 404 check
-      const refinedBatch = await Promise.all(
-        batchResults.map(async (result) => {
-          if (result.status === "ok") {
-            const isSoft404 = await checkForSoft404(result.link);
-            if (isSoft404) {
-              return { ...result, status: "broken" as const, error: "Soft 404 detected" };
+      let okCount = 0;
+      let brokenCount = 0;
+      let errorCount = 0;
+      let checkedCount = 0;
+
+      // Process in concurrent batches and update DB after each batch for live progress
+      for (let i = 0; i < listings.length; i += CONCURRENT_BATCH_SIZE) {
+        const batch = listings.slice(i, i + CONCURRENT_BATCH_SIZE);
+
+        // Validate batch
+        const batchResults = await Promise.all(
+          batch.map((listing) => validateLink(listing.id, listing.link!))
+        );
+
+        // Refine with soft 404 check
+        const refinedBatch = await Promise.all(
+          batchResults.map(async (result) => {
+            if (result.status === "ok") {
+              const isSoft404 = await checkForSoft404(result.link);
+              if (isSoft404) {
+                return { ...result, status: "broken" as const, error: "Soft 404 detected" };
+              }
             }
-          }
-          return result;
-        })
-      );
-
-      // Update database immediately for each result (enables live realtime updates)
-      for (const result of refinedBatch) {
-        let linkStatus: string;
-        if (result.status === "ok" || result.status === "restricted" || result.status === "redirect") {
-          linkStatus = "ok";
-          okCount++;
-        } else if (result.status === "broken") {
-          linkStatus = "broken";
-          brokenCount++;
-        } else {
-          linkStatus = "error";
-          errorCount++;
-        }
-
-        const { error: updateError } = await supabase
-          .from("market_listings")
-          .update({
-            link_status: linkStatus,
-            link_last_checked: now,
+            return result;
           })
-          .eq("id", result.id);
+        );
 
-        if (updateError) {
-          console.error(`Failed to update listing ${result.id}:`, updateError);
+        // Update database immediately for each result (enables live realtime updates)
+        for (const result of refinedBatch) {
+          let linkStatus: string;
+          if (result.status === "ok" || result.status === "restricted" || result.status === "redirect") {
+            linkStatus = "ok";
+            okCount++;
+          } else if (result.status === "broken") {
+            linkStatus = "broken";
+            brokenCount++;
+          } else {
+            linkStatus = "error";
+            errorCount++;
+          }
+
+          const { error: updateError } = await supabase
+            .from("market_listings")
+            .update({
+              link_status: linkStatus,
+              link_last_checked: now,
+            })
+            .eq("id", result.id);
+
+          if (updateError) {
+            console.error(`Failed to update listing ${result.id}:`, updateError);
+          }
+
+          checkedCount++;
         }
-        
-        checkedCount++;
+
+        console.log(`[validate-brochure-links] Progress: ${checkedCount}/${listings.length}`);
       }
 
-      console.log(`[validate-brochure-links] Progress: ${checkedCount}/${listings.length}`);
+      console.log(`[validate-brochure-links] Completed: ${okCount} ok, ${brokenCount} broken, ${errorCount} errors`);
+    };
+
+    // EdgeRuntime.waitUntil keeps the work alive after we return the response
+    try {
+      // @ts-ignore - EdgeRuntime is available in the runtime but not typed here
+      if (typeof EdgeRuntime !== "undefined" && typeof EdgeRuntime.waitUntil === "function") {
+        // @ts-ignore
+        EdgeRuntime.waitUntil(runValidation());
+      } else {
+        // Fallback (may still work, but request could be cut short by platform timeouts)
+        runValidation();
+      }
+    } catch (e) {
+      console.error("Failed to schedule background validation:", e);
+      runValidation();
     }
 
-    console.log(`[validate-brochure-links] Completed: ${okCount} ok, ${brokenCount} broken, ${errorCount} errors`);
-
-    return new Response(JSON.stringify({
-      message: "Link validation complete",
-      checked: checkedCount,
-      total: listings.length,
-      ok: okCount,
-      broken: brokenCount,
-      errors: errorCount,
-    }), {
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+    return new Response(
+      JSON.stringify({
+        message: "Link validation started",
+        total: listings.length,
+        run_started_at: now,
+        force: forceRecheck,
+      }),
+      {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      }
+    );
 
   } catch (err) {
     console.error("Error in validate-brochure-links:", err);
