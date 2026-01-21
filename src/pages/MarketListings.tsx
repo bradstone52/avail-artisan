@@ -45,6 +45,11 @@ export default function MarketListings() {
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [sizeFilter, setSizeFilter] = useState<string>('all');
   const [distWarehouseFilter, setDistWarehouseFilter] = useState<string>('all');
+  const [brokerFilter, setBrokerFilter] = useState<string>('all');
+  const [listingTypeFilter, setListingTypeFilter] = useState<string>('all');
+  const [landlordFilter, setLandlordFilter] = useState<string>('all');
+  const [docksFilter, setDocksFilter] = useState<string>('all');
+  const [driveInFilter, setDriveInFilter] = useState<string>('all');
 
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
@@ -63,6 +68,21 @@ export default function MarketListings() {
   const uniqueStatuses = useMemo(() => {
     const statuses = [...new Set(listings.map(l => l.status).filter(Boolean))];
     return statuses.sort();
+  }, [listings]);
+
+  const uniqueBrokers = useMemo(() => {
+    const brokers = [...new Set(listings.map(l => l.broker_source).filter(Boolean))] as string[];
+    return brokers.sort();
+  }, [listings]);
+
+  const uniqueListingTypes = useMemo(() => {
+    const types = [...new Set(listings.map(l => l.listing_type).filter(Boolean))] as string[];
+    return types.sort();
+  }, [listings]);
+
+  const uniqueLandlords = useMemo(() => {
+    const landlords = [...new Set(listings.map(l => l.landlord).filter(Boolean))] as string[];
+    return landlords.sort();
   }, [listings]);
 
   // Filter listings
@@ -106,11 +126,40 @@ export default function MarketListings() {
         if (distWarehouseFilter === 'no' && isDistWarehouse) return false;
       }
 
+      // Broker filter
+      if (brokerFilter !== 'all' && listing.broker_source !== brokerFilter) {
+        return false;
+      }
+
+      // Listing type filter
+      if (listingTypeFilter !== 'all' && listing.listing_type !== listingTypeFilter) {
+        return false;
+      }
+
+      // Landlord filter
+      if (landlordFilter !== 'all' && listing.landlord !== landlordFilter) {
+        return false;
+      }
+
+      // Docks filter
+      if (docksFilter !== 'all') {
+        const hasDocks = listing.dock_doors != null && listing.dock_doors > 0;
+        if (docksFilter === 'yes' && !hasDocks) return false;
+        if (docksFilter === 'no' && hasDocks) return false;
+      }
+
+      // Drive-In filter
+      if (driveInFilter !== 'all') {
+        const hasDriveIn = listing.drive_in_doors != null && listing.drive_in_doors > 0;
+        if (driveInFilter === 'yes' && !hasDriveIn) return false;
+        if (driveInFilter === 'no' && hasDriveIn) return false;
+      }
+
       return true;
     });
-  }, [listings, searchQuery, submarketFilter, statusFilter, sizeFilter, distWarehouseFilter]);
+  }, [listings, searchQuery, submarketFilter, statusFilter, sizeFilter, distWarehouseFilter, brokerFilter, listingTypeFilter, landlordFilter, docksFilter, driveInFilter]);
 
-  const hasActiveFilters = searchQuery || submarketFilter !== 'all' || statusFilter !== 'all' || sizeFilter !== 'all' || distWarehouseFilter !== 'all';
+  const hasActiveFilters = searchQuery || submarketFilter !== 'all' || statusFilter !== 'all' || sizeFilter !== 'all' || distWarehouseFilter !== 'all' || brokerFilter !== 'all' || listingTypeFilter !== 'all' || landlordFilter !== 'all' || docksFilter !== 'all' || driveInFilter !== 'all';
 
   // Pagination calculations
   const totalPages = Math.ceil(filteredListings.length / pageSize);
@@ -125,6 +174,11 @@ export default function MarketListings() {
     setStatusFilter('all');
     setSizeFilter('all');
     setDistWarehouseFilter('all');
+    setBrokerFilter('all');
+    setListingTypeFilter('all');
+    setLandlordFilter('all');
+    setDocksFilter('all');
+    setDriveInFilter('all');
     setCurrentPage(1);
   };
 
@@ -366,6 +420,84 @@ export default function MarketListings() {
                       <SelectItem value="all">All</SelectItem>
                       <SelectItem value="yes">Yes</SelectItem>
                       <SelectItem value="no">No</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {/* Broker Source */}
+                <div>
+                  <Label className="text-xs text-muted-foreground mb-1.5 block">Broker Source</Label>
+                  <Select value={brokerFilter} onValueChange={setBrokerFilter}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="All Brokers" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Brokers</SelectItem>
+                      {uniqueBrokers.map(broker => (
+                        <SelectItem key={broker} value={broker}>{broker}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {/* Listing Type */}
+                <div>
+                  <Label className="text-xs text-muted-foreground mb-1.5 block">Listing Type</Label>
+                  <Select value={listingTypeFilter} onValueChange={setListingTypeFilter}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="All Types" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Types</SelectItem>
+                      {uniqueListingTypes.map(type => (
+                        <SelectItem key={type} value={type}>{type}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {/* Landlord */}
+                <div>
+                  <Label className="text-xs text-muted-foreground mb-1.5 block">Landlord</Label>
+                  <Select value={landlordFilter} onValueChange={setLandlordFilter}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="All Landlords" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Landlords</SelectItem>
+                      {uniqueLandlords.map(landlord => (
+                        <SelectItem key={landlord} value={landlord}>{landlord}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {/* Docks */}
+                <div>
+                  <Label className="text-xs text-muted-foreground mb-1.5 block">Docks</Label>
+                  <Select value={docksFilter} onValueChange={setDocksFilter}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="All" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All</SelectItem>
+                      <SelectItem value="yes">Has Docks</SelectItem>
+                      <SelectItem value="no">No Docks</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {/* Drive-In */}
+                <div>
+                  <Label className="text-xs text-muted-foreground mb-1.5 block">Drive-In</Label>
+                  <Select value={driveInFilter} onValueChange={setDriveInFilter}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="All" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All</SelectItem>
+                      <SelectItem value="yes">Has Drive-In</SelectItem>
+                      <SelectItem value="no">No Drive-In</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>

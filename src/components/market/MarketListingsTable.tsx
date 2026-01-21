@@ -49,6 +49,7 @@ export function MarketListingsTable({ listings, onEdit, onRefresh }: MarketListi
   const navigate = useNavigate();
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const [isHovered, setIsHovered] = useState(false);
+  const [selectedRowId, setSelectedRowId] = useState<string | null>(null);
 
   // Keyboard horizontal scroll - works when hovering over the table
   useEffect(() => {
@@ -67,6 +68,8 @@ export function MarketListingsTable({ listings, onEdit, onRefresh }: MarketListi
       } else if (e.key === 'ArrowRight') {
         e.preventDefault();
         container.scrollBy({ left: scrollAmount, behavior: 'smooth' });
+      } else if (e.key === 'Escape') {
+        setSelectedRowId(null);
       }
     };
 
@@ -126,10 +129,22 @@ export function MarketListingsTable({ listings, onEdit, onRefresh }: MarketListi
           </TableRow>
         </TableHeader>
         <TableBody>
-          {listings.map((listing) => (
-            <TableRow key={listing.id} className="hover:bg-muted/30">
+          {listings.map((listing) => {
+            const isSelected = selectedRowId === listing.id;
+            return (
+            <TableRow 
+              key={listing.id} 
+              className={`cursor-pointer transition-colors ${
+                isSelected 
+                  ? 'bg-primary/15 hover:bg-primary/20' 
+                  : 'hover:bg-muted/30'
+              }`}
+              onClick={() => setSelectedRowId(isSelected ? null : listing.id)}
+            >
               {/* Address - Sticky */}
-              <TableCell className="sticky left-0 bg-background z-10 font-medium shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]">
+              <TableCell className={`sticky left-0 z-10 font-medium shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)] ${
+                isSelected ? 'bg-primary/15' : 'bg-background'
+              }`}>
                 <div className="truncate max-w-[170px]" title={listing.address}>
                   {listing.display_address || listing.address}
                 </div>
@@ -295,7 +310,9 @@ export function MarketListingsTable({ listings, onEdit, onRefresh }: MarketListi
               </TableCell>
               
               {/* Actions - Sticky */}
-              <TableCell className="sticky right-0 bg-background z-10 shadow-[-2px_0_5px_-2px_rgba(0,0,0,0.1)]">
+              <TableCell className={`sticky right-0 z-10 shadow-[-2px_0_5px_-2px_rgba(0,0,0,0.1)] ${
+                isSelected ? 'bg-primary/15' : 'bg-background'
+              }`}>
                 <div className="flex items-center gap-0.5">
                   <Tooltip>
                     <TooltipTrigger asChild>
@@ -303,7 +320,7 @@ export function MarketListingsTable({ listings, onEdit, onRefresh }: MarketListi
                         variant="ghost"
                         size="icon"
                         className="h-7 w-7"
-                        onClick={() => onEdit(listing)}
+                        onClick={(e) => { e.stopPropagation(); onEdit(listing); }}
                       >
                         <Pencil className="h-3.5 w-3.5" />
                       </Button>
@@ -316,7 +333,7 @@ export function MarketListingsTable({ listings, onEdit, onRefresh }: MarketListi
                         variant="ghost"
                         size="icon"
                         className="h-7 w-7"
-                        onClick={() => navigate(`/transactions/new?listing=${listing.id}`)}
+                        onClick={(e) => { e.stopPropagation(); navigate(`/transactions/new?listing=${listing.id}`); }}
                       >
                         <Receipt className="h-3.5 w-3.5" />
                       </Button>
@@ -326,7 +343,7 @@ export function MarketListingsTable({ listings, onEdit, onRefresh }: MarketListi
                 </div>
               </TableCell>
             </TableRow>
-          ))}
+          );})}
         </TableBody>
       </Table>
     </div>
