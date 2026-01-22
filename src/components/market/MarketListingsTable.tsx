@@ -311,46 +311,46 @@ export function MarketListingsTable({ listings, onEdit, onRefresh, sortColumn, s
         </div>
       )}
       <Table className="min-w-[3000px]">
-        <TableHeader>
+        <TableHeader className="sticky top-0 z-10">
           <TableRow className="bg-foreground">
-            <TableHead className="sticky left-0 z-20 min-w-[180px] bg-zinc-700 dark:bg-zinc-600 text-background shadow-[2px_0_5px_-2px_rgba(0,0,0,0.3)]">Address</TableHead>
-            <TableHead className="text-background min-w-[130px]">Submarket</TableHead>
-            <TableHead className="text-background min-w-[100px]">City</TableHead>
-            <TableHead className="text-background min-w-[80px]">Type</TableHead>
-            <TableHead className="text-background min-w-[60px]">DW</TableHead>
-            <SortableHeader column="size_sf" className="text-right min-w-[100px]">Size (SF)</SortableHeader>
-            <SortableHeader column="warehouse_sf" className="text-right min-w-[110px]">Warehouse SF</SortableHeader>
-            <SortableHeader column="office_sf" className="text-right min-w-[90px]">Office SF</SortableHeader>
-            <TableHead className="text-background text-right min-w-[90px]">Clear Ht</TableHead>
-            <SortableHeader column="dock_doors" className="text-right min-w-[70px]">Docks</SortableHeader>
-            <SortableHeader column="drive_in_doors" className="text-right min-w-[70px]">Drive-In</SortableHeader>
-            <SortableHeader column="power_amps" className="min-w-[90px]">Power</SortableHeader>
-            <TableHead className="text-background min-w-[80px]">Voltage</TableHead>
-            <TableHead className="text-background min-w-[90px]">Sprinkler</TableHead>
-            <TableHead className="text-background min-w-[70px]">Cranes</TableHead>
-            <TableHead className="text-background min-w-[80px]">Crane T</TableHead>
-            <TableHead className="text-background min-w-[60px]">Yard</TableHead>
-            <TableHead className="text-background min-w-[90px]">Yard Area</TableHead>
-            <TableHead className="text-background min-w-[80px]">X-Dock</TableHead>
-            <TableHead className="text-background min-w-[90px]">Trailer</TableHead>
-            <TableHead className="text-background min-w-[80px]">Acres</TableHead>
-            <TableHead className="text-background min-w-[80px]">Zoning</TableHead>
-            <TableHead className="text-background min-w-[60px]">MUA</TableHead>
-            <TableHead className="text-background min-w-[90px]">Ask Rate</TableHead>
-            <TableHead className="text-background min-w-[80px]">Op Cost</TableHead>
-            <TableHead className="text-background min-w-[90px]">Gross</TableHead>
-            <TableHead className="text-background min-w-[100px]">Sale Price</TableHead>
-            <TableHead className="text-background min-w-[90px]">Sub Exp</TableHead>
-            <TableHead className="text-background min-w-[90px]">Avail</TableHead>
-            <TableHead className="text-background min-w-[140px]">Landlord</TableHead>
-            <TableHead className="text-background min-w-[140px]">Brokerage</TableHead>
-            <TableHead className="text-background min-w-[50px]">Geo</TableHead>
-            <TableHead className="text-background min-w-[50px]">Geo</TableHead>
-            <TableHead className="text-background min-w-[50px]">Link</TableHead>
-            <TableHead className="text-background min-w-[180px]">Notes</TableHead>
-            <TableHead className="text-background min-w-[130px]">Status</TableHead>
-            <TableHead className="text-background min-w-[100px]">Verified</TableHead>
-            <TableHead className="sticky right-0 z-20 min-w-[120px] bg-zinc-700 dark:bg-zinc-600 text-background shadow-[-2px_0_5px_-2px_rgba(0,0,0,0.3)]">Actions</TableHead>
+            <TableHead className="sticky left-0 z-30 min-w-[180px] bg-zinc-700 dark:bg-zinc-600 text-background shadow-[2px_0_5px_-2px_rgba(0,0,0,0.3)]">Address</TableHead>
+            <TableHead className="text-background min-w-[130px] bg-zinc-700 dark:bg-zinc-600">Submarket</TableHead>
+            <TableHead className="text-background min-w-[100px] bg-zinc-700 dark:bg-zinc-600">City</TableHead>
+            <TableHead className="text-background min-w-[80px] bg-zinc-700 dark:bg-zinc-600">Type</TableHead>
+            <TableHead className="text-background min-w-[60px] bg-zinc-700 dark:bg-zinc-600">DW</TableHead>
+            <SortableHeader column="size_sf" className="text-right min-w-[100px] bg-zinc-700 dark:bg-zinc-600">Size (SF)</SortableHeader>
+            <SortableHeader column="warehouse_sf" className="text-right min-w-[110px] bg-zinc-700 dark:bg-zinc-600">Warehouse SF</SortableHeader>
+            <SortableHeader column="office_sf" className="text-right min-w-[90px] bg-zinc-700 dark:bg-zinc-600">Office SF</SortableHeader>
+            <TableHead className="text-background text-right min-w-[90px] bg-zinc-700 dark:bg-zinc-600">Clear Ht</TableHead>
+            <SortableHeader column="dock_doors" className="text-right min-w-[70px] bg-zinc-700 dark:bg-zinc-600">Docks</SortableHeader>
+            <SortableHeader column="drive_in_doors" className="text-right min-w-[70px] bg-zinc-700 dark:bg-zinc-600">Drive-In</SortableHeader>
+            <SortableHeader column="power_amps" className="min-w-[90px] bg-zinc-700 dark:bg-zinc-600">Power</SortableHeader>
+            <TableHead className="text-background min-w-[80px] bg-zinc-700 dark:bg-zinc-600">Voltage</TableHead>
+            <TableHead className="text-background min-w-[90px] bg-zinc-700 dark:bg-zinc-600">Sprinkler</TableHead>
+            <TableHead className="text-background min-w-[70px] bg-zinc-700 dark:bg-zinc-600">Cranes</TableHead>
+            <TableHead className="text-background min-w-[80px] bg-zinc-700 dark:bg-zinc-600">Crane T</TableHead>
+            <TableHead className="text-background min-w-[60px] bg-zinc-700 dark:bg-zinc-600">Yard</TableHead>
+            <TableHead className="text-background min-w-[90px] bg-zinc-700 dark:bg-zinc-600">Yard Area</TableHead>
+            <TableHead className="text-background min-w-[80px] bg-zinc-700 dark:bg-zinc-600">X-Dock</TableHead>
+            <TableHead className="text-background min-w-[90px] bg-zinc-700 dark:bg-zinc-600">Trailer</TableHead>
+            <TableHead className="text-background min-w-[80px] bg-zinc-700 dark:bg-zinc-600">Acres</TableHead>
+            <TableHead className="text-background min-w-[80px] bg-zinc-700 dark:bg-zinc-600">Zoning</TableHead>
+            <TableHead className="text-background min-w-[60px] bg-zinc-700 dark:bg-zinc-600">MUA</TableHead>
+            <TableHead className="text-background min-w-[90px] bg-zinc-700 dark:bg-zinc-600">Ask Rate</TableHead>
+            <TableHead className="text-background min-w-[80px] bg-zinc-700 dark:bg-zinc-600">Op Cost</TableHead>
+            <TableHead className="text-background min-w-[90px] bg-zinc-700 dark:bg-zinc-600">Gross</TableHead>
+            <TableHead className="text-background min-w-[100px] bg-zinc-700 dark:bg-zinc-600">Sale Price</TableHead>
+            <TableHead className="text-background min-w-[90px] bg-zinc-700 dark:bg-zinc-600">Sub Exp</TableHead>
+            <TableHead className="text-background min-w-[90px] bg-zinc-700 dark:bg-zinc-600">Avail</TableHead>
+            <TableHead className="text-background min-w-[140px] bg-zinc-700 dark:bg-zinc-600">Landlord</TableHead>
+            <TableHead className="text-background min-w-[140px] bg-zinc-700 dark:bg-zinc-600">Brokerage</TableHead>
+            <TableHead className="text-background min-w-[50px] bg-zinc-700 dark:bg-zinc-600">Geo</TableHead>
+            <TableHead className="text-background min-w-[50px] bg-zinc-700 dark:bg-zinc-600">Geo</TableHead>
+            <TableHead className="text-background min-w-[50px] bg-zinc-700 dark:bg-zinc-600">Link</TableHead>
+            <TableHead className="text-background min-w-[180px] bg-zinc-700 dark:bg-zinc-600">Notes</TableHead>
+            <TableHead className="text-background min-w-[130px] bg-zinc-700 dark:bg-zinc-600">Status</TableHead>
+            <TableHead className="text-background min-w-[100px] bg-zinc-700 dark:bg-zinc-600">Verified</TableHead>
+            <TableHead className="sticky right-0 z-30 min-w-[120px] bg-zinc-700 dark:bg-zinc-600 text-background shadow-[-2px_0_5px_-2px_rgba(0,0,0,0.3)]">Actions</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
