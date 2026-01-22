@@ -59,6 +59,7 @@ export function AssetEditDialog({
   const [name, setName] = useState('');
   const [address, setAddress] = useState('');
   const [displayAddress, setDisplayAddress] = useState('');
+  const [displayAddressManuallyEdited, setDisplayAddressManuallyEdited] = useState(false);
   const [city, setCity] = useState('');
   const [submarket, setSubmarket] = useState('');
   const [propertyType, setPropertyType] = useState('');
@@ -82,12 +83,34 @@ export function AssetEditDialog({
   const [notes, setNotes] = useState('');
   const [internalNotes, setInternalNotes] = useState('');
 
+  // Handle address change - mirror to displayAddress if not manually edited
+  const handleAddressChange = (value: string) => {
+    setAddress(value);
+    if (!displayAddressManuallyEdited) {
+      setDisplayAddress(value);
+    }
+  };
+
+  // Handle displayAddress change
+  const handleDisplayAddressChange = (value: string) => {
+    setDisplayAddress(value);
+    if (value === '') {
+      // User cleared the field - reset to mirroring mode
+      setDisplayAddressManuallyEdited(false);
+      setDisplayAddress(address);
+    } else if (value !== address) {
+      // User made a different value - mark as manually edited
+      setDisplayAddressManuallyEdited(true);
+    }
+  };
+
   // Populate form when asset changes
   useEffect(() => {
     if (asset) {
       setName(asset.name || '');
       setAddress(asset.address || '');
-      setDisplayAddress(asset.display_address || '');
+      setDisplayAddress(asset.display_address || asset.address || '');
+      setDisplayAddressManuallyEdited(!!asset.display_address && asset.display_address !== asset.address);
       setCity(asset.city || '');
       setSubmarket(asset.submarket || '');
       setPropertyType(asset.property_type || '');
@@ -115,7 +138,8 @@ export function AssetEditDialog({
       setName('');
       setAddress('');
       setDisplayAddress('');
-      setCity('');
+      setDisplayAddressManuallyEdited(false);
+      setCity('Calgary');
       setSubmarket('');
       setPropertyType('');
       setSizeSf('');
@@ -142,14 +166,15 @@ export function AssetEditDialog({
   }, [asset, open]);
 
   const handleSave = async () => {
-    if (!name.trim() || !address.trim()) {
+    // Only address is required now
+    if (!address.trim()) {
       return;
     }
 
     setSaving(true);
     try {
       await onSave({
-        name: name.trim(),
+        name: name.trim() || null,
         address: address.trim(),
         display_address: displayAddress.trim() || null,
         city: city.trim(),
@@ -213,11 +238,12 @@ export function AssetEditDialog({
           <TabsContent value="property" className="space-y-4 mt-4">
             <div className="grid grid-cols-2 gap-4">
               <div className="col-span-2">
-                <Label htmlFor="name">Property Name *</Label>
+                <Label htmlFor="name">Property Name</Label>
                 <Input
                   id="name"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
+                  className={`placeholder-light ${name ? 'input-filled' : ''}`}
                   placeholder="e.g., Blackfoot Industrial Centre"
                 />
               </div>
@@ -227,7 +253,8 @@ export function AssetEditDialog({
                 <Input
                   id="address"
                   value={address}
-                  onChange={(e) => setAddress(e.target.value)}
+                  onChange={(e) => handleAddressChange(e.target.value)}
+                  className={`placeholder-light ${address ? 'input-filled' : ''}`}
                   placeholder="e.g., 1234 Industrial Way SE"
                 />
               </div>
@@ -237,8 +264,9 @@ export function AssetEditDialog({
                 <Input
                   id="displayAddress"
                   value={displayAddress}
-                  onChange={(e) => setDisplayAddress(e.target.value)}
-                  placeholder="Optional shortened address"
+                  onChange={(e) => handleDisplayAddressChange(e.target.value)}
+                  className={`placeholder-light ${displayAddress ? 'input-filled' : ''}`}
+                  placeholder="e.g., 1234 Industrial Way — Unit 4"
                 />
               </div>
 
@@ -248,7 +276,8 @@ export function AssetEditDialog({
                   id="city"
                   value={city}
                   onChange={(e) => setCity(e.target.value)}
-                  placeholder="Calgary"
+                  className={`placeholder-light ${city ? 'input-filled' : ''}`}
+                  placeholder="e.g., Calgary"
                 />
               </div>
 
@@ -258,14 +287,15 @@ export function AssetEditDialog({
                   id="submarket"
                   value={submarket}
                   onChange={(e) => setSubmarket(e.target.value)}
-                  placeholder="SE Industrial"
+                  className={`placeholder-light ${submarket ? 'input-filled' : ''}`}
+                  placeholder="e.g., SE Industrial"
                 />
               </div>
 
               <div>
                 <Label htmlFor="propertyType">Property Type</Label>
                 <Select value={propertyType} onValueChange={setPropertyType}>
-                  <SelectTrigger>
+                  <SelectTrigger className={propertyType ? 'input-filled' : ''}>
                     <SelectValue placeholder="Select type" />
                   </SelectTrigger>
                   <SelectContent>
@@ -279,7 +309,7 @@ export function AssetEditDialog({
               <div>
                 <Label htmlFor="buildingClass">Building Class</Label>
                 <Select value={buildingClass} onValueChange={setBuildingClass}>
-                  <SelectTrigger>
+                  <SelectTrigger className={buildingClass ? 'input-filled' : ''}>
                     <SelectValue placeholder="Select class" />
                   </SelectTrigger>
                   <SelectContent>
@@ -297,7 +327,8 @@ export function AssetEditDialog({
                   type="number"
                   value={sizeSf}
                   onChange={(e) => setSizeSf(e.target.value)}
-                  placeholder="100000"
+                  className={`placeholder-light ${sizeSf ? 'input-filled' : ''}`}
+                  placeholder="e.g., 100000"
                 />
               </div>
 
@@ -309,7 +340,8 @@ export function AssetEditDialog({
                   step="0.01"
                   value={landAcres}
                   onChange={(e) => setLandAcres(e.target.value)}
-                  placeholder="5.5"
+                  className={`placeholder-light ${landAcres ? 'input-filled' : ''}`}
+                  placeholder="e.g., 5.5"
                 />
               </div>
 
@@ -320,7 +352,8 @@ export function AssetEditDialog({
                   type="number"
                   value={yearBuilt}
                   onChange={(e) => setYearBuilt(e.target.value)}
-                  placeholder="2010"
+                  className={`placeholder-light ${yearBuilt ? 'input-filled' : ''}`}
+                  placeholder="e.g., 2010"
                 />
               </div>
 
@@ -330,7 +363,8 @@ export function AssetEditDialog({
                   id="zoning"
                   value={zoning}
                   onChange={(e) => setZoning(e.target.value)}
-                  placeholder="I-G"
+                  className={`placeholder-light ${zoning ? 'input-filled' : ''}`}
+                  placeholder="e.g., I-G"
                 />
               </div>
 
@@ -342,7 +376,8 @@ export function AssetEditDialog({
                   step="0.1"
                   value={clearHeightFt}
                   onChange={(e) => setClearHeightFt(e.target.value)}
-                  placeholder="32"
+                  className={`placeholder-light ${clearHeightFt ? 'input-filled' : ''}`}
+                  placeholder="e.g., 32"
                 />
               </div>
 
@@ -353,7 +388,8 @@ export function AssetEditDialog({
                   type="number"
                   value={dockDoors}
                   onChange={(e) => setDockDoors(e.target.value)}
-                  placeholder="8"
+                  className={`placeholder-light ${dockDoors ? 'input-filled' : ''}`}
+                  placeholder="e.g., 8"
                 />
               </div>
 
@@ -364,7 +400,8 @@ export function AssetEditDialog({
                   type="number"
                   value={driveInDoors}
                   onChange={(e) => setDriveInDoors(e.target.value)}
-                  placeholder="2"
+                  className={`placeholder-light ${driveInDoors ? 'input-filled' : ''}`}
+                  placeholder="e.g., 2"
                 />
               </div>
 
@@ -374,7 +411,8 @@ export function AssetEditDialog({
                   id="photoUrl"
                   value={photoUrl}
                   onChange={(e) => setPhotoUrl(e.target.value)}
-                  placeholder="https://..."
+                  className={`placeholder-light ${photoUrl ? 'input-filled' : ''}`}
+                  placeholder="e.g., https://..."
                 />
               </div>
             </div>
@@ -389,6 +427,7 @@ export function AssetEditDialog({
                   id="ownerCompany"
                   value={ownerCompany}
                   onChange={(e) => setOwnerCompany(e.target.value)}
+                  className={`placeholder-light ${ownerCompany ? 'input-filled' : ''}`}
                   placeholder="e.g., Bentall Kennedy"
                 />
               </div>
@@ -399,7 +438,8 @@ export function AssetEditDialog({
                   id="ownerName"
                   value={ownerName}
                   onChange={(e) => setOwnerName(e.target.value)}
-                  placeholder="John Smith"
+                  className={`placeholder-light ${ownerName ? 'input-filled' : ''}`}
+                  placeholder="e.g., John Smith"
                 />
               </div>
 
@@ -410,7 +450,8 @@ export function AssetEditDialog({
                   type="email"
                   value={ownerEmail}
                   onChange={(e) => setOwnerEmail(e.target.value)}
-                  placeholder="john@example.com"
+                  className={`placeholder-light ${ownerEmail ? 'input-filled' : ''}`}
+                  placeholder="e.g., john@example.com"
                 />
               </div>
 
@@ -420,7 +461,8 @@ export function AssetEditDialog({
                   id="ownerPhone"
                   value={ownerPhone}
                   onChange={(e) => setOwnerPhone(e.target.value)}
-                  placeholder="(403) 555-1234"
+                  className={`placeholder-light ${ownerPhone ? 'input-filled' : ''}`}
+                  placeholder="e.g., (403) 555-1234"
                 />
               </div>
             </div>
@@ -436,6 +478,7 @@ export function AssetEditDialog({
                   type="date"
                   value={purchaseDate}
                   onChange={(e) => setPurchaseDate(e.target.value)}
+                  className={purchaseDate ? 'input-filled' : ''}
                 />
               </div>
 
@@ -446,7 +489,8 @@ export function AssetEditDialog({
                   type="number"
                   value={purchasePrice}
                   onChange={(e) => setPurchasePrice(e.target.value)}
-                  placeholder="15000000"
+                  className={`placeholder-light ${purchasePrice ? 'input-filled' : ''}`}
+                  placeholder="e.g., 15000000"
                 />
               </div>
 
@@ -457,7 +501,8 @@ export function AssetEditDialog({
                   type="number"
                   value={assessedValue}
                   onChange={(e) => setAssessedValue(e.target.value)}
-                  placeholder="12000000"
+                  className={`placeholder-light ${assessedValue ? 'input-filled' : ''}`}
+                  placeholder="e.g., 12000000"
                 />
               </div>
 
@@ -468,7 +513,8 @@ export function AssetEditDialog({
                   type="number"
                   value={propertyTaxAnnual}
                   onChange={(e) => setPropertyTaxAnnual(e.target.value)}
-                  placeholder="150000"
+                  className={`placeholder-light ${propertyTaxAnnual ? 'input-filled' : ''}`}
+                  placeholder="e.g., 150000"
                 />
               </div>
             </div>
@@ -482,6 +528,7 @@ export function AssetEditDialog({
                 id="notes"
                 value={notes}
                 onChange={(e) => setNotes(e.target.value)}
+                className={notes ? 'input-filled' : ''}
                 placeholder="General notes about the property..."
                 rows={4}
               />
@@ -493,6 +540,7 @@ export function AssetEditDialog({
                 id="internalNotes"
                 value={internalNotes}
                 onChange={(e) => setInternalNotes(e.target.value)}
+                className={internalNotes ? 'input-filled' : ''}
                 placeholder="Internal team notes (not shared)..."
                 rows={4}
               />
@@ -504,7 +552,7 @@ export function AssetEditDialog({
           <Button variant="outline" onClick={() => onOpenChange(false)}>
             Cancel
           </Button>
-          <Button onClick={handleSave} disabled={saving || !name.trim() || !address.trim()}>
+          <Button onClick={handleSave} disabled={saving || !address.trim()}>
             {saving ? 'Saving...' : mode === 'create' ? 'Create Asset' : 'Save Changes'}
           </Button>
         </div>
