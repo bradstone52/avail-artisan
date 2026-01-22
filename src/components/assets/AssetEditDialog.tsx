@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { AssetWithLinks } from '@/hooks/useAssets';
+import { AssetWithLinks, AssetPhoto } from '@/hooks/useAssets';
 import {
   Dialog,
   DialogContent,
@@ -18,7 +18,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Building2, User, DollarSign, FileText, Plus, Trash2, Upload, X, Briefcase } from 'lucide-react';
+import { Building2, User, DollarSign, FileText, Plus, Trash2, Upload, X, Briefcase, Image, Loader2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
@@ -74,6 +74,15 @@ const parseCurrency = (value: string): string => {
   return value.replace(/[^\d.]/g, '');
 };
 
+interface PhotoItem {
+  id?: string;
+  photo_url: string;
+  caption: string | null;
+  sort_order: number;
+  isNew?: boolean;
+  toDelete?: boolean;
+}
+
 export function AssetEditDialog({
   asset,
   open,
@@ -112,7 +121,8 @@ export function AssetEditDialog({
   const [purchasePrice, setPurchasePrice] = useState('');
   const [assessedValue, setAssessedValue] = useState('');
   const [propertyTaxAnnual, setPropertyTaxAnnual] = useState('');
-  const [photoUrl, setPhotoUrl] = useState('');
+  // Multiple photos
+  const [photos, setPhotos] = useState<PhotoItem[]>([]);
   const [notes, setNotes] = useState('');
   const [internalNotes, setInternalNotes] = useState('');
 
@@ -139,45 +149,56 @@ export function AssetEditDialog({
 
   // Handle photo upload
   const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file || !user) return;
-
-    // Validate file type
-    const validTypes = ['image/jpeg', 'image/png', 'image/webp'];
-    if (!validTypes.includes(file.type)) {
-      toast.error('Please upload a JPG, PNG, or WEBP image');
-      return;
-    }
-
-    // Validate file size (10MB max)
-    if (file.size > 10 * 1024 * 1024) {
-      toast.error('Image must be less than 10MB');
-      return;
-    }
+    const files = e.target.files;
+    if (!files || files.length === 0 || !user) return;
 
     setUploading(true);
     try {
-      const ext = file.name.split('.').pop();
-      const filename = `${user.id}/asset-${Date.now()}.${ext}`;
+      for (const file of Array.from(files)) {
+        // Validate file type
+        const validTypes = ['image/jpeg', 'image/png', 'image/webp'];
+        if (!validTypes.includes(file.type)) {
+          toast.error(`${file.name}: Please upload a JPG, PNG, or WEBP image`);
+          continue;
+        }
 
-      const { data, error } = await supabase.storage
-        .from('asset-photos')
-        .upload(filename, file, {
-          cacheControl: '3600',
-          upsert: true,
-        });
+        // Validate file size (10MB max)
+        if (file.size > 10 * 1024 * 1024) {
+          toast.error(`${file.name}: Image must be less than 10MB`);
+          continue;
+        }
 
-      if (error) throw error;
+        const ext = file.name.split('.').pop();
+        const filename = `${user.id}/asset-${Date.now()}-${Math.random().toString(36).substr(2, 9)}.${ext}`;
 
-      const { data: urlData } = supabase.storage
-        .from('asset-photos')
-        .getPublicUrl(data.path);
+        const { data, error } = await supabase.storage
+          .from('asset-photos')
+          .upload(filename, file, {
+            cacheControl: '3600',
+            upsert: true,
+          });
 
-      setPhotoUrl(urlData.publicUrl);
-      toast.success('Photo uploaded');
+        if (error) {
+          toast.error(`${file.name}: ${error.message}`);
+          continue;
+        }
+
+        const { data: urlData } = supabase.storage
+          .from('asset-photos')
+          .getPublicUrl(data.path);
+
+        // Add to photos array
+        setPhotos(prev => [...prev, {
+          photo_url: urlData.publicUrl,
+          caption: null,
+          sort_order: prev.length,
+          isNew: true
+        }]);
+      }
+      toast.success('Photos uploaded');
     } catch (error: any) {
       console.error('Upload error:', error);
-      toast.error(error.message || 'Failed to upload photo');
+      toast.error(error.message || 'Failed to upload photos');
     } finally {
       setUploading(false);
       if (fileInputRef.current) {
@@ -187,8 +208,17 @@ export function AssetEditDialog({
   };
 
   // Remove photo
-  const handleRemovePhoto = () => {
-    setPhotoUrl('');
+  const handleRemovePhoto = (index: number) => {
+    setPhotos(prev => {
+      const photo = prev[index];
+      if (photo.id) {
+        // Existing photo - mark for deletion
+        return prev.map((p, i) => i === index ? { ...p, toDelete: true } : p);
+      } else {
+        // New photo - just remove from array
+        return prev.filter((_, i) => i !== index);
+      }
+    });
   };
 
   // Populate form when asset changes
@@ -222,7 +252,25 @@ export function AssetEditDialog({
       setPurchasePrice(asset.purchase_price?.toString() || '');
       setAssessedValue(asset.assessed_value?.toString() || '');
       setPropertyTaxAnnual(asset.property_tax_annual?.toString() || '');
-      setPhotoUrl(asset.photo_url || '');
+      // Load photos
+      if (asset.photos && asset.photos.length > 0) {
+        setPhotos(asset.photos.map(p => ({
+          id: p.id,
+          photo_url: p.photo_url,
+          caption: p.caption,
+          sort_order: p.sort_order
+        })));
+      } else if (asset.photo_url) {
+        // Migrate legacy single photo
+        setPhotos([{
+          photo_url: asset.photo_url,
+          caption: null,
+          sort_order: 0,
+          isNew: true // Will be saved as new photo record
+        }]);
+      } else {
+        setPhotos([]);
+      }
       setNotes(asset.notes || '');
       setInternalNotes(asset.internal_notes || '');
     } else {
@@ -249,7 +297,7 @@ export function AssetEditDialog({
       setPurchasePrice('');
       setAssessedValue('');
       setPropertyTaxAnnual('');
-      setPhotoUrl('');
+      setPhotos([]);
       setNotes('');
       setInternalNotes('');
     }
@@ -264,6 +312,7 @@ export function AssetEditDialog({
 
     setSaving(true);
     try {
+      // Save asset first
       await onSave({
         name: name.trim() || null,
         address: address.trim(),
@@ -288,10 +337,32 @@ export function AssetEditDialog({
         purchase_price: purchasePrice ? parseFloat(parseCurrency(purchasePrice)) : null,
         assessed_value: assessedValue ? parseFloat(parseCurrency(assessedValue)) : null,
         property_tax_annual: propertyTaxAnnual ? parseFloat(parseCurrency(propertyTaxAnnual)) : null,
-        photo_url: photoUrl.trim() || null,
+        photo_url: photos.filter(p => !p.toDelete)[0]?.photo_url || null, // Keep legacy field updated
         notes: notes.trim() || null,
         internal_notes: internalNotes.trim() || null,
       });
+
+      // Now handle photos if we're editing an existing asset
+      if (asset?.id) {
+        // Delete photos marked for deletion
+        const photosToDelete = photos.filter(p => p.toDelete && p.id);
+        for (const photo of photosToDelete) {
+          await supabase.from('asset_photos').delete().eq('id', photo.id);
+        }
+
+        // Insert new photos
+        const newPhotos = photos.filter(p => p.isNew && !p.toDelete);
+        for (let i = 0; i < newPhotos.length; i++) {
+          const photo = newPhotos[i];
+          await supabase.from('asset_photos').insert({
+            asset_id: asset.id,
+            photo_url: photo.photo_url,
+            caption: photo.caption,
+            sort_order: photos.filter(p => !p.toDelete).indexOf(photo),
+            created_by: user?.id
+          });
+        }
+      }
     } finally {
       setSaving(false);
     }
@@ -363,6 +434,8 @@ export function AssetEditDialog({
     </div>
   );
 
+  const visiblePhotos = photos.filter(p => !p.toDelete);
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
@@ -373,26 +446,35 @@ export function AssetEditDialog({
         </DialogHeader>
 
         <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList className="grid w-full grid-cols-5">
-            <TabsTrigger value="property" className="flex items-center gap-2">
+          <TabsList className="grid w-full grid-cols-6">
+            <TabsTrigger value="property" className="flex items-center gap-1">
               <Building2 className="h-4 w-4" />
-              <span className="hidden sm:inline">Property</span>
+              <span className="hidden sm:inline text-xs">Property</span>
             </TabsTrigger>
-            <TabsTrigger value="owner" className="flex items-center gap-2">
+            <TabsTrigger value="photos" className="flex items-center gap-1">
+              <Image className="h-4 w-4" />
+              <span className="hidden sm:inline text-xs">Photos</span>
+              {visiblePhotos.length > 0 && (
+                <span className="ml-1 text-xs bg-primary text-primary-foreground rounded-full px-1.5">
+                  {visiblePhotos.length}
+                </span>
+              )}
+            </TabsTrigger>
+            <TabsTrigger value="owner" className="flex items-center gap-1">
               <User className="h-4 w-4" />
-              <span className="hidden sm:inline">Owner</span>
+              <span className="hidden sm:inline text-xs">Owner</span>
             </TabsTrigger>
-            <TabsTrigger value="manager" className="flex items-center gap-2">
+            <TabsTrigger value="manager" className="flex items-center gap-1">
               <Briefcase className="h-4 w-4" />
-              <span className="hidden sm:inline">Manager</span>
+              <span className="hidden sm:inline text-xs">Manager</span>
             </TabsTrigger>
-            <TabsTrigger value="financial" className="flex items-center gap-2">
+            <TabsTrigger value="financial" className="flex items-center gap-1">
               <DollarSign className="h-4 w-4" />
-              <span className="hidden sm:inline">Financial</span>
+              <span className="hidden sm:inline text-xs">Financial</span>
             </TabsTrigger>
-            <TabsTrigger value="notes" className="flex items-center gap-2">
+            <TabsTrigger value="notes" className="flex items-center gap-1">
               <FileText className="h-4 w-4" />
-              <span className="hidden sm:inline">Notes</span>
+              <span className="hidden sm:inline text-xs">Notes</span>
             </TabsTrigger>
           </TabsList>
 
@@ -563,54 +645,73 @@ export function AssetEditDialog({
                   placeholder="e.g., 2"
                 />
               </div>
+            </div>
+          </TabsContent>
 
-              {/* Photo Upload */}
-              <div className="col-span-2">
-                <Label>Photo</Label>
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  accept="image/jpeg,image/png,image/webp"
-                  onChange={handlePhotoUpload}
-                  className="hidden"
-                />
-                {photoUrl ? (
-                  <div className="relative mt-2">
+          {/* Photos Tab */}
+          <TabsContent value="photos" className="space-y-4 mt-4">
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/jpeg,image/png,image/webp"
+              multiple
+              onChange={handlePhotoUpload}
+              className="hidden"
+            />
+            
+            {/* Photo Gallery Grid */}
+            {visiblePhotos.length > 0 && (
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                {visiblePhotos.map((photo, index) => (
+                  <div key={photo.id || photo.photo_url} className="relative group aspect-square">
                     <img 
-                      src={photoUrl} 
-                      alt="Asset" 
-                      className="w-full h-40 object-cover rounded-lg border"
+                      src={photo.photo_url} 
+                      alt={photo.caption || `Photo ${index + 1}`}
+                      className="w-full h-full object-cover rounded-lg border"
                     />
                     <Button
                       type="button"
                       variant="destructive"
                       size="sm"
-                      onClick={handleRemovePhoto}
-                      className="absolute top-2 right-2 h-8 w-8 p-0"
+                      onClick={() => handleRemovePhoto(photos.findIndex(p => p === photo))}
+                      className="absolute top-2 right-2 h-7 w-7 p-0 opacity-0 group-hover:opacity-100 transition-opacity"
                     >
                       <X className="h-4 w-4" />
                     </Button>
-                  </div>
-                ) : (
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={() => fileInputRef.current?.click()}
-                    disabled={uploading}
-                    className="w-full mt-2 border-dashed h-20"
-                  >
-                    {uploading ? (
-                      'Uploading...'
-                    ) : (
-                      <>
-                        <Upload className="h-4 w-4 mr-2" />
-                        Add Photo
-                      </>
+                    {photo.isNew && (
+                      <span className="absolute bottom-2 left-2 text-xs bg-primary text-primary-foreground px-2 py-0.5 rounded">
+                        New
+                      </span>
                     )}
-                  </Button>
-                )}
+                  </div>
+                ))}
               </div>
-            </div>
+            )}
+
+            {/* Add Photos Button */}
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => fileInputRef.current?.click()}
+              disabled={uploading}
+              className="w-full border-dashed h-24"
+            >
+              {uploading ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Uploading...
+                </>
+              ) : (
+                <>
+                  <Upload className="h-4 w-4 mr-2" />
+                  Add Photos
+                </>
+              )}
+            </Button>
+            
+            <p className="text-xs text-muted-foreground text-center">
+              Upload JPG, PNG, or WEBP images (max 10MB each)
+            </p>
           </TabsContent>
 
           {/* Owner Tab */}
