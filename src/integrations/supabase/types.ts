@@ -366,7 +366,7 @@ export type Database = {
             foreignKeyName: "issue_listings_listing_id_fkey"
             columns: ["listing_id"]
             isOneToOne: false
-            referencedRelation: "listings"
+            referencedRelation: "market_listings"
             referencedColumns: ["id"]
           },
         ]
