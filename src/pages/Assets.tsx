@@ -147,7 +147,7 @@ export default function Assets() {
   if (loading) {
     return (
       <AppLayout>
-        <div className="flex items-center justify-center h-64">
+        <div className="p-6 lg:p-8 flex items-center justify-center h-64">
           <RefreshCw className="h-8 w-8 animate-spin text-muted-foreground" />
         </div>
       </AppLayout>
@@ -156,7 +156,7 @@ export default function Assets() {
 
   return (
     <AppLayout>
-      <div className="space-y-6">
+      <div className="p-6 lg:p-8 space-y-6">
         {/* Header */}
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
           <div>
