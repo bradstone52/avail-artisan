@@ -145,10 +145,10 @@ serve(async (req) => {
     let safeListings: Listing[] = [];
 
     if (orderedListingIds && orderedListingIds.length > 0) {
+      // Use market_listings table - this is where IssueBuilder selects listings from
       const { data: listings, error: listingsErr } = await supabase
-        .from("listings")
+        .from("market_listings")
         .select(listingSelectFields)
-        .eq("user_id", safeIssue.user_id)
         .in("id", orderedListingIds);
 
       if (listingsErr) throw new Error("Failed to load listings");
@@ -161,12 +161,14 @@ serve(async (req) => {
       safeListings = orderedListingIds
         .map((id) => byId.get(id))
         .filter(Boolean) as Listing[];
+      
+      console.log(`[generate-pdf] Loaded ${safeListings.length} listings from market_listings (ordered by issue_listings)`);
     } else {
+      // Fallback: fetch from market_listings by user's org
       const { data: listings, error: listingsErr } = await supabase
-        .from("listings")
+        .from("market_listings")
         .select(listingSelectFields)
-        .eq("user_id", safeIssue.user_id)
-        .eq("include_in_issue", true)
+        .eq("is_distribution_warehouse", true)
         .eq("status", "Active")
         .gte("size_sf", safeIssue.size_threshold)
         .lte("size_sf", sizeThresholdMax)
@@ -174,6 +176,8 @@ serve(async (req) => {
 
       if (listingsErr) throw new Error("Failed to load listings");
       safeListings = (listings || []) as unknown as Listing[];
+      
+      console.log(`[generate-pdf] Loaded ${safeListings.length} listings from market_listings (fallback query)`);
     }
 
     const generatedAtIso = new Date().toISOString();
@@ -200,16 +204,16 @@ serve(async (req) => {
     console.log(`[generate-pdf] Preparing share link with snapshot of ${listingIdsForSnapshot.length} listings`);
     
     // Query full listing data including coordinates for the map snapshot
+    // Use market_listings to match the IssueBuilder data source
     let listingSnapshot: any[] = [];
     if (listingIdsForSnapshot.length > 0) {
       const { data: fullListings, error: snapshotErr } = await supabase
-        .from("listings")
+        .from("market_listings")
         .select(`
           id,
           listing_id,
           address,
           display_address,
-          property_name,
           city,
           submarket,
           size_sf,
