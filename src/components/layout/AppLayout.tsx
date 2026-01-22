@@ -13,11 +13,13 @@ import {
   Menu,
   X,
   ChevronRight,
+  ChevronDown,
   Users,
   Shield,
   Mail,
   Database,
-  Receipt
+  Receipt,
+  Package
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -25,10 +27,34 @@ interface AppLayoutProps {
   children: ReactNode;
 }
 
-const navigation = [
+interface NavItem {
+  name: string;
+  href: string;
+  icon: React.ComponentType<{ className?: string }>;
+}
+
+interface NavGroup {
+  name: string;
+  icon: React.ComponentType<{ className?: string }>;
+  items: NavItem[];
+}
+
+type NavigationEntry = NavItem | NavGroup;
+
+const isNavGroup = (entry: NavigationEntry): entry is NavGroup => {
+  return 'items' in entry;
+};
+
+const navigation: NavigationEntry[] = [
   { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
-  { name: 'Distribution Listings', href: '/listings', icon: FileSpreadsheet },
-  { name: 'Dist. List. Recipients', href: '/recipients', icon: Mail },
+  { 
+    name: 'Distribution', 
+    icon: Package,
+    items: [
+      { name: 'Listings', href: '/listings', icon: FileSpreadsheet },
+      { name: 'Recipients', href: '/recipients', icon: Mail },
+    ]
+  },
   { name: 'Market Listings', href: '/market-listings', icon: Database },
   { name: 'Owners/Assets', href: '/assets', icon: Building2 },
   { name: 'Transactions', href: '/transactions', icon: Receipt },
@@ -45,6 +71,10 @@ export function AppLayout({ children }: AppLayoutProps) {
   const navigate = useNavigate();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [distributionOpen, setDistributionOpen] = useState(() => {
+    // Default open if current route is a distribution route
+    return ['/listings', '/recipients'].includes(location.pathname);
+  });
 
   const handleSignOut = async () => {
     await signOut();
@@ -100,14 +130,74 @@ export function AppLayout({ children }: AppLayoutProps) {
 
           {/* Navigation */}
           <nav className="flex-1 px-3 py-4 space-y-2">
-            {navigation.map((item) => {
-              const isActive = location.pathname === item.href;
+            {navigation.map((entry) => {
+              if (isNavGroup(entry)) {
+                // Render collapsible group
+                const groupHasActiveItem = entry.items.some(item => location.pathname === item.href);
+                return (
+                  <div key={entry.name}>
+                    <button
+                      onClick={() => setDistributionOpen(!distributionOpen)}
+                      title={sidebarCollapsed ? entry.name : undefined}
+                      className={cn(
+                        "w-full flex items-center gap-3 py-3 text-sm font-bold uppercase tracking-wider transition-all border-2",
+                        sidebarCollapsed ? "px-3 justify-center" : "px-4",
+                        groupHasActiveItem
+                          ? "bg-secondary/50 text-secondary-foreground border-foreground/50"
+                          : "text-foreground/70 border-transparent hover:bg-muted hover:border-foreground hover:text-foreground"
+                      )}
+                      style={{ borderRadius: "var(--radius)" }}
+                    >
+                      <entry.icon className="w-5 h-5 flex-shrink-0" />
+                      {!sidebarCollapsed && entry.name}
+                      {!sidebarCollapsed && (
+                        <ChevronDown className={cn(
+                          "w-4 h-4 ml-auto transition-transform",
+                          distributionOpen ? "" : "-rotate-90"
+                        )} />
+                      )}
+                    </button>
+                    {(distributionOpen || sidebarCollapsed) && (
+                      <div className={cn("space-y-1", !sidebarCollapsed && "ml-4 mt-1 pl-2 border-l-2 border-foreground/20")}>
+                        {entry.items.map((item) => {
+                          const isActive = location.pathname === item.href;
+                          return (
+                            <Link
+                              key={item.name}
+                              to={item.href}
+                              onClick={() => setSidebarOpen(false)}
+                              title={sidebarCollapsed ? item.name : undefined}
+                              className={cn(
+                                "flex items-center gap-3 py-2 text-sm font-bold uppercase tracking-wider transition-all border-2",
+                                sidebarCollapsed ? "px-3 justify-center" : "px-3",
+                                isActive
+                                  ? "bg-secondary text-secondary-foreground border-foreground shadow-[3px_3px_0_hsl(var(--foreground))]"
+                                  : "text-foreground/70 border-transparent hover:bg-muted hover:border-foreground hover:text-foreground"
+                              )}
+                              style={{ borderRadius: "var(--radius)" }}
+                            >
+                              <item.icon className="w-4 h-4 flex-shrink-0" />
+                              {!sidebarCollapsed && item.name}
+                              {!sidebarCollapsed && isActive && (
+                                <ChevronRight className="w-4 h-4 ml-auto" />
+                              )}
+                            </Link>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+                );
+              }
+
+              // Render single nav item
+              const isActive = location.pathname === entry.href;
               return (
                 <Link
-                  key={item.name}
-                  to={item.href}
+                  key={entry.name}
+                  to={entry.href}
                   onClick={() => setSidebarOpen(false)}
-                  title={sidebarCollapsed ? item.name : undefined}
+                  title={sidebarCollapsed ? entry.name : undefined}
                   className={cn(
                     "flex items-center gap-3 py-3 text-sm font-bold uppercase tracking-wider transition-all border-2",
                     sidebarCollapsed ? "px-3 justify-center" : "px-4",
@@ -117,8 +207,8 @@ export function AppLayout({ children }: AppLayoutProps) {
                   )}
                   style={{ borderRadius: "var(--radius)" }}
                 >
-                  <item.icon className="w-5 h-5 flex-shrink-0" />
-                  {!sidebarCollapsed && item.name}
+                  <entry.icon className="w-5 h-5 flex-shrink-0" />
+                  {!sidebarCollapsed && entry.name}
                   {!sidebarCollapsed && isActive && (
                     <ChevronRight className="w-4 h-4 ml-auto" />
                   )}
