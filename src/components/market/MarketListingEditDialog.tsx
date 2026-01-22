@@ -645,10 +645,20 @@ export function MarketListingEditDialog({
   // For edit mode, require listing
   if (!isCreateMode && !listing) return null;
 
+  // Handle close - clear draft and close dialog
+  const handleClose = useCallback(() => {
+    clearDraft();
+    onOpenChange(false);
+  }, [clearDraft, onOpenChange]);
+
   return (
     <>
-      <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+      <Dialog open={open} onOpenChange={(isOpen) => { if (!isOpen) handleClose(); }}>
+        <DialogContent 
+          className="max-w-2xl max-h-[90vh] overflow-y-auto"
+          preventOutsideClose
+          onCloseClick={handleClose}
+        >
           <DialogHeader>
             <DialogTitle>{isCreateMode ? 'Add New Listing' : 'Edit Listing'}</DialogTitle>
             <DialogDescription>
@@ -1158,7 +1168,7 @@ export function MarketListingEditDialog({
               </Button>
             )}
             <div className="flex gap-2">
-              <Button variant="outline" onClick={() => onOpenChange(false)}>
+              <Button variant="outline" onClick={handleClose}>
                 Cancel
               </Button>
               <Button onClick={handleSave} disabled={isSaving || isDeleting}>
