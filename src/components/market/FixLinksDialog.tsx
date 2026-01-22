@@ -57,8 +57,42 @@ export function FixLinksDialog({ open, onOpenChange, listings, onListingUpdated 
   };
 
   const openExternalUrl = (url: string) => {
-    // Firefox can show a COOP mismatch error for some window.open flows.
-    // Most reliable approach: synthesize an <a target="_blank" rel="noopener noreferrer"> click.
+    const isFirefox = typeof navigator !== 'undefined' && /Firefox\//.test(navigator.userAgent);
+
+    const copyToClipboardFallback = async () => {
+      try {
+        await navigator.clipboard.writeText(url);
+        toast.info('Google search URL copied to clipboard — paste it into a new tab.');
+      } catch {
+        toast.info('Popup blocked / browser policy prevented opening. Please copy/paste the URL manually.');
+      }
+    };
+
+    // Firefox can block cross-origin navigations from COOP-protected contexts with a “security configuration doesn't match” error.
+    // Most reliable workaround: open a neutral intermediary document (Blob URL) in a new tab which then redirects.
+    if (isFirefox) {
+      try {
+        const safeUrl = JSON.stringify(url);
+        const html = `<!doctype html><meta charset="utf-8" />
+<meta http-equiv="refresh" content="0;url=${encodeURI(url)}" />
+<title>Redirecting…</title>
+<script>try{window.opener=null;}catch(e){};location.replace(${safeUrl});</script>`;
+
+        const blob = new Blob([html], { type: 'text/html' });
+        const blobUrl = URL.createObjectURL(blob);
+        const w = window.open(blobUrl, '_blank', 'noopener,noreferrer');
+        // Release the Blob URL shortly after to avoid leaking object URLs.
+        window.setTimeout(() => URL.revokeObjectURL(blobUrl), 10_000);
+
+        if (!w) void copyToClipboardFallback();
+        return;
+      } catch {
+        void copyToClipboardFallback();
+        return;
+      }
+    }
+
+    // Non-Firefox: anchor click is the simplest + most compatible.
     try {
       const a = document.createElement('a');
       a.href = url;
@@ -69,7 +103,8 @@ export function FixLinksDialog({ open, onOpenChange, listings, onListingUpdated 
       a.click();
       a.remove();
     } catch {
-      window.open(url, '_blank', 'noopener,noreferrer');
+      const w = window.open(url, '_blank', 'noopener,noreferrer');
+      if (!w) void copyToClipboardFallback();
     }
   };
 
