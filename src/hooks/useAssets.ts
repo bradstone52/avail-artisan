@@ -47,6 +47,16 @@ export interface AssetListingLink {
   created_by: string | null;
 }
 
+export interface AssetPhoto {
+  id: string;
+  asset_id: string;
+  photo_url: string;
+  caption: string | null;
+  sort_order: number;
+  created_at: string;
+  created_by: string | null;
+}
+
 export interface AssetWithLinks extends Asset {
   linked_listings?: {
     id: string;
@@ -57,6 +67,7 @@ export interface AssetWithLinks extends Asset {
     link_type: string;
   }[];
   active_listing_count?: number;
+  photos?: AssetPhoto[];
 }
 
 export function useAssets() {
@@ -82,6 +93,14 @@ export function useAssets() {
         .select('*');
 
       if (linksError) throw linksError;
+
+      // Fetch all asset photos
+      const { data: photosData, error: photosError } = await supabase
+        .from('asset_photos')
+        .select('*')
+        .order('sort_order', { ascending: true });
+
+      if (photosError) throw photosError;
 
       // Fetch market listings for the linked ones
       const linkedListingIds = linksData?.map(l => l.market_listing_id) || [];
@@ -142,10 +161,14 @@ export function useAssets() {
         const allLinked = [...manualLinks, ...autoMatches].filter(Boolean) as AssetWithLinks['linked_listings'];
         const activeCount = allLinked?.filter(l => l.status === 'Active' || l.status === 'Under Contract').length || 0;
 
+        // Get photos for this asset
+        const assetPhotos = (photosData || []).filter(p => p.asset_id === asset.id) as AssetPhoto[];
+
         return {
           ...asset,
           linked_listings: allLinked,
-          active_listing_count: activeCount
+          active_listing_count: activeCount,
+          photos: assetPhotos
         };
       });
 
