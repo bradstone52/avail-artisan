@@ -1,7 +1,6 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect, useRef } from 'react';
 import { Listing, ListingFilter } from '@/lib/types';
 import { useAuth } from '@/contexts/AuthContext';
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
@@ -20,11 +19,6 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from '@/components/ui/tooltip';
-import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
@@ -40,6 +34,9 @@ import {
   Hand,
   RotateCcw,
   Pencil,
+  ArrowUp,
+  ArrowDown,
+  ArrowUpDown,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { supabase } from '@/integrations/supabase/client';
@@ -51,13 +48,128 @@ interface DistributionListingsTableProps {
   onListingUpdated?: () => void;
 }
 
+export type SortDirection = 'asc' | 'desc' | null;
+export type SortableColumn = 'size_sf' | 'clear_height_ft' | 'dock_doors' | 'drive_in_doors';
+
 export function DistributionListingsTable({ listings, onListingUpdated }: DistributionListingsTableProps) {
   const { session } = useAuth();
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
   const [search, setSearch] = useState('');
   const [filters, setFilters] = useState<ListingFilter>({});
   const [showFilters, setShowFilters] = useState(false);
   const [editPinListing, setEditPinListing] = useState<Listing | null>(null);
   const [geocodingId, setGeocodingId] = useState<string | null>(null);
+  const [selectedRowId, setSelectedRowId] = useState<string | null>(null);
+  const [isHovered, setIsHovered] = useState(false);
+  const [sortColumn, setSortColumn] = useState<SortableColumn | null>(null);
+  const [sortDirection, setSortDirection] = useState<SortDirection>(null);
+
+  // Scroll persistence
+  const scrollStorageKey = useMemo(() => 'distribution_listings_table_scroll_left_v1', []);
+
+  const getScrollEl = () => {
+    return scrollContainerRef.current?.querySelector(
+      '.overflow-auto, [class*="overflow-auto"]'
+    ) as HTMLElement | null;
+  };
+
+  useEffect(() => {
+    const el = getScrollEl();
+    if (!el) return;
+
+    const saved = sessionStorage.getItem(scrollStorageKey);
+    if (saved) {
+      const next = Number(saved);
+      if (Number.isFinite(next)) {
+        requestAnimationFrame(() => {
+          const el2 = getScrollEl();
+          if (el2) el2.scrollLeft = next;
+        });
+      }
+    }
+
+    let rafId: number | null = null;
+    const onScroll = () => {
+      if (rafId) cancelAnimationFrame(rafId);
+      rafId = requestAnimationFrame(() => {
+        sessionStorage.setItem(scrollStorageKey, String(el.scrollLeft));
+      });
+    };
+
+    el.addEventListener('scroll', onScroll, { passive: true });
+
+    return () => {
+      if (rafId) cancelAnimationFrame(rafId);
+      el.removeEventListener('scroll', onScroll);
+      sessionStorage.setItem(scrollStorageKey, String(el.scrollLeft));
+    };
+  }, [scrollStorageKey]);
+
+  // Keyboard scroll functionality
+  useEffect(() => {
+    let animationId: number | null = null;
+    let scrollDirection = 0;
+    let velocity = 0;
+    let lastTime = performance.now();
+    
+    const maxVelocity = 15;
+    const acceleration = 0.12;
+    const deceleration = 0.92;
+
+    const animate = (currentTime: number) => {
+      const deltaTime = Math.min((currentTime - lastTime) / 8.33, 3);
+      lastTime = currentTime;
+
+      const container = getScrollEl();
+      if (!container) {
+        animationId = requestAnimationFrame(animate);
+        return;
+      }
+
+      if (scrollDirection !== 0) {
+        velocity += (scrollDirection * maxVelocity - velocity) * acceleration * deltaTime;
+      } else {
+        velocity *= Math.pow(deceleration, deltaTime);
+      }
+
+      if (Math.abs(velocity) > 0.1) {
+        container.scrollBy({ left: velocity * deltaTime, behavior: 'auto' });
+      }
+
+      animationId = requestAnimationFrame(animate);
+    };
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (!isHovered) return;
+
+      if (e.key === 'ArrowLeft') {
+        e.preventDefault();
+        scrollDirection = -1;
+      } else if (e.key === 'ArrowRight') {
+        e.preventDefault();
+        scrollDirection = 1;
+      } else if (e.key === 'Escape') {
+        setSelectedRowId(null);
+      }
+    };
+
+    const handleKeyUp = (e: KeyboardEvent) => {
+      if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
+        scrollDirection = 0;
+      }
+    };
+
+    animationId = requestAnimationFrame(animate);
+
+    window.addEventListener('keydown', handleKeyDown);
+    window.addEventListener('keyup', handleKeyUp);
+    
+    return () => {
+      if (animationId) cancelAnimationFrame(animationId);
+      window.removeEventListener('keydown', handleKeyDown);
+      window.removeEventListener('keyup', handleKeyUp);
+    };
+  }, [isHovered]);
 
   const handleAutoGeocode = async (listing: Listing) => {
     const accessToken = session?.access_token;
@@ -93,6 +205,41 @@ export function DistributionListingsTable({ listings, onListingUpdated }: Distri
     }
   };
 
+  const handleSort = (column: SortableColumn) => {
+    if (sortColumn === column) {
+      if (sortDirection === 'asc') {
+        setSortDirection('desc');
+      } else if (sortDirection === 'desc') {
+        setSortColumn(null);
+        setSortDirection(null);
+      }
+    } else {
+      setSortColumn(column);
+      setSortDirection('asc');
+    }
+  };
+
+  // Sortable header component
+  const SortableHeader = ({ column, children, className = '' }: { column: SortableColumn; children: React.ReactNode; className?: string }) => {
+    const isActive = sortColumn === column;
+    return (
+      <TableHead 
+        className={cn(
+          'h-12 px-4 align-middle text-xs font-bold uppercase tracking-[0.15em] text-background cursor-pointer select-none hover:bg-zinc-600 transition-colors bg-zinc-700 dark:bg-zinc-600',
+          className
+        )}
+        onClick={() => handleSort(column)}
+      >
+        <div className="flex items-center gap-1">
+          {children}
+          {isActive && sortDirection === 'asc' && <ArrowUp className="h-3 w-3" />}
+          {isActive && sortDirection === 'desc' && <ArrowDown className="h-3 w-3" />}
+          {!isActive && <ArrowUpDown className="h-3 w-3 opacity-40" />}
+        </div>
+      </TableHead>
+    );
+  };
+
   // Get unique values for filters
   const submarkets = useMemo(() => 
     [...new Set(listings.map(l => l.submarket))].sort(),
@@ -100,7 +247,7 @@ export function DistributionListingsTable({ listings, onListingUpdated }: Distri
   );
 
   const filteredListings = useMemo(() => {
-    return listings.filter(listing => {
+    let result = listings.filter(listing => {
       // Search filter
       if (search) {
         const searchLower = search.toLowerCase();
@@ -134,7 +281,42 @@ export function DistributionListingsTable({ listings, onListingUpdated }: Distri
 
       return true;
     });
-  }, [listings, search, filters]);
+
+    // Apply sorting
+    if (sortColumn && sortDirection) {
+      result = [...result].sort((a, b) => {
+        let aVal: number | null = null;
+        let bVal: number | null = null;
+
+        switch (sortColumn) {
+          case 'size_sf':
+            aVal = a.size_sf;
+            bVal = b.size_sf;
+            break;
+          case 'clear_height_ft':
+            aVal = a.clear_height_ft;
+            bVal = b.clear_height_ft;
+            break;
+          case 'dock_doors':
+            aVal = a.dock_doors;
+            bVal = b.dock_doors;
+            break;
+          case 'drive_in_doors':
+            aVal = a.drive_in_doors;
+            bVal = b.drive_in_doors;
+            break;
+        }
+
+        if (aVal === null && bVal === null) return 0;
+        if (aVal === null) return 1;
+        if (bVal === null) return -1;
+
+        return sortDirection === 'asc' ? aVal - bVal : bVal - aVal;
+      });
+    }
+
+    return result;
+  }, [listings, search, filters, sortColumn, sortDirection]);
 
   const clearFilters = () => {
     setFilters({});
@@ -144,7 +326,7 @@ export function DistributionListingsTable({ listings, onListingUpdated }: Distri
   const hasActiveFilters = search || Object.keys(filters).length > 0;
 
   const formatSize = (sf: number) => {
-    return sf.toLocaleString() + ' SF';
+    return sf.toLocaleString();
   };
 
   const formatAvailability = (value: string | null | undefined): string => {
@@ -272,138 +454,238 @@ export function DistributionListingsTable({ listings, onListingUpdated }: Distri
       </div>
 
       {/* Table */}
-      <div className="border border-border rounded-lg overflow-hidden">
-        <Table>
-          <TableHeader>
-            <TableRow className="bg-muted/50">
-              <TableHead>Property</TableHead>
-              <TableHead>Submarket</TableHead>
-              <TableHead className="text-right">Size</TableHead>
-              <TableHead className="text-center">Clear Ht</TableHead>
-              <TableHead className="text-center">Docks</TableHead>
-              <TableHead>Availability</TableHead>
-              <TableHead className="w-20 text-center">Location</TableHead>
-              <TableHead className="w-12"></TableHead>
+      <div 
+        ref={scrollContainerRef}
+        className="relative border-3 border-foreground rounded-none shadow-[4px_4px_0_hsl(var(--foreground))]"
+        onMouseEnter={() => setIsHovered(true)}
+        onMouseLeave={() => setIsHovered(false)}
+        role="region"
+        aria-label="Distribution listings table - use left and right arrow keys to scroll"
+      >
+        {/* Keyboard scroll indicator */}
+        {isHovered && (
+          <div className="absolute -top-10 left-1/2 -translate-x-1/2 z-30 px-4 py-2 bg-primary text-primary-foreground text-sm font-black uppercase tracking-widest rounded-none border-3 border-foreground shadow-[4px_4px_0_hsl(var(--foreground))] animate-pulse">
+            ⌨️ ← → SCROLL
+          </div>
+        )}
+        <Table className="min-w-[1200px]">
+          <TableHeader className="sticky top-0 z-10">
+            <TableRow className="bg-foreground">
+              <TableHead className="sticky left-0 z-30 min-w-[200px] bg-zinc-700 dark:bg-zinc-600 h-12 px-4 align-middle text-xs font-bold uppercase tracking-[0.15em] text-background shadow-[2px_0_5px_-2px_rgba(0,0,0,0.3)]">Property</TableHead>
+              <TableHead className="h-12 px-4 align-middle text-xs font-bold uppercase tracking-[0.15em] text-background bg-zinc-700 dark:bg-zinc-600 min-w-[130px]">Submarket</TableHead>
+              <SortableHeader column="size_sf" className="text-right min-w-[100px]">Size (SF)</SortableHeader>
+              <SortableHeader column="clear_height_ft" className="text-center min-w-[90px]">Clear Ht</SortableHeader>
+              <SortableHeader column="dock_doors" className="text-center min-w-[70px]">Docks</SortableHeader>
+              <SortableHeader column="drive_in_doors" className="text-center min-w-[80px]">Drive-In</SortableHeader>
+              <TableHead className="h-12 px-4 align-middle text-xs font-bold uppercase tracking-[0.15em] text-background bg-zinc-700 dark:bg-zinc-600 min-w-[100px]">Availability</TableHead>
+              <TableHead className="h-12 px-4 align-middle text-xs font-bold uppercase tracking-[0.15em] text-background bg-zinc-700 dark:bg-zinc-600 min-w-[80px] text-center">Location</TableHead>
+              <TableHead className="sticky right-0 z-30 min-w-[60px] bg-zinc-700 dark:bg-zinc-600 h-12 px-4 align-middle text-xs font-bold uppercase tracking-[0.15em] text-background shadow-[-2px_0_5px_-2px_rgba(0,0,0,0.3)]"></TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {filteredListings.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={8} className="text-center py-12 text-muted-foreground">
+                <TableCell colSpan={9} className="text-center py-12 text-muted-foreground">
                   No listings match your filters
                 </TableCell>
               </TableRow>
             ) : (
-              filteredListings.map(listing => (
-                <TableRow 
-                  key={listing.id}
-                  className="hover:bg-muted/30"
-                >
-                  <TableCell>
-                    <div>
-                      <p className="font-medium text-sm">
-                        {listing.property_name || listing.address}
-                      </p>
-                      {listing.property_name && (
-                        <p className="text-xs text-muted-foreground">{listing.address}</p>
-                      )}
-                      <p className="text-xs text-muted-foreground">{listing.city}</p>
-                    </div>
-                  </TableCell>
-                  <TableCell className="text-sm">{listing.submarket}</TableCell>
-                  <TableCell className="text-right font-medium text-sm">
-                    {formatSize(listing.size_sf)}
-                  </TableCell>
-                  <TableCell className="text-center text-sm">
-                    {listing.clear_height_ft ? `${listing.clear_height_ft}'` : '—'}
-                  </TableCell>
-                  <TableCell className="text-center text-sm">
-                    {listing.dock_doors || '—'}
-                  </TableCell>
-                  <TableCell className="text-sm">
-                    {formatAvailability(listing.availability_date)}
-                  </TableCell>
-                  <TableCell className="text-center">
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
+              filteredListings.map((listing, index) => {
+                const isSelected = selectedRowId === listing.id;
+                const isEvenRow = index % 2 === 1;
+                
+                // Sticky columns match the rest of the table's striping
+                const stickyBg = isSelected 
+                  ? 'bg-secondary' 
+                  : isEvenRow 
+                    ? 'bg-table-stripe' 
+                    : 'bg-card';
+                
+                // Pink hover
+                const hoverClass = isSelected 
+                  ? 'hover:!bg-secondary/90' 
+                  : isEvenRow
+                    ? 'hover:!bg-pink-300 dark:hover:!bg-pink-800'
+                    : 'hover:!bg-pink-200 dark:hover:!bg-pink-900/50';
+                
+                // Sticky hover matches
+                const stickyHoverClass = isSelected
+                  ? ''
+                  : isEvenRow
+                    ? 'group-hover:!bg-pink-300 dark:group-hover:!bg-pink-800'
+                    : 'group-hover:!bg-pink-200 dark:group-hover:!bg-pink-900/50';
+                
+                // Neo-brutalist border styling
+                const outlineClass = isSelected
+                  ? 'outline outline-2 outline-amber-600 dark:outline-amber-500 -outline-offset-1'
+                  : 'outline-0 hover:outline hover:outline-2 hover:outline-pink-500 dark:hover:outline-pink-400 hover:-outline-offset-1';
+                
+                // Zebra striping
+                const rowBg = isSelected 
+                  ? '!bg-secondary' 
+                  : isEvenRow 
+                    ? 'bg-table-stripe' 
+                    : '';
+
+                return (
+                  <TableRow 
+                    key={listing.id}
+                    className={cn(
+                      'group cursor-pointer transition-all !border-b-2 !border-foreground',
+                      rowBg,
+                      hoverClass,
+                      outlineClass
+                    )}
+                    onClick={() => setSelectedRowId(isSelected ? null : listing.id)}
+                  >
+                    {/* Property - Sticky */}
+                    <TableCell className={cn(
+                      'sticky left-0 z-20 font-medium shadow-[2px_0_5px_-2px_rgba(0,0,0,0.3)] transition-colors',
+                      stickyBg,
+                      stickyHoverClass
+                    )}>
+                      <div className="min-w-[180px] max-w-[220px] whitespace-normal break-words leading-tight py-1">
+                        <p className="font-medium text-sm">
+                          {listing.property_name || listing.address}
+                        </p>
+                        {listing.property_name && (
+                          <p className="text-xs text-muted-foreground">{listing.address}</p>
+                        )}
+                        <p className="text-xs text-muted-foreground">{listing.city}</p>
+                      </div>
+                    </TableCell>
+                    
+                    {/* Submarket */}
+                    <TableCell className="text-sm">{listing.submarket}</TableCell>
+                    
+                    {/* Size */}
+                    <TableCell className="text-right font-mono text-sm">
+                      {formatSize(listing.size_sf)}
+                    </TableCell>
+                    
+                    {/* Clear Height */}
+                    <TableCell className="text-center text-sm">
+                      {listing.clear_height_ft ? `${listing.clear_height_ft}'` : '—'}
+                    </TableCell>
+                    
+                    {/* Dock Doors */}
+                    <TableCell className="text-center text-sm">
+                      {listing.dock_doors || '—'}
+                    </TableCell>
+                    
+                    {/* Drive-In Doors */}
+                    <TableCell className="text-center text-sm">
+                      {listing.drive_in_doors || '—'}
+                    </TableCell>
+                    
+                    {/* Availability */}
+                    <TableCell className="text-sm">
+                      {formatAvailability(listing.availability_date)}
+                    </TableCell>
+                    
+                    {/* Location */}
+                    <TableCell className="text-center">
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button 
+                            variant="ghost" 
+                            size="icon" 
+                            className={cn(
+                              "h-8 w-8 relative",
+                              listing.geocode_source === 'manual' && "ring-2 ring-warning ring-offset-1"
+                            )}
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            {listing.latitude && listing.longitude ? (
+                              <>
+                                <MapPin className={cn(
+                                  "w-4 h-4",
+                                  listing.geocode_source === 'manual' ? "text-warning" : "text-primary"
+                                )} />
+                                {listing.geocode_source === 'manual' && (
+                                  <Hand className="w-2.5 h-2.5 absolute -top-0.5 -right-0.5 text-warning" />
+                                )}
+                              </>
+                            ) : (
+                              <MapPinOff className="w-4 h-4 text-muted-foreground" />
+                            )}
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem onClick={(e) => {
+                            e.stopPropagation();
+                            setEditPinListing(listing);
+                          }}>
+                            <Pencil className="w-4 h-4 mr-2" />
+                            Edit pin location
+                          </DropdownMenuItem>
+                          {listing.geocode_source !== 'manual' && (
+                            <DropdownMenuItem
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleAutoGeocode(listing);
+                              }}
+                              disabled={geocodingId === listing.id}
+                            >
+                              <MapPin className="w-4 h-4 mr-2" />
+                              {geocodingId === listing.id ? 'Auto-geocoding…' : 'Auto-geocode now'}
+                            </DropdownMenuItem>
+                          )}
+                          {listing.geocode_source === 'manual' && (
+                            <DropdownMenuItem 
+                              onClick={async (e) => {
+                                e.stopPropagation();
+                                try {
+                                  const { error } = await supabase
+                                    .from('market_listings')
+                                    .update({
+                                      latitude: null,
+                                      longitude: null,
+                                      geocode_source: null,
+                                      geocoded_at: null,
+                                    })
+                                    .eq('id', listing.id);
+                                  
+                                  if (error) throw error;
+                                  toast.success('Pin reset — use Auto-geocode to regenerate');
+                                  onListingUpdated?.();
+                                } catch (err) {
+                                  console.error('Failed to reset pin:', err);
+                                  toast.error('Failed to reset pin location');
+                                }
+                              }}
+                            >
+                              <RotateCcw className="w-4 h-4 mr-2" />
+                              Reset to auto-geocode
+                            </DropdownMenuItem>
+                          )}
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </TableCell>
+                    
+                    {/* Link - Sticky */}
+                    <TableCell className={cn(
+                      'sticky right-0 z-20 shadow-[-2px_0_5px_-2px_rgba(0,0,0,0.3)] transition-colors',
+                      stickyBg,
+                      stickyHoverClass
+                    )}>
+                      {listing.link && (
                         <Button 
                           variant="ghost" 
                           size="icon" 
-                          className={cn(
-                            "h-8 w-8 relative",
-                            listing.geocode_source === 'manual' && "ring-2 ring-warning ring-offset-1"
-                          )}
+                          className="h-8 w-8" 
+                          asChild
+                          onClick={(e) => e.stopPropagation()}
                         >
-                          {listing.latitude && listing.longitude ? (
-                            <>
-                              <MapPin className={cn(
-                                "w-4 h-4",
-                                listing.geocode_source === 'manual' ? "text-warning" : "text-primary"
-                              )} />
-                              {listing.geocode_source === 'manual' && (
-                                <Hand className="w-2.5 h-2.5 absolute -top-0.5 -right-0.5 text-warning" />
-                              )}
-                            </>
-                          ) : (
-                            <MapPinOff className="w-4 h-4 text-muted-foreground" />
-                          )}
+                          <a href={listing.link} target="_blank" rel="noopener noreferrer">
+                            <ExternalLink className="w-4 h-4" />
+                          </a>
                         </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuItem onClick={() => setEditPinListing(listing)}>
-                          <Pencil className="w-4 h-4 mr-2" />
-                          Edit pin location
-                        </DropdownMenuItem>
-                        {listing.geocode_source !== 'manual' && (
-                          <DropdownMenuItem
-                            onClick={() => handleAutoGeocode(listing)}
-                            disabled={geocodingId === listing.id}
-                          >
-                            <MapPin className="w-4 h-4 mr-2" />
-                            {geocodingId === listing.id ? 'Auto-geocoding…' : 'Auto-geocode now'}
-                          </DropdownMenuItem>
-                        )}
-                        {listing.geocode_source === 'manual' && (
-                          <DropdownMenuItem 
-                            onClick={async () => {
-                              try {
-                                const { error } = await supabase
-                                  .from('market_listings')
-                                  .update({
-                                    latitude: null,
-                                    longitude: null,
-                                    geocode_source: null,
-                                    geocoded_at: null,
-                                  })
-                                  .eq('id', listing.id);
-                                
-                                if (error) throw error;
-                                toast.success('Pin reset — use Auto-geocode to regenerate');
-                                onListingUpdated?.();
-                              } catch (err) {
-                                console.error('Failed to reset pin:', err);
-                                toast.error('Failed to reset pin location');
-                              }
-                            }}
-                          >
-                            <RotateCcw className="w-4 h-4 mr-2" />
-                            Reset to auto-geocode
-                          </DropdownMenuItem>
-                        )}
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </TableCell>
-                  <TableCell>
-                    {listing.link && (
-                      <Button variant="ghost" size="icon" className="h-8 w-8" asChild>
-                        <a href={listing.link} target="_blank" rel="noopener noreferrer">
-                          <ExternalLink className="w-4 h-4" />
-                        </a>
-                      </Button>
-                    )}
-                  </TableCell>
-                </TableRow>
-              ))
+                      )}
+                    </TableCell>
+                  </TableRow>
+                );
+              })
             )}
           </TableBody>
         </Table>
