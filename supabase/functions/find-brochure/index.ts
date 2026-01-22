@@ -13,6 +13,37 @@ interface FindBrochureRequest {
   existingUrl?: string;
 }
 
+// Map broker names to their domain patterns
+const BROKER_DOMAINS: Record<string, string[]> = {
+  "cbre": ["cbre.ca", "cbre.com"],
+  "colliers": ["collierscanada.com", "colliers.com"],
+  "jll": ["jll.ca", "jll.com", "us.jll.com"],
+  "cushman": ["cushmanwakefield.com", "cushwake.com"],
+  "avison young": ["avisonyoung.com", "avisonyoung.ca"],
+  "cresa": ["cresa.com"],
+  "marcus & millichap": ["marcusmillichap.com"],
+  "nai": ["naicalgary.com", "naicommercial.ca"],
+  "barclay": ["barclaystreet.com"],
+};
+
+function getBrokerDomains(brokerSource: string | undefined): string[] {
+  if (!brokerSource) return [];
+  const normalized = brokerSource.toLowerCase().trim();
+  
+  for (const [key, domains] of Object.entries(BROKER_DOMAINS)) {
+    if (normalized.includes(key)) {
+      return domains;
+    }
+  }
+  return [];
+}
+
+function urlMatchesBroker(url: string, brokerDomains: string[]): boolean {
+  if (brokerDomains.length === 0) return true; // No broker filter
+  const urlLower = url.toLowerCase();
+  return brokerDomains.some(domain => urlLower.includes(domain));
+}
+
 interface PerplexityResult {
   url: string;
   title?: string;
@@ -39,7 +70,7 @@ Deno.serve(async (req) => {
       });
     }
 
-    const { listingId, address, city, existingUrl }: FindBrochureRequest = await req.json();
+    const { listingId, address, city, broker, existingUrl }: FindBrochureRequest = await req.json();
 
     if (!listingId || !address) {
       return new Response(JSON.stringify({ error: "Missing required fields" }), {
@@ -69,10 +100,18 @@ Deno.serve(async (req) => {
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
+    // Get broker domains for filtering
+    const brokerDomains = getBrokerDomains(broker);
+    const hasBrokerFilter = brokerDomains.length > 0;
+    
+    console.log(`[find-brochure] Broker: ${broker || "unknown"}, domains: ${brokerDomains.join(", ") || "none"}`);
+
     // =====================================================
     // STEP 1: Use Perplexity to find listing pages
     // =====================================================
-    const searchQuery = `${address} ${city || ""} industrial property listing brochure`;
+    // If we have a broker, target their site specifically
+    const siteFilter = brokerDomains.length > 0 ? `site:${brokerDomains[0]}` : "";
+    const searchQuery = `${address} ${city || ""} industrial property listing brochure ${siteFilter}`.trim();
     console.log(`[find-brochure] Step 1: Perplexity search for: ${searchQuery}`);
 
     const perplexityResponse = await fetch("https://api.perplexity.ai/chat/completions", {
@@ -182,11 +221,27 @@ Deno.serve(async (req) => {
           // PDF links are highly valuable
           if (linkLower.endsWith(".pdf")) score += 60;
           
+          // BROKER MATCHING - Critical for accuracy
+          const matchesExpectedBroker = urlMatchesBroker(link, brokerDomains);
+          
+          if (hasBrokerFilter) {
+            if (matchesExpectedBroker) {
+              // Big bonus for matching the expected broker
+              score += 50;
+              console.log(`[find-brochure] +50 broker match: ${link}`);
+            } else {
+              // Heavy penalty for wrong broker - but don't skip entirely
+              score -= 100;
+              console.log(`[find-brochure] -100 wrong broker: ${link}`);
+            }
+          }
+          
           // Must be from a broker site or the same domain
           const isBrokerSite = linkLower.includes("cbre.") || linkLower.includes("colliers.") ||
                               linkLower.includes("jll.") || linkLower.includes("cushwake.") ||
                               linkLower.includes("cushmanwakefield.") || linkLower.includes("avisonyoung.") ||
-                              linkLower.includes("cresa.");
+                              linkLower.includes("cresa.") || linkLower.includes("nai") ||
+                              linkLower.includes("barclay");
           
           if (!isBrokerSite && !linkLower.includes(new URL(pageUrl).hostname)) {
             continue; // Skip external non-broker links
@@ -205,6 +260,7 @@ Deno.serve(async (req) => {
           // Bonus if page itself mentions brochure
           if (hasBrochureMention) score += 10;
 
+          // Only add if score is positive (wrong broker will be negative)
           if (score >= 20) {
             candidates.push({ url: link, score, source: pageUrl });
           }
@@ -213,10 +269,18 @@ Deno.serve(async (req) => {
         // Also check if the page URL itself is a PDF
         if (pageUrl.toLowerCase().endsWith(".pdf")) {
           let pageScore = 60;
+          const matchesExpectedBroker = urlMatchesBroker(pageUrl, brokerDomains);
+          if (hasBrokerFilter && matchesExpectedBroker) {
+            pageScore += 50;
+          } else if (hasBrokerFilter && !matchesExpectedBroker) {
+            pageScore -= 100;
+          }
           for (const part of addressParts) {
             if (pageUrl.toLowerCase().includes(part)) pageScore += 15;
           }
-          candidates.push({ url: pageUrl, score: pageScore, source: "direct" });
+          if (pageScore >= 20) {
+            candidates.push({ url: pageUrl, score: pageScore, source: "direct" });
+          }
         }
 
       } catch (scrapeErr) {
