@@ -63,6 +63,28 @@ export default function Dashboard() {
           </div>
         </div>
 
+        {/* Create Issue CTA */}
+        <div 
+          className="mb-6 p-6 bg-gradient-to-r from-primary/10 via-primary/5 to-transparent border-2 border-primary/30 cursor-pointer hover:border-primary/50 hover:shadow-lg transition-all group"
+          style={{ borderRadius: "var(--radius)" }}
+          onClick={() => navigate('/issue-builder')}
+        >
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <div className="p-3 bg-primary text-primary-foreground border-2 border-foreground shadow-[3px_3px_0_hsl(var(--foreground))] group-hover:shadow-[4px_4px_0_hsl(var(--foreground))] transition-shadow" style={{ borderRadius: "var(--radius)" }}>
+                <FilePlus className="w-6 h-6" />
+              </div>
+              <div>
+                <h2 className="text-xl font-black uppercase tracking-tight">Create New Issue</h2>
+                <p className="text-muted-foreground">Generate a distribution market snapshot report</p>
+              </div>
+            </div>
+            <Button size="lg" className="font-bold shadow-[3px_3px_0_hsl(var(--foreground))] hover:shadow-[4px_4px_0_hsl(var(--foreground))] transition-shadow">
+              Get Started
+            </Button>
+          </div>
+        </div>
+
         {/* Main Grid */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Left Column - Stats and Issues */}
