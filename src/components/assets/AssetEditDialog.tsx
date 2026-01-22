@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { AssetWithLinks } from '@/hooks/useAssets';
 import {
   Dialog,
@@ -18,7 +18,10 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Building2, User, DollarSign, FileText, Plus, Trash2 } from 'lucide-react';
+import { Building2, User, DollarSign, FileText, Plus, Trash2, Upload, X, Briefcase } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/contexts/AuthContext';
+import { toast } from 'sonner';
 
 interface AssetEditDialogProps {
   asset: AssetWithLinks | null;
@@ -45,6 +48,32 @@ const PROPERTY_TYPES = [
 
 const BUILDING_CLASSES = ['A', 'B', 'C'];
 
+// Format number with commas
+const formatNumberWithCommas = (value: string): string => {
+  const num = value.replace(/[^\d]/g, '');
+  if (!num) return '';
+  return parseInt(num).toLocaleString('en-US');
+};
+
+// Parse formatted number back to raw digits
+const parseFormattedNumber = (value: string): string => {
+  return value.replace(/[^\d]/g, '');
+};
+
+// Format currency with $ and commas
+const formatCurrency = (value: string): string => {
+  const num = value.replace(/[^\d.]/g, '');
+  if (!num) return '';
+  const parsed = parseFloat(num);
+  if (isNaN(parsed)) return '';
+  return parsed.toLocaleString('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 0, maximumFractionDigits: 0 });
+};
+
+// Parse currency back to raw number string
+const parseCurrency = (value: string): string => {
+  return value.replace(/[^\d.]/g, '');
+};
+
 export function AssetEditDialog({
   asset,
   open,
@@ -52,7 +81,10 @@ export function AssetEditDialog({
   onSave,
   mode
 }: AssetEditDialogProps) {
+  const { user } = useAuth();
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [saving, setSaving] = useState(false);
+  const [uploading, setUploading] = useState(false);
   const [activeTab, setActiveTab] = useState('property');
 
   // Form state
@@ -72,8 +104,10 @@ export function AssetEditDialog({
   const [dockDoors, setDockDoors] = useState('');
   const [driveInDoors, setDriveInDoors] = useState('');
   const [ownerCompany, setOwnerCompany] = useState('');
-  // Contact state - start with no contacts in create mode
-  const [contacts, setContacts] = useState<Array<{ name: string; email: string; phone: string }>>([]);
+  // Owner contacts
+  const [ownerContacts, setOwnerContacts] = useState<Array<{ name: string; email: string; phone: string }>>([]);
+  // Asset Manager contacts
+  const [assetManagerContacts, setAssetManagerContacts] = useState<Array<{ name: string; email: string; phone: string }>>([]);
   const [purchaseDate, setPurchaseDate] = useState('');
   const [purchasePrice, setPurchasePrice] = useState('');
   const [assessedValue, setAssessedValue] = useState('');
@@ -103,6 +137,60 @@ export function AssetEditDialog({
     }
   };
 
+  // Handle photo upload
+  const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !user) return;
+
+    // Validate file type
+    const validTypes = ['image/jpeg', 'image/png', 'image/webp'];
+    if (!validTypes.includes(file.type)) {
+      toast.error('Please upload a JPG, PNG, or WEBP image');
+      return;
+    }
+
+    // Validate file size (10MB max)
+    if (file.size > 10 * 1024 * 1024) {
+      toast.error('Image must be less than 10MB');
+      return;
+    }
+
+    setUploading(true);
+    try {
+      const ext = file.name.split('.').pop();
+      const filename = `${user.id}/asset-${Date.now()}.${ext}`;
+
+      const { data, error } = await supabase.storage
+        .from('asset-photos')
+        .upload(filename, file, {
+          cacheControl: '3600',
+          upsert: true,
+        });
+
+      if (error) throw error;
+
+      const { data: urlData } = supabase.storage
+        .from('asset-photos')
+        .getPublicUrl(data.path);
+
+      setPhotoUrl(urlData.publicUrl);
+      toast.success('Photo uploaded');
+    } catch (error: any) {
+      console.error('Upload error:', error);
+      toast.error(error.message || 'Failed to upload photo');
+    } finally {
+      setUploading(false);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+    }
+  };
+
+  // Remove photo
+  const handleRemovePhoto = () => {
+    setPhotoUrl('');
+  };
+
   // Populate form when asset changes
   useEffect(() => {
     if (asset) {
@@ -122,12 +210,14 @@ export function AssetEditDialog({
       setDockDoors(asset.dock_doors?.toString() || '');
       setDriveInDoors(asset.drive_in_doors?.toString() || '');
       setOwnerCompany(asset.owner_company || '');
-      // Load existing contact if present
+      // Load existing owner contact if present
       if (asset.owner_name || asset.owner_email || asset.owner_phone) {
-        setContacts([{ name: asset.owner_name || '', email: asset.owner_email || '', phone: asset.owner_phone || '' }]);
+        setOwnerContacts([{ name: asset.owner_name || '', email: asset.owner_email || '', phone: asset.owner_phone || '' }]);
       } else {
-        setContacts([]);
+        setOwnerContacts([]);
       }
+      // Asset manager contacts not stored in DB yet - start empty
+      setAssetManagerContacts([]);
       setPurchaseDate(asset.purchase_date || '');
       setPurchasePrice(asset.purchase_price?.toString() || '');
       setAssessedValue(asset.assessed_value?.toString() || '');
@@ -153,8 +243,8 @@ export function AssetEditDialog({
       setDockDoors('');
       setDriveInDoors('');
       setOwnerCompany('');
-      setContacts([]);
-      
+      setOwnerContacts([]);
+      setAssetManagerContacts([]);
       setPurchaseDate('');
       setPurchasePrice('');
       setAssessedValue('');
@@ -181,23 +271,23 @@ export function AssetEditDialog({
         city: city.trim(),
         submarket: submarket.trim(),
         property_type: propertyType || null,
-        size_sf: sizeSf ? parseInt(sizeSf) : null,
+        size_sf: sizeSf ? parseInt(parseFormattedNumber(sizeSf)) : null,
         land_acres: landAcres ? parseFloat(landAcres) : null,
         year_built: yearBuilt ? parseInt(yearBuilt) : null,
         zoning: zoning.trim() || null,
         building_class: buildingClass || null,
         clear_height_ft: clearHeightFt ? parseFloat(clearHeightFt) : null,
-        dock_doors: dockDoors ? parseInt(dockDoors) : null,
-        drive_in_doors: driveInDoors ? parseInt(driveInDoors) : null,
+        dock_doors: dockDoors ? parseInt(parseFormattedNumber(dockDoors)) : null,
+        drive_in_doors: driveInDoors ? parseInt(parseFormattedNumber(driveInDoors)) : null,
         owner_company: ownerCompany.trim() || null,
-        // Save first contact (for now, DB only supports one)
-        owner_name: contacts[0]?.name?.trim() || null,
-        owner_email: contacts[0]?.email?.trim() || null,
-        owner_phone: contacts[0]?.phone?.trim() || null,
+        // Save first owner contact (for now, DB only supports one)
+        owner_name: ownerContacts[0]?.name?.trim() || null,
+        owner_email: ownerContacts[0]?.email?.trim() || null,
+        owner_phone: ownerContacts[0]?.phone?.trim() || null,
         purchase_date: purchaseDate || null,
-        purchase_price: purchasePrice ? parseFloat(purchasePrice) : null,
-        assessed_value: assessedValue ? parseFloat(assessedValue) : null,
-        property_tax_annual: propertyTaxAnnual ? parseFloat(propertyTaxAnnual) : null,
+        purchase_price: purchasePrice ? parseFloat(parseCurrency(purchasePrice)) : null,
+        assessed_value: assessedValue ? parseFloat(parseCurrency(assessedValue)) : null,
+        property_tax_annual: propertyTaxAnnual ? parseFloat(parseCurrency(propertyTaxAnnual)) : null,
         photo_url: photoUrl.trim() || null,
         notes: notes.trim() || null,
         internal_notes: internalNotes.trim() || null,
@@ -206,6 +296,72 @@ export function AssetEditDialog({
       setSaving(false);
     }
   };
+
+  // Render contact card
+  const renderContactCard = (
+    contact: { name: string; email: string; phone: string },
+    index: number,
+    contacts: Array<{ name: string; email: string; phone: string }>,
+    setContacts: React.Dispatch<React.SetStateAction<Array<{ name: string; email: string; phone: string }>>>,
+    label: string
+  ) => (
+    <div key={index} className="border rounded-lg p-4 space-y-3 relative">
+      <div className="flex items-center justify-between mb-2">
+        <span className="text-sm font-medium text-muted-foreground">{label} {index + 1}</span>
+        <Button
+          type="button"
+          variant="ghost"
+          size="sm"
+          onClick={() => setContacts(contacts.filter((_, i) => i !== index))}
+          className="h-7 w-7 p-0 text-muted-foreground hover:text-destructive"
+        >
+          <Trash2 className="h-4 w-4" />
+        </Button>
+      </div>
+      <div>
+        <Label>Contact Name</Label>
+        <Input
+          value={contact.name}
+          onChange={(e) => {
+            const newContacts = [...contacts];
+            newContacts[index].name = e.target.value;
+            setContacts(newContacts);
+          }}
+          className={`placeholder-light ${contact.name ? 'input-filled' : ''}`}
+          placeholder="e.g., John Smith"
+        />
+      </div>
+      <div className="grid grid-cols-2 gap-3">
+        <div>
+          <Label>Email</Label>
+          <Input
+            type="email"
+            value={contact.email}
+            onChange={(e) => {
+              const newContacts = [...contacts];
+              newContacts[index].email = e.target.value;
+              setContacts(newContacts);
+            }}
+            className={`placeholder-light ${contact.email ? 'input-filled' : ''}`}
+            placeholder="e.g., john@example.com"
+          />
+        </div>
+        <div>
+          <Label>Phone</Label>
+          <Input
+            value={contact.phone}
+            onChange={(e) => {
+              const newContacts = [...contacts];
+              newContacts[index].phone = e.target.value;
+              setContacts(newContacts);
+            }}
+            className={`placeholder-light ${contact.phone ? 'input-filled' : ''}`}
+            placeholder="e.g., (403) 555-1234"
+          />
+        </div>
+      </div>
+    </div>
+  );
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -217,7 +373,7 @@ export function AssetEditDialog({
         </DialogHeader>
 
         <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList className="grid w-full grid-cols-4">
+          <TabsList className="grid w-full grid-cols-5">
             <TabsTrigger value="property" className="flex items-center gap-2">
               <Building2 className="h-4 w-4" />
               <span className="hidden sm:inline">Property</span>
@@ -225,6 +381,10 @@ export function AssetEditDialog({
             <TabsTrigger value="owner" className="flex items-center gap-2">
               <User className="h-4 w-4" />
               <span className="hidden sm:inline">Owner</span>
+            </TabsTrigger>
+            <TabsTrigger value="manager" className="flex items-center gap-2">
+              <Briefcase className="h-4 w-4" />
+              <span className="hidden sm:inline">Manager</span>
             </TabsTrigger>
             <TabsTrigger value="financial" className="flex items-center gap-2">
               <DollarSign className="h-4 w-4" />
@@ -326,11 +486,10 @@ export function AssetEditDialog({
                 <Label htmlFor="sizeSf">Size (SF)</Label>
                 <Input
                   id="sizeSf"
-                  type="number"
-                  value={sizeSf}
-                  onChange={(e) => setSizeSf(e.target.value)}
+                  value={sizeSf ? formatNumberWithCommas(sizeSf) : ''}
+                  onChange={(e) => setSizeSf(parseFormattedNumber(e.target.value))}
                   className={`placeholder-light ${sizeSf ? 'input-filled' : ''}`}
-                  placeholder="e.g., 100000"
+                  placeholder="e.g., 100,000"
                 />
               </div>
 
@@ -387,9 +546,8 @@ export function AssetEditDialog({
                 <Label htmlFor="dockDoors">Dock Doors</Label>
                 <Input
                   id="dockDoors"
-                  type="number"
-                  value={dockDoors}
-                  onChange={(e) => setDockDoors(e.target.value)}
+                  value={dockDoors ? formatNumberWithCommas(dockDoors) : ''}
+                  onChange={(e) => setDockDoors(parseFormattedNumber(e.target.value))}
                   className={`placeholder-light ${dockDoors ? 'input-filled' : ''}`}
                   placeholder="e.g., 8"
                 />
@@ -399,23 +557,58 @@ export function AssetEditDialog({
                 <Label htmlFor="driveInDoors">Drive-In Doors</Label>
                 <Input
                   id="driveInDoors"
-                  type="number"
-                  value={driveInDoors}
-                  onChange={(e) => setDriveInDoors(e.target.value)}
+                  value={driveInDoors ? formatNumberWithCommas(driveInDoors) : ''}
+                  onChange={(e) => setDriveInDoors(parseFormattedNumber(e.target.value))}
                   className={`placeholder-light ${driveInDoors ? 'input-filled' : ''}`}
                   placeholder="e.g., 2"
                 />
               </div>
 
+              {/* Photo Upload */}
               <div className="col-span-2">
-                <Label htmlFor="photoUrl">Photo URL</Label>
-                <Input
-                  id="photoUrl"
-                  value={photoUrl}
-                  onChange={(e) => setPhotoUrl(e.target.value)}
-                  className={`placeholder-light ${photoUrl ? 'input-filled' : ''}`}
-                  placeholder="e.g., https://..."
+                <Label>Photo</Label>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp"
+                  onChange={handlePhotoUpload}
+                  className="hidden"
                 />
+                {photoUrl ? (
+                  <div className="relative mt-2">
+                    <img 
+                      src={photoUrl} 
+                      alt="Asset" 
+                      className="w-full h-40 object-cover rounded-lg border"
+                    />
+                    <Button
+                      type="button"
+                      variant="destructive"
+                      size="sm"
+                      onClick={handleRemovePhoto}
+                      className="absolute top-2 right-2 h-8 w-8 p-0"
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+                  </div>
+                ) : (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => fileInputRef.current?.click()}
+                    disabled={uploading}
+                    className="w-full mt-2 border-dashed h-20"
+                  >
+                    {uploading ? (
+                      'Uploading...'
+                    ) : (
+                      <>
+                        <Upload className="h-4 w-4 mr-2" />
+                        Add Photo
+                      </>
+                    )}
+                  </Button>
+                )}
               </div>
             </div>
           </TabsContent>
@@ -434,71 +627,41 @@ export function AssetEditDialog({
                 />
               </div>
 
-              {/* Contact Cards */}
-              {contacts.map((contact, index) => (
-                <div key={index} className="border rounded-lg p-4 space-y-3 relative">
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="text-sm font-medium text-muted-foreground">Contact {index + 1}</span>
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => setContacts(contacts.filter((_, i) => i !== index))}
-                      className="h-7 w-7 p-0 text-muted-foreground hover:text-destructive"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  </div>
-                  <div>
-                    <Label>Contact Name</Label>
-                    <Input
-                      value={contact.name}
-                      onChange={(e) => {
-                        const newContacts = [...contacts];
-                        newContacts[index].name = e.target.value;
-                        setContacts(newContacts);
-                      }}
-                      className={`placeholder-light ${contact.name ? 'input-filled' : ''}`}
-                      placeholder="e.g., John Smith"
-                    />
-                  </div>
-                  <div className="grid grid-cols-2 gap-3">
-                    <div>
-                      <Label>Email</Label>
-                      <Input
-                        type="email"
-                        value={contact.email}
-                        onChange={(e) => {
-                          const newContacts = [...contacts];
-                          newContacts[index].email = e.target.value;
-                          setContacts(newContacts);
-                        }}
-                        className={`placeholder-light ${contact.email ? 'input-filled' : ''}`}
-                        placeholder="e.g., john@example.com"
-                      />
-                    </div>
-                    <div>
-                      <Label>Phone</Label>
-                      <Input
-                        value={contact.phone}
-                        onChange={(e) => {
-                          const newContacts = [...contacts];
-                          newContacts[index].phone = e.target.value;
-                          setContacts(newContacts);
-                        }}
-                        className={`placeholder-light ${contact.phone ? 'input-filled' : ''}`}
-                        placeholder="e.g., (403) 555-1234"
-                      />
-                    </div>
-                  </div>
-                </div>
-              ))}
+              {/* Owner Contact Cards */}
+              {ownerContacts.map((contact, index) => 
+                renderContactCard(contact, index, ownerContacts, setOwnerContacts, 'Contact')
+              )}
 
               {/* Add Contact Button */}
               <Button
                 type="button"
                 variant="outline"
-                onClick={() => setContacts([...contacts, { name: '', email: '', phone: '' }])}
+                onClick={() => setOwnerContacts([...ownerContacts, { name: '', email: '', phone: '' }])}
+                className="w-full border-dashed"
+              >
+                <Plus className="h-4 w-4 mr-2" />
+                Add Contact
+              </Button>
+            </div>
+          </TabsContent>
+
+          {/* Asset Manager Tab */}
+          <TabsContent value="manager" className="space-y-4 mt-4">
+            <div className="space-y-4">
+              <p className="text-sm text-muted-foreground">
+                Add asset management contacts for this property.
+              </p>
+
+              {/* Asset Manager Contact Cards */}
+              {assetManagerContacts.map((contact, index) => 
+                renderContactCard(contact, index, assetManagerContacts, setAssetManagerContacts, 'Asset Manager')
+              )}
+
+              {/* Add Contact Button */}
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setAssetManagerContacts([...assetManagerContacts, { name: '', email: '', phone: '' }])}
                 className="w-full border-dashed"
               >
                 <Plus className="h-4 w-4 mr-2" />
@@ -522,38 +685,35 @@ export function AssetEditDialog({
               </div>
 
               <div>
-                <Label htmlFor="purchasePrice">Purchase Price ($)</Label>
+                <Label htmlFor="purchasePrice">Purchase Price</Label>
                 <Input
                   id="purchasePrice"
-                  type="number"
-                  value={purchasePrice}
-                  onChange={(e) => setPurchasePrice(e.target.value)}
+                  value={purchasePrice ? formatCurrency(purchasePrice) : ''}
+                  onChange={(e) => setPurchasePrice(parseCurrency(e.target.value))}
                   className={`placeholder-light ${purchasePrice ? 'input-filled' : ''}`}
-                  placeholder="e.g., 15000000"
+                  placeholder="e.g., $15,000,000"
                 />
               </div>
 
               <div>
-                <Label htmlFor="assessedValue">Assessed Value ($)</Label>
+                <Label htmlFor="assessedValue">Assessed Value</Label>
                 <Input
                   id="assessedValue"
-                  type="number"
-                  value={assessedValue}
-                  onChange={(e) => setAssessedValue(e.target.value)}
+                  value={assessedValue ? formatCurrency(assessedValue) : ''}
+                  onChange={(e) => setAssessedValue(parseCurrency(e.target.value))}
                   className={`placeholder-light ${assessedValue ? 'input-filled' : ''}`}
-                  placeholder="e.g., 12000000"
+                  placeholder="e.g., $12,000,000"
                 />
               </div>
 
               <div>
-                <Label htmlFor="propertyTaxAnnual">Annual Property Tax ($)</Label>
+                <Label htmlFor="propertyTaxAnnual">Annual Property Tax</Label>
                 <Input
                   id="propertyTaxAnnual"
-                  type="number"
-                  value={propertyTaxAnnual}
-                  onChange={(e) => setPropertyTaxAnnual(e.target.value)}
+                  value={propertyTaxAnnual ? formatCurrency(propertyTaxAnnual) : ''}
+                  onChange={(e) => setPropertyTaxAnnual(parseCurrency(e.target.value))}
                   className={`placeholder-light ${propertyTaxAnnual ? 'input-filled' : ''}`}
-                  placeholder="e.g., 150000"
+                  placeholder="e.g., $150,000"
                 />
               </div>
             </div>
