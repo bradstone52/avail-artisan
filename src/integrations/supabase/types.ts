@@ -14,6 +14,156 @@ export type Database = {
   }
   public: {
     Tables: {
+      asset_listing_links: {
+        Row: {
+          asset_id: string
+          created_at: string
+          created_by: string | null
+          id: string
+          link_type: string
+          market_listing_id: string
+        }
+        Insert: {
+          asset_id: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          link_type?: string
+          market_listing_id: string
+        }
+        Update: {
+          asset_id?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          link_type?: string
+          market_listing_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "asset_listing_links_asset_id_fkey"
+            columns: ["asset_id"]
+            isOneToOne: false
+            referencedRelation: "assets"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "asset_listing_links_market_listing_id_fkey"
+            columns: ["market_listing_id"]
+            isOneToOne: false
+            referencedRelation: "market_listings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      assets: {
+        Row: {
+          address: string
+          assessed_value: number | null
+          building_class: string | null
+          city: string
+          clear_height_ft: number | null
+          created_at: string
+          created_by: string | null
+          display_address: string | null
+          dock_doors: number | null
+          drive_in_doors: number | null
+          geocode_source: string | null
+          geocoded_at: string | null
+          id: string
+          internal_notes: string | null
+          land_acres: number | null
+          latitude: number | null
+          longitude: number | null
+          name: string
+          notes: string | null
+          owner_company: string | null
+          owner_email: string | null
+          owner_name: string | null
+          owner_phone: string | null
+          photo_url: string | null
+          property_tax_annual: number | null
+          property_type: string | null
+          purchase_date: string | null
+          purchase_price: number | null
+          size_sf: number | null
+          submarket: string
+          updated_at: string
+          year_built: number | null
+          zoning: string | null
+        }
+        Insert: {
+          address: string
+          assessed_value?: number | null
+          building_class?: string | null
+          city?: string
+          clear_height_ft?: number | null
+          created_at?: string
+          created_by?: string | null
+          display_address?: string | null
+          dock_doors?: number | null
+          drive_in_doors?: number | null
+          geocode_source?: string | null
+          geocoded_at?: string | null
+          id?: string
+          internal_notes?: string | null
+          land_acres?: number | null
+          latitude?: number | null
+          longitude?: number | null
+          name: string
+          notes?: string | null
+          owner_company?: string | null
+          owner_email?: string | null
+          owner_name?: string | null
+          owner_phone?: string | null
+          photo_url?: string | null
+          property_tax_annual?: number | null
+          property_type?: string | null
+          purchase_date?: string | null
+          purchase_price?: number | null
+          size_sf?: number | null
+          submarket?: string
+          updated_at?: string
+          year_built?: number | null
+          zoning?: string | null
+        }
+        Update: {
+          address?: string
+          assessed_value?: number | null
+          building_class?: string | null
+          city?: string
+          clear_height_ft?: number | null
+          created_at?: string
+          created_by?: string | null
+          display_address?: string | null
+          dock_doors?: number | null
+          drive_in_doors?: number | null
+          geocode_source?: string | null
+          geocoded_at?: string | null
+          id?: string
+          internal_notes?: string | null
+          land_acres?: number | null
+          latitude?: number | null
+          longitude?: number | null
+          name?: string
+          notes?: string | null
+          owner_company?: string | null
+          owner_email?: string | null
+          owner_name?: string | null
+          owner_phone?: string | null
+          photo_url?: string | null
+          property_tax_annual?: number | null
+          property_type?: string | null
+          purchase_date?: string | null
+          purchase_price?: number | null
+          size_sf?: number | null
+          submarket?: string
+          updated_at?: string
+          year_built?: number | null
+          zoning?: string | null
+        }
+        Relationships: []
+      }
       distribution_batches: {
         Row: {
           created_at: string

@@ -31,6 +31,7 @@ const navigation = [
   { name: 'Create Issue', href: '/issue-builder', icon: FilePlus },
   { name: 'Recipients', href: '/recipients', icon: Mail },
   { name: 'Market Listings', href: '/market-listings', icon: Database },
+  { name: 'Assets', href: '/assets', icon: Building2 },
   { name: 'Transactions', href: '/transactions', icon: Receipt },
 ];
 

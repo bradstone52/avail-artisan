@@ -9,6 +9,7 @@ import Auth from "./pages/Auth";
 import Dashboard from "./pages/Dashboard";
 import Listings from "./pages/Listings";
 import MarketListings from "./pages/MarketListings";
+import Assets from "./pages/Assets";
 import Transactions from "./pages/Transactions";
 import TransactionDetail from "./pages/TransactionDetail";
 import TransactionForm from "./pages/TransactionForm";
@@ -45,6 +46,7 @@ const App = () => (
             <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/listings" element={<Listings />} />
             <Route path="/market-listings" element={<MarketListings />} />
+            <Route path="/assets" element={<Assets />} />
             <Route path="/transactions" element={<Transactions />} />
             <Route path="/transactions/new" element={<TransactionForm />} />
             <Route path="/transactions/:id" element={<TransactionDetail />} />
