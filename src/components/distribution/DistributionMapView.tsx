@@ -265,14 +265,13 @@ export function DistributionMapView({
         hoveredListingIdRef.current = listing.id;
         setHoveredListingId(listing.id);
         
-        // Scroll table row into view - use "center" to ensure it's fully visible
-        // Use setTimeout to ensure React has re-rendered the row with the highlight first
-        setTimeout(() => {
-          const rowEl = document.getElementById(`listing-row-${listing.id}`);
-          if (rowEl) {
-            rowEl.scrollIntoView({ behavior: "smooth", block: "center" });
-          }
-        }, 10);
+        // Ensure row highlights even if React state updates don't flush immediately
+        // (marker events fire outside React's event system)
+        const rowEl = document.getElementById(`listing-row-${listing.id}`);
+        if (rowEl) {
+          rowEl.setAttribute("data-marker-hover", "true");
+          rowEl.scrollIntoView({ behavior: "smooth", block: "center" });
+        }
       });
       
       el.addEventListener("mouseleave", () => {
@@ -282,6 +281,11 @@ export function DistributionMapView({
         // Clear hover state
         hoveredListingIdRef.current = null;
         setHoveredListingId(null);
+
+        const rowEl = document.getElementById(`listing-row-${listing.id}`);
+        if (rowEl) {
+          rowEl.removeAttribute("data-marker-hover");
+        }
       });
 
       markersRef.current.set(listing.id, marker);
@@ -576,11 +580,11 @@ export function DistributionMapView({
                       selectedListingId === listing.id
                         ? "bg-primary/20"
                         : hoveredListingId === listing.id
-                        ? "bg-[hsl(48_97%_53%/0.3)]"
+                        ? "bg-accent/30"
                         : idx % 2 === 0
                         ? "bg-card"
                         : "bg-background"
-                    }`}
+                    } data-[marker-hover=true]:bg-accent/30`}
                   >
                     <td className="p-3">
                       <div className="font-semibold text-foreground truncate max-w-[180px]">
