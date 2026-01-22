@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { AssetWithLinks, AssetPhoto } from '@/hooks/useAssets';
+import { useAssetManagers, AssetManager } from '@/hooks/useAssetManagers';
 import {
   Dialog,
   DialogContent,
@@ -18,10 +19,11 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Building2, User, DollarSign, FileText, Plus, Trash2, Upload, X, Briefcase, Image, Loader2 } from 'lucide-react';
+import { Building2, User, DollarSign, FileText, Plus, Trash2, Upload, X, Briefcase, Image, Loader2, Check, Link2, Unlink } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
+import { Badge } from '@/components/ui/badge';
 
 interface AssetEditDialogProps {
   asset: AssetWithLinks | null;
@@ -91,6 +93,7 @@ export function AssetEditDialog({
   mode
 }: AssetEditDialogProps) {
   const { user } = useAuth();
+  const { assetManagers, createAssetManager, linkAssetToManager, unlinkAssetFromManager, fetchAssetManagers } = useAssetManagers();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
@@ -115,9 +118,15 @@ export function AssetEditDialog({
   const [ownerCompany, setOwnerCompany] = useState('');
   // Owner contacts
   const [ownerContacts, setOwnerContacts] = useState<Array<{ name: string; email: string; phone: string }>>([]);
-  // Asset Manager
-  const [assetManagerCompany, setAssetManagerCompany] = useState('');
-  const [assetManagerContacts, setAssetManagerContacts] = useState<Array<{ name: string; email: string; phone: string }>>([]);
+  // Asset Manager - linked managers for this asset
+  const [linkedManagerIds, setLinkedManagerIds] = useState<string[]>([]);
+  const [selectedManagerId, setSelectedManagerId] = useState<string>('');
+  // For creating new manager inline
+  const [isCreatingNewManager, setIsCreatingNewManager] = useState(false);
+  const [newManagerCompany, setNewManagerCompany] = useState('');
+  const [newManagerContacts, setNewManagerContacts] = useState<Array<{ name: string; email: string; phone: string }>>([]);
+  const [creatingManager, setCreatingManager] = useState(false);
+  
   const [purchaseDate, setPurchaseDate] = useState('');
   const [purchasePrice, setPurchasePrice] = useState('');
   const [assessedValue, setAssessedValue] = useState('');
@@ -247,9 +256,8 @@ export function AssetEditDialog({
       } else {
         setOwnerContacts([]);
       }
-      // Asset manager - not stored in DB yet, start empty
-      setAssetManagerCompany('');
-      setAssetManagerContacts([]);
+      // Load linked asset managers
+      loadLinkedManagers(asset.id);
       setPurchaseDate(asset.purchase_date || '');
       setPurchasePrice(asset.purchase_price?.toString() || '');
       setAssessedValue(asset.assessed_value?.toString() || '');
@@ -294,8 +302,11 @@ export function AssetEditDialog({
       setDriveInDoors('');
       setOwnerCompany('');
       setOwnerContacts([]);
-      setAssetManagerCompany('');
-      setAssetManagerContacts([]);
+      setLinkedManagerIds([]);
+      setSelectedManagerId('');
+      setIsCreatingNewManager(false);
+      setNewManagerCompany('');
+      setNewManagerContacts([]);
       setPurchaseDate('');
       setPurchasePrice('');
       setAssessedValue('');
@@ -306,6 +317,63 @@ export function AssetEditDialog({
     }
     setActiveTab('property');
   }, [asset, open]);
+
+  // Load linked managers for an asset
+  const loadLinkedManagers = async (assetId: string) => {
+    try {
+      const { data, error } = await supabase
+        .from('asset_to_asset_manager')
+        .select('asset_manager_id')
+        .eq('asset_id', assetId);
+      
+      if (error) throw error;
+      setLinkedManagerIds((data || []).map(d => d.asset_manager_id));
+    } catch (err) {
+      console.error('Error loading linked managers:', err);
+      setLinkedManagerIds([]);
+    }
+  };
+
+  // Handle linking an existing manager
+  const handleLinkManager = async () => {
+    if (!selectedManagerId || !asset?.id) return;
+    const success = await linkAssetToManager(asset.id, selectedManagerId);
+    if (success) {
+      setLinkedManagerIds(prev => [...prev, selectedManagerId]);
+      setSelectedManagerId('');
+    }
+  };
+
+  // Handle unlinking a manager
+  const handleUnlinkManager = async (managerId: string) => {
+    if (!asset?.id) return;
+    const success = await unlinkAssetFromManager(asset.id, managerId);
+    if (success) {
+      setLinkedManagerIds(prev => prev.filter(id => id !== managerId));
+    }
+  };
+
+  // Handle creating and linking a new manager
+  const handleCreateAndLinkManager = async () => {
+    if (!newManagerCompany.trim()) {
+      toast.error('Please enter a company name');
+      return;
+    }
+    
+    setCreatingManager(true);
+    try {
+      const newManager = await createAssetManager(newManagerCompany.trim(), newManagerContacts.filter(c => c.name.trim()));
+      if (newManager && asset?.id) {
+        await linkAssetToManager(asset.id, newManager.id);
+        setLinkedManagerIds(prev => [...prev, newManager.id]);
+      }
+      setIsCreatingNewManager(false);
+      setNewManagerCompany('');
+      setNewManagerContacts([]);
+    } finally {
+      setCreatingManager(false);
+    }
+  };
 
   const handleSave = async () => {
     // Only address is required now
@@ -752,32 +820,178 @@ export function AssetEditDialog({
           {/* Asset Manager Tab */}
           <TabsContent value="manager" className="space-y-4 mt-4">
             <div className="space-y-4">
-              <div>
-                <Label htmlFor="assetManagerCompany">Asset Management Company</Label>
-                <Input
-                  id="assetManagerCompany"
-                  value={assetManagerCompany}
-                  onChange={(e) => setAssetManagerCompany(e.target.value)}
-                  className={`placeholder-light ${assetManagerCompany ? 'input-filled' : ''}`}
-                  placeholder="e.g., CBRE Asset Services"
-                />
-              </div>
-
-              {/* Asset Manager Contact Cards */}
-              {assetManagerContacts.map((contact, index) => 
-                renderContactCard(contact, index, assetManagerContacts, setAssetManagerContacts, 'Contact')
+              {/* Linked Managers Section */}
+              {linkedManagerIds.length > 0 && (
+                <div className="space-y-2">
+                  <Label>Linked Asset Managers</Label>
+                  <div className="space-y-2">
+                    {linkedManagerIds.map(managerId => {
+                      const manager = assetManagers.find(m => m.id === managerId);
+                      if (!manager) return null;
+                      return (
+                        <div key={managerId} className="border rounded-lg p-3 bg-muted/30">
+                          <div className="flex items-start justify-between">
+                            <div className="flex-1">
+                              <div className="flex items-center gap-2">
+                                <span className="font-medium">{manager.company_name}</span>
+                                <Badge variant="secondary" className="text-xs">
+                                  {manager.asset_count} asset{manager.asset_count !== 1 ? 's' : ''}
+                                </Badge>
+                              </div>
+                              {manager.contacts && manager.contacts.length > 0 && (
+                                <div className="mt-2 space-y-1">
+                                  {manager.contacts.map(contact => (
+                                    <div key={contact.id} className="text-sm text-muted-foreground">
+                                      <span className="font-medium">{contact.name}</span>
+                                      {contact.email && <span className="ml-2">{contact.email}</span>}
+                                      {contact.phone && <span className="ml-2">{contact.phone}</span>}
+                                    </div>
+                                  ))}
+                                </div>
+                              )}
+                            </div>
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleUnlinkManager(managerId)}
+                              className="text-muted-foreground hover:text-destructive"
+                            >
+                              <Unlink className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
               )}
 
-              {/* Add Contact Button */}
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => setAssetManagerContacts([...assetManagerContacts, { name: '', email: '', phone: '' }])}
-                className="w-full border-dashed"
-              >
-                <Plus className="h-4 w-4 mr-2" />
-                Add Contact
-              </Button>
+              {/* Link Existing Manager */}
+              {!isCreatingNewManager && mode === 'edit' && asset?.id && (
+                <div className="space-y-2">
+                  <Label>Link Existing Asset Manager</Label>
+                  <div className="flex gap-2">
+                    <Select value={selectedManagerId} onValueChange={setSelectedManagerId}>
+                      <SelectTrigger className="flex-1">
+                        <SelectValue placeholder="Select an asset manager..." />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {assetManagers
+                          .filter(m => !linkedManagerIds.includes(m.id))
+                          .map(manager => (
+                            <SelectItem key={manager.id} value={manager.id}>
+                              {manager.company_name} ({manager.asset_count} asset{manager.asset_count !== 1 ? 's' : ''})
+                            </SelectItem>
+                          ))}
+                      </SelectContent>
+                    </Select>
+                    <Button
+                      type="button"
+                      onClick={handleLinkManager}
+                      disabled={!selectedManagerId}
+                    >
+                      <Link2 className="h-4 w-4 mr-2" />
+                      Link
+                    </Button>
+                  </div>
+                </div>
+              )}
+
+              {/* Create New Manager */}
+              {isCreatingNewManager ? (
+                <div className="border rounded-lg p-4 space-y-4 bg-muted/20">
+                  <div className="flex items-center justify-between">
+                    <Label className="text-base font-medium">Create New Asset Manager</Label>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => {
+                        setIsCreatingNewManager(false);
+                        setNewManagerCompany('');
+                        setNewManagerContacts([]);
+                      }}
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+                  </div>
+                  
+                  <div>
+                    <Label htmlFor="newManagerCompany">Company Name *</Label>
+                    <Input
+                      id="newManagerCompany"
+                      value={newManagerCompany}
+                      onChange={(e) => setNewManagerCompany(e.target.value)}
+                      className={`placeholder-light ${newManagerCompany ? 'input-filled' : ''}`}
+                      placeholder="e.g., CBRE Asset Services"
+                    />
+                  </div>
+
+                  {/* New Manager Contact Cards */}
+                  {newManagerContacts.map((contact, index) => 
+                    renderContactCard(contact, index, newManagerContacts, setNewManagerContacts, 'Contact')
+                  )}
+
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => setNewManagerContacts([...newManagerContacts, { name: '', email: '', phone: '' }])}
+                    className="w-full border-dashed"
+                  >
+                    <Plus className="h-4 w-4 mr-2" />
+                    Add Contact
+                  </Button>
+
+                  <div className="flex justify-end gap-2 pt-2">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => {
+                        setIsCreatingNewManager(false);
+                        setNewManagerCompany('');
+                        setNewManagerContacts([]);
+                      }}
+                    >
+                      Cancel
+                    </Button>
+                    <Button
+                      type="button"
+                      onClick={handleCreateAndLinkManager}
+                      disabled={creatingManager || !newManagerCompany.trim()}
+                    >
+                      {creatingManager ? (
+                        <>
+                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                          Creating...
+                        </>
+                      ) : (
+                        <>
+                          <Check className="h-4 w-4 mr-2" />
+                          Create & Link
+                        </>
+                      )}
+                    </Button>
+                  </div>
+                </div>
+              ) : (
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setIsCreatingNewManager(true)}
+                  className="w-full border-dashed"
+                  disabled={mode === 'create'}
+                >
+                  <Plus className="h-4 w-4 mr-2" />
+                  Create New Asset Manager
+                </Button>
+              )}
+
+              {mode === 'create' && (
+                <p className="text-sm text-muted-foreground">
+                  Save the asset first, then you can link asset managers.
+                </p>
+              )}
             </div>
           </TabsContent>
 

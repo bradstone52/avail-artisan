@@ -56,6 +56,71 @@ export type Database = {
           },
         ]
       }
+      asset_manager_contacts: {
+        Row: {
+          asset_manager_id: string
+          created_at: string
+          created_by: string | null
+          email: string | null
+          id: string
+          name: string
+          phone: string | null
+          sort_order: number
+          title: string | null
+        }
+        Insert: {
+          asset_manager_id: string
+          created_at?: string
+          created_by?: string | null
+          email?: string | null
+          id?: string
+          name: string
+          phone?: string | null
+          sort_order?: number
+          title?: string | null
+        }
+        Update: {
+          asset_manager_id?: string
+          created_at?: string
+          created_by?: string | null
+          email?: string | null
+          id?: string
+          name?: string
+          phone?: string | null
+          sort_order?: number
+          title?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "asset_manager_contacts_asset_manager_id_fkey"
+            columns: ["asset_manager_id"]
+            isOneToOne: false
+            referencedRelation: "asset_managers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      asset_managers: {
+        Row: {
+          company_name: string
+          created_at: string
+          created_by: string | null
+          id: string
+        }
+        Insert: {
+          company_name: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+        }
+        Update: {
+          company_name?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+        }
+        Relationships: []
+      }
       asset_photos: {
         Row: {
           asset_id: string
@@ -90,6 +155,45 @@ export type Database = {
             columns: ["asset_id"]
             isOneToOne: false
             referencedRelation: "assets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      asset_to_asset_manager: {
+        Row: {
+          asset_id: string
+          asset_manager_id: string
+          created_at: string
+          created_by: string | null
+          id: string
+        }
+        Insert: {
+          asset_id: string
+          asset_manager_id: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+        }
+        Update: {
+          asset_id?: string
+          asset_manager_id?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "asset_to_asset_manager_asset_id_fkey"
+            columns: ["asset_id"]
+            isOneToOne: false
+            referencedRelation: "assets"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "asset_to_asset_manager_asset_manager_id_fkey"
+            columns: ["asset_manager_id"]
+            isOneToOne: false
+            referencedRelation: "asset_managers"
             referencedColumns: ["id"]
           },
         ]
