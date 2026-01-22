@@ -121,11 +121,11 @@ serve(async (req) => {
           })
       : null;
 
+    // market_listings columns (no photo_url, no property_name)
     const listingSelectFields = [
       "id",
       "listing_id",
       "display_address",
-      "property_name",
       "address",
       "city",
       "submarket",
@@ -139,7 +139,6 @@ serve(async (req) => {
       "asking_rate_psf",
       "notes_public",
       "link",
-      "photo_url",
     ].join(",");
 
     let safeListings: Listing[] = [];
