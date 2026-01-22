@@ -5,7 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Input } from '@/components/ui/input';
-import { ExternalLink, Search, Sparkles, Check, X, Loader2, RefreshCw } from 'lucide-react';
+import { ExternalLink, Search, Sparkles, Check, X, Loader2, RefreshCw, Copy } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import type { MarketListing } from '@/hooks/useMarketListings';
@@ -38,22 +38,45 @@ export function FixLinksDialog({ open, onOpenChange, listings, onListingUpdated 
     [listings]
   );
 
+  /**
+   * Build Google search URL matching original Google Sheets logic:
+   * - Query: [address] [city/municipality] industrial real estate brochure
+   * - Site filter inferred from existing brochure URL host (Canadian TLDs)
+   */
   const buildGoogleSearchUrl = (listing: MarketListing) => {
     const address = listing.display_address || listing.address;
-    const broker = listing.broker_source || '';
-    const query = `${address} ${broker} industrial brochure PDF`;
-    
-    // Add site filters for known brokers
-    const siteFilters = [
-      'site:cbre.com',
-      'site:colliers.com', 
-      'site:jll.com',
-      'site:cushwake.com',
-      'site:avisonyoung.com',
-    ].join(' OR ');
-    
-    const fullQuery = `${query} (${siteFilters})`;
-    return `https://www.google.com/search?q=${encodeURIComponent(fullQuery)}`;
+    const municipality = listing.city || '';
+
+    // Infer site filter from existing (broken) URL host
+    let siteFilter = '';
+    if (listing.link) {
+      try {
+        const host = new URL(listing.link).hostname.toLowerCase();
+        if (host.includes('cbre.')) siteFilter = ' site:cbre.ca';
+        else if (host.includes('colliers')) siteFilter = ' site:collierscanada.com';
+        else if (host.includes('jll')) siteFilter = ' site:jll.ca';
+        else if (host.includes('cushwake') || host.includes('cushmanwakefield')) siteFilter = ' site:cushmanwakefield.com';
+        else if (host.includes('avisonyoung')) siteFilter = ' site:avisonyoung.com';
+      } catch {
+        // Invalid URL – no site filter
+      }
+    }
+
+    const query = [address, municipality, 'industrial real estate brochure']
+      .filter(Boolean)
+      .join(' ') + siteFilter;
+
+    return `https://www.google.com/search?q=${encodeURIComponent(query)}`;
+  };
+
+  const copySearchUrl = async (listing: MarketListing) => {
+    const url = buildGoogleSearchUrl(listing);
+    try {
+      await navigator.clipboard.writeText(url);
+      toast.success('Search URL copied — paste it in a new browser tab.');
+    } catch {
+      toast.error('Failed to copy URL');
+    }
   };
 
   const openExternalUrl = (url: string) => {
@@ -239,7 +262,7 @@ export function FixLinksDialog({ open, onOpenChange, listings, onListingUpdated 
               </Button>
             </div>
           ) : (
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 flex-wrap">
               {/* Use a true <a> tag (but keep Button styling) to avoid Firefox COOP issues inside iframes */}
               <Button size="sm" variant="outline" className="h-7 text-xs" asChild>
                 <a href={buildGoogleSearchUrl(listing)} target="_blank" rel="noopener noreferrer">
@@ -247,6 +270,16 @@ export function FixLinksDialog({ open, onOpenChange, listings, onListingUpdated 
                   Google Search
                   <ExternalLink className="w-3 h-3" />
                 </a>
+              </Button>
+              {/* Always-visible copy fallback for Firefox users */}
+              <Button
+                size="sm"
+                variant="ghost"
+                className="h-7 text-xs"
+                onClick={() => copySearchUrl(listing)}
+                title="Copy search URL to clipboard"
+              >
+                <Copy className="w-3 h-3" />
               </Button>
               <Button
                 size="sm"
