@@ -62,7 +62,13 @@ export function FixLinksDialog({ open, onOpenChange, listings, onListingUpdated 
       }
     }
 
-    const query = [address, municipality, 'industrial real estate brochure']
+    const addressLower = address.toLowerCase();
+    const muniLower = municipality.toLowerCase();
+    // Match the sheet behavior: if the address string already contains the municipality (e.g. "... Calgary"),
+    // don't append it again.
+    const muniPart = municipality && !addressLower.includes(muniLower) ? municipality : '';
+
+    const query = [address, muniPart, 'industrial real estate brochure']
       .filter(Boolean)
       .join(' ') + siteFilter;
 
