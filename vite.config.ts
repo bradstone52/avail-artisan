@@ -18,4 +18,21 @@ export default defineConfig(({ mode }) => ({
       "@": path.resolve(__dirname, "./src"),
     },
   },
+  build: {
+    // Ensure all assets have content-based hashes for cache busting
+    rollupOptions: {
+      output: {
+        // Use content hash in all filenames for aggressive cache busting
+        entryFileNames: "assets/[name]-[hash].js",
+        chunkFileNames: "assets/[name]-[hash].js",
+        assetFileNames: "assets/[name]-[hash].[ext]",
+      },
+    },
+    // Generate a manifest for cache invalidation tracking
+    manifest: true,
+  },
+  // Define build timestamp for debugging cache issues
+  define: {
+    __BUILD_TIME__: JSON.stringify(new Date().toISOString()),
+  },
 }));
