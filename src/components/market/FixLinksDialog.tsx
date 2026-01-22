@@ -182,9 +182,10 @@ export function FixLinksDialog({ open, onOpenChange, listings, onListingUpdated 
       const { data, error } = await supabase.functions.invoke('find-brochure', {
         body: { 
           listingId: listing.id,
-          address: listing.display_address || listing.address,
+          address: listing.address, // Use clean address, not display_address
           city: listing.city,
           broker: listing.broker_source,
+          existingUrl: listing.link, // Pass existing URL to infer site filter
         },
       });
 

@@ -10,6 +10,7 @@ interface FindBrochureRequest {
   address: string;
   city?: string;
   broker?: string;
+  existingUrl?: string; // To infer site filter from broken URL
 }
 
 Deno.serve(async (req) => {
@@ -26,7 +27,7 @@ Deno.serve(async (req) => {
       });
     }
 
-    const { listingId, address, city, broker }: FindBrochureRequest = await req.json();
+    const { listingId, address, city, broker, existingUrl }: FindBrochureRequest = await req.json();
 
     if (!listingId || !address) {
       return new Response(JSON.stringify({ error: "Missing required fields" }), {
@@ -47,17 +48,26 @@ Deno.serve(async (req) => {
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    // Build search query
-    const brokerSites = [
-      "site:cbre.com",
-      "site:colliers.com",
-      "site:jll.com",
-      "site:cushwake.com",
-      "site:avisonyoung.com",
-      "site:cresa.com",
-    ].join(" OR ");
+    // Infer site filter from existing (broken) URL if available — matches Google Sheets logic
+    let siteFilter = "";
+    if (existingUrl) {
+      try {
+        const host = new URL(existingUrl).hostname.toLowerCase();
+        if (host.includes("cbre.")) siteFilter = " site:cbre.ca";
+        else if (host.includes("colliers")) siteFilter = " site:collierscanada.com";
+        else if (host.includes("jll")) siteFilter = " site:jll.ca";
+        else if (host.includes("cushwake") || host.includes("cushmanwakefield")) siteFilter = " site:cushmanwakefield.com";
+        else if (host.includes("avisonyoung")) siteFilter = " site:avisonyoung.com";
+        else if (host.includes("cresa")) siteFilter = " site:cresa.com";
+      } catch {
+        // Invalid URL — no site filter
+      }
+    }
 
-    const searchQuery = `${address} ${city || ""} ${broker || ""} industrial warehouse brochure PDF (${brokerSites})`;
+    // Build search query matching Google Sheets style: [address] [city] industrial real estate brochure
+    const searchQuery = [address, city, "industrial real estate brochure"]
+      .filter(Boolean)
+      .join(" ") + siteFilter;
 
     console.log(`[find-brochure] Searching for: ${searchQuery}`);
 
