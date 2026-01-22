@@ -1,4 +1,4 @@
-import { useRef, useEffect, useState } from 'react';
+import { useRef, useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { MarketListing } from '@/hooks/useMarketListings';
 import { useAuth } from '@/contexts/AuthContext';
@@ -98,6 +98,54 @@ export function MarketListingsTable({ listings, onEdit, onRefresh, sortColumn, s
   const [verifyingId, setVerifyingId] = useState<string | null>(null);
   const [geocodingId, setGeocodingId] = useState<string | null>(null);
   const [editPinListing, setEditPinListing] = useState<MarketListing | null>(null);
+
+  // Persist horizontal scroll so returning to the tab (or any remount) doesn't snap back to the left.
+  // Note: the actual scrollable element is created inside the shadcn <Table /> wrapper.
+  const scrollStorageKey = useMemo(() => {
+    // If you want per-page persistence, include page/filter state here.
+    // For now, keep it stable for the market listings table.
+    return 'market_listings_table_scroll_left_v1';
+  }, []);
+
+  const getScrollEl = () => {
+    return scrollContainerRef.current?.querySelector(
+      '.overflow-auto, [class*="overflow-auto"]'
+    ) as HTMLElement | null;
+  };
+
+  useEffect(() => {
+    const el = getScrollEl();
+    if (!el) return;
+
+    const saved = sessionStorage.getItem(scrollStorageKey);
+    if (saved) {
+      const next = Number(saved);
+      if (Number.isFinite(next)) {
+        // rAF so layout is ready (table width computed) before applying scrollLeft.
+        requestAnimationFrame(() => {
+          const el2 = getScrollEl();
+          if (el2) el2.scrollLeft = next;
+        });
+      }
+    }
+
+    let rafId: number | null = null;
+    const onScroll = () => {
+      if (rafId) cancelAnimationFrame(rafId);
+      rafId = requestAnimationFrame(() => {
+        sessionStorage.setItem(scrollStorageKey, String(el.scrollLeft));
+      });
+    };
+
+    el.addEventListener('scroll', onScroll, { passive: true });
+
+    return () => {
+      if (rafId) cancelAnimationFrame(rafId);
+      el.removeEventListener('scroll', onScroll);
+      // Ensure we store one last time on unmount
+      sessionStorage.setItem(scrollStorageKey, String(el.scrollLeft));
+    };
+  }, [scrollStorageKey]);
 
   // Check if listing is stale (not verified in past 30 days)
   const isStale = (listing: MarketListing): boolean => {
@@ -241,7 +289,7 @@ export function MarketListingsTable({ listings, onEdit, onRefresh, sortColumn, s
       const deltaTime = Math.min((currentTime - lastTime) / 8.33, 3); // normalize to ~120fps, cap at 3x
       lastTime = currentTime;
 
-      const container = scrollContainerRef.current?.querySelector('.overflow-auto, [class*="overflow-auto"]') as HTMLElement;
+      const container = getScrollEl();
       if (!container) {
         animationId = requestAnimationFrame(animate);
         return;
