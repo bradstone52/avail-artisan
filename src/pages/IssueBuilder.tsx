@@ -33,6 +33,9 @@ export default function IssueBuilder() {
   const [createdIssue, setCreatedIssue] = useState<Issue | null>(null);
 
   // Form state
+  // Default cover image from the most recent issue with one
+  const DEFAULT_COVER_IMAGE = "https://vouzfwrumlhmtmgglsti.supabase.co/storage/v1/object/public/cover-images/6e06384f-66ad-414f-bfb4-3d519cac090a/cover-1768534872718.png";
+
   const [settings, setSettings] = useState<IssueSettings>({
     title: "",
     market: "Calgary Region",
@@ -42,7 +45,7 @@ export default function IssueBuilder() {
     brokerageName: "ClearView Commercial Realty Inc.",
     logoUrl:
       "https://static.wixstatic.com/media/61f242_c5db9313e4e7406b98b65af86d332a61~mv2.png/v1/fill/w_734,h_128,al_c,q_85,usm_0.66_1.00_0.01,enc_avif,quality_auto/Clearview_CRI_Logo_HORZ_FC_KO_CMYK_edited.png",
-    coverImageUrl: null,
+    coverImageUrl: DEFAULT_COVER_IMAGE,
     primaryContactName: "Brad Stone",
     primaryContactTitle: "Partner, Associate Broker",
     primaryContactEmail: "brad@cvpartners.ca",
