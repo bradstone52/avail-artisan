@@ -240,9 +240,9 @@ export function DistributionListingsTable({ listings, onListingUpdated }: Distri
     );
   };
 
-  // Get unique values for filters
+  // Get unique values for filters (filter out empty strings)
   const submarkets = useMemo(() => 
-    [...new Set(listings.map(l => l.submarket))].sort(),
+    [...new Set(listings.map(l => l.submarket).filter(s => s && s.trim() !== ''))].sort(),
     [listings]
   );
 
