@@ -193,11 +193,22 @@ export function FixLinksDialog({ open, onOpenChange, listings, onListingUpdated 
                 variant="outline"
                 className="h-7 text-xs"
                 onClick={() => {
-                  // Use window.open with explicit noopener to bypass Firefox COOP restrictions
+                  // Firefox can block direct navigation to some external sites due to COOP.
+                  // Workaround: open a blank, non-opener window first, then set its location.
                   const url = buildGoogleSearchUrl(listing);
-                  const newWindow = window.open(url, '_blank', 'noopener,noreferrer');
-                  // Extra safety: explicitly nullify opener if window.open returned a reference
-                  if (newWindow) newWindow.opener = null;
+                  const newWindow = window.open('', '_blank', 'noopener,noreferrer');
+                  if (newWindow) {
+                    try {
+                      newWindow.opener = null;
+                      newWindow.location.href = url;
+                    } catch {
+                      // If the browser blocks programmatic navigation, fall back to a normal open.
+                      window.open(url, '_blank', 'noopener,noreferrer');
+                    }
+                  } else {
+                    // Popup blocked
+                    window.open(url, '_blank', 'noopener,noreferrer');
+                  }
                 }}
               >
                 <Search className="w-3 h-3 mr-1" />
