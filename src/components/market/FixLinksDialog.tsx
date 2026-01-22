@@ -240,17 +240,14 @@ export function FixLinksDialog({ open, onOpenChange, listings, onListingUpdated 
             </div>
           ) : (
             <div className="flex items-center gap-2">
-              {/* Use a true <a> tag to avoid programmatic-navigation restrictions in Firefox iframes */}
-              <a
-                href={buildGoogleSearchUrl(listing)}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center justify-center gap-1 whitespace-nowrap rounded-md text-xs font-medium border border-input bg-background hover:bg-accent hover:text-accent-foreground h-7 px-2"
-              >
-                <Search className="w-3 h-3" />
-                Google Search
-                <ExternalLink className="w-3 h-3" />
-              </a>
+              {/* Use a true <a> tag (but keep Button styling) to avoid Firefox COOP issues inside iframes */}
+              <Button size="sm" variant="outline" className="h-7 text-xs" asChild>
+                <a href={buildGoogleSearchUrl(listing)} target="_blank" rel="noopener noreferrer">
+                  <Search className="w-3 h-3" />
+                  Google Search
+                  <ExternalLink className="w-3 h-3" />
+                </a>
+              </Button>
               <Button
                 size="sm"
                 variant="outline"
