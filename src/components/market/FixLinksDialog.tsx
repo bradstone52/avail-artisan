@@ -191,18 +191,18 @@ export function FixLinksDialog({ open, onOpenChange, listings, onListingUpdated 
               <Button
                 size="sm"
                 variant="outline"
-                asChild
                 className="h-7 text-xs"
+                onClick={() => {
+                  // Use window.open with explicit noopener to bypass Firefox COOP restrictions
+                  const url = buildGoogleSearchUrl(listing);
+                  const newWindow = window.open(url, '_blank', 'noopener,noreferrer');
+                  // Extra safety: explicitly nullify opener if window.open returned a reference
+                  if (newWindow) newWindow.opener = null;
+                }}
               >
-                <a 
-                  href={buildGoogleSearchUrl(listing)} 
-                  target="_blank" 
-                  rel="noopener noreferrer"
-                >
-                  <Search className="w-3 h-3 mr-1" />
-                  Google Search
-                  <ExternalLink className="w-3 h-3 ml-1" />
-                </a>
+                <Search className="w-3 h-3 mr-1" />
+                Google Search
+                <ExternalLink className="w-3 h-3 ml-1" />
               </Button>
               <Button
                 size="sm"
