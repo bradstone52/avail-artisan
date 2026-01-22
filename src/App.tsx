@@ -23,7 +23,14 @@ import DistributionMapViewer from "./pages/DistributionMapViewer";
 import PdfOpenMap from "./pages/PdfOpenMap";
 import NotFound from "./pages/NotFound";
 
-const queryClient = new QueryClient();
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      refetchOnWindowFocus: false, // Prevent refetch when switching tabs
+      staleTime: 1000 * 60 * 5, // Consider data fresh for 5 minutes
+    },
+  },
+});
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
