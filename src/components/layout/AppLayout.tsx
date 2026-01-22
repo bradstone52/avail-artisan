@@ -28,7 +28,6 @@ interface AppLayoutProps {
 const navigation = [
   { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
   { name: 'Distribution Listings', href: '/listings', icon: FileSpreadsheet },
-  { name: 'Create Issue', href: '/issue-builder', icon: FilePlus },
   { name: 'Recipients', href: '/recipients', icon: Mail },
   { name: 'Market Listings', href: '/market-listings', icon: Database },
   { name: 'Owners/Assets', href: '/assets', icon: Building2 },
