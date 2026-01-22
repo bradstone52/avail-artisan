@@ -270,7 +270,14 @@ export function DistributionMapView({
         const rowEl = document.getElementById(`listing-row-${listing.id}`);
         if (rowEl) {
           rowEl.setAttribute("data-marker-hover", "true");
+          // Force highlight regardless of Tailwind class ordering
+          rowEl.classList.add("!bg-accent/30");
           rowEl.scrollIntoView({ behavior: "smooth", block: "center" });
+        } else {
+          console.debug("[DistributionMapView] marker hover: row not found", {
+            listingId: listing.id,
+            listing_id: listing.listing_id,
+          });
         }
       });
       
@@ -285,6 +292,7 @@ export function DistributionMapView({
         const rowEl = document.getElementById(`listing-row-${listing.id}`);
         if (rowEl) {
           rowEl.removeAttribute("data-marker-hover");
+          rowEl.classList.remove("!bg-accent/30");
         }
       });
 
