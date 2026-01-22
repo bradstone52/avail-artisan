@@ -265,10 +265,10 @@ export function DistributionMapView({
         hoveredListingIdRef.current = listing.id;
         setHoveredListingId(listing.id);
         
-        // Scroll table row into view
+        // Scroll table row into view - use "center" to ensure it's fully visible
         const rowEl = document.getElementById(`listing-row-${listing.id}`);
         if (rowEl) {
-          rowEl.scrollIntoView({ behavior: "smooth", block: "nearest" });
+          rowEl.scrollIntoView({ behavior: "smooth", block: "center" });
         }
       });
       
