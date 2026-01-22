@@ -10,7 +10,19 @@ interface FindBrochureRequest {
   address: string;
   city?: string;
   broker?: string;
-  existingUrl?: string; // To infer site filter from broken URL
+  existingUrl?: string;
+}
+
+interface PerplexityResult {
+  url: string;
+  title?: string;
+  snippet?: string;
+}
+
+interface BrochureCandidate {
+  url: string;
+  score: number;
+  source: string;
 }
 
 Deno.serve(async (req) => {
@@ -27,7 +39,7 @@ Deno.serve(async (req) => {
       });
     }
 
-    const { listingId, address, city, broker, existingUrl }: FindBrochureRequest = await req.json();
+    const { listingId, address, city, existingUrl }: FindBrochureRequest = await req.json();
 
     if (!listingId || !address) {
       return new Response(JSON.stringify({ error: "Missing required fields" }), {
@@ -36,7 +48,16 @@ Deno.serve(async (req) => {
       });
     }
 
+    const perplexityApiKey = Deno.env.get("PERPLEXITY_API_KEY");
     const firecrawlApiKey = Deno.env.get("FIRECRAWL_API_KEY");
+    
+    if (!perplexityApiKey) {
+      return new Response(JSON.stringify({ error: "Perplexity not configured" }), {
+        status: 500,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     if (!firecrawlApiKey) {
       return new Response(JSON.stringify({ error: "Firecrawl not configured" }), {
         status: 500,
@@ -48,113 +69,184 @@ Deno.serve(async (req) => {
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    // Infer site filter from existing (broken) URL if available — matches Google Sheets logic
-    let siteFilter = "";
-    if (existingUrl) {
-      try {
-        const host = new URL(existingUrl).hostname.toLowerCase();
-        if (host.includes("cbre.")) siteFilter = " site:cbre.ca";
-        else if (host.includes("colliers")) siteFilter = " site:collierscanada.com";
-        else if (host.includes("jll")) siteFilter = " site:jll.ca";
-        else if (host.includes("cushwake") || host.includes("cushmanwakefield")) siteFilter = " site:cushmanwakefield.com";
-        else if (host.includes("avisonyoung")) siteFilter = " site:avisonyoung.com";
-        else if (host.includes("cresa")) siteFilter = " site:cresa.com";
-      } catch {
-        // Invalid URL — no site filter
-      }
-    }
+    // =====================================================
+    // STEP 1: Use Perplexity to find listing pages
+    // =====================================================
+    const searchQuery = `${address} ${city || ""} industrial property listing brochure`;
+    console.log(`[find-brochure] Step 1: Perplexity search for: ${searchQuery}`);
 
-    // Build search query matching Google Sheets style: [address] [city] industrial real estate brochure
-    const searchQuery = [address, city, "industrial real estate brochure"]
-      .filter(Boolean)
-      .join(" ") + siteFilter;
-
-    console.log(`[find-brochure] Searching for: ${searchQuery}`);
-
-    // Use Firecrawl search API
-    const searchResponse = await fetch("https://api.firecrawl.dev/v1/search", {
+    const perplexityResponse = await fetch("https://api.perplexity.ai/chat/completions", {
       method: "POST",
       headers: {
-        "Authorization": `Bearer ${firecrawlApiKey}`,
+        "Authorization": `Bearer ${perplexityApiKey}`,
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        query: searchQuery,
-        limit: 5,
+        model: "sonar",
+        messages: [
+          {
+            role: "system",
+            content: `You are a real estate research assistant. Find the property listing page or brochure for the given address. Return ONLY the URLs of relevant listing pages from broker websites (CBRE, Colliers, JLL, Cushman & Wakefield, Avison Young, etc). Format: Return each URL on a new line, nothing else.`
+          },
+          {
+            role: "user",
+            content: `Find the property listing page or PDF brochure for: ${address}, ${city || "Calgary"}, industrial/warehouse property. Return the most relevant broker listing page URLs.`
+          }
+        ],
       }),
     });
 
-    const searchData = await searchResponse.json();
-
-    if (!searchResponse.ok) {
-      console.error("Firecrawl search error:", searchData);
+    if (!perplexityResponse.ok) {
+      const errText = await perplexityResponse.text();
+      console.error("[find-brochure] Perplexity error:", errText);
       return new Response(JSON.stringify({ 
         success: false, 
-        message: "Search failed", 
-        error: searchData.error 
+        message: "Search failed. Try manual search.",
+        error: "Perplexity API error"
       }), {
         status: 500,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    console.log(`[find-brochure] Found ${searchData.data?.length || 0} results`);
+    const perplexityData = await perplexityResponse.json();
+    const aiResponse = perplexityData.choices?.[0]?.message?.content || "";
+    const citations = perplexityData.citations || [];
+    
+    console.log(`[find-brochure] Perplexity response: ${aiResponse.substring(0, 200)}...`);
+    console.log(`[find-brochure] Citations: ${JSON.stringify(citations)}`);
 
-    // Look for PDF links in results
-    const results = searchData.data || [];
-    let bestMatch: { url: string; score: number } | null = null;
+    // Extract URLs from AI response and citations
+    const urlPattern = /https?:\/\/[^\s<>"{}|\\^`\[\]]+/gi;
+    const extractedUrls = aiResponse.match(urlPattern) || [];
+    const allUrls = [...new Set([...citations, ...extractedUrls])];
 
-    for (const result of results) {
-      const url = result.url?.toLowerCase() || "";
-      const title = (result.title || "").toLowerCase();
-      const description = (result.description || "").toLowerCase();
-      
-      // Skip if not from a broker site or doesn't look like a brochure
-      const isBrokerSite = url.includes("cbre.") || url.includes("colliers.") || 
-                          url.includes("jll.") || url.includes("cushwake.") ||
-                          url.includes("avisonyoung.") || url.includes("cresa.");
-      
-      if (!isBrokerSite) continue;
+    console.log(`[find-brochure] Found ${allUrls.length} URLs to check`);
 
-      // Score the result
-      let score = 0;
-      
-      // PDF links are best
-      if (url.endsWith(".pdf")) score += 50;
-      
-      // Check if address appears in title/description
-      const addressParts = address.toLowerCase().split(/[\s,]+/).filter(p => p.length > 3);
-      for (const part of addressParts) {
-        if (title.includes(part) || description.includes(part) || url.includes(part)) {
-          score += 10;
-        }
-      }
-      
-      // Brochure-related keywords
-      if (title.includes("brochure") || description.includes("brochure")) score += 15;
-      if (title.includes("industrial") || description.includes("industrial")) score += 5;
-      if (title.includes("warehouse") || description.includes("warehouse")) score += 5;
-      if (title.includes("lease") || description.includes("lease")) score += 5;
-      
-      if (score > (bestMatch?.score || 0)) {
-        bestMatch = { url: result.url, score };
-      }
-    }
-
-    if (!bestMatch || bestMatch.score < 20) {
-      console.log("[find-brochure] No good match found");
+    if (allUrls.length === 0) {
       return new Response(JSON.stringify({ 
         success: false, 
-        message: "No brochure found. Try manual search.",
+        message: "No listing pages found. Try manual search.",
         searched: true,
       }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
+    // =====================================================
+    // STEP 2: Scrape each page with Firecrawl to find brochure links
+    // =====================================================
+    const candidates: BrochureCandidate[] = [];
+    const addressParts = address.toLowerCase().split(/[\s,]+/).filter(p => p.length > 2);
+
+    for (const pageUrl of allUrls.slice(0, 5)) { // Limit to first 5 URLs
+      console.log(`[find-brochure] Step 2: Scraping ${pageUrl}`);
+
+      try {
+        const scrapeResponse = await fetch("https://api.firecrawl.dev/v1/scrape", {
+          method: "POST",
+          headers: {
+            "Authorization": `Bearer ${firecrawlApiKey}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            url: pageUrl,
+            formats: ["links", "markdown"],
+            onlyMainContent: true,
+          }),
+        });
+
+        if (!scrapeResponse.ok) {
+          console.log(`[find-brochure] Scrape failed for ${pageUrl}: ${scrapeResponse.status}`);
+          continue;
+        }
+
+        const scrapeData = await scrapeResponse.json();
+        const links: string[] = scrapeData.data?.links || scrapeData.links || [];
+        const markdown: string = scrapeData.data?.markdown || scrapeData.markdown || "";
+        const markdownLower = markdown.toLowerCase();
+
+        console.log(`[find-brochure] Found ${links.length} links on page`);
+
+        // Check if page mentions "brochure" or similar
+        const hasBrochureMention = markdownLower.includes("brochure") || 
+                                    markdownLower.includes("download") ||
+                                    markdownLower.includes("flyer") ||
+                                    markdownLower.includes("pdf");
+
+        // Score each link found on the page
+        for (const link of links) {
+          const linkLower = link.toLowerCase();
+          let score = 0;
+
+          // PDF links are highly valuable
+          if (linkLower.endsWith(".pdf")) score += 60;
+          
+          // Must be from a broker site or the same domain
+          const isBrokerSite = linkLower.includes("cbre.") || linkLower.includes("colliers.") ||
+                              linkLower.includes("jll.") || linkLower.includes("cushwake.") ||
+                              linkLower.includes("cushmanwakefield.") || linkLower.includes("avisonyoung.") ||
+                              linkLower.includes("cresa.");
+          
+          if (!isBrokerSite && !linkLower.includes(new URL(pageUrl).hostname)) {
+            continue; // Skip external non-broker links
+          }
+
+          // Brochure keywords in URL
+          if (linkLower.includes("brochure")) score += 30;
+          if (linkLower.includes("flyer")) score += 20;
+          if (linkLower.includes("download")) score += 10;
+
+          // Address match in URL
+          for (const part of addressParts) {
+            if (linkLower.includes(part)) score += 15;
+          }
+
+          // Bonus if page itself mentions brochure
+          if (hasBrochureMention) score += 10;
+
+          if (score >= 20) {
+            candidates.push({ url: link, score, source: pageUrl });
+          }
+        }
+
+        // Also check if the page URL itself is a PDF
+        if (pageUrl.toLowerCase().endsWith(".pdf")) {
+          let pageScore = 60;
+          for (const part of addressParts) {
+            if (pageUrl.toLowerCase().includes(part)) pageScore += 15;
+          }
+          candidates.push({ url: pageUrl, score: pageScore, source: "direct" });
+        }
+
+      } catch (scrapeErr) {
+        console.error(`[find-brochure] Error scraping ${pageUrl}:`, scrapeErr);
+        continue;
+      }
+    }
+
+    console.log(`[find-brochure] Found ${candidates.length} brochure candidates`);
+
+    if (candidates.length === 0) {
+      return new Response(JSON.stringify({ 
+        success: false, 
+        message: "Found listing pages but no brochure links. Try manual search.",
+        searched: true,
+        pagesChecked: allUrls.slice(0, 5),
+      }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // Sort by score descending
+    candidates.sort((a, b) => b.score - a.score);
+    const bestMatch = candidates[0];
+
     console.log(`[find-brochure] Best match: ${bestMatch.url} (score: ${bestMatch.score})`);
 
-    // Validate the link exists
+    // =====================================================
+    // STEP 3: Validate the link
+    // =====================================================
     try {
       const validateResponse = await fetch(bestMatch.url, {
         method: "HEAD",
@@ -163,21 +255,34 @@ Deno.serve(async (req) => {
         },
       });
 
-      if (!validateResponse.ok && validateResponse.status !== 403) {
+      // Accept 200, 403 (restricted but exists), or redirects
+      if (!validateResponse.ok && validateResponse.status !== 403 && validateResponse.status !== 301 && validateResponse.status !== 302) {
         console.log(`[find-brochure] Link validation failed: ${validateResponse.status}`);
-        return new Response(JSON.stringify({ 
-          success: false, 
-          message: "Found a link but it appears to be broken. Try manual search.",
-        }), {
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
+        
+        // Try next best candidate
+        if (candidates.length > 1) {
+          const secondBest = candidates[1];
+          console.log(`[find-brochure] Trying second best: ${secondBest.url}`);
+          bestMatch.url = secondBest.url;
+          bestMatch.score = secondBest.score;
+        } else {
+          return new Response(JSON.stringify({ 
+            success: false, 
+            message: "Found a brochure link but it appears broken. Try manual search.",
+            candidateUrl: bestMatch.url,
+          }), {
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
       }
-    } catch (err) {
-      console.error("[find-brochure] Link validation error:", err);
+    } catch (validateErr) {
+      console.error("[find-brochure] Validation error:", validateErr);
       // Continue anyway - some sites block HEAD requests
     }
 
-    // Update the listing with the found link
+    // =====================================================
+    // STEP 4: Save to database
+    // =====================================================
     const { error: updateError } = await supabase
       .from("market_listings")
       .update({
@@ -202,6 +307,7 @@ Deno.serve(async (req) => {
     return new Response(JSON.stringify({
       success: true,
       link: bestMatch.url,
+      score: bestMatch.score,
       message: "Brochure found and saved!",
     }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
