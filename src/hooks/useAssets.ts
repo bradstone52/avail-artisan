@@ -169,7 +169,7 @@ export function useAssets() {
       const { data, error } = await supabase
         .from('assets')
         .insert({
-          name: asset.name!,
+          name: asset.name || '',
           address: asset.address!,
           display_address: asset.display_address,
           city: asset.city || '',
