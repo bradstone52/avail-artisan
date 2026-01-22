@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { AssetWithLinks, AssetPhoto } from '@/hooks/useAssets';
 import { useAssetManagers, AssetManager } from '@/hooks/useAssetManagers';
 import {
@@ -507,9 +507,18 @@ export function AssetEditDialog({
 
   const visiblePhotos = photos.filter(p => !p.toDelete);
 
+  // Handle close - explicit dismissal only
+  const handleClose = useCallback(() => {
+    onOpenChange(false);
+  }, [onOpenChange]);
+
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+    <Dialog open={open} onOpenChange={(isOpen) => { if (!isOpen) handleClose(); }}>
+      <DialogContent 
+        className="max-w-2xl max-h-[90vh] overflow-y-auto"
+        preventOutsideClose
+        onCloseClick={handleClose}
+      >
         <DialogHeader>
           <DialogTitle>
             {mode === 'create' ? 'Add New Asset' : 'Edit Asset'}
@@ -1073,7 +1082,7 @@ export function AssetEditDialog({
         </Tabs>
 
         <div className="flex justify-end gap-2 mt-4 pt-4 border-t">
-          <Button variant="outline" onClick={() => onOpenChange(false)}>
+          <Button variant="outline" onClick={handleClose}>
             Cancel
           </Button>
           <Button onClick={handleSave} disabled={saving || !address.trim()}>
