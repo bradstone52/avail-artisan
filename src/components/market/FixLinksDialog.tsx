@@ -56,6 +56,23 @@ export function FixLinksDialog({ open, onOpenChange, listings, onListingUpdated 
     return `https://www.google.com/search?q=${encodeURIComponent(fullQuery)}`;
   };
 
+  const openExternalUrl = (url: string) => {
+    // Firefox can show a COOP mismatch error for some window.open flows.
+    // Most reliable approach: synthesize an <a target="_blank" rel="noopener noreferrer"> click.
+    try {
+      const a = document.createElement('a');
+      a.href = url;
+      a.target = '_blank';
+      a.rel = 'noopener noreferrer';
+      a.referrerPolicy = 'no-referrer';
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+    } catch {
+      window.open(url, '_blank', 'noopener,noreferrer');
+    }
+  };
+
   const handleSaveLink = async (listingId: string) => {
     if (!editingLink.trim()) {
       toast.error('Please enter a valid URL');
@@ -193,22 +210,8 @@ export function FixLinksDialog({ open, onOpenChange, listings, onListingUpdated 
                 variant="outline"
                 className="h-7 text-xs"
                 onClick={() => {
-                  // Firefox can block direct navigation to some external sites due to COOP.
-                  // Workaround: open a blank, non-opener window first, then set its location.
                   const url = buildGoogleSearchUrl(listing);
-                  const newWindow = window.open('', '_blank', 'noopener,noreferrer');
-                  if (newWindow) {
-                    try {
-                      newWindow.opener = null;
-                      newWindow.location.href = url;
-                    } catch {
-                      // If the browser blocks programmatic navigation, fall back to a normal open.
-                      window.open(url, '_blank', 'noopener,noreferrer');
-                    }
-                  } else {
-                    // Popup blocked
-                    window.open(url, '_blank', 'noopener,noreferrer');
-                  }
+                  openExternalUrl(url);
                 }}
               >
                 <Search className="w-3 h-3 mr-1" />
