@@ -52,6 +52,7 @@ export function DistributionMapView({
   const [sortDirection, setSortDirection] = useState<SortDirection>("desc");
   const [selectedListingId, setSelectedListingId] = useState<string | null>(null);
   const [hoveredListingId, setHoveredListingId] = useState<string | null>(null);
+  const hoveredListingIdRef = useRef<string | null>(null);
 
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<google.maps.Map | null>(null);
@@ -66,6 +67,10 @@ export function DistributionMapView({
   useEffect(() => {
     selectedListingIdRef.current = selectedListingId;
   }, [selectedListingId]);
+
+  useEffect(() => {
+    hoveredListingIdRef.current = hoveredListingId;
+  }, [hoveredListingId]);
 
   // Create a filtered list of ONLY mappable listings (valid coordinates)
   const mappableListings = useMemo(() => {
@@ -251,15 +256,29 @@ export function DistributionMapView({
         selectListing(listing.id);
       });
 
+      // Handle marker hover - highlight table row
       el.addEventListener("mouseenter", () => {
         if (selectedListingIdRef.current !== listing.id) {
           updateMarkerStyle(listing.id, false, true);
         }
+        // Update hovered state to highlight table row
+        hoveredListingIdRef.current = listing.id;
+        setHoveredListingId(listing.id);
+        
+        // Scroll table row into view
+        const rowEl = document.getElementById(`listing-row-${listing.id}`);
+        if (rowEl) {
+          rowEl.scrollIntoView({ behavior: "smooth", block: "nearest" });
+        }
       });
+      
       el.addEventListener("mouseleave", () => {
         if (selectedListingIdRef.current !== listing.id) {
           updateMarkerStyle(listing.id, false, false);
         }
+        // Clear hover state
+        hoveredListingIdRef.current = null;
+        setHoveredListingId(null);
       });
 
       markersRef.current.set(listing.id, marker);
