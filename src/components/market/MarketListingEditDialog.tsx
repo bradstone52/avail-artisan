@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -35,6 +35,8 @@ import {
 import { Loader2, Trash2 } from 'lucide-react';
 import { useOrg } from '@/hooks/useOrg';
 import { useAuth } from '@/contexts/AuthContext';
+
+const FORM_STORAGE_KEY = 'market-listing-form-draft';
 
 // Create mode: only Active/Under Contract (no Sold/Leased or Unknown/Removed for new listings)
 const STATUS_OPTIONS_CREATE = [
@@ -148,6 +150,108 @@ export function MarketListingEditDialog({
   const [zoning, setZoning] = useState('');
   const [mua, setMua] = useState(false);
   const [isDistributionWarehouse, setIsDistributionWarehouse] = useState(false);
+  // Track if we've initialized form from storage to avoid re-init on re-renders
+  const hasInitializedRef = useRef(false);
+  const formSessionIdRef = useRef<string | null>(null);
+
+  // Collect all form state into an object for persistence
+  const getFormState = useCallback(() => ({
+    listingId,
+    address,
+    displayAddress,
+    displayAddressManuallyEdited,
+    city,
+    submarket,
+    sizeSf,
+    status,
+    listingType,
+    askingRate,
+    opCosts,
+    salePrice,
+    availabilityDate,
+    subleaseExp,
+    landlord,
+    brokerSource,
+    link,
+    notesPublic,
+    internalNote,
+    warehouseSf,
+    officeSf,
+    clearHeight,
+    dockDoors,
+    driveInDoors,
+    powerAmps,
+    voltage,
+    sprinkler,
+    cranes,
+    craneTons,
+    yard,
+    yardArea,
+    crossDock,
+    trailerParking,
+    landAcres,
+    zoning,
+    mua,
+    isDistributionWarehouse,
+  }), [
+    listingId, address, displayAddress, displayAddressManuallyEdited, city, submarket,
+    sizeSf, status, listingType, askingRate, opCosts, salePrice, availabilityDate,
+    subleaseExp, landlord, brokerSource, link, notesPublic, internalNote, warehouseSf,
+    officeSf, clearHeight, dockDoors, driveInDoors, powerAmps, voltage, sprinkler,
+    cranes, craneTons, yard, yardArea, crossDock, trailerParking, landAcres, zoning,
+    mua, isDistributionWarehouse,
+  ]);
+
+  // Apply form state from storage
+  const applyFormState = useCallback((state: ReturnType<typeof getFormState>) => {
+    setListingId(state.listingId);
+    setAddress(state.address);
+    setDisplayAddress(state.displayAddress);
+    setDisplayAddressManuallyEdited(state.displayAddressManuallyEdited);
+    setCity(state.city);
+    setSubmarket(state.submarket);
+    setSizeSf(state.sizeSf);
+    setStatus(state.status);
+    setListingType(state.listingType);
+    setAskingRate(state.askingRate);
+    setOpCosts(state.opCosts);
+    setSalePrice(state.salePrice);
+    setAvailabilityDate(state.availabilityDate);
+    setSubleaseExp(state.subleaseExp);
+    setLandlord(state.landlord);
+    setBrokerSource(state.brokerSource);
+    setLink(state.link);
+    setNotesPublic(state.notesPublic);
+    setInternalNote(state.internalNote);
+    setWarehouseSf(state.warehouseSf);
+    setOfficeSf(state.officeSf);
+    setClearHeight(state.clearHeight);
+    setDockDoors(state.dockDoors);
+    setDriveInDoors(state.driveInDoors);
+    setPowerAmps(state.powerAmps);
+    setVoltage(state.voltage);
+    setSprinkler(state.sprinkler);
+    setCranes(state.cranes);
+    setCraneTons(state.craneTons);
+    setYard(state.yard);
+    setYardArea(state.yardArea);
+    setCrossDock(state.crossDock);
+    setTrailerParking(state.trailerParking);
+    setLandAcres(state.landAcres);
+    setZoning(state.zoning);
+    setMua(state.mua);
+    setIsDistributionWarehouse(state.isDistributionWarehouse);
+  }, []);
+
+  // Clear stored draft
+  const clearDraft = useCallback(() => {
+    try {
+      localStorage.removeItem(FORM_STORAGE_KEY);
+    } catch (e) {
+      // Ignore storage errors
+    }
+    formSessionIdRef.current = null;
+  }, []);
 
   // Handle address change - mirror to displayAddress if not manually edited
   const handleAddressChange = (value: string) => {
@@ -180,8 +284,66 @@ export function MarketListingEditDialog({
     return `ML-${year}${month}${day}-${random}`;
   };
 
-  // Reset form when listing changes or dialog opens
+  // Save form state to localStorage when it changes (debounced via effect)
   useEffect(() => {
+    if (!open || !hasInitializedRef.current) return;
+
+    const sessionId = isCreateMode ? 'create' : listing?.id;
+    if (!sessionId) return;
+
+    try {
+      const draft = {
+        sessionId,
+        mode,
+        timestamp: Date.now(),
+        state: getFormState(),
+      };
+      localStorage.setItem(FORM_STORAGE_KEY, JSON.stringify(draft));
+    } catch (e) {
+      // Ignore storage errors (quota exceeded, etc.)
+    }
+  }, [open, isCreateMode, listing?.id, mode, getFormState]);
+
+  // Initialize form when dialog opens
+  useEffect(() => {
+    if (!open) {
+      // Dialog closed - reset initialization flag so next open can re-init
+      hasInitializedRef.current = false;
+      return;
+    }
+
+    // Already initialized for this session
+    if (hasInitializedRef.current) return;
+
+    const sessionId = isCreateMode ? 'create' : listing?.id;
+    
+    // Try to restore from localStorage
+    try {
+      const stored = localStorage.getItem(FORM_STORAGE_KEY);
+      if (stored) {
+        const draft = JSON.parse(stored);
+        // Only restore if same session (same listing or create mode) and recent (< 30 min)
+        const isRecent = Date.now() - draft.timestamp < 30 * 60 * 1000;
+        const isSameSession = draft.sessionId === sessionId && draft.mode === mode;
+        
+        if (isRecent && isSameSession) {
+          console.log('[Form] Restoring draft from localStorage');
+          applyFormState(draft.state);
+          formSessionIdRef.current = sessionId;
+          hasInitializedRef.current = true;
+          return;
+        } else {
+          // Clear stale draft
+          localStorage.removeItem(FORM_STORAGE_KEY);
+        }
+      }
+    } catch (e) {
+      // Ignore parse errors
+    }
+
+    // No valid draft - initialize from scratch
+    formSessionIdRef.current = sessionId;
+
     if (isCreateMode) {
       // Auto-generate listing ID for create mode
       setListingId(generateListingId());
@@ -260,7 +422,9 @@ export function MarketListingEditDialog({
       setMua(listing.mua === 'Yes' || listing.mua === 'yes' || listing.mua === 'Y');
       setIsDistributionWarehouse(listing.is_distribution_warehouse || false);
     }
-  }, [listing, isCreateMode, open]);
+
+    hasInitializedRef.current = true;
+  }, [open, listing, isCreateMode, mode, applyFormState]);
 
   const handleStatusChange = (newStatus: string) => {
     // Check if changing to "Sold/Leased" status (only in edit mode)
@@ -381,6 +545,7 @@ export function MarketListingEditDialog({
           } else if (geocodeResult?.submarket_assigned) {
             console.log('[Create Listing] Submarket assigned:', geocodeResult.submarket);
             toast.success(`Listing created — submarket: ${geocodeResult.submarket}`);
+            clearDraft();
             onSaved();
             onOpenChange(false);
             return;
@@ -392,6 +557,7 @@ export function MarketListingEditDialog({
       }
 
       toast.success('Listing created successfully');
+      clearDraft();
       onSaved();
       onOpenChange(false);
     } catch (err: any) {
@@ -435,6 +601,7 @@ export function MarketListingEditDialog({
       if (error) throw error;
 
       toast.success('Listing updated');
+      clearDraft();
       onSaved();
       onOpenChange(false);
 
@@ -463,6 +630,7 @@ export function MarketListingEditDialog({
       if (error) throw error;
 
       toast.success('Listing deleted');
+      clearDraft();
       setShowDeleteConfirm(false);
       onSaved();
       onOpenChange(false);
