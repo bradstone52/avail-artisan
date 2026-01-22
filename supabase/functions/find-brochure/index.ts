@@ -178,8 +178,9 @@ Deno.serve(async (req) => {
     const candidates: BrochureCandidate[] = [];
     const addressParts = address.toLowerCase().split(/[\s,]+/).filter(p => p.length > 2);
 
-    for (const pageUrl of allUrls.slice(0, 5)) { // Limit to first 5 URLs
-      console.log(`[find-brochure] Step 2: Scraping ${pageUrl}`);
+    // Helper: Scrape a page and extract brochure candidates
+    async function scrapePage(pageUrl: string, depth: number = 0): Promise<void> {
+      console.log(`[find-brochure] Scraping (depth ${depth}): ${pageUrl}`);
 
       try {
         const scrapeResponse = await fetch("https://api.firecrawl.dev/v1/scrape", {
@@ -191,13 +192,14 @@ Deno.serve(async (req) => {
           body: JSON.stringify({
             url: pageUrl,
             formats: ["links", "markdown"],
-            onlyMainContent: true,
+            onlyMainContent: false, // Include full page to find "More Details" links
+            waitFor: 2000, // Wait for dynamic content to load
           }),
         });
 
         if (!scrapeResponse.ok) {
           console.log(`[find-brochure] Scrape failed for ${pageUrl}: ${scrapeResponse.status}`);
-          continue;
+          return;
         }
 
         const scrapeData = await scrapeResponse.json();
@@ -212,6 +214,9 @@ Deno.serve(async (req) => {
                                     markdownLower.includes("download") ||
                                     markdownLower.includes("flyer") ||
                                     markdownLower.includes("pdf");
+
+        // Track "more details" links to follow (only at depth 0)
+        const detailLinks: string[] = [];
 
         // Score each link found on the page
         for (const link of links) {
@@ -243,8 +248,21 @@ Deno.serve(async (req) => {
                               linkLower.includes("cresa.") || linkLower.includes("nai") ||
                               linkLower.includes("barclay");
           
-          if (!isBrokerSite && !linkLower.includes(new URL(pageUrl).hostname)) {
-            continue; // Skip external non-broker links
+          const pageHostname = new URL(pageUrl).hostname;
+          if (!isBrokerSite && !linkLower.includes(pageHostname)) {
+            // Check if this is a "more details" type link we should follow
+            if (depth === 0 && (
+              linkLower.includes("/property/") ||
+              linkLower.includes("/listing/") ||
+              linkLower.includes("/details") ||
+              linkLower.includes("/view") ||
+              linkLower.includes("propertyid=") ||
+              linkLower.includes("/industrial/") ||
+              linkLower.includes("/warehouse/")
+            )) {
+              detailLinks.push(link);
+            }
+            continue; // Skip external non-broker links for PDF search
           }
 
           // Brochure keywords in URL
@@ -263,6 +281,18 @@ Deno.serve(async (req) => {
           // Only add if score is positive (wrong broker will be negative)
           if (score >= 20) {
             candidates.push({ url: link, score, source: pageUrl });
+          }
+
+          // Also track internal "more details" links even from broker sites (at depth 0)
+          if (depth === 0 && score < 20 && (
+            linkLower.includes("/property/") ||
+            linkLower.includes("/listing/") ||
+            linkLower.includes("/details") ||
+            linkLower.includes("propertyid=") ||
+            linkLower.includes("/industrial/") ||
+            linkLower.includes("/warehouse/")
+          )) {
+            detailLinks.push(link);
           }
         }
 
@@ -283,9 +313,34 @@ Deno.serve(async (req) => {
           }
         }
 
+        // If no PDF candidates found and we have detail links, follow them (depth 1 only)
+        if (depth === 0 && candidates.filter(c => c.url.toLowerCase().endsWith(".pdf")).length === 0) {
+          // Dedupe and limit detail links
+          const uniqueDetailLinks = [...new Set(detailLinks)].slice(0, 3);
+          console.log(`[find-brochure] Following ${uniqueDetailLinks.length} detail links: ${uniqueDetailLinks.join(", ")}`);
+          
+          for (const detailLink of uniqueDetailLinks) {
+            await scrapePage(detailLink, 1);
+            // Stop if we found a good PDF candidate
+            if (candidates.some(c => c.url.toLowerCase().endsWith(".pdf") && c.score >= 60)) {
+              break;
+            }
+          }
+        }
+
       } catch (scrapeErr) {
         console.error(`[find-brochure] Error scraping ${pageUrl}:`, scrapeErr);
-        continue;
+      }
+    }
+
+    // Scrape each discovered page (limit to first 5)
+    for (const pageUrl of allUrls.slice(0, 5)) {
+      await scrapePage(pageUrl, 0);
+      
+      // Early exit if we have a strong PDF candidate
+      if (candidates.some(c => c.url.toLowerCase().endsWith(".pdf") && c.score >= 80)) {
+        console.log(`[find-brochure] Found strong candidate, stopping search`);
+        break;
       }
     }
 
