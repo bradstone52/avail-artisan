@@ -270,8 +270,9 @@ export function DistributionMapView({
         const rowEl = document.getElementById(`listing-row-${listing.id}`);
         if (rowEl) {
           rowEl.setAttribute("data-marker-hover", "true");
-          // Force highlight regardless of Tailwind class ordering
-          rowEl.classList.add("!bg-accent/30");
+          // Force highlight regardless of Tailwind generation/class ordering
+          // Use design-token based color.
+          (rowEl as HTMLElement).style.backgroundColor = "hsl(var(--accent) / 0.3)";
           rowEl.scrollIntoView({ behavior: "smooth", block: "center" });
         } else {
           console.debug("[DistributionMapView] marker hover: row not found", {
@@ -292,7 +293,7 @@ export function DistributionMapView({
         const rowEl = document.getElementById(`listing-row-${listing.id}`);
         if (rowEl) {
           rowEl.removeAttribute("data-marker-hover");
-          rowEl.classList.remove("!bg-accent/30");
+          (rowEl as HTMLElement).style.backgroundColor = "";
         }
       });
 
