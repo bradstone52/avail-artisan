@@ -27,10 +27,17 @@ const DialogOverlay = React.forwardRef<
 ));
 DialogOverlay.displayName = DialogPrimitive.Overlay.displayName;
 
+interface DialogContentProps extends React.ComponentPropsWithoutRef<typeof DialogPrimitive.Content> {
+  /** If true, clicking outside the dialog will not close it */
+  preventOutsideClose?: boolean;
+  /** Custom handler for the X close button */
+  onCloseClick?: () => void;
+}
+
 const DialogContent = React.forwardRef<
   React.ElementRef<typeof DialogPrimitive.Content>,
-  React.ComponentPropsWithoutRef<typeof DialogPrimitive.Content>
->(({ className, children, ...props }, ref) => (
+  DialogContentProps
+>(({ className, children, preventOutsideClose, onCloseClick, ...props }, ref) => (
   <DialogPortal>
     <DialogOverlay />
     <DialogPrimitive.Content
@@ -40,13 +47,27 @@ const DialogContent = React.forwardRef<
         className,
       )}
       style={{ borderRadius: "var(--radius)" }}
+      onInteractOutside={preventOutsideClose ? (e) => e.preventDefault() : undefined}
+      onEscapeKeyDown={preventOutsideClose ? (e) => e.preventDefault() : undefined}
       {...props}
     >
       {children}
-      <DialogPrimitive.Close className="absolute right-4 top-4 h-8 w-8 flex items-center justify-center border-2 border-foreground bg-card text-foreground opacity-70 ring-offset-background transition-all hover:opacity-100 hover:bg-muted focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none" style={{ borderRadius: "var(--radius)" }}>
-        <X className="h-4 w-4" />
-        <span className="sr-only">Close</span>
-      </DialogPrimitive.Close>
+      {onCloseClick ? (
+        <button
+          type="button"
+          onClick={onCloseClick}
+          className="absolute right-4 top-4 h-8 w-8 flex items-center justify-center border-2 border-foreground bg-card text-foreground opacity-70 ring-offset-background transition-all hover:opacity-100 hover:bg-muted focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none"
+          style={{ borderRadius: "var(--radius)" }}
+        >
+          <X className="h-4 w-4" />
+          <span className="sr-only">Close</span>
+        </button>
+      ) : (
+        <DialogPrimitive.Close className="absolute right-4 top-4 h-8 w-8 flex items-center justify-center border-2 border-foreground bg-card text-foreground opacity-70 ring-offset-background transition-all hover:opacity-100 hover:bg-muted focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none" style={{ borderRadius: "var(--radius)" }}>
+          <X className="h-4 w-4" />
+          <span className="sr-only">Close</span>
+        </DialogPrimitive.Close>
+      )}
     </DialogPrimitive.Content>
   </DialogPortal>
 ));
