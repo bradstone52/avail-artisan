@@ -18,7 +18,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Building2, User, DollarSign, FileText } from 'lucide-react';
+import { Building2, User, DollarSign, FileText, Plus, Trash2 } from 'lucide-react';
 
 interface AssetEditDialogProps {
   asset: AssetWithLinks | null;
@@ -71,10 +71,9 @@ export function AssetEditDialog({
   const [clearHeightFt, setClearHeightFt] = useState('');
   const [dockDoors, setDockDoors] = useState('');
   const [driveInDoors, setDriveInDoors] = useState('');
-  const [ownerName, setOwnerName] = useState('');
   const [ownerCompany, setOwnerCompany] = useState('');
-  const [ownerEmail, setOwnerEmail] = useState('');
-  const [ownerPhone, setOwnerPhone] = useState('');
+  // Contact state - start with no contacts in create mode
+  const [contacts, setContacts] = useState<Array<{ name: string; email: string; phone: string }>>([]);
   const [purchaseDate, setPurchaseDate] = useState('');
   const [purchasePrice, setPurchasePrice] = useState('');
   const [assessedValue, setAssessedValue] = useState('');
@@ -122,10 +121,13 @@ export function AssetEditDialog({
       setClearHeightFt(asset.clear_height_ft?.toString() || '');
       setDockDoors(asset.dock_doors?.toString() || '');
       setDriveInDoors(asset.drive_in_doors?.toString() || '');
-      setOwnerName(asset.owner_name || '');
       setOwnerCompany(asset.owner_company || '');
-      setOwnerEmail(asset.owner_email || '');
-      setOwnerPhone(asset.owner_phone || '');
+      // Load existing contact if present
+      if (asset.owner_name || asset.owner_email || asset.owner_phone) {
+        setContacts([{ name: asset.owner_name || '', email: asset.owner_email || '', phone: asset.owner_phone || '' }]);
+      } else {
+        setContacts([]);
+      }
       setPurchaseDate(asset.purchase_date || '');
       setPurchasePrice(asset.purchase_price?.toString() || '');
       setAssessedValue(asset.assessed_value?.toString() || '');
@@ -150,10 +152,9 @@ export function AssetEditDialog({
       setClearHeightFt('');
       setDockDoors('');
       setDriveInDoors('');
-      setOwnerName('');
       setOwnerCompany('');
-      setOwnerEmail('');
-      setOwnerPhone('');
+      setContacts([]);
+      
       setPurchaseDate('');
       setPurchasePrice('');
       setAssessedValue('');
@@ -188,10 +189,11 @@ export function AssetEditDialog({
         clear_height_ft: clearHeightFt ? parseFloat(clearHeightFt) : null,
         dock_doors: dockDoors ? parseInt(dockDoors) : null,
         drive_in_doors: driveInDoors ? parseInt(driveInDoors) : null,
-        owner_name: ownerName.trim() || null,
         owner_company: ownerCompany.trim() || null,
-        owner_email: ownerEmail.trim() || null,
-        owner_phone: ownerPhone.trim() || null,
+        // Save first contact (for now, DB only supports one)
+        owner_name: contacts[0]?.name?.trim() || null,
+        owner_email: contacts[0]?.email?.trim() || null,
+        owner_phone: contacts[0]?.phone?.trim() || null,
         purchase_date: purchaseDate || null,
         purchase_price: purchasePrice ? parseFloat(purchasePrice) : null,
         assessed_value: assessedValue ? parseFloat(assessedValue) : null,
@@ -420,8 +422,8 @@ export function AssetEditDialog({
 
           {/* Owner Tab */}
           <TabsContent value="owner" className="space-y-4 mt-4">
-            <div className="grid grid-cols-2 gap-4">
-              <div className="col-span-2">
+            <div className="space-y-4">
+              <div>
                 <Label htmlFor="ownerCompany">Owner Company</Label>
                 <Input
                   id="ownerCompany"
@@ -432,39 +434,76 @@ export function AssetEditDialog({
                 />
               </div>
 
-              <div className="col-span-2">
-                <Label htmlFor="ownerName">Contact Name</Label>
-                <Input
-                  id="ownerName"
-                  value={ownerName}
-                  onChange={(e) => setOwnerName(e.target.value)}
-                  className={`placeholder-light ${ownerName ? 'input-filled' : ''}`}
-                  placeholder="e.g., John Smith"
-                />
-              </div>
+              {/* Contact Cards */}
+              {contacts.map((contact, index) => (
+                <div key={index} className="border rounded-lg p-4 space-y-3 relative">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-sm font-medium text-muted-foreground">Contact {index + 1}</span>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setContacts(contacts.filter((_, i) => i !== index))}
+                      className="h-7 w-7 p-0 text-muted-foreground hover:text-destructive"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
+                  <div>
+                    <Label>Contact Name</Label>
+                    <Input
+                      value={contact.name}
+                      onChange={(e) => {
+                        const newContacts = [...contacts];
+                        newContacts[index].name = e.target.value;
+                        setContacts(newContacts);
+                      }}
+                      className={`placeholder-light ${contact.name ? 'input-filled' : ''}`}
+                      placeholder="e.g., John Smith"
+                    />
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <Label>Email</Label>
+                      <Input
+                        type="email"
+                        value={contact.email}
+                        onChange={(e) => {
+                          const newContacts = [...contacts];
+                          newContacts[index].email = e.target.value;
+                          setContacts(newContacts);
+                        }}
+                        className={`placeholder-light ${contact.email ? 'input-filled' : ''}`}
+                        placeholder="e.g., john@example.com"
+                      />
+                    </div>
+                    <div>
+                      <Label>Phone</Label>
+                      <Input
+                        value={contact.phone}
+                        onChange={(e) => {
+                          const newContacts = [...contacts];
+                          newContacts[index].phone = e.target.value;
+                          setContacts(newContacts);
+                        }}
+                        className={`placeholder-light ${contact.phone ? 'input-filled' : ''}`}
+                        placeholder="e.g., (403) 555-1234"
+                      />
+                    </div>
+                  </div>
+                </div>
+              ))}
 
-              <div>
-                <Label htmlFor="ownerEmail">Email</Label>
-                <Input
-                  id="ownerEmail"
-                  type="email"
-                  value={ownerEmail}
-                  onChange={(e) => setOwnerEmail(e.target.value)}
-                  className={`placeholder-light ${ownerEmail ? 'input-filled' : ''}`}
-                  placeholder="e.g., john@example.com"
-                />
-              </div>
-
-              <div>
-                <Label htmlFor="ownerPhone">Phone</Label>
-                <Input
-                  id="ownerPhone"
-                  value={ownerPhone}
-                  onChange={(e) => setOwnerPhone(e.target.value)}
-                  className={`placeholder-light ${ownerPhone ? 'input-filled' : ''}`}
-                  placeholder="e.g., (403) 555-1234"
-                />
-              </div>
+              {/* Add Contact Button */}
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setContacts([...contacts, { name: '', email: '', phone: '' }])}
+                className="w-full border-dashed"
+              >
+                <Plus className="h-4 w-4 mr-2" />
+                Add Contact
+              </Button>
             </div>
           </TabsContent>
 
