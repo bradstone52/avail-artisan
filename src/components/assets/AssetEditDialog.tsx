@@ -115,7 +115,8 @@ export function AssetEditDialog({
   const [ownerCompany, setOwnerCompany] = useState('');
   // Owner contacts
   const [ownerContacts, setOwnerContacts] = useState<Array<{ name: string; email: string; phone: string }>>([]);
-  // Asset Manager contacts
+  // Asset Manager
+  const [assetManagerCompany, setAssetManagerCompany] = useState('');
   const [assetManagerContacts, setAssetManagerContacts] = useState<Array<{ name: string; email: string; phone: string }>>([]);
   const [purchaseDate, setPurchaseDate] = useState('');
   const [purchasePrice, setPurchasePrice] = useState('');
@@ -246,7 +247,8 @@ export function AssetEditDialog({
       } else {
         setOwnerContacts([]);
       }
-      // Asset manager contacts not stored in DB yet - start empty
+      // Asset manager - not stored in DB yet, start empty
+      setAssetManagerCompany('');
       setAssetManagerContacts([]);
       setPurchaseDate(asset.purchase_date || '');
       setPurchasePrice(asset.purchase_price?.toString() || '');
@@ -292,6 +294,7 @@ export function AssetEditDialog({
       setDriveInDoors('');
       setOwnerCompany('');
       setOwnerContacts([]);
+      setAssetManagerCompany('');
       setAssetManagerContacts([]);
       setPurchaseDate('');
       setPurchasePrice('');
@@ -749,13 +752,20 @@ export function AssetEditDialog({
           {/* Asset Manager Tab */}
           <TabsContent value="manager" className="space-y-4 mt-4">
             <div className="space-y-4">
-              <p className="text-sm text-muted-foreground">
-                Add asset management contacts for this property.
-              </p>
+              <div>
+                <Label htmlFor="assetManagerCompany">Asset Management Company</Label>
+                <Input
+                  id="assetManagerCompany"
+                  value={assetManagerCompany}
+                  onChange={(e) => setAssetManagerCompany(e.target.value)}
+                  className={`placeholder-light ${assetManagerCompany ? 'input-filled' : ''}`}
+                  placeholder="e.g., CBRE Asset Services"
+                />
+              </div>
 
               {/* Asset Manager Contact Cards */}
               {assetManagerContacts.map((contact, index) => 
-                renderContactCard(contact, index, assetManagerContacts, setAssetManagerContacts, 'Asset Manager')
+                renderContactCard(contact, index, assetManagerContacts, setAssetManagerContacts, 'Contact')
               )}
 
               {/* Add Contact Button */}
