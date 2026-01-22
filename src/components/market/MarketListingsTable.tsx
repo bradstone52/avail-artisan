@@ -407,8 +407,8 @@ export function MarketListingsTable({ listings, onEdit, onRefresh, sortColumn, s
               )}
               onClick={() => setSelectedRowId(isSelected ? null : listing.id)}
             >
-              {/* Address - Sticky with grey right border */}
-              <TableCell className={`sticky left-0 z-10 font-medium border-r border-gray-300 dark:border-gray-600 transition-colors ${stickyBg} ${stickyHoverClass}`}>
+              {/* Address - Sticky with shadow right border that persists during scroll */}
+              <TableCell className={`sticky left-0 z-20 font-medium shadow-[2px_0_5px_-2px_rgba(0,0,0,0.3)] transition-colors ${stickyBg} ${stickyHoverClass}`}>
                 <div className="truncate max-w-[170px]" title={listing.address}>
                   {listing.display_address || listing.address}
                 </div>
@@ -635,8 +635,8 @@ export function MarketListingsTable({ listings, onEdit, onRefresh, sortColumn, s
                 }
               </TableCell>
               
-              {/* Actions - Sticky with grey left border */}
-              <TableCell className={`sticky right-0 z-10 border-l border-gray-300 dark:border-gray-600 transition-colors ${stickyBg} ${stickyHoverClass}`}>
+              {/* Actions - Sticky with shadow left border that persists during scroll */}
+              <TableCell className={`sticky right-0 z-20 shadow-[-2px_0_5px_-2px_rgba(0,0,0,0.3)] transition-colors ${stickyBg} ${stickyHoverClass}`}>
                 <div className="flex items-center gap-0.5">
                   <Tooltip>
                     <TooltipTrigger asChild>
