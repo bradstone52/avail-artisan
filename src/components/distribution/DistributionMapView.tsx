@@ -266,10 +266,13 @@ export function DistributionMapView({
         setHoveredListingId(listing.id);
         
         // Scroll table row into view - use "center" to ensure it's fully visible
-        const rowEl = document.getElementById(`listing-row-${listing.id}`);
-        if (rowEl) {
-          rowEl.scrollIntoView({ behavior: "smooth", block: "center" });
-        }
+        // Use setTimeout to ensure React has re-rendered the row with the highlight first
+        setTimeout(() => {
+          const rowEl = document.getElementById(`listing-row-${listing.id}`);
+          if (rowEl) {
+            rowEl.scrollIntoView({ behavior: "smooth", block: "center" });
+          }
+        }, 10);
       });
       
       el.addEventListener("mouseleave", () => {
