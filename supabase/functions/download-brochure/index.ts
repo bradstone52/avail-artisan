@@ -1,0 +1,161 @@
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+};
+
+interface DownloadBrochureRequest {
+  propertyId: string;
+  marketListingId: string;
+  listingId: string;
+  brochureUrl: string;
+}
+
+Deno.serve(async (req) => {
+  // Handle CORS preflight
+  if (req.method === 'OPTIONS') {
+    return new Response(null, { headers: corsHeaders });
+  }
+
+  try {
+    const authHeader = req.headers.get('Authorization');
+    if (!authHeader) {
+      return new Response(JSON.stringify({ error: 'Missing authorization' }), {
+        status: 401,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
+    }
+
+    // Extract user from token
+    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+    const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY')!;
+    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+    
+    // Create client with user's token for RLS
+    const userClient = createClient(supabaseUrl, supabaseAnonKey, {
+      global: { headers: { Authorization: authHeader } }
+    });
+    
+    const { data: { user }, error: userError } = await userClient.auth.getUser();
+    if (userError || !user) {
+      return new Response(JSON.stringify({ error: 'Invalid authorization' }), {
+        status: 401,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
+    }
+
+    const { propertyId, marketListingId, listingId, brochureUrl } = await req.json() as DownloadBrochureRequest;
+
+    if (!propertyId || !brochureUrl) {
+      return new Response(JSON.stringify({ error: 'Property ID and brochure URL are required' }), {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
+    }
+
+    console.log(`Downloading brochure for property ${propertyId} from ${brochureUrl}`);
+
+    // Use service role for storage operations
+    const supabase = createClient(supabaseUrl, supabaseServiceKey);
+
+    // Fetch the market listing for snapshot
+    let listingSnapshot: any = null;
+    if (marketListingId) {
+      const { data: listing } = await supabase
+        .from('market_listings')
+        .select('*')
+        .eq('id', marketListingId)
+        .single();
+      
+      if (listing) {
+        listingSnapshot = {
+          listing_id: listing.listing_id,
+          address: listing.address,
+          status: listing.status,
+          size_sf: listing.size_sf,
+          asking_rate_psf: listing.asking_rate_psf,
+          broker_source: listing.broker_source,
+          fetched_at: new Date().toISOString()
+        };
+      }
+    }
+
+    // Download the PDF
+    console.log('Fetching brochure from URL...');
+    const pdfResponse = await fetch(brochureUrl, {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+        'Accept': 'application/pdf,*/*'
+      }
+    });
+
+    if (!pdfResponse.ok) {
+      throw new Error(`Failed to download brochure: ${pdfResponse.status} ${pdfResponse.statusText}`);
+    }
+
+    const contentType = pdfResponse.headers.get('content-type') || 'application/pdf';
+    const pdfBuffer = await pdfResponse.arrayBuffer();
+    const fileSize = pdfBuffer.byteLength;
+
+    console.log(`Downloaded ${fileSize} bytes, content-type: ${contentType}`);
+
+    // Generate storage path with timestamp
+    const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+    const sanitizedListingId = (listingId || 'unknown').replace(/[^a-zA-Z0-9-_]/g, '_');
+    const storagePath = `${propertyId}/${sanitizedListingId}_${timestamp}.pdf`;
+
+    // Upload to storage
+    console.log(`Uploading to storage: ${storagePath}`);
+    const { error: uploadError } = await supabase.storage
+      .from('property-brochures')
+      .upload(storagePath, pdfBuffer, {
+        contentType: 'application/pdf',
+        cacheControl: '3600',
+        upsert: false // Don't overwrite - we want historical versions
+      });
+
+    if (uploadError) {
+      console.error('Upload error:', uploadError);
+      throw new Error(`Failed to upload brochure: ${uploadError.message}`);
+    }
+
+    // Create brochure record
+    const { error: insertError } = await supabase
+      .from('property_brochures')
+      .insert({
+        property_id: propertyId,
+        market_listing_id: marketListingId || null,
+        listing_id: listingId || null,
+        original_url: brochureUrl,
+        storage_path: storagePath,
+        file_size: fileSize,
+        listing_snapshot: listingSnapshot,
+        created_by: user.id
+      });
+
+    if (insertError) {
+      console.error('Insert error:', insertError);
+      // Try to clean up the uploaded file
+      await supabase.storage.from('property-brochures').remove([storagePath]);
+      throw new Error(`Failed to create brochure record: ${insertError.message}`);
+    }
+
+    console.log('Brochure archived successfully');
+
+    return new Response(JSON.stringify({ 
+      success: true,
+      storagePath,
+      fileSize
+    }), {
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+    });
+
+  } catch (error: any) {
+    console.error('Error in download-brochure:', error);
+    return new Response(JSON.stringify({ error: error.message }), {
+      status: 500,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+    });
+  }
+});
