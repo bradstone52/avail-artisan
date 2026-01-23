@@ -56,7 +56,7 @@ const navigation: NavigationEntry[] = [
     ]
   },
   { name: 'Market Listings', href: '/market-listings', icon: Database },
-  { name: 'Owners/Assets', href: '/assets', icon: Building2 },
+  { name: 'Properties', href: '/properties', icon: Building2 },
   { name: 'Transactions', href: '/transactions', icon: Receipt },
 ];
 
