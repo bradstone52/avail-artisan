@@ -280,7 +280,7 @@ export function useProperties() {
     try {
       const { error } = await supabase
         .from('properties')
-        .update(updates)
+        .update(updates as any)
         .eq('id', id);
 
       if (error) throw error;
