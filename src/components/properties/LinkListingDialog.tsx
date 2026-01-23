@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
-import { AssetWithLinks } from '@/hooks/useAssets';
+import { PropertyWithLinks } from '@/hooks/useProperties';
 import { supabase } from '@/integrations/supabase/client';
 import {
   Dialog,
@@ -12,7 +12,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Search, Link as LinkIcon, Unlink, ExternalLink, Loader2 } from 'lucide-react';
+import { Search, Link as LinkIcon, Unlink, Loader2 } from 'lucide-react';
 
 interface MarketListingOption {
   id: string;
@@ -23,15 +23,15 @@ interface MarketListingOption {
 }
 
 interface LinkListingDialogProps {
-  asset: AssetWithLinks | null;
+  property: PropertyWithLinks | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onLink: (assetId: string, marketListingId: string) => Promise<boolean>;
-  onUnlink: (assetId: string, marketListingId: string) => Promise<boolean>;
+  onLink: (propertyId: string, marketListingId: string) => Promise<boolean>;
+  onUnlink: (propertyId: string, marketListingId: string) => Promise<boolean>;
 }
 
 export function LinkListingDialog({
-  asset,
+  property,
   open,
   onOpenChange,
   onLink,
@@ -59,23 +59,23 @@ export function LinkListingDialog({
 
   // Get currently linked listing IDs (manual links only)
   const manualLinkedIds = useMemo(() => {
-    if (!asset?.linked_listings) return new Set<string>();
+    if (!property?.linked_listings) return new Set<string>();
     return new Set(
-      asset.linked_listings
+      property.linked_listings
         .filter(l => l.link_type === 'manual')
         .map(l => l.id)
     );
-  }, [asset]);
+  }, [property]);
 
   // Get auto-linked IDs
   const autoLinkedIds = useMemo(() => {
-    if (!asset?.linked_listings) return new Set<string>();
+    if (!property?.linked_listings) return new Set<string>();
     return new Set(
-      asset.linked_listings
+      property.linked_listings
         .filter(l => l.link_type === 'auto')
         .map(l => l.id)
     );
-  }, [asset]);
+  }, [property]);
 
   // Filter listings by search
   const filteredListings = useMemo(() => {
@@ -88,16 +88,16 @@ export function LinkListingDialog({
   }, [marketListings, searchQuery]);
 
   const handleLink = async (listingId: string) => {
-    if (!asset) return;
+    if (!property) return;
     setActionLoading(listingId);
-    await onLink(asset.id, listingId);
+    await onLink(property.id, listingId);
     setActionLoading(null);
   };
 
   const handleUnlink = async (listingId: string) => {
-    if (!asset) return;
+    if (!property) return;
     setActionLoading(listingId);
-    await onUnlink(asset.id, listingId);
+    await onUnlink(property.id, listingId);
     setActionLoading(null);
   };
 
@@ -121,16 +121,16 @@ export function LinkListingDialog({
             Manage Listing Links
           </DialogTitle>
           <DialogDescription>
-            {asset?.name} — {asset?.address}
+            {property?.name || 'Property'} — {property?.address}
           </DialogDescription>
         </DialogHeader>
 
         {/* Current Links */}
-        {asset?.linked_listings && asset.linked_listings.length > 0 && (
+        {property?.linked_listings && property.linked_listings.length > 0 && (
           <div className="space-y-2">
             <h4 className="text-sm font-semibold">Currently Linked</h4>
             <div className="space-y-2">
-              {asset.linked_listings.map(listing => (
+              {property.linked_listings.map(listing => (
                 <div 
                   key={listing.id}
                   className="flex items-center justify-between p-2 bg-muted rounded-lg"
