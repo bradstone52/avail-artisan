@@ -14,298 +14,6 @@ export type Database = {
   }
   public: {
     Tables: {
-      asset_listing_links: {
-        Row: {
-          asset_id: string
-          created_at: string
-          created_by: string | null
-          id: string
-          link_type: string
-          market_listing_id: string
-        }
-        Insert: {
-          asset_id: string
-          created_at?: string
-          created_by?: string | null
-          id?: string
-          link_type?: string
-          market_listing_id: string
-        }
-        Update: {
-          asset_id?: string
-          created_at?: string
-          created_by?: string | null
-          id?: string
-          link_type?: string
-          market_listing_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "asset_listing_links_asset_id_fkey"
-            columns: ["asset_id"]
-            isOneToOne: false
-            referencedRelation: "assets"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "asset_listing_links_market_listing_id_fkey"
-            columns: ["market_listing_id"]
-            isOneToOne: false
-            referencedRelation: "market_listings"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      asset_manager_contacts: {
-        Row: {
-          asset_manager_id: string
-          created_at: string
-          created_by: string | null
-          email: string | null
-          id: string
-          name: string
-          phone: string | null
-          sort_order: number
-          title: string | null
-        }
-        Insert: {
-          asset_manager_id: string
-          created_at?: string
-          created_by?: string | null
-          email?: string | null
-          id?: string
-          name: string
-          phone?: string | null
-          sort_order?: number
-          title?: string | null
-        }
-        Update: {
-          asset_manager_id?: string
-          created_at?: string
-          created_by?: string | null
-          email?: string | null
-          id?: string
-          name?: string
-          phone?: string | null
-          sort_order?: number
-          title?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "asset_manager_contacts_asset_manager_id_fkey"
-            columns: ["asset_manager_id"]
-            isOneToOne: false
-            referencedRelation: "asset_managers"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      asset_managers: {
-        Row: {
-          company_name: string
-          created_at: string
-          created_by: string | null
-          id: string
-        }
-        Insert: {
-          company_name: string
-          created_at?: string
-          created_by?: string | null
-          id?: string
-        }
-        Update: {
-          company_name?: string
-          created_at?: string
-          created_by?: string | null
-          id?: string
-        }
-        Relationships: []
-      }
-      asset_photos: {
-        Row: {
-          asset_id: string
-          caption: string | null
-          created_at: string
-          created_by: string | null
-          id: string
-          photo_url: string
-          sort_order: number
-        }
-        Insert: {
-          asset_id: string
-          caption?: string | null
-          created_at?: string
-          created_by?: string | null
-          id?: string
-          photo_url: string
-          sort_order?: number
-        }
-        Update: {
-          asset_id?: string
-          caption?: string | null
-          created_at?: string
-          created_by?: string | null
-          id?: string
-          photo_url?: string
-          sort_order?: number
-        }
-        Relationships: [
-          {
-            foreignKeyName: "asset_photos_asset_id_fkey"
-            columns: ["asset_id"]
-            isOneToOne: false
-            referencedRelation: "assets"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      asset_to_asset_manager: {
-        Row: {
-          asset_id: string
-          asset_manager_id: string
-          created_at: string
-          created_by: string | null
-          id: string
-        }
-        Insert: {
-          asset_id: string
-          asset_manager_id: string
-          created_at?: string
-          created_by?: string | null
-          id?: string
-        }
-        Update: {
-          asset_id?: string
-          asset_manager_id?: string
-          created_at?: string
-          created_by?: string | null
-          id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "asset_to_asset_manager_asset_id_fkey"
-            columns: ["asset_id"]
-            isOneToOne: false
-            referencedRelation: "assets"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "asset_to_asset_manager_asset_manager_id_fkey"
-            columns: ["asset_manager_id"]
-            isOneToOne: false
-            referencedRelation: "asset_managers"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      assets: {
-        Row: {
-          address: string
-          assessed_value: number | null
-          building_class: string | null
-          city: string
-          clear_height_ft: number | null
-          created_at: string
-          created_by: string | null
-          display_address: string | null
-          dock_doors: number | null
-          drive_in_doors: number | null
-          geocode_source: string | null
-          geocoded_at: string | null
-          id: string
-          internal_notes: string | null
-          land_acres: number | null
-          latitude: number | null
-          longitude: number | null
-          name: string
-          notes: string | null
-          owner_company: string | null
-          owner_email: string | null
-          owner_name: string | null
-          owner_phone: string | null
-          photo_url: string | null
-          property_tax_annual: number | null
-          property_type: string | null
-          purchase_date: string | null
-          purchase_price: number | null
-          size_sf: number | null
-          submarket: string
-          updated_at: string
-          year_built: number | null
-          zoning: string | null
-        }
-        Insert: {
-          address: string
-          assessed_value?: number | null
-          building_class?: string | null
-          city?: string
-          clear_height_ft?: number | null
-          created_at?: string
-          created_by?: string | null
-          display_address?: string | null
-          dock_doors?: number | null
-          drive_in_doors?: number | null
-          geocode_source?: string | null
-          geocoded_at?: string | null
-          id?: string
-          internal_notes?: string | null
-          land_acres?: number | null
-          latitude?: number | null
-          longitude?: number | null
-          name: string
-          notes?: string | null
-          owner_company?: string | null
-          owner_email?: string | null
-          owner_name?: string | null
-          owner_phone?: string | null
-          photo_url?: string | null
-          property_tax_annual?: number | null
-          property_type?: string | null
-          purchase_date?: string | null
-          purchase_price?: number | null
-          size_sf?: number | null
-          submarket?: string
-          updated_at?: string
-          year_built?: number | null
-          zoning?: string | null
-        }
-        Update: {
-          address?: string
-          assessed_value?: number | null
-          building_class?: string | null
-          city?: string
-          clear_height_ft?: number | null
-          created_at?: string
-          created_by?: string | null
-          display_address?: string | null
-          dock_doors?: number | null
-          drive_in_doors?: number | null
-          geocode_source?: string | null
-          geocoded_at?: string | null
-          id?: string
-          internal_notes?: string | null
-          land_acres?: number | null
-          latitude?: number | null
-          longitude?: number | null
-          name?: string
-          notes?: string | null
-          owner_company?: string | null
-          owner_email?: string | null
-          owner_name?: string | null
-          owner_phone?: string | null
-          photo_url?: string | null
-          property_tax_annual?: number | null
-          property_type?: string | null
-          purchase_date?: string | null
-          purchase_price?: number | null
-          size_sf?: number | null
-          submarket?: string
-          updated_at?: string
-          year_built?: number | null
-          zoning?: string | null
-        }
-        Relationships: []
-      }
       distribution_batches: {
         Row: {
           created_at: string
@@ -1305,6 +1013,325 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      properties: {
+        Row: {
+          address: string
+          assessed_improvement_value: number | null
+          assessed_land_value: number | null
+          assessed_value: number | null
+          building_class: string | null
+          city: string
+          city_data_fetched_at: string | null
+          city_data_raw: Json | null
+          clear_height_ft: number | null
+          community_name: string | null
+          created_at: string
+          created_by: string | null
+          display_address: string | null
+          dock_doors: number | null
+          drive_in_doors: number | null
+          geocode_source: string | null
+          geocoded_at: string | null
+          id: string
+          internal_notes: string | null
+          land_acres: number | null
+          land_use_designation: string | null
+          latitude: number | null
+          legal_description: string | null
+          longitude: number | null
+          name: string
+          notes: string | null
+          photo_url: string | null
+          property_tax_annual: number | null
+          property_type: string | null
+          roll_number: string | null
+          size_sf: number | null
+          submarket: string
+          tax_class: string | null
+          updated_at: string
+          year_built: number | null
+          zoning: string | null
+        }
+        Insert: {
+          address: string
+          assessed_improvement_value?: number | null
+          assessed_land_value?: number | null
+          assessed_value?: number | null
+          building_class?: string | null
+          city?: string
+          city_data_fetched_at?: string | null
+          city_data_raw?: Json | null
+          clear_height_ft?: number | null
+          community_name?: string | null
+          created_at?: string
+          created_by?: string | null
+          display_address?: string | null
+          dock_doors?: number | null
+          drive_in_doors?: number | null
+          geocode_source?: string | null
+          geocoded_at?: string | null
+          id?: string
+          internal_notes?: string | null
+          land_acres?: number | null
+          land_use_designation?: string | null
+          latitude?: number | null
+          legal_description?: string | null
+          longitude?: number | null
+          name: string
+          notes?: string | null
+          photo_url?: string | null
+          property_tax_annual?: number | null
+          property_type?: string | null
+          roll_number?: string | null
+          size_sf?: number | null
+          submarket?: string
+          tax_class?: string | null
+          updated_at?: string
+          year_built?: number | null
+          zoning?: string | null
+        }
+        Update: {
+          address?: string
+          assessed_improvement_value?: number | null
+          assessed_land_value?: number | null
+          assessed_value?: number | null
+          building_class?: string | null
+          city?: string
+          city_data_fetched_at?: string | null
+          city_data_raw?: Json | null
+          clear_height_ft?: number | null
+          community_name?: string | null
+          created_at?: string
+          created_by?: string | null
+          display_address?: string | null
+          dock_doors?: number | null
+          drive_in_doors?: number | null
+          geocode_source?: string | null
+          geocoded_at?: string | null
+          id?: string
+          internal_notes?: string | null
+          land_acres?: number | null
+          land_use_designation?: string | null
+          latitude?: number | null
+          legal_description?: string | null
+          longitude?: number | null
+          name?: string
+          notes?: string | null
+          photo_url?: string | null
+          property_tax_annual?: number | null
+          property_type?: string | null
+          roll_number?: string | null
+          size_sf?: number | null
+          submarket?: string
+          tax_class?: string | null
+          updated_at?: string
+          year_built?: number | null
+          zoning?: string | null
+        }
+        Relationships: []
+      }
+      property_brochures: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          downloaded_at: string
+          file_size: number | null
+          id: string
+          listing_id: string | null
+          listing_snapshot: Json | null
+          market_listing_id: string | null
+          notes: string | null
+          original_url: string
+          property_id: string
+          storage_path: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          downloaded_at?: string
+          file_size?: number | null
+          id?: string
+          listing_id?: string | null
+          listing_snapshot?: Json | null
+          market_listing_id?: string | null
+          notes?: string | null
+          original_url: string
+          property_id: string
+          storage_path: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          downloaded_at?: string
+          file_size?: number | null
+          id?: string
+          listing_id?: string | null
+          listing_snapshot?: Json | null
+          market_listing_id?: string | null
+          notes?: string | null
+          original_url?: string
+          property_id?: string
+          storage_path?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "property_brochures_market_listing_id_fkey"
+            columns: ["market_listing_id"]
+            isOneToOne: false
+            referencedRelation: "market_listings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "property_brochures_property_id_fkey"
+            columns: ["property_id"]
+            isOneToOne: false
+            referencedRelation: "properties"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      property_listing_links: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          id: string
+          link_type: string
+          market_listing_id: string
+          property_id: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          link_type?: string
+          market_listing_id: string
+          property_id: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          link_type?: string
+          market_listing_id?: string
+          property_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "asset_listing_links_asset_id_fkey"
+            columns: ["property_id"]
+            isOneToOne: false
+            referencedRelation: "properties"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "asset_listing_links_market_listing_id_fkey"
+            columns: ["market_listing_id"]
+            isOneToOne: false
+            referencedRelation: "market_listings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      property_permits: {
+        Row: {
+          applied_date: string | null
+          completed_date: string | null
+          contractor_name: string | null
+          created_at: string
+          description: string | null
+          estimated_value: number | null
+          fetched_at: string
+          id: string
+          issued_date: string | null
+          permit_class: string | null
+          permit_number: string
+          permit_type: string
+          property_id: string
+          raw_data: Json | null
+          status: string | null
+        }
+        Insert: {
+          applied_date?: string | null
+          completed_date?: string | null
+          contractor_name?: string | null
+          created_at?: string
+          description?: string | null
+          estimated_value?: number | null
+          fetched_at?: string
+          id?: string
+          issued_date?: string | null
+          permit_class?: string | null
+          permit_number: string
+          permit_type: string
+          property_id: string
+          raw_data?: Json | null
+          status?: string | null
+        }
+        Update: {
+          applied_date?: string | null
+          completed_date?: string | null
+          contractor_name?: string | null
+          created_at?: string
+          description?: string | null
+          estimated_value?: number | null
+          fetched_at?: string
+          id?: string
+          issued_date?: string | null
+          permit_class?: string | null
+          permit_number?: string
+          permit_type?: string
+          property_id?: string
+          raw_data?: Json | null
+          status?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "property_permits_property_id_fkey"
+            columns: ["property_id"]
+            isOneToOne: false
+            referencedRelation: "properties"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      property_photos: {
+        Row: {
+          caption: string | null
+          created_at: string
+          created_by: string | null
+          id: string
+          photo_url: string
+          property_id: string
+          sort_order: number
+        }
+        Insert: {
+          caption?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          photo_url: string
+          property_id: string
+          sort_order?: number
+        }
+        Update: {
+          caption?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          photo_url?: string
+          property_id?: string
+          sort_order?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "asset_photos_asset_id_fkey"
+            columns: ["property_id"]
+            isOneToOne: false
+            referencedRelation: "properties"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       share_links: {
         Row: {
