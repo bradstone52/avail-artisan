@@ -56,18 +56,33 @@ Deno.serve(async (req) => {
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    // Clean up address for API queries - extract street number and name
-    const addressClean = address
+    // Extract just the street number for a more flexible search
+    // Calgary addresses are formatted like "10 SMED LN SE"
+    const addressParts = address
       .replace(/,.*$/, '') // Remove everything after comma
-      .replace(/\s+(NE|NW|SE|SW|N|S|E|W)$/i, '') // Remove quadrant
       .replace(/\s+(Calgary|AB|Alberta).*$/i, '') // Remove city/province
       .trim()
-      .toUpperCase();
+      .toUpperCase()
+      .split(/\s+/);
+    
+    // Get street number (first part) and a few keywords from street name
+    const streetNumber = addressParts[0];
+    // Get the street name without common suffixes/types for flexible matching
+    const streetNameParts = addressParts.slice(1).filter(part => 
+      !['ST', 'STREET', 'AVE', 'AVENUE', 'DR', 'DRIVE', 'RD', 'ROAD', 'BLVD', 'BOULEVARD', 
+       'LN', 'LANE', 'PL', 'PLACE', 'CT', 'COURT', 'WAY', 'CRES', 'CRESCENT', 'TR', 'TRAIL',
+       'NE', 'NW', 'SE', 'SW', 'N', 'S', 'E', 'W'].includes(part)
+    );
+    
+    // Use just the street number and main street name for search
+    const searchAddress = streetNameParts.length > 0 
+      ? `${streetNumber} ${streetNameParts[0]}` 
+      : streetNumber;
 
-    console.log(`Fetching city data for: ${addressClean}`);
+    console.log(`Fetching city data for address: "${address}"`);
+    console.log(`Search pattern: "${searchAddress}"`);
 
-    // Build proper SoQL query - encode the entire $where clause properly
-    // The % for LIKE wildcards need to be in the query string, not double-encoded
+    // Build proper SoQL query
     const buildSoqlUrl = (baseUrl: string, field: string, searchValue: string, extraParams: string = '') => {
       const whereClause = `${field} like '%${searchValue}%'`;
       const params = new URLSearchParams();
@@ -83,16 +98,19 @@ Deno.serve(async (req) => {
     // Fetch assessment data
     let assessmentData: any = null;
     try {
-      const assessmentUrl = buildSoqlUrl(ASSESSMENT_API, 'address', addressClean, '$limit=5');
+      const assessmentUrl = buildSoqlUrl(ASSESSMENT_API, 'address', searchAddress, '$limit=10');
       console.log('Assessment URL:', assessmentUrl);
       const assessmentResp = await fetch(assessmentUrl);
       if (assessmentResp.ok) {
         const data = await assessmentResp.json();
+        console.log(`Assessment API returned ${data?.length || 0} results`);
         if (data && data.length > 0) {
-          // Find the best match
-          assessmentData = data[0];
-          console.log('Found assessment data:', assessmentData);
+          // Find the best match - prefer exact street number match
+          assessmentData = data.find((d: any) => d.address?.startsWith(streetNumber + ' ')) || data[0];
+          console.log('Selected assessment data:', assessmentData?.address);
         }
+      } else {
+        console.log('Assessment API error:', assessmentResp.status, await assessmentResp.text());
       }
     } catch (err) {
       console.error('Error fetching assessment data:', err);
@@ -101,13 +119,19 @@ Deno.serve(async (req) => {
     // Fetch building permits
     const permits: any[] = [];
     try {
-      const permitsUrl = buildSoqlUrl(PERMITS_API, 'originaladdress', addressClean, '$order=issueddate DESC');
+      const permitsUrl = buildSoqlUrl(PERMITS_API, 'originaladdress', searchAddress, '$order=issueddate DESC');
       console.log('Permits URL:', permitsUrl);
       const permitsResp = await fetch(permitsUrl);
       if (permitsResp.ok) {
         const data = await permitsResp.json();
-        permits.push(...(data || []));
-        console.log(`Found ${permits.length} permits`);
+        // Filter to only permits that match our street number
+        const filtered = (data || []).filter((p: any) => 
+          p.originaladdress?.toUpperCase().startsWith(streetNumber + ' ')
+        );
+        permits.push(...filtered);
+        console.log(`Permits API returned ${data?.length || 0} results, filtered to ${permits.length}`);
+      } else {
+        console.log('Permits API error:', permitsResp.status, await permitsResp.text());
       }
     } catch (err) {
       console.error('Error fetching permits:', err);
@@ -116,15 +140,19 @@ Deno.serve(async (req) => {
     // Fetch land use data
     let landUseData: any = null;
     try {
-      const landUseUrl = buildSoqlUrl(LAND_USE_API, 'address', addressClean, '$limit=5');
+      const landUseUrl = buildSoqlUrl(LAND_USE_API, 'address', searchAddress, '$limit=10');
       console.log('Land use URL:', landUseUrl);
       const landUseResp = await fetch(landUseUrl);
       if (landUseResp.ok) {
         const data = await landUseResp.json();
+        console.log(`Land use API returned ${data?.length || 0} results`);
         if (data && data.length > 0) {
-          landUseData = data[0];
-          console.log('Found land use data:', landUseData);
+          // Find best match
+          landUseData = data.find((d: any) => d.address?.startsWith(streetNumber + ' ')) || data[0];
+          console.log('Selected land use data:', landUseData?.address);
         }
+      } else {
+        console.log('Land use API error:', landUseResp.status, await landUseResp.text());
       }
     } catch (err) {
       console.error('Error fetching land use data:', err);
