@@ -66,10 +66,24 @@ Deno.serve(async (req) => {
 
     console.log(`Fetching city data for: ${addressClean}`);
 
+    // Build proper SoQL query - encode the entire $where clause properly
+    // The % for LIKE wildcards need to be in the query string, not double-encoded
+    const buildSoqlUrl = (baseUrl: string, field: string, searchValue: string, extraParams: string = '') => {
+      const whereClause = `${field} like '%${searchValue}%'`;
+      const params = new URLSearchParams();
+      params.set('$where', whereClause);
+      params.set('$limit', '50');
+      if (extraParams) {
+        const extra = new URLSearchParams(extraParams);
+        extra.forEach((val, key) => params.set(key, val));
+      }
+      return `${baseUrl}?${params.toString()}`;
+    };
+
     // Fetch assessment data
     let assessmentData: any = null;
     try {
-      const assessmentUrl = `${ASSESSMENT_API}?$where=address like '%25${encodeURIComponent(addressClean)}%25'&$limit=5`;
+      const assessmentUrl = buildSoqlUrl(ASSESSMENT_API, 'address', addressClean, '$limit=5');
       console.log('Assessment URL:', assessmentUrl);
       const assessmentResp = await fetch(assessmentUrl);
       if (assessmentResp.ok) {
@@ -87,7 +101,7 @@ Deno.serve(async (req) => {
     // Fetch building permits
     const permits: any[] = [];
     try {
-      const permitsUrl = `${PERMITS_API}?$where=originaladdress like '%25${encodeURIComponent(addressClean)}%25'&$limit=50&$order=issueddate DESC`;
+      const permitsUrl = buildSoqlUrl(PERMITS_API, 'originaladdress', addressClean, '$order=issueddate DESC');
       console.log('Permits URL:', permitsUrl);
       const permitsResp = await fetch(permitsUrl);
       if (permitsResp.ok) {
@@ -102,7 +116,7 @@ Deno.serve(async (req) => {
     // Fetch land use data
     let landUseData: any = null;
     try {
-      const landUseUrl = `${LAND_USE_API}?$where=address like '%25${encodeURIComponent(addressClean)}%25'&$limit=5`;
+      const landUseUrl = buildSoqlUrl(LAND_USE_API, 'address', addressClean, '$limit=5');
       console.log('Land use URL:', landUseUrl);
       const landUseResp = await fetch(landUseUrl);
       if (landUseResp.ok) {
