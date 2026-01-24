@@ -95,7 +95,8 @@ export default function PropertyDetail() {
   };
 
   const formatCurrency = (value: number | null) => {
-    if (!value) return '-';
+    if (value === null || value === undefined) return '-';
+    if (!Number.isFinite(value)) return '-';
     return new Intl.NumberFormat('en-CA', { 
       style: 'currency', 
       currency: 'CAD',
@@ -311,14 +312,6 @@ export default function PropertyDetail() {
                     <div>
                       <p className="text-muted-foreground">Tax Class</p>
                       <p className="font-medium">{property.tax_class || '-'}</p>
-                    </div>
-                    <div>
-                      <p className="text-muted-foreground">Land Value</p>
-                      <p className="font-medium">{formatCurrency(property.assessed_land_value)}</p>
-                    </div>
-                    <div>
-                      <p className="text-muted-foreground">Improvement Value</p>
-                      <p className="font-medium">{formatCurrency(property.assessed_improvement_value)}</p>
                     </div>
                     <div>
                       <p className="text-muted-foreground">Total Assessed</p>
