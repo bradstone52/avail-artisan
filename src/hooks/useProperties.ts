@@ -379,6 +379,93 @@ export function useProperties() {
     fetchProperties();
   }, [fetchProperties]);
 
+  const importFromMarketListings = async (): Promise<{ created: number; skipped: number }> => {
+    try {
+      const { data: userData } = await supabase.auth.getUser();
+      
+      // Fetch all market listings
+      const { data: marketListings, error: mlError } = await supabase
+        .from('market_listings')
+        .select('address, city, submarket, size_sf, clear_height_ft, dock_doors, drive_in_doors, listing_type');
+
+      if (mlError) throw mlError;
+
+      // Fetch existing property addresses for comparison
+      const { data: existingProperties, error: propError } = await supabase
+        .from('properties')
+        .select('address');
+
+      if (propError) throw propError;
+
+      // Normalize addresses for comparison
+      const normalizeAddress = (addr: string) => addr?.toLowerCase().trim() || '';
+      const existingAddresses = new Set(
+        (existingProperties || []).map(p => normalizeAddress(p.address))
+      );
+
+      // Get unique addresses from market listings that don't exist in properties
+      const uniqueListings = new Map<string, typeof marketListings[0]>();
+      
+      for (const listing of marketListings || []) {
+        const normalized = normalizeAddress(listing.address);
+        if (!normalized) continue;
+        
+        // Skip if already exists in properties
+        if (existingAddresses.has(normalized)) continue;
+        
+        // Keep first occurrence (or one with more data)
+        if (!uniqueListings.has(normalized)) {
+          uniqueListings.set(normalized, listing);
+        }
+      }
+
+      // Create properties from unique listings
+      const toCreate = Array.from(uniqueListings.values());
+      let created = 0;
+      let skipped = 0;
+
+      for (const listing of toCreate) {
+        const { error } = await supabase
+          .from('properties')
+          .insert({
+            name: listing.address, // Use address as name initially
+            address: listing.address,
+            city: listing.city || '',
+            submarket: listing.submarket || '',
+            size_sf: listing.size_sf || null,
+            clear_height_ft: listing.clear_height_ft || null,
+            dock_doors: listing.dock_doors || null,
+            drive_in_doors: listing.drive_in_doors || null,
+            property_type: listing.listing_type || null,
+            created_by: userData.user?.id
+          });
+
+        if (error) {
+          console.error('Error creating property:', error);
+          skipped++;
+        } else {
+          created++;
+        }
+      }
+
+      toast({ 
+        title: 'Import complete',
+        description: `Created ${created} properties, skipped ${skipped} (${existingAddresses.size} already existed)`
+      });
+      
+      await fetchProperties();
+      return { created, skipped };
+    } catch (error: any) {
+      console.error('Error importing from market listings:', error);
+      toast({
+        title: 'Error importing properties',
+        description: error.message,
+        variant: 'destructive'
+      });
+      return { created: 0, skipped: 0 };
+    }
+  };
+
   return {
     properties,
     loading,
@@ -387,7 +474,8 @@ export function useProperties() {
     updateProperty,
     deleteProperty,
     linkListing,
-    unlinkListing
+    unlinkListing,
+    importFromMarketListings
   };
 }
 

@@ -7,7 +7,7 @@ import { PropertyEditDialog } from '@/components/properties/PropertyEditDialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent } from '@/components/ui/card';
-import { Plus, Search, Building2, MapPin, RefreshCw, FileText } from 'lucide-react';
+import { Plus, Search, Building2, MapPin, RefreshCw, FileText, Download } from 'lucide-react';
 import {
   Select,
   SelectContent,
@@ -20,7 +20,8 @@ const ITEMS_PER_PAGE = 25;
 
 export default function Properties() {
   const navigate = useNavigate();
-  const { properties, loading, fetchProperties, createProperty, updateProperty, deleteProperty, linkListing, unlinkListing } = useProperties();
+  const { properties, loading, fetchProperties, createProperty, updateProperty, deleteProperty, linkListing, unlinkListing, importFromMarketListings } = useProperties();
+  const [isImporting, setIsImporting] = useState(false);
   
   // State
   const [searchQuery, setSearchQuery] = useState('');
@@ -161,6 +162,22 @@ export default function Properties() {
             </p>
           </div>
           <div className="flex gap-2">
+            <Button 
+              variant="outline" 
+              onClick={async () => {
+                setIsImporting(true);
+                await importFromMarketListings();
+                setIsImporting(false);
+              }}
+              disabled={isImporting}
+            >
+              {isImporting ? (
+                <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+              ) : (
+                <Download className="h-4 w-4 mr-2" />
+              )}
+              Import from Listings
+            </Button>
             <Button variant="outline" onClick={() => fetchProperties()}>
               <RefreshCw className="h-4 w-4 mr-2" />
               Refresh
