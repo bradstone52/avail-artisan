@@ -43,6 +43,7 @@ import {
   Trash2,
 } from 'lucide-react';
 import { format } from 'date-fns';
+import { formatSubmarket } from '@/lib/formatters';
 
 function formatCurrency(value: number | null): string {
   if (value === null) return '—';
@@ -289,7 +290,7 @@ export default function Transactions() {
                         </div>
                         <div className="text-sm text-muted-foreground">
                           {transaction.city}
-                          {transaction.submarket && ` • ${transaction.submarket}`}
+                          {transaction.submarket && ` • ${formatSubmarket(transaction.submarket)}`}
                         </div>
                       </div>
                     </TableCell>

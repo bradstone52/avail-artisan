@@ -3,6 +3,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Search, MapPin, AlertCircle, Building, ArrowUpDown, ZoomOut } from "lucide-react";
 import { setOptions, importLibrary } from "@googlemaps/js-api-loader";
+import { formatSubmarket } from '@/lib/formatters';
 
 export interface MapListing {
   id: string;
@@ -202,7 +203,7 @@ export function DistributionMapView({
               ${listing.property_name || listing.display_address || listing.address}
             </div>
             <div style="font-size: 14px; color: #555; margin-bottom: 12px; line-height: 1.35;">
-              ${listing.city} · ${listing.submarket}
+              ${listing.city} · ${formatSubmarket(listing.submarket)}
             </div>
             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px 12px; font-size: 14px;">
               <div><strong>${listing.size_sf?.toLocaleString() || "—"}</strong> SF</div>
@@ -600,7 +601,7 @@ export function DistributionMapView({
                         {listing.property_name || listing.display_address || listing.address}
                       </div>
                       <div className="text-xs text-muted-foreground truncate max-w-[180px]">
-                        {listing.submarket}
+                        {formatSubmarket(listing.submarket)}
                       </div>
                     </td>
                     <td className="p-3 text-muted-foreground">{listing.city}</td>

@@ -5,6 +5,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { Sparkles, RefreshCw, Edit3, Check, AlertCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { formatSubmarket } from '@/lib/formatters';
 
 interface ExecutiveNote {
   listingId: string;
@@ -168,7 +169,7 @@ export function GenerateContentStep({
                   {listing.property_name || listing.address}
                 </h4>
                 <p className="text-sm text-muted-foreground">
-                  {listing.submarket} • {listing.size_sf.toLocaleString()} SF
+                  {formatSubmarket(listing.submarket)} • {listing.size_sf.toLocaleString()} SF
                 </p>
               </div>
               <div className="flex items-center gap-2">

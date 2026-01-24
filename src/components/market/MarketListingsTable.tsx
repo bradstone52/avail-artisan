@@ -30,6 +30,7 @@ import { format, differenceInDays, parseISO } from 'date-fns';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
+import { formatSubmarket } from '@/lib/formatters';
 
 export type SortDirection = 'asc' | 'desc' | null;
 export type SortableColumn = 'size_sf' | 'warehouse_sf' | 'office_sf' | 'dock_doors' | 'drive_in_doors' | 'power_amps';
@@ -463,7 +464,7 @@ export function MarketListingsTable({ listings, onEdit, onRefresh, sortColumn, s
               </TableCell>
               
               {/* Submarket */}
-              <TableCell className="text-sm">{listing.submarket || '-'}</TableCell>
+              <TableCell className="text-sm">{formatSubmarket(listing.submarket)}</TableCell>
               
               {/* City */}
               <TableCell className="text-sm">{listing.city || '-'}</TableCell>

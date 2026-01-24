@@ -9,6 +9,7 @@ import { ExternalLink, Search, Sparkles, Check, X, Loader2, RefreshCw, Copy } fr
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import type { MarketListing } from '@/hooks/useMarketListings';
+import { formatSubmarket } from '@/lib/formatters';
 
 interface FixLinksDialogProps {
   open: boolean;
@@ -236,7 +237,7 @@ export function FixLinksDialog({ open, onOpenChange, listings, onListingUpdated 
             </Badge>
           </div>
           <div className="text-xs text-muted-foreground mb-2">
-            {listing.submarket} • {listing.size_sf?.toLocaleString()} SF
+            {formatSubmarket(listing.submarket)} • {listing.size_sf?.toLocaleString()} SF
             {listing.broker_source && ` • ${listing.broker_source}`}
           </div>
           
