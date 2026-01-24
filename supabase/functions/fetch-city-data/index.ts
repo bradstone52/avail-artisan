@@ -14,6 +14,10 @@ interface FetchCityDataRequest {
 // City of Calgary Open Data API endpoints
 const ASSESSMENT_API = 'https://data.calgary.ca/resource/4bsw-nn7w.json'; // Current year property assessments (public)
 const PERMITS_API = 'https://data.calgary.ca/resource/c2es-76ed.json';
+const PARCEL_API = 'https://data.calgary.ca/resource/4ur7-wsgc.json'; // Historical parcel data with legal descriptions
+
+// 2025 Calgary non-residential mill rate (City + Provincial)
+const NON_RESIDENTIAL_MILL_RATE = 0.02182860;
 
 Deno.serve(async (req) => {
   // Handle CORS preflight
@@ -163,6 +167,27 @@ Deno.serve(async (req) => {
       console.error('Error fetching permits:', err);
     }
 
+    // Fetch parcel data for legal description (if we have a roll number)
+    let parcelData: any = null;
+    const rollNumber = assessmentData?.roll_number || assessmentData?.rollnumber;
+    if (rollNumber) {
+      try {
+        // Query by roll number for exact match
+        const parcelUrl = `${PARCEL_API}?roll_number=${rollNumber}&$limit=1&$order=roll_year DESC`;
+        console.log('Parcel URL:', parcelUrl);
+        const parcelResp = await fetch(parcelUrl);
+        if (parcelResp.ok) {
+          const data = await parcelResp.json();
+          if (data && data.length > 0) {
+            parcelData = data[0];
+            console.log('Parcel data keys:', Object.keys(parcelData).slice(0, 30).join(', '));
+          }
+        }
+      } catch (err) {
+        console.error('Error fetching parcel data:', err);
+      }
+    }
+
     // Note: Land use and community data are included in the assessment dataset (4bsw-nn7w)
     // No separate land use API call needed
 
@@ -171,6 +196,7 @@ Deno.serve(async (req) => {
       city_data_fetched_at: new Date().toISOString(),
       city_data_raw: {
         assessment: assessmentData,
+        parcel: parcelData,
         permits_count: permits.length
       }
     };
@@ -208,8 +234,15 @@ Deno.serve(async (req) => {
         assessmentData.class
       );
 
-      // Legal description varies by dataset; try a few known keys, then fall back to any key containing "legal"
+      // Legal description - try parcel dataset first (most reliable), then assessment data
       updateData.legal_description =
+        // First try parcel data (has dedicated legal_description field)
+        firstNonEmpty(
+          parcelData?.legal_description,
+          parcelData?.legal_desc,
+          parcelData?.legaldescription
+        ) ??
+        // Then try assessment data
         firstNonEmpty(
           assessmentData.legal_description,
           assessmentData.legal_desc,
@@ -217,7 +250,16 @@ Deno.serve(async (req) => {
           assessmentData.legal_description_1,
           assessmentData.legal
         ) ??
+        // Fallback: search for any key containing "legal" in parcel data
         ((): string | null => {
+          if (parcelData) {
+            const v = findFirstMatchingKeyValue(
+              parcelData,
+              (k, val) => k.toLowerCase().includes('legal') && typeof val === 'string' && val.trim().length > 0
+            );
+            if (typeof v === 'string') return v;
+          }
+          // Then try assessment data
           const v = findFirstMatchingKeyValue(
             assessmentData,
             (k, val) => k.toLowerCase().includes('legal') && typeof val === 'string' && val.trim().length > 0

@@ -314,11 +314,30 @@ export default function PropertyDetail() {
                       <p className="text-muted-foreground">Tax Class</p>
                       <p className="font-medium">{property.tax_class || '-'}</p>
                     </div>
-                    <div className="col-span-2">
+                    <div>
                       <p className="text-muted-foreground">Total Assessed Value</p>
                       <p className="font-medium text-lg">{formatCurrency(property.assessed_value)}</p>
                     </div>
+                    <div>
+                      <p className="text-muted-foreground">Est. Annual Tax</p>
+                      <p className="font-medium text-lg">
+                        {property.assessed_value 
+                          ? formatCurrency(property.assessed_value * 0.02182860)
+                          : '-'
+                        }
+                      </p>
+                      <p className="text-xs text-muted-foreground">2025 mill rate: 2.18%</p>
+                    </div>
                   </div>
+                  {property.legal_description && (
+                    <>
+                      <Separator />
+                      <div className="text-sm">
+                        <p className="text-muted-foreground">Legal Description</p>
+                        <p className="font-medium font-mono text-xs">{property.legal_description}</p>
+                      </div>
+                    </>
+                  )}
                 </CardContent>
               </Card>
 
