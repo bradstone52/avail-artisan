@@ -150,17 +150,25 @@ Deno.serve(async (req) => {
 
     // Map assessment data to property fields (includes land use from same dataset)
     if (assessmentData) {
-      updateData.roll_number = assessmentData.roll_number || assessmentData.rollnumber || null;
-      updateData.assessed_land_value = assessmentData.assessed_land_value ? parseFloat(assessmentData.assessed_land_value) : null;
-      updateData.assessed_improvement_value = assessmentData.assessed_improvement_value ? parseFloat(assessmentData.assessed_improvement_value) : null;
-      updateData.assessed_value = assessmentData.current_year_total_assessment 
-        ? parseFloat(assessmentData.current_year_total_assessment)
-        : (updateData.assessed_land_value || 0) + (updateData.assessed_improvement_value || 0) || null;
-      updateData.tax_class = assessmentData.tax_class || assessmentData.assessment_class || null;
+      console.log('Full assessment data:', JSON.stringify(assessmentData));
+      updateData.roll_number = assessmentData.roll_number || null;
+      // Calgary API returns assessed_value directly (not split into land/improvement)
+      updateData.assessed_value = assessmentData.assessed_value 
+        ? parseFloat(assessmentData.assessed_value) 
+        : (assessmentData.nr_assessed_value ? parseFloat(assessmentData.nr_assessed_value) : null);
+      updateData.tax_class = assessmentData.assessment_class || null;
       updateData.legal_description = assessmentData.legal_description || null;
-      // Land use data is also in the assessment dataset
-      updateData.land_use_designation = assessmentData.land_use_designation || assessmentData.landuse || null;
-      updateData.community_name = assessmentData.community_name || assessmentData.comm_name || null;
+      // Land use and community data
+      updateData.land_use_designation = assessmentData.land_use_designation || null;
+      updateData.community_name = assessmentData.comm_name || null;
+      // Year built from year_of_construction
+      if (assessmentData.year_of_construction) {
+        updateData.year_built = parseInt(assessmentData.year_of_construction);
+      }
+      // Land size from land_size_ac
+      if (assessmentData.land_size_ac) {
+        updateData.land_acres = parseFloat(assessmentData.land_size_ac);
+      }
     }
 
     // Update property
