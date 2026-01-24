@@ -55,6 +55,33 @@ Deno.serve(async (req) => {
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
+    const parseNumber = (value: unknown): number | null => {
+      if (value === null || value === undefined) return null;
+      if (typeof value === 'number') return Number.isFinite(value) ? value : null;
+      if (typeof value !== 'string') return null;
+      const cleaned = value.replace(/[^0-9.-]/g, '');
+      if (!cleaned) return null;
+      const n = Number(cleaned);
+      return Number.isFinite(n) ? n : null;
+    };
+
+    const firstNonEmpty = (...vals: unknown[]): string | null => {
+      for (const v of vals) {
+        if (typeof v === 'string' && v.trim().length > 0) return v;
+      }
+      return null;
+    };
+
+    const findFirstMatchingKeyValue = (
+      obj: Record<string, unknown>,
+      predicate: (k: string, v: unknown) => boolean
+    ): unknown => {
+      for (const [k, v] of Object.entries(obj)) {
+        if (predicate(k, v)) return v;
+      }
+      return null;
+    };
+
     // Extract just the street number for a more flexible search
     // Calgary addresses are formatted like "10 SMED LN SE"
     const addressParts = address
@@ -150,25 +177,79 @@ Deno.serve(async (req) => {
 
     // Map assessment data to property fields (includes land use from same dataset)
     if (assessmentData) {
-      console.log('Full assessment data:', JSON.stringify(assessmentData));
-      updateData.roll_number = assessmentData.roll_number || null;
-      // Calgary API returns assessed_value directly (not split into land/improvement)
-      updateData.assessed_value = assessmentData.assessed_value 
-        ? parseFloat(assessmentData.assessed_value) 
-        : (assessmentData.nr_assessed_value ? parseFloat(assessmentData.nr_assessed_value) : null);
-      updateData.tax_class = assessmentData.assessment_class || null;
-      updateData.legal_description = assessmentData.legal_description || null;
-      // Land use and community data
-      updateData.land_use_designation = assessmentData.land_use_designation || null;
-      updateData.community_name = assessmentData.comm_name || null;
-      // Year built from year_of_construction
-      if (assessmentData.year_of_construction) {
-        updateData.year_built = parseInt(assessmentData.year_of_construction);
+      // Keep logs small to avoid truncation
+      try {
+        console.log('Assessment keys:', Object.keys(assessmentData).slice(0, 50).join(', '));
+      } catch {
+        // ignore
       }
-      // Land size from land_size_ac
-      if (assessmentData.land_size_ac) {
-        updateData.land_acres = parseFloat(assessmentData.land_size_ac);
-      }
+
+      updateData.roll_number = firstNonEmpty(assessmentData.roll_number, assessmentData.rollnumber);
+
+      // Calgary API sometimes returns numeric fields as strings with commas
+      updateData.assessed_value =
+        parseNumber(assessmentData.assessed_value) ??
+        parseNumber(assessmentData.current_year_total_assessment) ??
+        parseNumber(assessmentData.total_assessed) ??
+        parseNumber(assessmentData.nr_assessed_value);
+
+      // Annual tax (best-effort; dataset varies)
+      updateData.property_tax_annual =
+        parseNumber(assessmentData.property_tax_annual) ??
+        parseNumber(assessmentData.annual_tax) ??
+        parseNumber(assessmentData.tax_annual) ??
+        parseNumber(assessmentData.total_tax) ??
+        parseNumber(assessmentData.tax_amount) ??
+        parseNumber(assessmentData.tax);
+
+      updateData.tax_class = firstNonEmpty(
+        assessmentData.tax_class,
+        assessmentData.assessment_class,
+        assessmentData.class
+      );
+
+      // Legal description varies by dataset; try a few known keys, then fall back to any key containing "legal"
+      updateData.legal_description =
+        firstNonEmpty(
+          assessmentData.legal_description,
+          assessmentData.legal_desc,
+          assessmentData.legaldescription,
+          assessmentData.legal_description_1,
+          assessmentData.legal
+        ) ??
+        ((): string | null => {
+          const v = findFirstMatchingKeyValue(
+            assessmentData,
+            (k, val) => k.toLowerCase().includes('legal') && typeof val === 'string' && val.trim().length > 0
+          );
+          return typeof v === 'string' ? v : null;
+        })();
+
+      // Land use and community data (field names vary)
+      updateData.land_use_designation = firstNonEmpty(
+        assessmentData.land_use_designation,
+        assessmentData.landuse,
+        assessmentData.land_use
+      );
+      updateData.community_name = firstNonEmpty(
+        assessmentData.community_name,
+        assessmentData.comm_name,
+        assessmentData.community
+      );
+
+      // Year built
+      const yearBuilt =
+        parseNumber(assessmentData.year_of_construction) ??
+        parseNumber(assessmentData.year_built) ??
+        parseNumber(assessmentData.construction_year) ??
+        parseNumber(assessmentData.yearbuilt);
+      updateData.year_built = yearBuilt && yearBuilt > 0 ? Math.trunc(yearBuilt) : null;
+
+      // Land size acres
+      updateData.land_acres =
+        parseNumber(assessmentData.land_size_ac) ??
+        parseNumber(assessmentData.land_acres) ??
+        parseNumber(assessmentData.landsizeac);
     }
 
     // Update property
