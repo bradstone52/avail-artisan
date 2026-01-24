@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Listing, IssueSettings } from '@/lib/types';
 import { format } from 'date-fns';
+import { formatSubmarket } from '@/lib/formatters';
 
 interface PreviewStepProps {
   settings: IssueSettings;
@@ -189,7 +190,7 @@ export function PreviewStep({
                           overflowWrap: 'anywhere'
                         }}
                       >
-                        {listing.submarket}
+                        {formatSubmarket(listing.submarket)}
                       </div>
                     </td>
                     <td className="text-sm">
@@ -238,7 +239,7 @@ export function PreviewStep({
                 {listing.property_name || listing.address}
               </h2>
               <p className="text-caption">
-                {[listing.city, listing.submarket].filter(Boolean).join(' · ')}
+                {[listing.city, formatSubmarket(listing.submarket)].filter(Boolean).join(' · ')}
               </p>
               <p className="text-micro mt-2">ID: {listing.listing_id}</p>
             </div>

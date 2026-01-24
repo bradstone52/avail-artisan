@@ -14,6 +14,7 @@ import {
 } from '@/components/ui/table';
 import { Search, CheckSquare, Square, Filter } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { formatSubmarket } from '@/lib/formatters';
 
 interface SelectListingsStepProps {
   listings: Listing[];
@@ -167,7 +168,7 @@ export function SelectListingsStep({
                       )}
                     </div>
                   </TableCell>
-                  <TableCell className="text-sm">{listing.submarket}</TableCell>
+                  <TableCell className="text-sm">{formatSubmarket(listing.submarket)}</TableCell>
                   <TableCell className="text-right font-medium text-sm">
                     {listing.size_sf.toLocaleString()} SF
                   </TableCell>

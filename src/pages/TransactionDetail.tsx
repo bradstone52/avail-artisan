@@ -19,6 +19,7 @@ import {
   Undo2,
 } from 'lucide-react';
 import { format } from 'date-fns';
+import { formatSubmarket } from '@/lib/formatters';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -171,7 +172,7 @@ export default function TransactionDetail() {
             </div>
             <p className="text-muted-foreground">
               {transaction.city}
-              {transaction.submarket && ` • ${transaction.submarket}`}
+              {transaction.submarket && ` • ${formatSubmarket(transaction.submarket)}`}
             </p>
           </div>
           <div className="flex gap-2">

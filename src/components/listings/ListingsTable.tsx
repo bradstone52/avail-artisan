@@ -45,6 +45,7 @@ import { cn } from '@/lib/utils';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { EditPinLocationDialog } from './EditPinLocationDialog';
+import { formatSubmarket } from '@/lib/formatters';
 
 interface ListingsTableProps {
   listings: Listing[];
@@ -329,7 +330,7 @@ export function ListingsTable({ listings, onToggleInclude, onListingUpdated }: L
                       <p className="text-xs text-muted-foreground">{listing.city}</p>
                     </div>
                   </TableCell>
-                  <TableCell className="text-sm">{listing.submarket}</TableCell>
+                  <TableCell className="text-sm">{formatSubmarket(listing.submarket)}</TableCell>
                   <TableCell className="text-right font-medium text-sm">
                     {formatSize(listing.size_sf)}
                   </TableCell>

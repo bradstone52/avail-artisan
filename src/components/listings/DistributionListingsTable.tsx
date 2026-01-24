@@ -42,6 +42,7 @@ import { cn } from '@/lib/utils';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { EditDistributionPinDialog } from './EditDistributionPinDialog';
+import { formatSubmarket } from '@/lib/formatters';
 
 interface DistributionListingsTableProps {
   listings: Listing[];
@@ -556,7 +557,7 @@ export function DistributionListingsTable({ listings, onListingUpdated }: Distri
                     </TableCell>
                     
                     {/* Submarket */}
-                    <TableCell className="text-sm">{listing.submarket}</TableCell>
+                    <TableCell className="text-sm">{formatSubmarket(listing.submarket)}</TableCell>
                     
                     {/* Size */}
                     <TableCell className="text-right font-mono text-sm">

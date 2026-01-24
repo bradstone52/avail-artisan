@@ -9,6 +9,7 @@ import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Separator } from '@/components/ui/separator';
 import { useToast } from '@/hooks/use-toast';
+import { formatSubmarket } from '@/lib/formatters';
 import {
   ArrowLeft,
   Building2,
@@ -266,7 +267,7 @@ export default function PropertyDetail() {
                     </div>
                     <div>
                       <p className="text-muted-foreground">Submarket</p>
-                      <p className="font-medium">{property.submarket || '-'}</p>
+                      <p className="font-medium">{formatSubmarket(property.submarket)}</p>
                     </div>
                     <div>
                       <p className="text-muted-foreground">Zoning</p>
@@ -313,19 +314,10 @@ export default function PropertyDetail() {
                       <p className="text-muted-foreground">Tax Class</p>
                       <p className="font-medium">{property.tax_class || '-'}</p>
                     </div>
-                    <div>
-                      <p className="text-muted-foreground">Total Assessed</p>
-                      <p className="font-medium">{formatCurrency(property.assessed_value)}</p>
+                    <div className="col-span-2">
+                      <p className="text-muted-foreground">Total Assessed Value</p>
+                      <p className="font-medium text-lg">{formatCurrency(property.assessed_value)}</p>
                     </div>
-                    <div>
-                      <p className="text-muted-foreground">Annual Tax</p>
-                      <p className="font-medium">{formatCurrency(property.property_tax_annual)}</p>
-                    </div>
-                  </div>
-                  <Separator />
-                  <div className="text-sm">
-                    <p className="text-muted-foreground">Legal Description</p>
-                    <p className="font-medium font-mono text-xs">{property.legal_description || '-'}</p>
                   </div>
                 </CardContent>
               </Card>
@@ -407,7 +399,7 @@ export default function PropertyDetail() {
                                 ) : (
                                   <>
                                     <Download className="h-4 w-4 mr-1" />
-                                    Archive
+                                    Save Brochure
                                   </>
                                 )}
                               </Button>
