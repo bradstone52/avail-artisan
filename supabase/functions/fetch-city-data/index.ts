@@ -12,9 +12,8 @@ interface FetchCityDataRequest {
 }
 
 // City of Calgary Open Data API endpoints
-const ASSESSMENT_API = 'https://data.calgary.ca/resource/6zp6-pxei.json';
+const ASSESSMENT_API = 'https://data.calgary.ca/resource/4bsw-nn7w.json'; // Current year property assessments (public)
 const PERMITS_API = 'https://data.calgary.ca/resource/c2es-76ed.json';
-const LAND_USE_API = 'https://data.calgary.ca/resource/qe6k-p9nh.json';
 
 Deno.serve(async (req) => {
   // Handle CORS preflight
@@ -137,38 +136,19 @@ Deno.serve(async (req) => {
       console.error('Error fetching permits:', err);
     }
 
-    // Fetch land use data
-    let landUseData: any = null;
-    try {
-      const landUseUrl = buildSoqlUrl(LAND_USE_API, 'address', searchAddress, '$limit=10');
-      console.log('Land use URL:', landUseUrl);
-      const landUseResp = await fetch(landUseUrl);
-      if (landUseResp.ok) {
-        const data = await landUseResp.json();
-        console.log(`Land use API returned ${data?.length || 0} results`);
-        if (data && data.length > 0) {
-          // Find best match
-          landUseData = data.find((d: any) => d.address?.startsWith(streetNumber + ' ')) || data[0];
-          console.log('Selected land use data:', landUseData?.address);
-        }
-      } else {
-        console.log('Land use API error:', landUseResp.status, await landUseResp.text());
-      }
-    } catch (err) {
-      console.error('Error fetching land use data:', err);
-    }
+    // Note: Land use and community data are included in the assessment dataset (4bsw-nn7w)
+    // No separate land use API call needed
 
     // Update property with fetched data
     const updateData: any = {
       city_data_fetched_at: new Date().toISOString(),
       city_data_raw: {
         assessment: assessmentData,
-        land_use: landUseData,
         permits_count: permits.length
       }
     };
 
-    // Map assessment data to property fields
+    // Map assessment data to property fields (includes land use from same dataset)
     if (assessmentData) {
       updateData.roll_number = assessmentData.roll_number || assessmentData.rollnumber || null;
       updateData.assessed_land_value = assessmentData.assessed_land_value ? parseFloat(assessmentData.assessed_land_value) : null;
@@ -178,12 +158,9 @@ Deno.serve(async (req) => {
         : (updateData.assessed_land_value || 0) + (updateData.assessed_improvement_value || 0) || null;
       updateData.tax_class = assessmentData.tax_class || assessmentData.assessment_class || null;
       updateData.legal_description = assessmentData.legal_description || null;
-    }
-
-    // Map land use data
-    if (landUseData) {
-      updateData.land_use_designation = landUseData.land_use_designation || landUseData.landusedes || null;
-      updateData.community_name = landUseData.community_name || landUseData.comm_name || null;
+      // Land use data is also in the assessment dataset
+      updateData.land_use_designation = assessmentData.land_use_designation || assessmentData.landuse || null;
+      updateData.community_name = assessmentData.community_name || assessmentData.comm_name || null;
     }
 
     // Update property
@@ -232,7 +209,6 @@ Deno.serve(async (req) => {
     return new Response(JSON.stringify({ 
       success: true,
       assessmentFound: !!assessmentData,
-      landUseFound: !!landUseData,
       permitsFound: permits.length
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' }
