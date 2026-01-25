@@ -37,6 +37,7 @@ export default function PropertyDetail() {
   
   const [fetchingCityData, setFetchingCityData] = useState(false);
   const [downloadingBrochure, setDownloadingBrochure] = useState<string | null>(null);
+  const [downloadingAllBrochures, setDownloadingAllBrochures] = useState(false);
 
   // Fetch City of Calgary data
   const handleFetchCityData = async () => {
@@ -93,6 +94,56 @@ export default function PropertyDetail() {
     } finally {
       setDownloadingBrochure(null);
     }
+  };
+
+  // Download all brochures at once
+  const handleDownloadAllBrochures = async () => {
+    if (!property || !property.linked_listings) return;
+    
+    const listingsWithBrochures = property.linked_listings.filter(l => l.link);
+    if (listingsWithBrochures.length === 0) {
+      toast({
+        title: 'No brochures to save',
+        description: 'None of the linked listings have brochure links.',
+        variant: 'destructive'
+      });
+      return;
+    }
+    
+    setDownloadingAllBrochures(true);
+    let saved = 0;
+    let failed = 0;
+    
+    for (const listing of listingsWithBrochures) {
+      try {
+        const { error } = await supabase.functions.invoke('download-brochure', {
+          body: { 
+            propertyId: property.id, 
+            marketListingId: listing.id,
+            listingId: listing.listing_id,
+            brochureUrl: listing.link!
+          }
+        });
+        
+        if (error) {
+          console.error(`Failed to save brochure for ${listing.listing_id}:`, error);
+          failed++;
+        } else {
+          saved++;
+        }
+      } catch (err) {
+        console.error(`Error saving brochure for ${listing.listing_id}:`, err);
+        failed++;
+      }
+    }
+    
+    setDownloadingAllBrochures(false);
+    refetch();
+    
+    toast({
+      title: 'Bulk save complete',
+      description: `Saved ${saved} brochure${saved !== 1 ? 's' : ''}${failed > 0 ? `, ${failed} failed` : ''}`
+    });
   };
 
   const formatCurrency = (value: number | null) => {
@@ -369,11 +420,27 @@ export default function PropertyDetail() {
           {/* Listings Tab */}
           <TabsContent value="listings" className="space-y-4">
             <Card>
-              <CardHeader>
-                <CardTitle>Linked Listings</CardTitle>
-                <CardDescription>
-                  Market listings associated with this property
-                </CardDescription>
+              <CardHeader className="flex flex-row items-center justify-between">
+                <div>
+                  <CardTitle>Linked Listings</CardTitle>
+                  <CardDescription>
+                    Market listings associated with this property
+                  </CardDescription>
+                </div>
+                {property.linked_listings && property.linked_listings.some(l => l.link) && (
+                  <Button 
+                    variant="outline" 
+                    onClick={handleDownloadAllBrochures}
+                    disabled={downloadingAllBrochures}
+                  >
+                    {downloadingAllBrochures ? (
+                      <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                    ) : (
+                      <Download className="h-4 w-4 mr-2" />
+                    )}
+                    Save All Brochures
+                  </Button>
+                )}
               </CardHeader>
               <CardContent>
                 {property.linked_listings && property.linked_listings.length > 0 ? (
