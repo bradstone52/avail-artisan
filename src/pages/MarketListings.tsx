@@ -712,7 +712,7 @@ export default function MarketListings() {
         {/* Edit Dialog */}
         <MarketListingEditDialog
           listing={editingListing}
-          open={editingListing !== null}
+          open={!!editingListing && editingListing !== null}
           onOpenChange={(open) => {
             if (!open) setEditingListing(null);
           }}
