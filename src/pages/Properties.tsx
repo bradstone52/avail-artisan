@@ -233,27 +233,9 @@ export default function Properties() {
                   description: 'Fetching city data for all properties...'
                 });
                 
-                // Start polling for progress
-                const pollInterval = setInterval(async () => {
-                  const { data } = await supabase
-                    .from('workspace_settings')
-                    .select('value')
-                    .eq('key', 'city_data_sync_progress')
-                    .single();
-                  
-                  if (data?.value) {
-                    const progress = data.value as { current: number; total: number; status: string };
-                    setSyncProgress({ current: progress.current, total: progress.total });
-                    
-                    if (progress.status === 'complete') {
-                      clearInterval(pollInterval);
-                    }
-                  }
-                }, 1000);
-                
                 try {
-                  const { data, error } = await supabase.functions.invoke('nightly-property-sync');
-                  clearInterval(pollInterval);
+                  // Trigger the sync - this returns immediately
+                  const { error } = await supabase.functions.invoke('nightly-property-sync');
                   
                   if (error) {
                     queueGlobalToast({
@@ -261,21 +243,50 @@ export default function Properties() {
                       description: error.message,
                       variant: 'destructive'
                     });
-                  } else {
-                    fetchProperties();
-                    queueGlobalToast({
-                      title: 'City data sync complete',
-                      description: `Fetched ${data?.results?.cityDataFetched || 0} properties`
-                    });
+                    setIsFetchingCityData(false);
+                    return;
                   }
+                  
+                  // Start polling for progress (sync runs in background via batched calls)
+                  const pollInterval = setInterval(async () => {
+                    const { data } = await supabase
+                      .from('workspace_settings')
+                      .select('value')
+                      .eq('key', 'city_data_sync_progress')
+                      .maybeSingle();
+                    
+                    if (data?.value) {
+                      const progress = data.value as { current: number; total: number; status: string };
+                      setSyncProgress({ current: progress.current, total: progress.total });
+                      
+                      if (progress.status === 'complete') {
+                        clearInterval(pollInterval);
+                        fetchProperties();
+                        queueGlobalToast({
+                          title: 'City data sync complete',
+                          description: `Fetched ${progress.total} properties`
+                        });
+                        setIsFetchingCityData(false);
+                        setSyncProgress(null);
+                      } else if (progress.status === 'failed') {
+                        clearInterval(pollInterval);
+                        queueGlobalToast({
+                          title: 'Sync failed',
+                          description: 'An error occurred during sync',
+                          variant: 'destructive'
+                        });
+                        setIsFetchingCityData(false);
+                        setSyncProgress(null);
+                      }
+                    }
+                  }, 1000);
+                  
                 } catch (err: any) {
-                  clearInterval(pollInterval);
                   queueGlobalToast({
                     title: 'Sync failed',
                     description: err.message,
                     variant: 'destructive'
                   });
-                } finally {
                   setIsFetchingCityData(false);
                   setSyncProgress(null);
                 }
@@ -285,7 +296,7 @@ export default function Properties() {
               {isFetchingCityData ? (
                 <>
                   <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  {syncProgress ? `Syncing ${syncProgress.current}/${syncProgress.total}` : 'Syncing...'}
+                  {syncProgress ? `Syncing ${syncProgress.current}/${syncProgress.total}` : 'Starting...'}
                 </>
               ) : (
                 <>
