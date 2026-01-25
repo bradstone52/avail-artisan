@@ -54,6 +54,43 @@ Deno.serve(async (req) => {
       });
     }
 
+    // Validate URL format
+    let validatedUrl: URL;
+    try {
+      validatedUrl = new URL(brochureUrl);
+      // Check for obviously invalid URLs
+      if (!['http:', 'https:'].includes(validatedUrl.protocol)) {
+        return new Response(JSON.stringify({ 
+          error: 'Invalid URL protocol - only HTTP/HTTPS supported',
+          status: 'invalid_url',
+          url: brochureUrl
+        }), {
+          status: 200,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        });
+      }
+      // Check for malformed domains (like "www.j")
+      if (!validatedUrl.hostname.includes('.') || validatedUrl.hostname.length < 4) {
+        return new Response(JSON.stringify({ 
+          error: 'Invalid URL domain',
+          status: 'invalid_url',
+          url: brochureUrl
+        }), {
+          status: 200,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        });
+      }
+    } catch (urlError) {
+      return new Response(JSON.stringify({ 
+        error: 'Malformed URL',
+        status: 'invalid_url',
+        url: brochureUrl
+      }), {
+        status: 200,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
+    }
+
     console.log(`Downloading brochure for property ${propertyId} from ${brochureUrl}`);
 
     // Use service role for storage operations
@@ -84,42 +121,86 @@ Deno.serve(async (req) => {
     // Download the PDF with browser-like headers
     console.log('Fetching brochure from URL...');
     
-    // Parse the URL to get the origin for Referer header
-    let urlOrigin = '';
+    let pdfResponse: Response;
     try {
-      const parsedUrl = new URL(brochureUrl);
-      urlOrigin = parsedUrl.origin;
-    } catch {
-      urlOrigin = '';
-    }
-    
-    const pdfResponse = await fetch(brochureUrl, {
-      headers: {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-        'Accept': 'application/pdf,application/octet-stream,*/*;q=0.8',
-        'Accept-Language': 'en-US,en;q=0.9',
-        'Accept-Encoding': 'gzip, deflate, br',
-        'Referer': urlOrigin ? `${urlOrigin}/` : '',
-        'Sec-Fetch-Dest': 'document',
-        'Sec-Fetch-Mode': 'navigate',
-        'Sec-Fetch-Site': 'same-origin',
-        'Cache-Control': 'no-cache',
+      pdfResponse = await fetch(brochureUrl, {
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+          'Accept': 'application/pdf,application/octet-stream,*/*;q=0.8',
+          'Accept-Language': 'en-US,en;q=0.9',
+          'Accept-Encoding': 'gzip, deflate, br',
+          'Referer': validatedUrl.origin ? `${validatedUrl.origin}/` : '',
+          'Sec-Fetch-Dest': 'document',
+          'Sec-Fetch-Mode': 'navigate',
+          'Sec-Fetch-Site': 'same-origin',
+          'Cache-Control': 'no-cache',
+        },
+        signal: AbortSignal.timeout(30000) // 30 second timeout
+      });
+    } catch (fetchError: any) {
+      console.error('Fetch error:', fetchError);
+      
+      // Handle network/DNS errors gracefully
+      const errorMessage = fetchError.message || String(fetchError);
+      let errorStatus = 'network_error';
+      
+      if (errorMessage.includes('dns error') || errorMessage.includes('Name or service not known')) {
+        errorStatus = 'dns_error';
+      } else if (errorMessage.includes('timeout') || errorMessage.includes('Timeout')) {
+        errorStatus = 'timeout';
+      } else if (errorMessage.includes('Connection reset') || errorMessage.includes('ECONNRESET')) {
+        errorStatus = 'connection_reset';
       }
-    });
+      
+      return new Response(JSON.stringify({ 
+        error: `Network error: ${errorMessage}`,
+        status: errorStatus,
+        url: brochureUrl
+      }), {
+        status: 200,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
+    }
 
+    // Handle HTTP error responses
     if (!pdfResponse.ok) {
-      // Return a structured error for 403/restricted URLs instead of throwing
-      if (pdfResponse.status === 403) {
+      if (pdfResponse.status === 404) {
+        return new Response(JSON.stringify({ 
+          error: 'Brochure not found (404)',
+          status: 'not_found',
+          url: brochureUrl
+        }), {
+          status: 200,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        });
+      } else if (pdfResponse.status === 403) {
         return new Response(JSON.stringify({ 
           error: 'Access restricted - this brochure requires direct browser access',
           status: 'restricted',
           url: brochureUrl
         }), {
-          status: 200, // Return 200 so client can handle gracefully
+          status: 200,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        });
+      } else if (pdfResponse.status >= 500) {
+        return new Response(JSON.stringify({ 
+          error: `Server error (${pdfResponse.status}) - the hosting server is having issues`,
+          status: 'server_error',
+          url: brochureUrl
+        }), {
+          status: 200,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        });
+      } else {
+        return new Response(JSON.stringify({ 
+          error: `HTTP ${pdfResponse.status}: ${pdfResponse.statusText}`,
+          status: 'http_error',
+          url: brochureUrl
+        }), {
+          status: 200,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' }
         });
       }
-      throw new Error(`Failed to download brochure: ${pdfResponse.status} ${pdfResponse.statusText}`);
     }
 
     const contentType = pdfResponse.headers.get('content-type') || 'application/pdf';
@@ -200,9 +281,12 @@ Deno.serve(async (req) => {
     });
 
   } catch (error: any) {
-    console.error('Error in download-brochure:', error);
-    return new Response(JSON.stringify({ error: error.message }), {
-      status: 500,
+    console.error('Unexpected error in download-brochure:', error);
+    return new Response(JSON.stringify({ 
+      error: error.message || 'Unexpected error',
+      status: 'unexpected_error'
+    }), {
+      status: 200, // Still return 200 to avoid breaking the UI
       headers: { ...corsHeaders, 'Content-Type': 'application/json' }
     });
   }
