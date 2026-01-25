@@ -118,10 +118,94 @@ Deno.serve(async (req) => {
       }
     }
 
+    // Helper function to try Firecrawl as fallback for restricted PDFs
+    async function tryFirecrawlFallback(url: string): Promise<{ buffer: ArrayBuffer; contentType: string } | null> {
+      const firecrawlApiKey = Deno.env.get('FIRECRAWL_API_KEY');
+      if (!firecrawlApiKey) {
+        console.log('Firecrawl API key not configured, skipping fallback');
+        return null;
+      }
+
+      console.log('Attempting Firecrawl fallback for restricted URL...');
+      try {
+        const firecrawlResponse = await fetch('https://api.firecrawl.dev/v1/scrape', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${firecrawlApiKey}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            url: url,
+            formats: ['rawHtml'],
+            waitFor: 3000,
+            onlyMainContent: false,
+          }),
+        });
+
+        if (!firecrawlResponse.ok) {
+          console.log(`Firecrawl returned ${firecrawlResponse.status}`);
+          return null;
+        }
+
+        const firecrawlData = await firecrawlResponse.json();
+        
+        // Check if Firecrawl returned PDF content directly
+        // Some PDF URLs when scraped will have the raw binary in the response
+        if (firecrawlData.data?.rawHtml) {
+          // If the rawHtml looks like a PDF (starts with %PDF), convert it
+          const rawContent = firecrawlData.data.rawHtml;
+          if (rawContent.startsWith('%PDF')) {
+            const encoder = new TextEncoder();
+            return { 
+              buffer: encoder.encode(rawContent).buffer, 
+              contentType: 'application/pdf' 
+            };
+          }
+        }
+
+        // Try to find a direct PDF link in the scraped content and fetch it
+        // Sometimes the page redirects or embeds the PDF
+        if (firecrawlData.data?.links) {
+          const pdfLink = firecrawlData.data.links.find((link: string) => 
+            link.toLowerCase().endsWith('.pdf')
+          );
+          if (pdfLink && pdfLink !== url) {
+            console.log(`Found alternate PDF link via Firecrawl: ${pdfLink}`);
+            const altResponse = await fetch(pdfLink, {
+              headers: {
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+                'Accept': 'application/pdf,*/*',
+              },
+              signal: AbortSignal.timeout(30000)
+            });
+            if (altResponse.ok) {
+              return {
+                buffer: await altResponse.arrayBuffer(),
+                contentType: altResponse.headers.get('content-type') || 'application/pdf'
+              };
+            }
+          }
+        }
+
+        console.log('Firecrawl did not yield usable PDF content');
+        return null;
+      } catch (err) {
+        console.error('Firecrawl fallback error:', err);
+        return null;
+      }
+    }
+
     // Download the PDF with browser-like headers
     console.log('Fetching brochure from URL...');
     
-    let pdfResponse: Response;
+    let pdfBuffer: ArrayBuffer;
+    let contentType: string = 'application/pdf';
+    let usedFallback = false;
+    
+    let pdfResponse: Response | null = null;
+    let directFetchFailed = false;
+    let directFetchStatus = 0;
+    
     try {
       pdfResponse = await fetch(brochureUrl, {
         headers: {
@@ -135,36 +219,66 @@ Deno.serve(async (req) => {
           'Sec-Fetch-Site': 'same-origin',
           'Cache-Control': 'no-cache',
         },
-        signal: AbortSignal.timeout(30000) // 30 second timeout
+        signal: AbortSignal.timeout(30000)
       });
-    } catch (fetchError: any) {
-      console.error('Fetch error:', fetchError);
       
-      // Handle network/DNS errors gracefully
+      if (!pdfResponse.ok) {
+        directFetchFailed = true;
+        directFetchStatus = pdfResponse.status;
+      }
+    } catch (fetchError: any) {
+      console.error('Direct fetch error:', fetchError);
+      directFetchFailed = true;
+      
+      // Handle network/DNS errors - try Firecrawl fallback
       const errorMessage = fetchError.message || String(fetchError);
-      let errorStatus = 'network_error';
       
       if (errorMessage.includes('dns error') || errorMessage.includes('Name or service not known')) {
-        errorStatus = 'dns_error';
-      } else if (errorMessage.includes('timeout') || errorMessage.includes('Timeout')) {
-        errorStatus = 'timeout';
-      } else if (errorMessage.includes('Connection reset') || errorMessage.includes('ECONNRESET')) {
-        errorStatus = 'connection_reset';
+        return new Response(JSON.stringify({ 
+          error: `DNS error: ${errorMessage}`,
+          status: 'dns_error',
+          url: brochureUrl
+        }), {
+          status: 200,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        });
       }
-      
-      return new Response(JSON.stringify({ 
-        error: `Network error: ${errorMessage}`,
-        status: errorStatus,
-        url: brochureUrl
-      }), {
-        status: 200,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-      });
     }
 
-    // Handle HTTP error responses
-    if (!pdfResponse.ok) {
-      if (pdfResponse.status === 404) {
+    // If direct fetch failed with 403 or similar, try Firecrawl fallback
+    if (directFetchFailed && (directFetchStatus === 403 || directFetchStatus === 401 || directFetchStatus === 0)) {
+      console.log(`Direct fetch failed (${directFetchStatus}), trying Firecrawl fallback...`);
+      const fallbackResult = await tryFirecrawlFallback(brochureUrl);
+      
+      if (fallbackResult) {
+        pdfBuffer = fallbackResult.buffer;
+        contentType = fallbackResult.contentType;
+        usedFallback = true;
+        console.log(`Firecrawl fallback succeeded! Got ${pdfBuffer.byteLength} bytes`);
+      } else {
+        // Firecrawl also failed - return appropriate error
+        if (directFetchStatus === 403) {
+          return new Response(JSON.stringify({ 
+            error: 'Access restricted - even with browser emulation, this brochure cannot be downloaded automatically',
+            status: 'restricted',
+            url: brochureUrl
+          }), {
+            status: 200,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+          });
+        }
+        return new Response(JSON.stringify({ 
+          error: 'Failed to download brochure after all attempts',
+          status: 'failed',
+          url: brochureUrl
+        }), {
+          status: 200,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        });
+      }
+    } else if (directFetchFailed) {
+      // Handle other HTTP errors
+      if (directFetchStatus === 404) {
         return new Response(JSON.stringify({ 
           error: 'Brochure not found (404)',
           status: 'not_found',
@@ -173,18 +287,9 @@ Deno.serve(async (req) => {
           status: 200,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' }
         });
-      } else if (pdfResponse.status === 403) {
+      } else if (directFetchStatus >= 500) {
         return new Response(JSON.stringify({ 
-          error: 'Access restricted - this brochure requires direct browser access',
-          status: 'restricted',
-          url: brochureUrl
-        }), {
-          status: 200,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-        });
-      } else if (pdfResponse.status >= 500) {
-        return new Response(JSON.stringify({ 
-          error: `Server error (${pdfResponse.status}) - the hosting server is having issues`,
+          error: `Server error (${directFetchStatus}) - the hosting server is having issues`,
           status: 'server_error',
           url: brochureUrl
         }), {
@@ -193,7 +298,7 @@ Deno.serve(async (req) => {
         });
       } else {
         return new Response(JSON.stringify({ 
-          error: `HTTP ${pdfResponse.status}: ${pdfResponse.statusText}`,
+          error: `HTTP ${directFetchStatus}`,
           status: 'http_error',
           url: brochureUrl
         }), {
@@ -201,10 +306,21 @@ Deno.serve(async (req) => {
           headers: { ...corsHeaders, 'Content-Type': 'application/json' }
         });
       }
+    } else if (pdfResponse) {
+      // Direct fetch succeeded
+      contentType = pdfResponse.headers.get('content-type') || 'application/pdf';
+      pdfBuffer = await pdfResponse.arrayBuffer();
+    } else {
+      return new Response(JSON.stringify({ 
+        error: 'Unexpected error during download',
+        status: 'unexpected_error',
+        url: brochureUrl
+      }), {
+        status: 200,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
     }
 
-    const contentType = pdfResponse.headers.get('content-type') || 'application/pdf';
-    const pdfBuffer = await pdfResponse.arrayBuffer();
     const fileSize = pdfBuffer.byteLength;
 
     console.log(`Downloaded ${fileSize} bytes, content-type: ${contentType}`);
