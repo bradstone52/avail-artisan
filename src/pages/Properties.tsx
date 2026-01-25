@@ -10,6 +10,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Plus, Search, Building2, MapPin, RefreshCw, FileText, Download, Loader2, Database } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { queueGlobalToast } from '@/hooks/useGlobalToast';
 import {
   Select,
   SelectContent,
@@ -234,20 +235,20 @@ export default function Properties() {
                   const { data, error } = await supabase.functions.invoke('nightly-property-sync');
                   
                   if (error) {
-                    toast({
+                    queueGlobalToast({
                       title: 'Sync failed',
                       description: error.message,
                       variant: 'destructive'
                     });
                   } else {
                     fetchProperties();
-                    toast({
+                    queueGlobalToast({
                       title: 'City data sync complete',
-                      description: `Created ${data?.results?.propertiesCreated || 0} properties, fetched city data for ${data?.results?.cityDataFetched || 0} properties`
+                      description: `Fetched ${data?.results?.cityDataFetched || 0} properties`
                     });
                   }
                 } catch (err: any) {
-                  toast({
+                  queueGlobalToast({
                     title: 'Sync failed',
                     description: err.message,
                     variant: 'destructive'

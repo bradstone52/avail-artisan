@@ -2,6 +2,7 @@ import { ReactNode, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { useUserRole } from '@/hooks/useUserRole';
+import { useGlobalToast } from '@/hooks/useGlobalToast';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { 
@@ -75,6 +76,9 @@ export function AppLayout({ children }: AppLayoutProps) {
     // Default open if current route is a distribution route
     return ['/listings', '/recipients'].includes(location.pathname);
   });
+
+  // Listen for global toasts (e.g., from background sync tasks)
+  useGlobalToast();
 
   const handleSignOut = async () => {
     await signOut();
