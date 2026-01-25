@@ -365,7 +365,7 @@ Deno.serve(async (req) => {
       throw new Error(`Failed to upload brochure: ${uploadError.message}`);
     }
 
-    // Create brochure record
+    // Create brochure record with download method
     const { error: insertError } = await supabase
       .from('property_brochures')
       .insert({
@@ -376,7 +376,8 @@ Deno.serve(async (req) => {
         storage_path: storagePath,
         file_size: fileSize,
         listing_snapshot: listingSnapshot,
-        created_by: user.id
+        created_by: user.id,
+        download_method: usedFallback ? 'firecrawl' : 'direct'
       });
 
     if (insertError) {
@@ -391,7 +392,8 @@ Deno.serve(async (req) => {
     return new Response(JSON.stringify({ 
       success: true,
       storagePath,
-      fileSize
+      fileSize,
+      downloadMethod: usedFallback ? 'firecrawl' : 'direct'
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' }
     });
