@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { useProperties, PropertyWithLinks } from '@/hooks/useProperties';
@@ -39,6 +39,65 @@ export default function Properties() {
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [selectedProperty, setSelectedProperty] = useState<PropertyWithLinks | null>(null);
   const [isCreating, setIsCreating] = useState(false);
+
+  // Check for active sync on mount and poll progress
+  useEffect(() => {
+    const checkActiveSync = async () => {
+      const { data } = await supabase
+        .from('workspace_settings')
+        .select('value')
+        .eq('key', 'city_data_sync_progress')
+        .maybeSingle();
+      
+      if (data?.value) {
+        const progress = data.value as { current: number; total: number; status: string; syncId: string };
+        if (progress.status === 'running') {
+          setIsFetchingCityData(true);
+          setSyncProgress({ current: progress.current, total: progress.total });
+        }
+      }
+    };
+    
+    checkActiveSync();
+  }, []);
+
+  // Poll for progress whenever a sync is active
+  useEffect(() => {
+    if (!isFetchingCityData) return;
+    
+    const pollInterval = setInterval(async () => {
+      const { data } = await supabase
+        .from('workspace_settings')
+        .select('value')
+        .eq('key', 'city_data_sync_progress')
+        .maybeSingle();
+      
+      if (data?.value) {
+        const progress = data.value as { current: number; total: number; status: string };
+        setSyncProgress({ current: progress.current, total: progress.total });
+        
+        if (progress.status === 'complete') {
+          fetchProperties();
+          queueGlobalToast({
+            title: 'City data sync complete',
+            description: `Fetched ${progress.total} properties`
+          });
+          setIsFetchingCityData(false);
+          setSyncProgress(null);
+        } else if (progress.status === 'failed') {
+          queueGlobalToast({
+            title: 'Sync failed',
+            description: 'An error occurred during sync',
+            variant: 'destructive'
+          });
+          setIsFetchingCityData(false);
+          setSyncProgress(null);
+        }
+      }
+    }, 1000);
+    
+    return () => clearInterval(pollInterval);
+  }, [isFetchingCityData, fetchProperties]);
 
   // Get unique filter values
   const cities = useMemo(() => 
@@ -234,7 +293,6 @@ export default function Properties() {
                 });
                 
                 try {
-                  // Trigger the sync - this returns immediately
                   const { error } = await supabase.functions.invoke('nightly-property-sync');
                   
                   if (error) {
@@ -244,43 +302,7 @@ export default function Properties() {
                       variant: 'destructive'
                     });
                     setIsFetchingCityData(false);
-                    return;
                   }
-                  
-                  // Start polling for progress (sync runs in background via batched calls)
-                  const pollInterval = setInterval(async () => {
-                    const { data } = await supabase
-                      .from('workspace_settings')
-                      .select('value')
-                      .eq('key', 'city_data_sync_progress')
-                      .maybeSingle();
-                    
-                    if (data?.value) {
-                      const progress = data.value as { current: number; total: number; status: string };
-                      setSyncProgress({ current: progress.current, total: progress.total });
-                      
-                      if (progress.status === 'complete') {
-                        clearInterval(pollInterval);
-                        fetchProperties();
-                        queueGlobalToast({
-                          title: 'City data sync complete',
-                          description: `Fetched ${progress.total} properties`
-                        });
-                        setIsFetchingCityData(false);
-                        setSyncProgress(null);
-                      } else if (progress.status === 'failed') {
-                        clearInterval(pollInterval);
-                        queueGlobalToast({
-                          title: 'Sync failed',
-                          description: 'An error occurred during sync',
-                          variant: 'destructive'
-                        });
-                        setIsFetchingCityData(false);
-                        setSyncProgress(null);
-                      }
-                    }
-                  }, 1000);
-                  
                 } catch (err: any) {
                   queueGlobalToast({
                     title: 'Sync failed',
@@ -288,7 +310,6 @@ export default function Properties() {
                     variant: 'destructive'
                   });
                   setIsFetchingCityData(false);
-                  setSyncProgress(null);
                 }
               }}
               disabled={isFetchingCityData}
