@@ -7,7 +7,7 @@ import { PropertyEditDialog } from '@/components/properties/PropertyEditDialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent } from '@/components/ui/card';
-import { Plus, Search, Building2, MapPin, RefreshCw, FileText, Download, Loader2 } from 'lucide-react';
+import { Plus, Search, Building2, MapPin, RefreshCw, FileText, Download, Loader2, Database } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import {
@@ -26,6 +26,8 @@ export default function Properties() {
   const { properties, loading, fetchProperties, createProperty, updateProperty, deleteProperty, linkListing, unlinkListing, importFromMarketListings } = useProperties();
   const [isImporting, setIsImporting] = useState(false);
   const [isSavingAllBrochures, setIsSavingAllBrochures] = useState(false);
+  const [isFetchingCityData, setIsFetchingCityData] = useState(false);
+  const [cityDataProgress, setCityDataProgress] = useState({ current: 0, total: 0 });
   
   // State
   const [searchQuery, setSearchQuery] = useState('');
@@ -219,6 +221,56 @@ export default function Properties() {
             </p>
           </div>
           <div className="flex gap-2 flex-wrap">
+            <Button 
+              variant="outline"
+              onClick={async () => {
+                setIsFetchingCityData(true);
+                const calgaryProperties = properties.filter(p => 
+                  p.city?.toLowerCase().includes('calgary')
+                );
+                setCityDataProgress({ current: 0, total: calgaryProperties.length });
+                
+                let fetched = 0;
+                let failed = 0;
+                
+                for (const property of calgaryProperties) {
+                  try {
+                    const { error } = await supabase.functions.invoke('fetch-city-data', {
+                      body: { propertyId: property.id, address: property.address, city: property.city }
+                    });
+                    if (error) {
+                      failed++;
+                    } else {
+                      fetched++;
+                    }
+                  } catch {
+                    failed++;
+                  }
+                  setCityDataProgress(prev => ({ ...prev, current: prev.current + 1 }));
+                }
+                
+                setIsFetchingCityData(false);
+                setCityDataProgress({ current: 0, total: 0 });
+                fetchProperties();
+                toast({
+                  title: 'City data sync complete',
+                  description: `Fetched ${fetched} properties${failed > 0 ? `, ${failed} failed` : ''}`
+                });
+              }}
+              disabled={isFetchingCityData}
+            >
+              {isFetchingCityData ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  {cityDataProgress.current}/{cityDataProgress.total}
+                </>
+              ) : (
+                <>
+                  <Database className="h-4 w-4 mr-2" />
+                  Fetch All City Data
+                </>
+              )}
+            </Button>
             <Button 
               variant="outline"
               onClick={handleSaveAllBrochures}
