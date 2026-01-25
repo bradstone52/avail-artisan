@@ -28,6 +28,7 @@ export default function Properties() {
   const [isImporting, setIsImporting] = useState(false);
   const [isSavingAllBrochures, setIsSavingAllBrochures] = useState(false);
   const [isFetchingCityData, setIsFetchingCityData] = useState(false);
+  const [syncProgress, setSyncProgress] = useState<{ current: number; total: number } | null>(null);
   
   // State
   const [searchQuery, setSearchQuery] = useState('');
@@ -226,13 +227,33 @@ export default function Properties() {
               variant="outline"
               onClick={async () => {
                 setIsFetchingCityData(true);
+                setSyncProgress(null);
                 toast({
-                  title: 'City data sync started',
-                  description: 'This runs in the background and will complete even if you navigate away.'
+                  title: 'Sync in progress',
+                  description: 'Fetching city data for all properties...'
                 });
+                
+                // Start polling for progress
+                const pollInterval = setInterval(async () => {
+                  const { data } = await supabase
+                    .from('workspace_settings')
+                    .select('value')
+                    .eq('key', 'city_data_sync_progress')
+                    .single();
+                  
+                  if (data?.value) {
+                    const progress = data.value as { current: number; total: number; status: string };
+                    setSyncProgress({ current: progress.current, total: progress.total });
+                    
+                    if (progress.status === 'complete') {
+                      clearInterval(pollInterval);
+                    }
+                  }
+                }, 1000);
                 
                 try {
                   const { data, error } = await supabase.functions.invoke('nightly-property-sync');
+                  clearInterval(pollInterval);
                   
                   if (error) {
                     queueGlobalToast({
@@ -248,6 +269,7 @@ export default function Properties() {
                     });
                   }
                 } catch (err: any) {
+                  clearInterval(pollInterval);
                   queueGlobalToast({
                     title: 'Sync failed',
                     description: err.message,
@@ -255,6 +277,7 @@ export default function Properties() {
                   });
                 } finally {
                   setIsFetchingCityData(false);
+                  setSyncProgress(null);
                 }
               }}
               disabled={isFetchingCityData}
@@ -262,7 +285,7 @@ export default function Properties() {
               {isFetchingCityData ? (
                 <>
                   <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  Syncing...
+                  {syncProgress ? `Syncing ${syncProgress.current}/${syncProgress.total}` : 'Syncing...'}
                 </>
               ) : (
                 <>

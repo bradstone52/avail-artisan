@@ -15,12 +15,26 @@ Deno.serve(async (req) => {
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
+    // Generate a unique sync ID for this run
+    const syncId = crypto.randomUUID();
+    
     const results = {
       propertiesCreated: 0,
       propertiesSkipped: 0,
       cityDataFetched: 0,
       cityDataFailed: 0,
+      cityDataTotal: 0,
       millRateUpdated: false,
+    };
+
+    // Helper to update progress in workspace_settings
+    const updateProgress = async (current: number, total: number, status: string) => {
+      await supabase
+        .from('workspace_settings')
+        .upsert({
+          key: 'city_data_sync_progress',
+          value: { syncId, current, total, status, updatedAt: new Date().toISOString() }
+        }, { onConflict: 'key' });
     };
 
     // 1. Sync any new market listings to properties
@@ -94,7 +108,14 @@ Deno.serve(async (req) => {
       .select('id, address, city')
       .ilike('city', '%calgary%');
 
-    for (const property of calgaryProperties || []) {
+    const totalProperties = calgaryProperties?.length || 0;
+    results.cityDataTotal = totalProperties;
+    
+    // Initialize progress
+    await updateProgress(0, totalProperties, 'running');
+
+    for (let i = 0; i < (calgaryProperties || []).length; i++) {
+      const property = calgaryProperties![i];
       try {
         const response = await fetch(`${supabaseUrl}/functions/v1/fetch-city-data`, {
           method: 'POST',
@@ -116,6 +137,9 @@ Deno.serve(async (req) => {
           results.cityDataFailed++;
         }
         
+        // Update progress every property
+        await updateProgress(i + 1, totalProperties, 'running');
+        
         // Small delay to avoid rate limiting
         await new Promise(resolve => setTimeout(resolve, 500));
       } catch (err) {
@@ -123,6 +147,9 @@ Deno.serve(async (req) => {
         results.cityDataFailed++;
       }
     }
+
+    // Mark as complete
+    await updateProgress(totalProperties, totalProperties, 'complete');
 
     console.log(`City data sync complete: ${results.cityDataFetched} fetched, ${results.cityDataFailed} failed`);
 
