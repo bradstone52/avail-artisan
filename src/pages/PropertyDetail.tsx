@@ -9,6 +9,7 @@ import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Separator } from '@/components/ui/separator';
 import { useToast } from '@/hooks/use-toast';
+import { useMillRate } from '@/hooks/useMillRate';
 import { formatSubmarket } from '@/lib/formatters';
 import {
   ArrowLeft,
@@ -34,6 +35,7 @@ export default function PropertyDetail() {
   const navigate = useNavigate();
   const { toast } = useToast();
   const { property, brochures, permits, loading, refetch } = usePropertyDetail(id);
+  const { rate: millRate, year: millRateYear } = useMillRate();
   
   const [fetchingCityData, setFetchingCityData] = useState(false);
   const [downloadingBrochure, setDownloadingBrochure] = useState<string | null>(null);
@@ -326,7 +328,7 @@ export default function PropertyDetail() {
                     </div>
                     <div>
                       <p className="text-muted-foreground">Land Area</p>
-                      <p className="font-medium">{property.land_acres ? `${property.land_acres} acres` : '-'}</p>
+                      <p className="font-medium">{property.land_acres ? `${Number(property.land_acres).toFixed(2)} acres` : '-'}</p>
                     </div>
                     <div>
                       <p className="text-muted-foreground">Clear Height</p>
@@ -373,11 +375,11 @@ export default function PropertyDetail() {
                       <p className="text-muted-foreground">Est. Annual Tax</p>
                       <p className="font-medium text-lg">
                         {property.assessed_value 
-                          ? formatCurrency(property.assessed_value * 0.02182860)
+                          ? formatCurrency(property.assessed_value * millRate)
                           : '-'
                         }
                       </p>
-                      <p className="text-xs text-muted-foreground">2025 mill rate: 2.18%</p>
+                      <p className="text-xs text-muted-foreground">{millRateYear} mill rate: {(millRate * 100).toFixed(2)}%</p>
                     </div>
                   </div>
                   {property.legal_description && (
@@ -420,27 +422,11 @@ export default function PropertyDetail() {
           {/* Listings Tab */}
           <TabsContent value="listings" className="space-y-4">
             <Card>
-              <CardHeader className="flex flex-row items-center justify-between">
-                <div>
-                  <CardTitle>Linked Listings</CardTitle>
-                  <CardDescription>
-                    Market listings associated with this property
-                  </CardDescription>
-                </div>
-                {property.linked_listings && property.linked_listings.some(l => l.link) && (
-                  <Button 
-                    variant="outline" 
-                    onClick={handleDownloadAllBrochures}
-                    disabled={downloadingAllBrochures}
-                  >
-                    {downloadingAllBrochures ? (
-                      <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                    ) : (
-                      <Download className="h-4 w-4 mr-2" />
-                    )}
-                    Save All Brochures
-                  </Button>
-                )}
+              <CardHeader>
+                <CardTitle>Linked Listings</CardTitle>
+                <CardDescription>
+                  Market listings associated with this property
+                </CardDescription>
               </CardHeader>
               <CardContent>
                 {property.linked_listings && property.linked_listings.length > 0 ? (
