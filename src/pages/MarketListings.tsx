@@ -281,8 +281,9 @@ export default function MarketListings() {
   const linksMissing = listings.filter(l => !l.link || l.link === '').length;
   const linksOk = linksWithUrl.filter(l => l.link_status === 'ok').length;
   const linksBroken = linksWithUrl.filter(l => l.link_status === 'broken').length;
+  const linksError = linksWithUrl.filter(l => l.link_status === 'error').length;
   const linksUnchecked = linksWithUrl.filter(l => !l.link_status).length;
-  const hasLinkIssues = linksBroken > 0 || linksMissing > 0;
+  const hasLinkIssues = linksBroken > 0 || linksError > 0 || linksMissing > 0;
 
   const linksLeftThisRun = useMemo(() => {
     if (!isValidatingLinks || !linkCheckTotal) return 0;
@@ -361,6 +362,7 @@ export default function MarketListings() {
               <CardTitle className="text-lg">
                 <span className="text-green-600">{linksOk}</span>
                 {linksBroken > 0 && <span className="text-destructive"> / {linksBroken} broken</span>}
+                {linksError > 0 && <span className="text-orange-500"> / {linksError} errors</span>}
                 {linksMissing > 0 && <span className="text-muted-foreground"> / {linksMissing} missing</span>}
               </CardTitle>
             </CardHeader>
