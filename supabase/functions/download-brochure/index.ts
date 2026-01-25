@@ -100,10 +100,30 @@ Deno.serve(async (req) => {
 
     console.log(`Downloaded ${fileSize} bytes, content-type: ${contentType}`);
 
-    // Generate storage path with timestamp
-    const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
-    const sanitizedListingId = (listingId || 'unknown').replace(/[^a-zA-Z0-9-_]/g, '_');
-    const storagePath = `${propertyId}/${sanitizedListingId}_${timestamp}.pdf`;
+    // Generate storage path with format: address-date-v#
+    // First, get the property address for the filename
+    const { data: propertyData } = await supabase
+      .from('properties')
+      .select('address')
+      .eq('id', propertyId)
+      .single();
+    
+    // Count existing brochures for this property to determine version number
+    const { count } = await supabase
+      .from('property_brochures')
+      .select('*', { count: 'exact', head: true })
+      .eq('property_id', propertyId);
+    
+    const versionNumber = (count || 0) + 1;
+    const dateStr = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
+    
+    // Sanitize address for filename (remove special chars, replace spaces with dashes)
+    const sanitizedAddress = (propertyData?.address || listingId || 'unknown')
+      .replace(/[^a-zA-Z0-9\s-]/g, '')
+      .replace(/\s+/g, '-')
+      .substring(0, 50); // Limit length
+    
+    const storagePath = `${propertyId}/${sanitizedAddress}-${dateStr}-v${versionNumber}.pdf`;
 
     // Upload to storage
     console.log(`Uploading to storage: ${storagePath}`);

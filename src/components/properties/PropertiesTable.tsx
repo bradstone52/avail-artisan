@@ -83,7 +83,6 @@ export function PropertiesTable({
               Property
             </TableHead>
             <TableHead>City</TableHead>
-            <TableHead>Type</TableHead>
             <TableHead className="text-right">Size</TableHead>
             <TableHead className="text-center">Listings</TableHead>
             <TableHead className="sticky right-0 z-30 bg-zinc-700 dark:bg-zinc-600 shadow-[-2px_0_5px_-2px_rgba(0,0,0,0.3)]">
@@ -94,7 +93,7 @@ export function PropertiesTable({
         <TableBody>
           {properties.length === 0 ? (
             <TableRow>
-              <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
+              <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
                 No properties found. Add your first property to get started.
               </TableCell>
             </TableRow>
@@ -117,9 +116,6 @@ export function PropertiesTable({
                     <div className="min-w-[200px]">
                       <div className="font-semibold flex items-center gap-2">
                         <Building2 className="h-4 w-4 text-muted-foreground" />
-                        {property.name || 'Unnamed Property'}
-                      </div>
-                      <div className="text-sm text-muted-foreground">
                         {property.display_address || property.address}
                       </div>
                     </div>
@@ -127,13 +123,6 @@ export function PropertiesTable({
 
                   {/* City */}
                   <TableCell>{property.city || '-'}</TableCell>
-
-                  {/* Type */}
-                  <TableCell>
-                    {property.property_type ? (
-                      <Badge variant="secondary">{property.property_type}</Badge>
-                    ) : '-'}
-                  </TableCell>
 
                   {/* Size */}
                   <TableCell className="text-right font-mono">
