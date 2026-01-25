@@ -29,24 +29,23 @@ export default function Properties() {
   
   // Persist city data fetch progress in localStorage
   const CITY_DATA_STORAGE_KEY = 'cityDataFetchProgress';
-  const [isFetchingCityData, setIsFetchingCityData] = useState(() => {
-    const stored = localStorage.getItem(CITY_DATA_STORAGE_KEY);
-    if (stored) {
-      const parsed = JSON.parse(stored);
-      return parsed.inProgress && Date.now() - parsed.timestamp < 30 * 60 * 1000; // 30 min expiry
-    }
-    return false;
-  });
-  const [cityDataProgress, setCityDataProgress] = useState(() => {
+  const [cityDataProgress, setCityDataProgress] = useState<{ current: number; total: number; processedIds?: string[]; interrupted?: boolean }>(() => {
     const stored = localStorage.getItem(CITY_DATA_STORAGE_KEY);
     if (stored) {
       const parsed = JSON.parse(stored);
       if (Date.now() - parsed.timestamp < 30 * 60 * 1000) {
-        return { current: parsed.current, total: parsed.total };
+        // If we have stored progress but component just mounted, mark as interrupted
+        return { 
+          current: parsed.current, 
+          total: parsed.total, 
+          processedIds: parsed.processedIds || [],
+          interrupted: true 
+        };
       }
     }
-    return { current: 0, total: 0 };
+    return { current: 0, total: 0, processedIds: [], interrupted: false };
   });
+  const [isFetchingCityData, setIsFetchingCityData] = useState(false);
   
   // State
   const [searchQuery, setSearchQuery] = useState('');
@@ -240,70 +239,148 @@ export default function Properties() {
             </p>
           </div>
           <div className="flex gap-2 flex-wrap">
-            <Button 
-              variant="outline"
-              onClick={async () => {
-                setIsFetchingCityData(true);
-                const calgaryProperties = properties.filter(p => 
-                  p.city?.toLowerCase().includes('calgary')
-                );
-                const initialProgress = { current: 0, total: calgaryProperties.length };
-                setCityDataProgress(initialProgress);
-                localStorage.setItem(CITY_DATA_STORAGE_KEY, JSON.stringify({
-                  ...initialProgress,
-                  inProgress: true,
-                  timestamp: Date.now()
-                }));
-                
-                let fetched = 0;
-                let failed = 0;
-                
-                for (const property of calgaryProperties) {
-                  try {
-                    const { error } = await supabase.functions.invoke('fetch-city-data', {
-                      body: { propertyId: property.id, address: property.address, city: property.city }
-                    });
-                    if (error) {
-                      failed++;
-                    } else {
-                      fetched++;
+            {/* City Data Fetch with Resume capability */}
+            {cityDataProgress.interrupted && !isFetchingCityData ? (
+              <div className="flex gap-1">
+                <Button 
+                  variant="outline"
+                  onClick={async () => {
+                    // Resume from where we left off
+                    setIsFetchingCityData(true);
+                    const calgaryProperties = properties.filter(p => 
+                      p.city?.toLowerCase().includes('calgary')
+                    );
+                    const processedIds = cityDataProgress.processedIds || [];
+                    const remainingProperties = calgaryProperties.filter(p => !processedIds.includes(p.id));
+                    
+                    let fetched = 0;
+                    let failed = 0;
+                    let currentProcessed = [...processedIds];
+                    
+                    for (const property of remainingProperties) {
+                      try {
+                        const { error } = await supabase.functions.invoke('fetch-city-data', {
+                          body: { propertyId: property.id, address: property.address, city: property.city }
+                        });
+                        if (error) {
+                          failed++;
+                        } else {
+                          fetched++;
+                        }
+                      } catch {
+                        failed++;
+                      }
+                      currentProcessed.push(property.id);
+                      const newProgress = { 
+                        current: currentProcessed.length, 
+                        total: calgaryProperties.length,
+                        processedIds: currentProcessed,
+                        interrupted: false
+                      };
+                      setCityDataProgress(newProgress);
+                      localStorage.setItem(CITY_DATA_STORAGE_KEY, JSON.stringify({
+                        ...newProgress,
+                        inProgress: true,
+                        timestamp: Date.now()
+                      }));
                     }
-                  } catch {
-                    failed++;
-                  }
-                  const newProgress = { current: fetched + failed, total: calgaryProperties.length };
-                  setCityDataProgress(newProgress);
+                    
+                    localStorage.removeItem(CITY_DATA_STORAGE_KEY);
+                    setIsFetchingCityData(false);
+                    setCityDataProgress({ current: 0, total: 0, processedIds: [], interrupted: false });
+                    fetchProperties();
+                    toast({
+                      title: 'City data sync complete',
+                      description: `Fetched ${fetched} properties${failed > 0 ? `, ${failed} failed` : ''}`
+                    });
+                  }}
+                >
+                  <RefreshCw className="h-4 w-4 mr-2" />
+                  Resume ({cityDataProgress.current}/{cityDataProgress.total})
+                </Button>
+                <Button 
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => {
+                    localStorage.removeItem(CITY_DATA_STORAGE_KEY);
+                    setCityDataProgress({ current: 0, total: 0, processedIds: [], interrupted: false });
+                  }}
+                >
+                  Cancel
+                </Button>
+              </div>
+            ) : (
+              <Button 
+                variant="outline"
+                onClick={async () => {
+                  setIsFetchingCityData(true);
+                  const calgaryProperties = properties.filter(p => 
+                    p.city?.toLowerCase().includes('calgary')
+                  );
+                  const initialProgress = { current: 0, total: calgaryProperties.length, processedIds: [] as string[], interrupted: false };
+                  setCityDataProgress(initialProgress);
                   localStorage.setItem(CITY_DATA_STORAGE_KEY, JSON.stringify({
-                    ...newProgress,
+                    ...initialProgress,
                     inProgress: true,
                     timestamp: Date.now()
                   }));
-                }
-                
-                // Complete - clear localStorage and reset state
-                localStorage.removeItem(CITY_DATA_STORAGE_KEY);
-                setIsFetchingCityData(false);
-                setCityDataProgress({ current: 0, total: 0 });
-                fetchProperties();
-                toast({
-                  title: 'City data sync complete',
-                  description: `Fetched ${fetched} properties${failed > 0 ? `, ${failed} failed` : ''}`
-                });
-              }}
-              disabled={isFetchingCityData}
-            >
-              {isFetchingCityData ? (
-                <>
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  {cityDataProgress.current}/{cityDataProgress.total}
-                </>
-              ) : (
-                <>
-                  <Database className="h-4 w-4 mr-2" />
-                  Fetch All City Data
-                </>
-              )}
-            </Button>
+                  
+                  let fetched = 0;
+                  let failed = 0;
+                  let processedIds: string[] = [];
+                  
+                  for (const property of calgaryProperties) {
+                    try {
+                      const { error } = await supabase.functions.invoke('fetch-city-data', {
+                        body: { propertyId: property.id, address: property.address, city: property.city }
+                      });
+                      if (error) {
+                        failed++;
+                      } else {
+                        fetched++;
+                      }
+                    } catch {
+                      failed++;
+                    }
+                    processedIds.push(property.id);
+                    const newProgress = { 
+                      current: processedIds.length, 
+                      total: calgaryProperties.length,
+                      processedIds,
+                      interrupted: false
+                    };
+                    setCityDataProgress(newProgress);
+                    localStorage.setItem(CITY_DATA_STORAGE_KEY, JSON.stringify({
+                      ...newProgress,
+                      inProgress: true,
+                      timestamp: Date.now()
+                    }));
+                  }
+                  
+                  localStorage.removeItem(CITY_DATA_STORAGE_KEY);
+                  setIsFetchingCityData(false);
+                  setCityDataProgress({ current: 0, total: 0, processedIds: [], interrupted: false });
+                  fetchProperties();
+                  toast({
+                    title: 'City data sync complete',
+                    description: `Fetched ${fetched} properties${failed > 0 ? `, ${failed} failed` : ''}`
+                  });
+                }}
+                disabled={isFetchingCityData}
+              >
+                {isFetchingCityData ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    {cityDataProgress.current}/{cityDataProgress.total}
+                  </>
+                ) : (
+                  <>
+                    <Database className="h-4 w-4 mr-2" />
+                    Fetch All City Data
+                  </>
+                )}
+              </Button>
+            )}
             <Button 
               variant="outline"
               onClick={handleSaveAllBrochures}
