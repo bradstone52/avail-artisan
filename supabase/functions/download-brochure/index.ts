@@ -81,16 +81,44 @@ Deno.serve(async (req) => {
       }
     }
 
-    // Download the PDF
+    // Download the PDF with browser-like headers
     console.log('Fetching brochure from URL...');
+    
+    // Parse the URL to get the origin for Referer header
+    let urlOrigin = '';
+    try {
+      const parsedUrl = new URL(brochureUrl);
+      urlOrigin = parsedUrl.origin;
+    } catch {
+      urlOrigin = '';
+    }
+    
     const pdfResponse = await fetch(brochureUrl, {
       headers: {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-        'Accept': 'application/pdf,*/*'
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        'Accept': 'application/pdf,application/octet-stream,*/*;q=0.8',
+        'Accept-Language': 'en-US,en;q=0.9',
+        'Accept-Encoding': 'gzip, deflate, br',
+        'Referer': urlOrigin ? `${urlOrigin}/` : '',
+        'Sec-Fetch-Dest': 'document',
+        'Sec-Fetch-Mode': 'navigate',
+        'Sec-Fetch-Site': 'same-origin',
+        'Cache-Control': 'no-cache',
       }
     });
 
     if (!pdfResponse.ok) {
+      // Return a structured error for 403/restricted URLs instead of throwing
+      if (pdfResponse.status === 403) {
+        return new Response(JSON.stringify({ 
+          error: 'Access restricted - this brochure requires direct browser access',
+          status: 'restricted',
+          url: brochureUrl
+        }), {
+          status: 200, // Return 200 so client can handle gracefully
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        });
+      }
       throw new Error(`Failed to download brochure: ${pdfResponse.status} ${pdfResponse.statusText}`);
     }
 
