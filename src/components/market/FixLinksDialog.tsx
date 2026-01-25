@@ -19,11 +19,11 @@ interface FixLinksDialogProps {
 }
 
 type ListingWithIssue = MarketListing & {
-  issue: 'missing' | 'broken';
+  issue: 'missing' | 'broken' | 'error';
 };
 
 export function FixLinksDialog({ open, onOpenChange, listings, onListingUpdated }: FixLinksDialogProps) {
-  const [activeTab, setActiveTab] = useState<'missing' | 'broken'>('broken');
+  const [activeTab, setActiveTab] = useState<'missing' | 'broken' | 'error'>('broken');
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editingLink, setEditingLink] = useState('');
   const [savingId, setSavingId] = useState<string | null>(null);
@@ -31,6 +31,11 @@ export function FixLinksDialog({ open, onOpenChange, listings, onListingUpdated 
 
   const brokenListings = useMemo(() => 
     listings.filter(l => l.link && l.link !== '' && l.link_status === 'broken'),
+    [listings]
+  );
+
+  const errorListings = useMemo(() => 
+    listings.filter(l => l.link && l.link !== '' && l.link_status === 'error'),
     [listings]
   );
 
@@ -232,8 +237,11 @@ export function FixLinksDialog({ open, onOpenChange, listings, onListingUpdated 
             <span className="font-medium text-sm truncate">
               {listing.display_address || listing.address}
             </span>
-            <Badge variant={listing.issue === 'broken' ? 'destructive' : 'secondary'} className="text-xs shrink-0">
-              {listing.issue === 'broken' ? 'Broken' : 'Missing'}
+            <Badge 
+              variant={listing.issue === 'broken' ? 'destructive' : listing.issue === 'error' ? 'outline' : 'secondary'} 
+              className={`text-xs shrink-0 ${listing.issue === 'error' ? 'border-orange-500 text-orange-500' : ''}`}
+            >
+              {listing.issue === 'broken' ? 'Broken' : listing.issue === 'error' ? 'Error' : 'Missing'}
             </Badge>
           </div>
           <div className="text-xs text-muted-foreground mb-2">
@@ -327,14 +335,17 @@ export function FixLinksDialog({ open, onOpenChange, listings, onListingUpdated 
             Fix Broken & Missing Links
           </DialogTitle>
           <DialogDescription>
-            {brokenListings.length} broken links, {missingListings.length} missing links
+            {brokenListings.length} broken, {errorListings.length} errors, {missingListings.length} missing
           </DialogDescription>
         </DialogHeader>
 
-        <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as 'missing' | 'broken')} className="w-full">
-          <TabsList className="grid w-full grid-cols-2">
+        <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as 'missing' | 'broken' | 'error')} className="w-full">
+          <TabsList className="grid w-full grid-cols-3">
             <TabsTrigger value="broken" className="text-sm">
               Broken ({brokenListings.length})
+            </TabsTrigger>
+            <TabsTrigger value="error" className="text-sm">
+              Errors ({errorListings.length})
             </TabsTrigger>
             <TabsTrigger value="missing" className="text-sm">
               Missing ({missingListings.length})
@@ -351,6 +362,22 @@ export function FixLinksDialog({ open, onOpenChange, listings, onListingUpdated 
                 ) : (
                   brokenListings.map((l) => 
                     renderListingRow({ ...l, issue: 'broken' as const })
+                  )
+                )}
+              </div>
+            </ScrollArea>
+          </TabsContent>
+
+          <TabsContent value="error" className="mt-4">
+            <ScrollArea className="h-[50vh] pr-4">
+              <div className="space-y-2">
+                {errorListings.length === 0 ? (
+                  <div className="text-center py-8 text-muted-foreground">
+                    No error links found
+                  </div>
+                ) : (
+                  errorListings.map((l) => 
+                    renderListingRow({ ...l, issue: 'error' as const })
                   )
                 )}
               </div>
