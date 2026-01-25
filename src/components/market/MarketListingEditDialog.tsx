@@ -642,16 +642,16 @@ export function MarketListingEditDialog({
     }
   };
 
-  // For edit mode, require listing - return closed dialog instead of null to prevent blank overlay
-  if (!isCreateMode && !listing) {
-    return <Dialog open={false} onOpenChange={() => {}} />;
-  }
-
   // Handle close - clear draft and close dialog
   const handleClose = useCallback(() => {
     clearDraft();
     onOpenChange(false);
   }, [clearDraft, onOpenChange]);
+
+  // For edit mode, require listing - don't render if not available
+  if (!isCreateMode && !listing) {
+    return null;
+  }
 
   return (
     <>
