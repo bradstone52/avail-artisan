@@ -7,7 +7,9 @@ import { PropertyEditDialog } from '@/components/properties/PropertyEditDialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent } from '@/components/ui/card';
-import { Plus, Search, Building2, MapPin, RefreshCw, FileText, Download } from 'lucide-react';
+import { Plus, Search, Building2, MapPin, RefreshCw, FileText, Download, Loader2 } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
+import { useToast } from '@/hooks/use-toast';
 import {
   Select,
   SelectContent,
@@ -20,8 +22,10 @@ const ITEMS_PER_PAGE = 25;
 
 export default function Properties() {
   const navigate = useNavigate();
+  const { toast } = useToast();
   const { properties, loading, fetchProperties, createProperty, updateProperty, deleteProperty, linkListing, unlinkListing, importFromMarketListings } = useProperties();
   const [isImporting, setIsImporting] = useState(false);
+  const [isSavingAllBrochures, setIsSavingAllBrochures] = useState(false);
   
   // State
   const [searchQuery, setSearchQuery] = useState('');
@@ -140,6 +144,59 @@ export default function Properties() {
     setCurrentPage(1);
   };
 
+  // Save all brochures for all properties
+  const handleSaveAllBrochures = async () => {
+    setIsSavingAllBrochures(true);
+    let saved = 0;
+    let failed = 0;
+
+    try {
+      // Get all properties with linked listings that have brochure URLs
+      for (const property of properties) {
+        if (!property.linked_listings) continue;
+
+        for (const listing of property.linked_listings) {
+          if (!listing.link) continue;
+
+          try {
+            const { error } = await supabase.functions.invoke('download-brochure', {
+              body: {
+                propertyId: property.id,
+                marketListingId: listing.id,
+                listingId: listing.listing_id,
+                brochureUrl: listing.link
+              }
+            });
+
+            if (error) {
+              console.error(`Error saving brochure for ${listing.listing_id}:`, error);
+              failed++;
+            } else {
+              saved++;
+            }
+          } catch (err) {
+            console.error(`Error saving brochure for ${listing.listing_id}:`, err);
+            failed++;
+          }
+        }
+      }
+
+      toast({
+        title: 'Brochure save complete',
+        description: `Saved ${saved} brochures${failed > 0 ? `, ${failed} failed` : ''}`
+      });
+    } catch (error: any) {
+      console.error('Error saving brochures:', error);
+      toast({
+        title: 'Error saving brochures',
+        description: error.message,
+        variant: 'destructive'
+      });
+    } finally {
+      setIsSavingAllBrochures(false);
+    }
+  };
+
   if (loading) {
     return (
       <AppLayout>
@@ -161,9 +218,22 @@ export default function Properties() {
               Property catalogue with city data and historical brochures
             </p>
           </div>
-          <div className="flex gap-2">
+          <div className="flex gap-2 flex-wrap">
             <Button 
-              variant="outline" 
+              variant="outline"
+              onClick={handleSaveAllBrochures}
+              disabled={isSavingAllBrochures}
+            >
+              {isSavingAllBrochures ? (
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              ) : (
+                <Download className="h-4 w-4 mr-2" />
+              )}
+              Save All Brochures
+            </Button>
+            <Button 
+              variant="ghost" 
+              size="sm"
               onClick={async () => {
                 setIsImporting(true);
                 await importFromMarketListings();
@@ -174,13 +244,9 @@ export default function Properties() {
               {isImporting ? (
                 <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
               ) : (
-                <Download className="h-4 w-4 mr-2" />
+                <RefreshCw className="h-4 w-4 mr-2" />
               )}
-              Import from Listings
-            </Button>
-            <Button variant="outline" onClick={() => fetchProperties()}>
-              <RefreshCw className="h-4 w-4 mr-2" />
-              Refresh
+              Sync Market Listings
             </Button>
             <Button onClick={handleCreate}>
               <Plus className="h-4 w-4 mr-2" />
