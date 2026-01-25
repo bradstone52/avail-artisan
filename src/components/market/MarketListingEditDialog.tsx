@@ -642,15 +642,18 @@ export function MarketListingEditDialog({
     }
   };
 
-  // Handle close - clear draft and close dialog
+  // For edit mode, require listing - don't render if not available
+  // IMPORTANT: This must come BEFORE any hooks that depend on listing
+  // But all hooks must be called unconditionally - so we return a closed Dialog
   const handleClose = useCallback(() => {
     clearDraft();
     onOpenChange(false);
   }, [clearDraft, onOpenChange]);
 
-  // For edit mode, require listing - don't render if not available
   if (!isCreateMode && !listing) {
-    return null;
+    return <Dialog open={false} onOpenChange={() => {}}>
+      <DialogContent className="hidden" />
+    </Dialog>;
   }
 
   return (
