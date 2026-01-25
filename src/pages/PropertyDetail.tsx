@@ -520,9 +520,21 @@ export default function PropertyDetail() {
                             <FileText className="h-5 w-5 text-red-600" />
                           </div>
                           <div>
-                            <p className="font-medium">
-                              {brochure.listing_id || 'Unknown Listing'}
-                            </p>
+                            <div className="flex items-center gap-2">
+                              <p className="font-medium">
+                                {brochure.listing_id || 'Unknown Listing'}
+                              </p>
+                              {brochure.download_method === 'firecrawl' && (
+                                <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400">
+                                  Firecrawl
+                                </span>
+                              )}
+                              {brochure.download_method === 'direct' && (
+                                <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400">
+                                  Direct
+                                </span>
+                              )}
+                            </div>
                             <p className="text-sm text-muted-foreground">
                               Downloaded {format(new Date(brochure.downloaded_at), 'MMM d, yyyy h:mm a')}
                             </p>

@@ -74,6 +74,7 @@ export interface PropertyBrochure {
   notes: string | null;
   created_by: string | null;
   created_at: string;
+  download_method: string | null;
 }
 
 export interface PropertyPermit {
