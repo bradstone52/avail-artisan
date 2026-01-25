@@ -26,25 +26,6 @@ export default function Properties() {
   const { properties, loading, fetchProperties, createProperty, updateProperty, deleteProperty, linkListing, unlinkListing, importFromMarketListings } = useProperties();
   const [isImporting, setIsImporting] = useState(false);
   const [isSavingAllBrochures, setIsSavingAllBrochures] = useState(false);
-  
-  // Persist city data fetch progress in localStorage
-  const CITY_DATA_STORAGE_KEY = 'cityDataFetchProgress';
-  const [cityDataProgress, setCityDataProgress] = useState<{ current: number; total: number; processedIds?: string[]; interrupted?: boolean }>(() => {
-    const stored = localStorage.getItem(CITY_DATA_STORAGE_KEY);
-    if (stored) {
-      const parsed = JSON.parse(stored);
-      if (Date.now() - parsed.timestamp < 30 * 60 * 1000) {
-        // If we have stored progress but component just mounted, mark as interrupted
-        return { 
-          current: parsed.current, 
-          total: parsed.total, 
-          processedIds: parsed.processedIds || [],
-          interrupted: true 
-        };
-      }
-    }
-    return { current: 0, total: 0, processedIds: [], interrupted: false };
-  });
   const [isFetchingCityData, setIsFetchingCityData] = useState(false);
   
   // State
@@ -239,148 +220,56 @@ export default function Properties() {
             </p>
           </div>
           <div className="flex gap-2 flex-wrap">
-            {/* City Data Fetch with Resume capability */}
-            {cityDataProgress.interrupted && !isFetchingCityData ? (
-              <div className="flex gap-1">
-                <Button 
-                  variant="outline"
-                  onClick={async () => {
-                    // Resume from where we left off
-                    setIsFetchingCityData(true);
-                    const calgaryProperties = properties.filter(p => 
-                      p.city?.toLowerCase().includes('calgary')
-                    );
-                    const processedIds = cityDataProgress.processedIds || [];
-                    const remainingProperties = calgaryProperties.filter(p => !processedIds.includes(p.id));
-                    
-                    let fetched = 0;
-                    let failed = 0;
-                    let currentProcessed = [...processedIds];
-                    
-                    for (const property of remainingProperties) {
-                      try {
-                        const { error } = await supabase.functions.invoke('fetch-city-data', {
-                          body: { propertyId: property.id, address: property.address, city: property.city }
-                        });
-                        if (error) {
-                          failed++;
-                        } else {
-                          fetched++;
-                        }
-                      } catch {
-                        failed++;
-                      }
-                      currentProcessed.push(property.id);
-                      const newProgress = { 
-                        current: currentProcessed.length, 
-                        total: calgaryProperties.length,
-                        processedIds: currentProcessed,
-                        interrupted: false
-                      };
-                      setCityDataProgress(newProgress);
-                      localStorage.setItem(CITY_DATA_STORAGE_KEY, JSON.stringify({
-                        ...newProgress,
-                        inProgress: true,
-                        timestamp: Date.now()
-                      }));
-                    }
-                    
-                    localStorage.removeItem(CITY_DATA_STORAGE_KEY);
-                    setIsFetchingCityData(false);
-                    setCityDataProgress({ current: 0, total: 0, processedIds: [], interrupted: false });
+            {/* City Data Fetch - runs server-side via nightly-property-sync */}
+            <Button 
+              variant="outline"
+              onClick={async () => {
+                setIsFetchingCityData(true);
+                toast({
+                  title: 'City data sync started',
+                  description: 'This runs in the background and will complete even if you navigate away.'
+                });
+                
+                try {
+                  const { data, error } = await supabase.functions.invoke('nightly-property-sync');
+                  
+                  if (error) {
+                    toast({
+                      title: 'Sync failed',
+                      description: error.message,
+                      variant: 'destructive'
+                    });
+                  } else {
                     fetchProperties();
                     toast({
                       title: 'City data sync complete',
-                      description: `Fetched ${fetched} properties${failed > 0 ? `, ${failed} failed` : ''}`
+                      description: `Created ${data?.results?.propertiesCreated || 0} properties, fetched city data for ${data?.results?.cityDataFetched || 0} properties`
                     });
-                  }}
-                >
-                  <RefreshCw className="h-4 w-4 mr-2" />
-                  Resume ({cityDataProgress.current}/{cityDataProgress.total})
-                </Button>
-                <Button 
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => {
-                    localStorage.removeItem(CITY_DATA_STORAGE_KEY);
-                    setCityDataProgress({ current: 0, total: 0, processedIds: [], interrupted: false });
-                  }}
-                >
-                  Cancel
-                </Button>
-              </div>
-            ) : (
-              <Button 
-                variant="outline"
-                onClick={async () => {
-                  setIsFetchingCityData(true);
-                  const calgaryProperties = properties.filter(p => 
-                    p.city?.toLowerCase().includes('calgary')
-                  );
-                  const initialProgress = { current: 0, total: calgaryProperties.length, processedIds: [] as string[], interrupted: false };
-                  setCityDataProgress(initialProgress);
-                  localStorage.setItem(CITY_DATA_STORAGE_KEY, JSON.stringify({
-                    ...initialProgress,
-                    inProgress: true,
-                    timestamp: Date.now()
-                  }));
-                  
-                  let fetched = 0;
-                  let failed = 0;
-                  let processedIds: string[] = [];
-                  
-                  for (const property of calgaryProperties) {
-                    try {
-                      const { error } = await supabase.functions.invoke('fetch-city-data', {
-                        body: { propertyId: property.id, address: property.address, city: property.city }
-                      });
-                      if (error) {
-                        failed++;
-                      } else {
-                        fetched++;
-                      }
-                    } catch {
-                      failed++;
-                    }
-                    processedIds.push(property.id);
-                    const newProgress = { 
-                      current: processedIds.length, 
-                      total: calgaryProperties.length,
-                      processedIds,
-                      interrupted: false
-                    };
-                    setCityDataProgress(newProgress);
-                    localStorage.setItem(CITY_DATA_STORAGE_KEY, JSON.stringify({
-                      ...newProgress,
-                      inProgress: true,
-                      timestamp: Date.now()
-                    }));
                   }
-                  
-                  localStorage.removeItem(CITY_DATA_STORAGE_KEY);
-                  setIsFetchingCityData(false);
-                  setCityDataProgress({ current: 0, total: 0, processedIds: [], interrupted: false });
-                  fetchProperties();
+                } catch (err: any) {
                   toast({
-                    title: 'City data sync complete',
-                    description: `Fetched ${fetched} properties${failed > 0 ? `, ${failed} failed` : ''}`
+                    title: 'Sync failed',
+                    description: err.message,
+                    variant: 'destructive'
                   });
-                }}
-                disabled={isFetchingCityData}
-              >
-                {isFetchingCityData ? (
-                  <>
-                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                    {cityDataProgress.current}/{cityDataProgress.total}
-                  </>
-                ) : (
-                  <>
-                    <Database className="h-4 w-4 mr-2" />
-                    Fetch All City Data
-                  </>
-                )}
-              </Button>
-            )}
+                } finally {
+                  setIsFetchingCityData(false);
+                }
+              }}
+              disabled={isFetchingCityData}
+            >
+              {isFetchingCityData ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Syncing...
+                </>
+              ) : (
+                <>
+                  <Database className="h-4 w-4 mr-2" />
+                  Fetch All City Data
+                </>
+              )}
+            </Button>
             <Button 
               variant="outline"
               onClick={handleSaveAllBrochures}
