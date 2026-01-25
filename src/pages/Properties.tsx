@@ -26,8 +26,27 @@ export default function Properties() {
   const { properties, loading, fetchProperties, createProperty, updateProperty, deleteProperty, linkListing, unlinkListing, importFromMarketListings } = useProperties();
   const [isImporting, setIsImporting] = useState(false);
   const [isSavingAllBrochures, setIsSavingAllBrochures] = useState(false);
-  const [isFetchingCityData, setIsFetchingCityData] = useState(false);
-  const [cityDataProgress, setCityDataProgress] = useState({ current: 0, total: 0 });
+  
+  // Persist city data fetch progress in localStorage
+  const CITY_DATA_STORAGE_KEY = 'cityDataFetchProgress';
+  const [isFetchingCityData, setIsFetchingCityData] = useState(() => {
+    const stored = localStorage.getItem(CITY_DATA_STORAGE_KEY);
+    if (stored) {
+      const parsed = JSON.parse(stored);
+      return parsed.inProgress && Date.now() - parsed.timestamp < 30 * 60 * 1000; // 30 min expiry
+    }
+    return false;
+  });
+  const [cityDataProgress, setCityDataProgress] = useState(() => {
+    const stored = localStorage.getItem(CITY_DATA_STORAGE_KEY);
+    if (stored) {
+      const parsed = JSON.parse(stored);
+      if (Date.now() - parsed.timestamp < 30 * 60 * 1000) {
+        return { current: parsed.current, total: parsed.total };
+      }
+    }
+    return { current: 0, total: 0 };
+  });
   
   // State
   const [searchQuery, setSearchQuery] = useState('');
@@ -228,7 +247,13 @@ export default function Properties() {
                 const calgaryProperties = properties.filter(p => 
                   p.city?.toLowerCase().includes('calgary')
                 );
-                setCityDataProgress({ current: 0, total: calgaryProperties.length });
+                const initialProgress = { current: 0, total: calgaryProperties.length };
+                setCityDataProgress(initialProgress);
+                localStorage.setItem(CITY_DATA_STORAGE_KEY, JSON.stringify({
+                  ...initialProgress,
+                  inProgress: true,
+                  timestamp: Date.now()
+                }));
                 
                 let fetched = 0;
                 let failed = 0;
@@ -246,9 +271,17 @@ export default function Properties() {
                   } catch {
                     failed++;
                   }
-                  setCityDataProgress(prev => ({ ...prev, current: prev.current + 1 }));
+                  const newProgress = { current: fetched + failed, total: calgaryProperties.length };
+                  setCityDataProgress(newProgress);
+                  localStorage.setItem(CITY_DATA_STORAGE_KEY, JSON.stringify({
+                    ...newProgress,
+                    inProgress: true,
+                    timestamp: Date.now()
+                  }));
                 }
                 
+                // Complete - clear localStorage and reset state
+                localStorage.removeItem(CITY_DATA_STORAGE_KEY);
                 setIsFetchingCityData(false);
                 setCityDataProgress({ current: 0, total: 0 });
                 fetchProperties();
