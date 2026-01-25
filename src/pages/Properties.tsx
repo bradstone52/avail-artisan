@@ -29,6 +29,7 @@ export default function Properties() {
   const [isSavingAllBrochures, setIsSavingAllBrochures] = useState(false);
   const [isFetchingCityData, setIsFetchingCityData] = useState(false);
   const [syncProgress, setSyncProgress] = useState<{ current: number; total: number } | null>(null);
+  const [currentSyncId, setCurrentSyncId] = useState<string | null>(null);
   
   // State
   const [searchQuery, setSearchQuery] = useState('');
@@ -53,6 +54,7 @@ export default function Properties() {
         const progress = data.value as { current: number; total: number; status: string; syncId: string };
         if (progress.status === 'running') {
           setIsFetchingCityData(true);
+          setCurrentSyncId(progress.syncId);
           setSyncProgress({ current: progress.current, total: progress.total });
         }
       }
@@ -61,9 +63,9 @@ export default function Properties() {
     checkActiveSync();
   }, []);
 
-  // Poll for progress whenever a sync is active
+  // Poll for progress whenever a sync is active - only accept updates from the tracked syncId
   useEffect(() => {
-    if (!isFetchingCityData) return;
+    if (!isFetchingCityData || !currentSyncId) return;
     
     const pollInterval = setInterval(async () => {
       const { data } = await supabase
@@ -73,7 +75,11 @@ export default function Properties() {
         .maybeSingle();
       
       if (data?.value) {
-        const progress = data.value as { current: number; total: number; status: string };
+        const progress = data.value as { current: number; total: number; status: string; syncId: string };
+        
+        // Only process updates for the sync we're tracking
+        if (progress.syncId !== currentSyncId) return;
+        
         setSyncProgress({ current: progress.current, total: progress.total });
         
         if (progress.status === 'complete') {
@@ -84,6 +90,7 @@ export default function Properties() {
           });
           setIsFetchingCityData(false);
           setSyncProgress(null);
+          setCurrentSyncId(null);
         } else if (progress.status === 'failed') {
           queueGlobalToast({
             title: 'Sync failed',
@@ -92,12 +99,13 @@ export default function Properties() {
           });
           setIsFetchingCityData(false);
           setSyncProgress(null);
+          setCurrentSyncId(null);
         }
       }
     }, 1000);
     
     return () => clearInterval(pollInterval);
-  }, [isFetchingCityData, fetchProperties]);
+  }, [isFetchingCityData, currentSyncId, fetchProperties]);
 
   // Get unique filter values
   const cities = useMemo(() => 
@@ -285,15 +293,35 @@ export default function Properties() {
             <Button 
               variant="outline"
               onClick={async () => {
+                // Double-check no sync is already running
+                const { data: existingSync } = await supabase
+                  .from('workspace_settings')
+                  .select('value')
+                  .eq('key', 'city_data_sync_progress')
+                  .maybeSingle();
+                
+                if (existingSync?.value) {
+                  const existing = existingSync.value as { status: string };
+                  if (existing.status === 'running') {
+                    toast({
+                      title: 'Sync already in progress',
+                      description: 'Please wait for the current sync to complete',
+                      variant: 'destructive'
+                    });
+                    return;
+                  }
+                }
+                
                 setIsFetchingCityData(true);
                 setSyncProgress(null);
+                setCurrentSyncId(null);
                 toast({
-                  title: 'Sync in progress',
-                  description: 'Fetching city data for all properties...'
+                  title: 'Starting sync',
+                  description: 'Fetching city data for Calgary properties...'
                 });
                 
                 try {
-                  const { error } = await supabase.functions.invoke('nightly-property-sync');
+                  const { data, error } = await supabase.functions.invoke('nightly-property-sync');
                   
                   if (error) {
                     queueGlobalToast({
@@ -302,6 +330,9 @@ export default function Properties() {
                       variant: 'destructive'
                     });
                     setIsFetchingCityData(false);
+                  } else if (data?.results?.syncId) {
+                    // Track this specific sync
+                    setCurrentSyncId(data.results.syncId);
                   }
                 } catch (err: any) {
                   queueGlobalToast({
