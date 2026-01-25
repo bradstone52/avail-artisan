@@ -142,7 +142,7 @@ Deno.serve(async (req) => {
       JSON.stringify({ 
         success: true, 
         message: 'Sync started',
-        results: { propertiesCreated, propertiesSkipped, totalProperties }
+        results: { propertiesCreated, propertiesSkipped, totalProperties, syncId }
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
