@@ -172,11 +172,11 @@ export function LogTransactionDialog({
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent 
-        className="max-w-2xl max-h-[90vh] p-0 gap-0 flex flex-col"
+        className="max-w-2xl max-h-[90vh] p-0 gap-0 overflow-hidden"
         preventOutsideClose
         onCloseClick={handleClose}
       >
-        <DialogHeader className="px-6 pt-6 pb-4 border-b shrink-0">
+        <DialogHeader className="px-6 pt-6 pb-4 border-b">
           <div className="flex items-center gap-3 pr-8">
             <div className="p-2 bg-primary/10 rounded-lg">
               <Receipt className="h-5 w-5 text-primary" />
@@ -190,8 +190,8 @@ export function LogTransactionDialog({
           </div>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="flex flex-col min-h-0 flex-1">
-          <ScrollArea className="flex-1 min-h-0">
+        <form onSubmit={handleSubmit}>
+          <ScrollArea className="h-[calc(90vh-200px)]">
             <div className="px-6 py-4 space-y-6">
               {/* Property Info (read-only) */}
               <div className="p-3 bg-muted/50 rounded-lg">
@@ -454,7 +454,7 @@ export function LogTransactionDialog({
             </div>
           </ScrollArea>
 
-          <DialogFooter className="px-6 py-4 border-t shrink-0">
+          <DialogFooter className="px-6 py-4 border-t">
             <Button
               type="button"
               variant="outline"
