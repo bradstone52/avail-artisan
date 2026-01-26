@@ -1,5 +1,4 @@
 import { useState, useEffect, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { MarketListing } from '@/hooks/useMarketListings';
 import { useTransactions, TransactionInput } from '@/hooks/useTransactions';
 import {
@@ -39,7 +38,6 @@ export function LogTransactionDialog({
   onOpenChange,
   onSaved,
 }: LogTransactionDialogProps) {
-  const navigate = useNavigate();
   const { createTransaction } = useTransactions();
   const [isSaving, setIsSaving] = useState(false);
 
@@ -138,8 +136,7 @@ export function LogTransactionDialog({
       if (created) {
         onOpenChange(false);
         onSaved?.();
-        // Navigate to transaction detail
-        navigate(`/transactions/${created.id}`);
+        // Stay on Market Listings page - filters are preserved
       }
     } finally {
       setIsSaving(false);
