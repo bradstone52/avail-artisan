@@ -1,5 +1,4 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { MarketListing } from '@/hooks/useMarketListings';
@@ -88,6 +87,7 @@ interface MarketListingEditDialogProps {
   onOpenChange: (open: boolean) => void;
   onSaved: () => void;
   mode?: 'edit' | 'create';
+  onLogTransaction?: (listing: MarketListing) => void;
 }
 
 export function MarketListingEditDialog({
@@ -96,8 +96,8 @@ export function MarketListingEditDialog({
   onOpenChange,
   onSaved,
   mode = 'edit',
+  onLogTransaction,
 }: MarketListingEditDialogProps) {
-  const navigate = useNavigate();
   const { user } = useAuth();
   const { org } = useOrg();
   const [isSaving, setIsSaving] = useState(false);
@@ -605,9 +605,9 @@ export function MarketListingEditDialog({
       onSaved();
       onOpenChange(false);
 
-      // If status was changed to Sold/Leased, offer to create transaction
-      if (status === 'Sold/Leased' && pendingStatus === 'Sold/Leased') {
-        navigate(`/transactions/new?listing=${listing.id}`);
+      // If status was changed to Sold/Leased, open log transaction dialog
+      if (status === 'Sold/Leased' && pendingStatus === 'Sold/Leased' && listing) {
+        onLogTransaction?.(listing);
       }
     } catch (err) {
       console.error('Error updating listing:', err);

@@ -25,6 +25,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { StatusDropdown } from '@/components/market/StatusDropdown';
 import { EditMarketPinDialog } from '@/components/market/EditMarketPinDialog';
+import { LogTransactionDialog } from '@/components/market/LogTransactionDialog';
 import { ExternalLink, MapPin, MapPinOff, Hand, Pencil, Receipt, RotateCcw, ArrowUp, ArrowDown, ArrowUpDown, CheckCircle } from 'lucide-react';
 import { format, differenceInDays, parseISO } from 'date-fns';
 import { supabase } from '@/integrations/supabase/client';
@@ -99,6 +100,7 @@ export function MarketListingsTable({ listings, onEdit, onRefresh, sortColumn, s
   const [verifyingId, setVerifyingId] = useState<string | null>(null);
   const [geocodingId, setGeocodingId] = useState<string | null>(null);
   const [editPinListing, setEditPinListing] = useState<MarketListing | null>(null);
+  const [transactionListing, setTransactionListing] = useState<MarketListing | null>(null);
 
   // Persist horizontal scroll so returning to the tab (or any remount) doesn't snap back to the left.
   // Note: the actual scrollable element is created inside the shadcn <Table /> wrapper.
@@ -673,7 +675,11 @@ export function MarketListingsTable({ listings, onEdit, onRefresh, sortColumn, s
               
               {/* Status - Near end since most are Active until transaction */}
               <TableCell>
-                <StatusDropdown listing={listing} onStatusChanged={onRefresh} />
+                <StatusDropdown 
+                  listing={listing} 
+                  onStatusChanged={onRefresh} 
+                  onLogTransaction={(l) => setTransactionListing(l)}
+                />
               </TableCell>
               
               {/* Last Verified */}
@@ -720,7 +726,7 @@ export function MarketListingsTable({ listings, onEdit, onRefresh, sortColumn, s
                         variant="ghost"
                         size="icon"
                         className="h-7 w-7"
-                        onClick={(e) => { e.stopPropagation(); navigate(`/transactions/new?listing=${listing.id}`); }}
+                        onClick={(e) => { e.stopPropagation(); setTransactionListing(listing); }}
                       >
                         <Receipt className="h-3.5 w-3.5" />
                       </Button>
@@ -743,6 +749,19 @@ export function MarketListingsTable({ listings, onEdit, onRefresh, sortColumn, s
         }}
         onSave={() => {
           setEditPinListing(null);
+          onRefresh();
+        }}
+      />
+
+      {/* Log Transaction Dialog */}
+      <LogTransactionDialog
+        listing={transactionListing}
+        open={transactionListing !== null}
+        onOpenChange={(open) => {
+          if (!open) setTransactionListing(null);
+        }}
+        onSaved={() => {
+          setTransactionListing(null);
           onRefresh();
         }}
       />

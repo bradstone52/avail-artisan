@@ -1,5 +1,4 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { MarketListing } from '@/hooks/useMarketListings';
@@ -22,19 +21,18 @@ const STATUS_OPTIONS = [
 interface StatusDropdownProps {
   listing: MarketListing;
   onStatusChanged: () => void;
+  onLogTransaction?: (listing: MarketListing) => void;
 }
 
-export function StatusDropdown({ listing, onStatusChanged }: StatusDropdownProps) {
-  const navigate = useNavigate();
+export function StatusDropdown({ listing, onStatusChanged, onLogTransaction }: StatusDropdownProps) {
   const [isUpdating, setIsUpdating] = useState(false);
 
   const handleStatusChange = async (newStatus: string) => {
     if (newStatus === listing.status) return;
 
-    // If changing to "Sold/Leased" status, go directly to Log Transaction
+    // If changing to "Sold/Leased" status, open log transaction dialog
     if (newStatus === 'Sold/Leased') {
-      // Navigate directly to transaction form - listing will be deleted after transaction is created
-      navigate(`/transactions/new?listing=${listing.id}`);
+      onLogTransaction?.(listing);
       return;
     }
 
