@@ -24,6 +24,7 @@ import {
 } from '@/components/ui/select';
 import { Loader2, Receipt, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { formatNumber } from '@/lib/formatters';
 
 interface LogTransactionDialogProps {
   listing: MarketListing | null;
@@ -77,7 +78,7 @@ export function LogTransactionDialog({
         setTransactionType('Lease');
       }
       // Pre-fill size from listing
-      setSizeSf(listing.size_sf?.toString() || '');
+      setSizeSf(listing.size_sf ? listing.size_sf.toLocaleString() : '');
       // Reset other fields
       setTransactionDate('');
       setClosingDate('');
@@ -145,6 +146,16 @@ export function LogTransactionDialog({
     }
   };
 
+  // Helper to format number input with commas
+  const handleSizeChange = (value: string) => {
+    const numericValue = value.replace(/[^\d]/g, '');
+    if (numericValue === '') {
+      setSizeSf('');
+    } else {
+      setSizeSf(parseInt(numericValue).toLocaleString());
+    }
+  };
+
   // Helper for input styling
   const inputClass = (value: string) =>
     cn('h-9', value && 'input-filled');
@@ -207,7 +218,7 @@ export function LogTransactionDialog({
                 <Input
                   id="size_sf"
                   value={sizeSf}
-                  onChange={(e) => setSizeSf(e.target.value)}
+                  onChange={(e) => handleSizeChange(e.target.value)}
                   placeholder="e.g., 50,000"
                   className={cn(inputClass(sizeSf), 'placeholder-light')}
                 />
