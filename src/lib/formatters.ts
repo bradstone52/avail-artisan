@@ -20,3 +20,11 @@ export function formatSubmarket(submarket: string | null | undefined): string {
     })
     .join(' ');
 }
+
+/**
+ * Formats a number with thousands separators
+ */
+export function formatNumber(value: number | null | undefined): string {
+  if (value === null || value === undefined) return '-';
+  return value.toLocaleString('en-US');
+}

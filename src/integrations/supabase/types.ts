@@ -14,6 +14,39 @@ export type Database = {
   }
   public: {
     Tables: {
+      brokerage_profiles: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          display_name: string
+          extraction_hints: Json | null
+          id: string
+          name: string
+          sample_fields: Json | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          display_name: string
+          extraction_hints?: Json | null
+          id?: string
+          name: string
+          sample_fields?: Json | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          display_name?: string
+          extraction_hints?: Json | null
+          id?: string
+          name?: string
+          sample_fields?: Json | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       distribution_batches: {
         Row: {
           created_at: string
@@ -989,6 +1022,119 @@ export type Database = {
           name?: string
         }
         Relationships: []
+      }
+      pdf_import_batches: {
+        Row: {
+          brokerage_id: string | null
+          completed_at: string | null
+          created_at: string
+          created_by: string | null
+          error_message: string | null
+          file_path: string | null
+          filename: string
+          id: string
+          imported_count: number | null
+          skipped_count: number | null
+          status: string
+          total_listings: number | null
+        }
+        Insert: {
+          brokerage_id?: string | null
+          completed_at?: string | null
+          created_at?: string
+          created_by?: string | null
+          error_message?: string | null
+          file_path?: string | null
+          filename: string
+          id?: string
+          imported_count?: number | null
+          skipped_count?: number | null
+          status?: string
+          total_listings?: number | null
+        }
+        Update: {
+          brokerage_id?: string | null
+          completed_at?: string | null
+          created_at?: string
+          created_by?: string | null
+          error_message?: string | null
+          file_path?: string | null
+          filename?: string
+          id?: string
+          imported_count?: number | null
+          skipped_count?: number | null
+          status?: string
+          total_listings?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pdf_import_batches_brokerage_id_fkey"
+            columns: ["brokerage_id"]
+            isOneToOne: false
+            referencedRelation: "brokerage_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pdf_import_staging: {
+        Row: {
+          brokerage_id: string | null
+          created_at: string
+          created_by: string | null
+          extracted_data: Json
+          id: string
+          import_action: string | null
+          import_batch_id: string
+          import_status: string
+          imported_at: string | null
+          match_confidence: number | null
+          matched_listing_id: string | null
+          source_filename: string
+        }
+        Insert: {
+          brokerage_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          extracted_data: Json
+          id?: string
+          import_action?: string | null
+          import_batch_id: string
+          import_status?: string
+          imported_at?: string | null
+          match_confidence?: number | null
+          matched_listing_id?: string | null
+          source_filename: string
+        }
+        Update: {
+          brokerage_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          extracted_data?: Json
+          id?: string
+          import_action?: string | null
+          import_batch_id?: string
+          import_status?: string
+          imported_at?: string | null
+          match_confidence?: number | null
+          matched_listing_id?: string | null
+          source_filename?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pdf_import_staging_brokerage_id_fkey"
+            columns: ["brokerage_id"]
+            isOneToOne: false
+            referencedRelation: "brokerage_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pdf_import_staging_matched_listing_id_fkey"
+            columns: ["matched_listing_id"]
+            isOneToOne: false
+            referencedRelation: "market_listings"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       profiles: {
         Row: {
