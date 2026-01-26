@@ -21,6 +21,7 @@ import { format } from 'date-fns';
 import { MarketListingEditDialog } from '@/components/market/MarketListingEditDialog';
 import { MarketListingsTable, SortableColumn, SortDirection } from '@/components/market/MarketListingsTable';
 import { FixLinksDialog } from '@/components/market/FixLinksDialog';
+import { LogTransactionDialog } from '@/components/market/LogTransactionDialog';
 
 const SIZE_RANGES = [
   { label: 'All Sizes', value: 'all', min: 0, max: Infinity },
@@ -67,6 +68,7 @@ export default function MarketListings() {
   const [editingListing, setEditingListing] = useState<MarketListing | null>(null);
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [isFixLinksDialogOpen, setIsFixLinksDialogOpen] = useState(false);
+  const [transactionListing, setTransactionListing] = useState<MarketListing | null>(null);
 
   // Handle column sorting
   const handleSort = useCallback((column: SortableColumn) => {
@@ -718,6 +720,7 @@ export default function MarketListings() {
           }}
           onSaved={refreshListings}
           mode="edit"
+          onLogTransaction={(listing) => setTransactionListing(listing)}
         />
 
         {/* Create Dialog */}
@@ -735,6 +738,19 @@ export default function MarketListings() {
           onOpenChange={setIsFixLinksDialogOpen}
           listings={listings}
           onListingUpdated={refreshListings}
+        />
+
+        {/* Log Transaction Dialog */}
+        <LogTransactionDialog
+          listing={transactionListing}
+          open={transactionListing !== null}
+          onOpenChange={(open) => {
+            if (!open) setTransactionListing(null);
+          }}
+          onSaved={() => {
+            setTransactionListing(null);
+            refreshListings();
+          }}
         />
       </div>
     </AppLayout>
