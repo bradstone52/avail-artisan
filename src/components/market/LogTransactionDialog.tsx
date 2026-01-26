@@ -22,7 +22,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Loader2, Receipt, X } from 'lucide-react';
+import { Loader2, Receipt } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { formatNumber } from '@/lib/formatters';
 
@@ -172,36 +172,26 @@ export function LogTransactionDialog({
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent 
-        className="max-w-2xl max-h-[90vh] p-0 gap-0"
-        onPointerDownOutside={(e) => e.preventDefault()}
-        onEscapeKeyDown={(e) => e.preventDefault()}
+        className="max-w-2xl max-h-[90vh] p-0 gap-0 flex flex-col"
+        preventOutsideClose
+        onCloseClick={handleClose}
       >
-        <DialogHeader className="px-6 pt-6 pb-4 border-b">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-primary/10 rounded-lg">
-                <Receipt className="h-5 w-5 text-primary" />
-              </div>
-              <div>
-                <DialogTitle className="text-lg">Log Transaction</DialogTitle>
-                <DialogDescription className="text-sm">
-                  {listing.display_address || listing.address}
-                </DialogDescription>
-              </div>
+        <DialogHeader className="px-6 pt-6 pb-4 border-b shrink-0">
+          <div className="flex items-center gap-3 pr-8">
+            <div className="p-2 bg-primary/10 rounded-lg">
+              <Receipt className="h-5 w-5 text-primary" />
             </div>
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={handleClose}
-              className="h-8 w-8"
-            >
-              <X className="h-4 w-4" />
-            </Button>
+            <div>
+              <DialogTitle className="text-lg">Log Transaction</DialogTitle>
+              <DialogDescription className="text-sm">
+                {listing.display_address || listing.address}
+              </DialogDescription>
+            </div>
           </div>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit}>
-          <ScrollArea className="max-h-[calc(90vh-180px)]">
+        <form onSubmit={handleSubmit} className="flex flex-col min-h-0 flex-1">
+          <ScrollArea className="flex-1 min-h-0">
             <div className="px-6 py-4 space-y-6">
               {/* Property Info (read-only) */}
               <div className="p-3 bg-muted/50 rounded-lg">
@@ -464,7 +454,7 @@ export function LogTransactionDialog({
             </div>
           </ScrollArea>
 
-          <DialogFooter className="px-6 py-4 border-t">
+          <DialogFooter className="px-6 py-4 border-t shrink-0">
             <Button
               type="button"
               variant="outline"
