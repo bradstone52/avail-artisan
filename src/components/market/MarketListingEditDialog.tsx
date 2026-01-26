@@ -580,48 +580,20 @@ export function MarketListingEditDialog({
       const { error } = await supabase
         .from('market_listings')
         .update({
-          // Core fields
           display_address: displayAddress || null,
-          city: city || null,
-          submarket: submarket || null,
-          size_sf: sizeSf ? parseInt(sizeSf.replace(/,/g, '')) : 0,
           status,
           listing_type: listingType || null,
-          
-          // Building specs
-          warehouse_sf: warehouseSf ? parseInt(warehouseSf.replace(/,/g, '')) : null,
-          office_sf: officeSf ? parseInt(officeSf.replace(/,/g, '')) : null,
-          clear_height_ft: clearHeight ? parseFloat(clearHeight) : null,
-          dock_doors: dockDoors ? parseInt(dockDoors) : null,
-          drive_in_doors: driveInDoors ? parseInt(driveInDoors) : null,
-          power_amps: powerAmps || null,
-          voltage: voltage || null,
-          sprinkler: sprinkler || null,
-          cranes: cranes || null,
-          crane_tons: craneTons || null,
-          yard: yard ? 'Yes' : 'No',
-          yard_area: yardArea || null,
-          cross_dock: crossDock ? 'Yes' : 'No',
-          trailer_parking: trailerParking || null,
-          land_acres: landAcres || null,
-          zoning: zoning || null,
-          mua: mua ? 'Yes' : 'No',
-          is_distribution_warehouse: isDistributionWarehouse,
-          
-          // Financial & availability
           asking_rate_psf: askingRate || null,
-          op_costs: opCosts || null,
           sale_price: salePrice || null,
-          sublease_exp: subleaseExp || null,
           availability_date: availabilityDate || null,
-          
-          // Contacts & notes
           landlord: landlord || null,
           broker_source: brokerSource || null,
           link: link || null,
           notes_public: notesPublic || null,
           internal_note: internalNote || null,
-          
+          clear_height_ft: clearHeight ? parseFloat(clearHeight) : null,
+          dock_doors: dockDoors ? parseInt(dockDoors) : null,
+          drive_in_doors: driveInDoors ? parseInt(driveInDoors) : null,
           updated_at: new Date().toISOString(),
         })
         .eq('id', listing.id);
