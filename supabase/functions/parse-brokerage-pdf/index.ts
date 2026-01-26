@@ -255,38 +255,45 @@ Focus on precision and completeness. Do not add commentary.${hintsPrompt}`;
       },
     ];
 
-    // Use Gemini 2.5 Pro for better document understanding - skip tool calling which often fails
-    // and just request JSON directly
-    const jsonOnlyPrompt = `${systemPrompt}
+    // IMPORTANT: Do NOT ask for raw JSON. Gemini can include markdown/reasoning and/or hit MAX_TOKENS,
+    // which produces truncated/invalid JSON and breaks parsing. Instead, force a tool call so the
+    // response is structured and machine-parseable.
+    const toolSystemPrompt = `${systemPrompt}
 
 CRITICAL INSTRUCTIONS:
-1. Return ONLY a valid JSON object - NO markdown, NO code fences, NO explanation text
-2. The JSON must have this structure: {"listings": [...], "extraction_notes": "...", "brokerage_format_hints": {...}}
-3. Each listing in the array must have at minimum an "address" field
-4. Extract ALL listings you can find in the document`;
+1) You MUST call the tool "extract_listings".
+2) Return ONLY the fields in the tool schema. Do NOT add extra keys (e.g. contacts, lease_rate objects, etc.).
+3) If a field is unknown, omit it.
+4) Extract ALL listings you can find in the document.`;
+
+    const toolMessages = [
+      { role: "system", content: toolSystemPrompt },
+      {
+        role: "user",
+        content: [
+          {
+            type: "text",
+            text: "Extract all listings from this brokerage PDF using the tool.",
+          },
+          {
+            type: "image_url",
+            image_url: {
+              url: `data:application/pdf;base64,${base64}`,
+            },
+          },
+        ],
+      },
+    ];
 
     let aiResponse = await makeAiRequest({
-      model: "google/gemini-2.5-pro",
-      messages: [
-        { role: "system", content: jsonOnlyPrompt },
-        {
-          role: "user",
-          content: [
-            {
-              type: "text",
-              text: "Extract all commercial real estate listings from this PDF. Return ONLY JSON.",
-            },
-            {
-              type: "image_url",
-              image_url: {
-                url: `data:application/pdf;base64,${base64}`,
-              },
-            },
-          ],
-        },
-      ],
-      temperature: 0.1,
-      max_tokens: 16000,
+      // Default to the recommended fast model; tool-calling here is much more reliable than raw JSON.
+      model: "google/gemini-3-flash-preview",
+      messages: toolMessages,
+      tools: [extractionTool],
+      tool_choice: { type: "function", function: { name: "extract_listings" } },
+      temperature: 0,
+      // Keep this high enough for many listings, but tool output is compact compared to raw prose.
+      max_tokens: 12000,
     });
 
     if (!aiResponse.ok) {
@@ -310,11 +317,10 @@ CRITICAL INSTRUCTIONS:
 
     let aiData = await aiResponse.json();
     let choice = aiData.choices?.[0];
-    
+
     console.log("AI response finish_reason:", choice?.finish_reason, choice?.native_finish_reason);
-    console.log("AI response content length:", (choice?.message?.content || "").length);
-    
-    // Extract data from response content (not tool calls since we skipped them)
+
+    // Extract data from tool call (preferred). Fallback to JSON extraction only if tool call is missing.
     let parsedResult: {
       listings: ExtractedListing[];
       extraction_notes?: string;
@@ -322,26 +328,52 @@ CRITICAL INSTRUCTIONS:
     };
 
     try {
-      const content = choice?.message?.content || "";
-      console.log("Raw AI content (first 500 chars):", content.substring(0, 500));
-      
-      if (!content || content.trim().length === 0) {
-        console.error("AI returned empty content. Full response:", JSON.stringify(aiData, null, 2));
-        throw new Error("AI returned empty response");
+      const toolCall = choice?.message?.tool_calls?.[0];
+      const toolArgs = toolCall?.function?.arguments;
+
+      if (toolArgs) {
+        parsedResult = JSON.parse(toolArgs);
+      } else {
+        // Retry once with a different model (sometimes Gemini returns MALFORMED_FUNCTION_CALL or no tool_calls)
+        console.error(
+          "AI did not return tool_calls. Retrying with google/gemini-2.5-flash. Finish reason:",
+          choice?.finish_reason,
+          choice?.native_finish_reason,
+        );
+
+        aiResponse = await makeAiRequest({
+          model: "google/gemini-2.5-flash",
+          messages: toolMessages,
+          tools: [extractionTool],
+          tool_choice: { type: "function", function: { name: "extract_listings" } },
+          temperature: 0,
+          max_tokens: 12000,
+        });
+
+        if (!aiResponse.ok) {
+          const errorText = await aiResponse.text();
+          console.error("AI Gateway retry error:", aiResponse.status, errorText);
+          throw new Error(`AI extraction failed: ${errorText}`);
+        }
+
+        aiData = await aiResponse.json();
+        choice = aiData.choices?.[0];
+        const retryToolCall = choice?.message?.tool_calls?.[0];
+        const retryArgs = retryToolCall?.function?.arguments;
+
+        if (retryArgs) {
+          parsedResult = JSON.parse(retryArgs);
+        } else {
+          // Absolute last resort: attempt JSON extraction from message content.
+          const content = choice?.message?.content || "";
+          console.log("Fallback raw AI content (first 500 chars):", content.substring(0, 500));
+          const jsonStr = extractJsonObjectFromText(content);
+          if (!jsonStr) throw new Error("Could not extract JSON from AI response");
+          parsedResult = JSON.parse(jsonStr);
+        }
       }
-      
-      const jsonStr = extractJsonObjectFromText(content);
-      if (!jsonStr) {
-        console.error("Could not extract JSON from content:", content.substring(0, 1000));
-        throw new Error("Could not extract JSON from AI response");
-      }
-      
-      parsedResult = JSON.parse(jsonStr);
-      
-      if (!parsedResult.listings) {
-        parsedResult.listings = [];
-      }
-      
+
+      if (!parsedResult.listings) parsedResult.listings = [];
       console.log("Successfully parsed", parsedResult.listings.length, "listings");
     } catch (parseError) {
       console.error("Failed to parse AI response:", parseError);
