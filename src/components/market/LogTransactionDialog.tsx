@@ -59,6 +59,7 @@ export function LogTransactionDialog({
   const [sellingBrokerCompany, setSellingBrokerCompany] = useState('');
   const [commissionPercent, setCommissionPercent] = useState('');
   const [commissionAmount, setCommissionAmount] = useState('');
+  const [sizeSf, setSizeSf] = useState('');
   const [notes, setNotes] = useState('');
 
   // Reset form when listing changes
@@ -75,6 +76,8 @@ export function LogTransactionDialog({
       } else {
         setTransactionType('Lease');
       }
+      // Pre-fill size from listing
+      setSizeSf(listing.size_sf?.toString() || '');
       // Reset other fields
       setTransactionDate('');
       setClosingDate('');
@@ -110,7 +113,7 @@ export function LogTransactionDialog({
         display_address: listing.display_address,
         city: listing.city,
         submarket: listing.submarket,
-        size_sf: listing.size_sf,
+        size_sf: sizeSf ? parseInt(sizeSf.replace(/,/g, '')) : listing.size_sf,
         transaction_type: transactionType,
         transaction_date: transactionDate || null,
         closing_date: closingDate || null,
@@ -194,8 +197,20 @@ export function LogTransactionDialog({
                 <div className="text-sm text-muted-foreground mb-1">Property</div>
                 <div className="font-medium">{listing.display_address || listing.address}</div>
                 <div className="text-sm text-muted-foreground">
-                  {listing.submarket} • {listing.size_sf?.toLocaleString()} SF
+                  {listing.submarket}
                 </div>
+              </div>
+
+              {/* Size */}
+              <div className="space-y-2">
+                <Label htmlFor="size_sf">Size (SF) *</Label>
+                <Input
+                  id="size_sf"
+                  value={sizeSf}
+                  onChange={(e) => setSizeSf(e.target.value)}
+                  placeholder="e.g., 50,000"
+                  className={cn(inputClass(sizeSf), 'placeholder-light')}
+                />
               </div>
 
               {/* Transaction Type */}
