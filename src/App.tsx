@@ -23,6 +23,7 @@ import TrackingRedirect from "./pages/TrackingRedirect";
 import PublicDistributionMap from "./pages/PublicDistributionMap";
 import DistributionMapViewer from "./pages/DistributionMapViewer";
 import PdfOpenMap from "./pages/PdfOpenMap";
+import PdfImport from "./pages/PdfImport";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient({
@@ -62,7 +63,7 @@ const App = () => (
             <Route path="/join-team" element={<JoinTeam />} />
             <Route path="/join" element={<JoinTeam />} />
             <Route path="/recipients" element={<Recipients />} />
-            {/* Authenticated distribution map viewer */}
+            <Route path="/pdf-import" element={<PdfImport />} />
             <Route path="/distribution-map" element={<DistributionMapViewer />} />
             {/* Public distribution map - tokenized access, no auth required */}
             <Route path="/public/distribution-map" element={<PublicDistributionMap />} />
