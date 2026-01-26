@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -9,9 +9,10 @@ import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Upload, FileText, CheckCircle, XCircle, RefreshCw, ArrowRight, Building2, Plus } from 'lucide-react';
+import { Upload, FileText, CheckCircle, XCircle, RefreshCw, ArrowRight, Building2, Plus, AlertCircle } from 'lucide-react';
 import { usePdfImport } from '@/hooks/usePdfImport';
 import { formatNumber } from '@/lib/formatters';
+import { ExtractionQASummary, QAFilters } from '@/components/pdf-import/ExtractionQASummary';
 
 export default function PdfImport() {
   const {
@@ -34,6 +35,61 @@ export default function PdfImport() {
   const [newBrokerageName, setNewBrokerageName] = useState('');
   const [activeBatchId, setActiveBatchId] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState('upload');
+  const [qaFilters, setQaFilters] = useState<QAFilters>({
+    showOnlyNew: false,
+    showOnlyMatched: false,
+    showMissingFields: false,
+    showLowConfidence: false,
+    submarketFilter: null,
+    spotCheckIds: [],
+  });
+
+  // Filter staging records based on QA filters
+  const filteredStagingRecords = useMemo(() => {
+    let records = stagingRecords;
+
+    if (qaFilters.spotCheckIds.length > 0) {
+      return records.filter((r) => qaFilters.spotCheckIds.includes(r.id));
+    }
+
+    if (qaFilters.showOnlyNew) {
+      records = records.filter((r) => !r.matched_listing_id);
+    }
+
+    if (qaFilters.showOnlyMatched) {
+      records = records.filter((r) => !!r.matched_listing_id);
+    }
+
+    if (qaFilters.showMissingFields) {
+      records = records.filter((r) => {
+        const data = r.extracted_data as Record<string, unknown>;
+        return !data.address || !data.size_sf || !data.city;
+      });
+    }
+
+    if (qaFilters.showLowConfidence) {
+      records = records.filter(
+        (r) => r.matched_listing_id && (r.match_confidence || 0) < 0.8
+      );
+    }
+
+    if (qaFilters.submarketFilter) {
+      records = records.filter((r) => {
+        const data = r.extracted_data as Record<string, unknown>;
+        const sub = (data.submarket as string) || 'Unknown';
+        return sub === qaFilters.submarketFilter;
+      });
+    }
+
+    return records;
+  }, [stagingRecords, qaFilters]);
+
+  const handleSpotCheck = useCallback((sampleSize: number) => {
+    if (stagingRecords.length === 0) return;
+    const shuffled = [...stagingRecords].sort(() => Math.random() - 0.5);
+    const sampleIds = shuffled.slice(0, Math.min(sampleSize, shuffled.length)).map((r) => r.id);
+    setQaFilters((prev) => ({ ...prev, spotCheckIds: sampleIds }));
+  }, [stagingRecords]);
 
   useEffect(() => {
     fetchBrokerages();
@@ -256,38 +312,47 @@ export default function PdfImport() {
 
           <TabsContent value="review" className="space-y-4">
             {activeBatch && (
-              <Card>
-                <CardHeader className="flex flex-row items-center justify-between">
-                  <div>
-                    <CardTitle>Review Extracted Listings</CardTitle>
-                    <CardDescription>
-                      {activeBatch.filename} • {stagingRecords.length} listings extracted
-                    </CardDescription>
-                  </div>
-                  <Button onClick={handleImport} disabled={loading}>
-                    <CheckCircle className="h-4 w-4 mr-2" />
-                    Import Selected
-                  </Button>
-                </CardHeader>
-                <CardContent>
-                  <ScrollArea className="h-[600px]">
-                    <Table>
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead className="w-[200px]">Extracted Address</TableHead>
-                          <TableHead>Details</TableHead>
-                          <TableHead className="w-[50px]" />
-                          <TableHead className="w-[200px]">Existing Match</TableHead>
-                          <TableHead>Existing Details</TableHead>
-                          <TableHead className="w-[150px]">Action</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {stagingRecords.map((record) => {
-                          const extracted = record.extracted_data as Record<string, unknown>;
-                          const matched = record.matched_listing_id
-                            ? matchedListings[record.matched_listing_id]
-                            : null;
+              <>
+                <ExtractionQASummary
+                  stagingRecords={stagingRecords}
+                  expectedCount={81}
+                  activeFilters={qaFilters}
+                  onFilterChange={setQaFilters}
+                  onSpotCheck={handleSpotCheck}
+                />
+                <Card>
+                  <CardHeader className="flex flex-row items-center justify-between">
+                    <div>
+                      <CardTitle>Review Extracted Listings</CardTitle>
+                      <CardDescription>
+                        {activeBatch.filename} • {filteredStagingRecords.length} of {stagingRecords.length} listings
+                        {qaFilters.spotCheckIds.length > 0 && ' (spot-check sample)'}
+                      </CardDescription>
+                    </div>
+                    <Button onClick={handleImport} disabled={loading}>
+                      <CheckCircle className="h-4 w-4 mr-2" />
+                      Import Selected
+                    </Button>
+                  </CardHeader>
+                  <CardContent>
+                    <ScrollArea className="h-[600px]">
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead className="w-[200px]">Extracted Address</TableHead>
+                            <TableHead>Details</TableHead>
+                            <TableHead className="w-[50px]" />
+                            <TableHead className="w-[200px]">Existing Match</TableHead>
+                            <TableHead>Existing Details</TableHead>
+                            <TableHead className="w-[150px]">Action</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {filteredStagingRecords.map((record) => {
+                            const extracted = record.extracted_data as Record<string, unknown>;
+                            const matched = record.matched_listing_id
+                              ? matchedListings[record.matched_listing_id]
+                              : null;
 
                           return (
                             <TableRow key={record.id}>
@@ -395,6 +460,7 @@ export default function PdfImport() {
                   </ScrollArea>
                 </CardContent>
               </Card>
+            </>
             )}
           </TabsContent>
 
