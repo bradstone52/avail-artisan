@@ -127,9 +127,18 @@ serve(async (req) => {
 
     if (batchError) throw batchError;
 
-    // Convert PDF to base64 for AI processing
+    // Convert PDF to base64 for AI processing (chunked to avoid stack overflow)
     const arrayBuffer = await file.arrayBuffer();
-    const base64 = btoa(String.fromCharCode(...new Uint8Array(arrayBuffer)));
+    const uint8Array = new Uint8Array(arrayBuffer);
+    
+    // Convert to base64 in chunks to avoid "Maximum call stack size exceeded"
+    let binary = "";
+    const chunkSize = 8192;
+    for (let i = 0; i < uint8Array.length; i += chunkSize) {
+      const chunk = uint8Array.subarray(i, Math.min(i + chunkSize, uint8Array.length));
+      binary += String.fromCharCode(...chunk);
+    }
+    const base64 = btoa(binary);
 
     // Build extraction prompt with brokerage hints if available
     const hints = brokerage?.extraction_hints || {};
