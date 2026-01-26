@@ -147,34 +147,55 @@ serve(async (req) => {
       : "";
 
     const systemPrompt = `You are an expert at extracting commercial real estate listing data from brokerage PDF documents.
-Extract ALL property listings from the document. For each listing, extract:
-- address (required): Full street address
-- city: City name
-- submarket: Neighborhood or area within the city
-- size_sf: Total square footage (number only)
-- clear_height_ft: Clear height in feet (number only)
-- dock_doors: Number of dock doors (number only)
-- drive_in_doors: Number of drive-in doors (number only)
-- asking_rate_psf: Asking rate per square foot (as string, include currency)
-- availability_date: When available (as string)
-- landlord: Property owner/landlord name
-- broker_source: Listing broker name or company
-- listing_type: "Lease", "Sale", or "Sublease"
-- notes_public: Any additional notes or features
-- yard: "Yes", "No", or description
-- sprinkler: Sprinkler system info
-- power_amps: Electrical capacity
-- trailer_parking: "Yes", "No", or number of spaces
-- cross_dock: "Yes" or "No"
+Extract ALL property listings from the document. For each listing, extract all available fields accurately.
+Focus on precision and completeness. Do not add commentary.${hintsPrompt}`;
 
-Return a JSON object with:
-{
-  "listings": [...array of extracted listings...],
-  "extraction_notes": "any notes about the extraction or document format",
-  "brokerage_format_hints": {...any format patterns you noticed that could help future extractions...}
-}${hintsPrompt}`;
+    // Define the tool for structured extraction
+    const extractionTool = {
+      type: "function",
+      function: {
+        name: "extract_listings",
+        description: "Extract all commercial real estate listings from the PDF document",
+        parameters: {
+          type: "object",
+          properties: {
+            listings: {
+              type: "array",
+              description: "Array of extracted listings",
+              items: {
+                type: "object",
+                properties: {
+                  address: { type: "string", description: "Full street address" },
+                  city: { type: "string", description: "City name" },
+                  submarket: { type: "string", description: "Neighborhood or area" },
+                  size_sf: { type: "number", description: "Total square footage" },
+                  clear_height_ft: { type: "number", description: "Clear height in feet" },
+                  dock_doors: { type: "number", description: "Number of dock doors" },
+                  drive_in_doors: { type: "number", description: "Number of drive-in doors" },
+                  asking_rate_psf: { type: "string", description: "Asking rate per SF" },
+                  availability_date: { type: "string", description: "When available" },
+                  landlord: { type: "string", description: "Property owner" },
+                  broker_source: { type: "string", description: "Listing broker" },
+                  listing_type: { type: "string", description: "Lease, Sale, or Sublease" },
+                  notes_public: { type: "string", description: "Additional notes" },
+                  yard: { type: "string", description: "Yard info" },
+                  sprinkler: { type: "string", description: "Sprinkler system" },
+                  power_amps: { type: "string", description: "Electrical capacity" },
+                  trailer_parking: { type: "string", description: "Trailer parking info" },
+                  cross_dock: { type: "string", description: "Cross dock (Yes/No)" },
+                },
+                required: ["address"],
+              },
+            },
+            extraction_notes: { type: "string", description: "Notes about the extraction" },
+            brokerage_format_hints: { type: "object", description: "Format patterns noticed" },
+          },
+          required: ["listings"],
+        },
+      },
+    };
 
-    // Call Lovable AI with the PDF
+    // Call Lovable AI with the PDF using tool calling for structured output
     const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
       headers: {
@@ -190,7 +211,7 @@ Return a JSON object with:
             content: [
               {
                 type: "text",
-                text: "Please extract all commercial real estate listings from this PDF document. Return the data as JSON.",
+                text: "Please extract all commercial real estate listings from this PDF document.",
               },
               {
                 type: "image_url",
@@ -201,8 +222,10 @@ Return a JSON object with:
             ],
           },
         ],
+        tools: [extractionTool],
+        tool_choice: { type: "function", function: { name: "extract_listings" } },
         temperature: 0.1,
-        max_tokens: 8000,
+        max_tokens: 12000,
       }),
     });
 
@@ -226,9 +249,9 @@ Return a JSON object with:
     }
 
     const aiData = await aiResponse.json();
-    const content = aiData.choices?.[0]?.message?.content || "";
-
-    // Parse AI response
+    const choice = aiData.choices?.[0];
+    
+    // Extract data from tool call response
     let parsedResult: {
       listings: ExtractedListing[];
       extraction_notes?: string;
@@ -236,12 +259,18 @@ Return a JSON object with:
     };
 
     try {
-      // Extract JSON from response (may be wrapped in markdown code blocks)
-      const jsonMatch = content.match(/```json\s*([\s\S]*?)\s*```/) || content.match(/```\s*([\s\S]*?)\s*```/);
-      const jsonStr = jsonMatch ? jsonMatch[1] : content;
-      parsedResult = JSON.parse(jsonStr.trim());
+      const toolCall = choice?.message?.tool_calls?.[0];
+      if (toolCall?.function?.arguments) {
+        parsedResult = JSON.parse(toolCall.function.arguments);
+      } else {
+        // Fallback: try to parse from content if no tool call
+        const content = choice?.message?.content || "";
+        const jsonMatch = content.match(/```json\s*([\s\S]*?)\s*```/) || content.match(/```\s*([\s\S]*?)\s*```/);
+        const jsonStr = jsonMatch ? jsonMatch[1] : content;
+        parsedResult = JSON.parse(jsonStr.trim());
+      }
     } catch (parseError) {
-      console.error("Failed to parse AI response:", content);
+      console.error("Failed to parse AI response:", JSON.stringify(aiData, null, 2));
       throw new Error("Failed to parse AI extraction results");
     }
 
