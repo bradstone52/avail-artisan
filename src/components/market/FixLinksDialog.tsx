@@ -5,7 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Input } from '@/components/ui/input';
-import { ExternalLink, Search, Sparkles, Check, X, Loader2, RefreshCw, Copy } from 'lucide-react';
+import { ExternalLink, Search, Check, X, Loader2, RefreshCw, Copy } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import type { MarketListing } from '@/hooks/useMarketListings';
@@ -27,7 +27,7 @@ export function FixLinksDialog({ open, onOpenChange, listings, onListingUpdated 
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editingLink, setEditingLink] = useState('');
   const [savingId, setSavingId] = useState<string | null>(null);
-  const [autoFindingId, setAutoFindingId] = useState<string | null>(null);
+  
 
   const brokenListings = useMemo(() => 
     listings.filter(l => l.link && l.link !== '' && l.link_status === 'broken'),
@@ -182,35 +182,6 @@ export function FixLinksDialog({ open, onOpenChange, listings, onListingUpdated 
     }
   };
 
-  const handleAutoFind = async (listing: MarketListing) => {
-    setAutoFindingId(listing.id);
-    try {
-      const { data, error } = await supabase.functions.invoke('find-brochure', {
-        body: { 
-          listingId: listing.id,
-          address: listing.address, // Use clean address, not display_address
-          city: listing.city,
-          broker: listing.broker_source,
-          existingUrl: listing.link, // Pass existing URL to infer site filter
-        },
-      });
-
-      if (error) throw error;
-      if (data?.error) throw new Error(data.error);
-
-      if (data?.success && data?.link) {
-        toast.success('Brochure found and saved!');
-        onListingUpdated();
-      } else {
-        toast.info(data?.message || 'No brochure found. Try manual search.');
-      }
-    } catch (err) {
-      console.error('Auto-find error:', err);
-      toast.error(err instanceof Error ? err.message : 'Auto-find failed');
-    } finally {
-      setAutoFindingId(null);
-    }
-  };
 
   const startEditing = (listing: MarketListing) => {
     setEditingId(listing.id);
@@ -225,7 +196,6 @@ export function FixLinksDialog({ open, onOpenChange, listings, onListingUpdated 
   const renderListingRow = (listing: ListingWithIssue) => {
     const isEditing = editingId === listing.id;
     const isSaving = savingId === listing.id;
-    const isAutoFinding = autoFindingId === listing.id;
 
     return (
       <div
@@ -296,20 +266,6 @@ export function FixLinksDialog({ open, onOpenChange, listings, onListingUpdated 
                 title="Copy search URL to clipboard"
               >
                 <Copy className="w-3 h-3" />
-              </Button>
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={() => handleAutoFind(listing)}
-                disabled={isAutoFinding}
-                className="h-7 text-xs"
-              >
-                {isAutoFinding ? (
-                  <Loader2 className="w-3 h-3 mr-1 animate-spin" />
-                ) : (
-                  <Sparkles className="w-3 h-3 mr-1" />
-                )}
-                Auto-Find
               </Button>
               <Button
                 size="sm"
@@ -401,11 +357,7 @@ export function FixLinksDialog({ open, onOpenChange, listings, onListingUpdated 
           </TabsContent>
         </Tabs>
 
-        <div className="flex justify-between items-center pt-2 border-t">
-          <p className="text-xs text-muted-foreground">
-            <Sparkles className="w-3 h-3 inline mr-1" />
-            Auto-Find uses AI to search and verify brochures
-          </p>
+        <div className="flex justify-end items-center pt-2 border-t">
           <Button variant="outline" onClick={() => onOpenChange(false)}>
             Close
           </Button>
