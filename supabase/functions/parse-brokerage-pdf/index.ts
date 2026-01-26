@@ -255,13 +255,38 @@ Focus on precision and completeness. Do not add commentary.${hintsPrompt}`;
       },
     ];
 
-    // Attempt 1: provide tool schema but do NOT force tool_choice (Gemini can error on forced tool calls)
+    // Use Gemini 2.5 Pro for better document understanding - skip tool calling which often fails
+    // and just request JSON directly
+    const jsonOnlyPrompt = `${systemPrompt}
+
+CRITICAL INSTRUCTIONS:
+1. Return ONLY a valid JSON object - NO markdown, NO code fences, NO explanation text
+2. The JSON must have this structure: {"listings": [...], "extraction_notes": "...", "brokerage_format_hints": {...}}
+3. Each listing in the array must have at minimum an "address" field
+4. Extract ALL listings you can find in the document`;
+
     let aiResponse = await makeAiRequest({
-      model: "google/gemini-2.5-flash",
-      messages: baseMessages,
-      tools: [extractionTool],
+      model: "google/gemini-2.5-pro",
+      messages: [
+        { role: "system", content: jsonOnlyPrompt },
+        {
+          role: "user",
+          content: [
+            {
+              type: "text",
+              text: "Extract all commercial real estate listings from this PDF. Return ONLY JSON.",
+            },
+            {
+              type: "image_url",
+              image_url: {
+                url: `data:application/pdf;base64,${base64}`,
+              },
+            },
+          ],
+        },
+      ],
       temperature: 0.1,
-      max_tokens: 12000,
+      max_tokens: 16000,
     });
 
     if (!aiResponse.ok) {
@@ -285,36 +310,11 @@ Focus on precision and completeness. Do not add commentary.${hintsPrompt}`;
 
     let aiData = await aiResponse.json();
     let choice = aiData.choices?.[0];
-
-    // If Gemini returns MALFORMED_FUNCTION_CALL, retry once without tools and demand JSON-only output.
-    if (choice?.native_finish_reason === "MALFORMED_FUNCTION_CALL" || choice?.finish_reason === "error") {
-      console.error("AI tool call malformed, retrying with JSON-only response.");
-      aiResponse = await makeAiRequest({
-        model: "google/gemini-2.5-flash",
-        messages: [
-          {
-            role: "system",
-            content:
-              systemPrompt +
-              "\n\nIMPORTANT: Return ONLY valid JSON. Do not use markdown code fences.",
-          },
-          baseMessages[1],
-        ],
-        temperature: 0.1,
-        max_tokens: 12000,
-      });
-
-      if (!aiResponse.ok) {
-        const errorText = await aiResponse.text();
-        console.error("AI Gateway retry error:", aiResponse.status, errorText);
-        throw new Error(`AI extraction failed: ${errorText}`);
-      }
-
-      aiData = await aiResponse.json();
-      choice = aiData.choices?.[0];
-    }
     
-    // Extract data from tool call response
+    console.log("AI response finish_reason:", choice?.finish_reason, choice?.native_finish_reason);
+    console.log("AI response content length:", (choice?.message?.content || "").length);
+    
+    // Extract data from response content (not tool calls since we skipped them)
     let parsedResult: {
       listings: ExtractedListing[];
       extraction_notes?: string;
@@ -322,16 +322,30 @@ Focus on precision and completeness. Do not add commentary.${hintsPrompt}`;
     };
 
     try {
-      const toolCall = choice?.message?.tool_calls?.[0];
-      if (toolCall?.function?.arguments) {
-        parsedResult = JSON.parse(toolCall.function.arguments);
-      } else {
-        const content = choice?.message?.content || "";
-        const jsonStr = extractJsonObjectFromText(content);
-        parsedResult = JSON.parse(jsonStr);
+      const content = choice?.message?.content || "";
+      console.log("Raw AI content (first 500 chars):", content.substring(0, 500));
+      
+      if (!content || content.trim().length === 0) {
+        console.error("AI returned empty content. Full response:", JSON.stringify(aiData, null, 2));
+        throw new Error("AI returned empty response");
       }
+      
+      const jsonStr = extractJsonObjectFromText(content);
+      if (!jsonStr) {
+        console.error("Could not extract JSON from content:", content.substring(0, 1000));
+        throw new Error("Could not extract JSON from AI response");
+      }
+      
+      parsedResult = JSON.parse(jsonStr);
+      
+      if (!parsedResult.listings) {
+        parsedResult.listings = [];
+      }
+      
+      console.log("Successfully parsed", parsedResult.listings.length, "listings");
     } catch (parseError) {
-      console.error("Failed to parse AI response:", JSON.stringify(aiData, null, 2));
+      console.error("Failed to parse AI response:", parseError);
+      console.error("AI response data:", JSON.stringify(aiData, null, 2));
       throw new Error("Failed to parse AI extraction results");
     }
 
