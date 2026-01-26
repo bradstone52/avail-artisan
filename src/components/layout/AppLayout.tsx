@@ -57,13 +57,13 @@ const navigation: NavigationEntry[] = [
     ]
   },
   { name: 'Market Listings', href: '/market-listings', icon: Database },
-  { name: 'PDF Import', href: '/pdf-import', icon: FilePlus },
   { name: 'Properties', href: '/properties', icon: Building2 },
   { name: 'Transactions', href: '/transactions', icon: Receipt },
 ];
 
 const adminNavigation = [
   { name: 'User Management', href: '/admin/users', icon: Users },
+  { name: 'PDF Import', href: '/pdf-import', icon: FilePlus },
 ];
 
 export function AppLayout({ children }: AppLayoutProps) {
