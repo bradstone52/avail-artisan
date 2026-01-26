@@ -27,6 +27,26 @@ interface ExtractedListing {
   cross_dock?: string;
 }
 
+function extractJsonObjectFromText(text: string): string {
+  const trimmed = (text || "").trim();
+  if (!trimmed) return "";
+
+  // Try fenced blocks first
+  const match =
+    trimmed.match(/```json\s*([\s\S]*?)\s*```/) ||
+    trimmed.match(/```\s*([\s\S]*?)\s*```/);
+  if (match?.[1]) return match[1].trim();
+
+  // Heuristic fallback: take outermost JSON object
+  const firstBrace = trimmed.indexOf("{");
+  const lastBrace = trimmed.lastIndexOf("}");
+  if (firstBrace !== -1 && lastBrace !== -1 && lastBrace > firstBrace) {
+    return trimmed.slice(firstBrace, lastBrace + 1).trim();
+  }
+
+  return trimmed;
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -147,7 +167,12 @@ serve(async (req) => {
       : "";
 
     const systemPrompt = `You are an expert at extracting commercial real estate listing data from brokerage PDF documents.
-Extract ALL property listings from the document. For each listing, extract all available fields accurately.
+Extract ALL property listings from the document.
+
+Return either:
+1) A function/tool call named \"extract_listings\" with arguments matching the schema, OR
+2) If tool calling fails, return ONLY a valid JSON object (no markdown) with keys: listings, extraction_notes, brokerage_format_hints.
+
 Focus on precision and completeness. Do not add commentary.${hintsPrompt}`;
 
     // Define the tool for structured extraction
@@ -185,48 +210,58 @@ Focus on precision and completeness. Do not add commentary.${hintsPrompt}`;
                   cross_dock: { type: "string", description: "Cross dock (Yes/No)" },
                 },
                 required: ["address"],
+                additionalProperties: false,
               },
             },
             extraction_notes: { type: "string", description: "Notes about the extraction" },
             brokerage_format_hints: { type: "object", description: "Format patterns noticed" },
           },
           required: ["listings"],
+          additionalProperties: false,
         },
       },
     };
 
-    // Call Lovable AI with the PDF using tool calling for structured output
-    const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${lovableApiKey}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "google/gemini-2.5-flash",
-        messages: [
-          { role: "system", content: systemPrompt },
+    const gatewayUrl = "https://ai.gateway.lovable.dev/v1/chat/completions";
+
+    const makeAiRequest = async (body: Record<string, unknown>) => {
+      const resp = await fetch(gatewayUrl, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${lovableApiKey}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(body),
+      });
+      return resp;
+    };
+
+    const baseMessages = [
+      { role: "system", content: systemPrompt },
+      {
+        role: "user",
+        content: [
           {
-            role: "user",
-            content: [
-              {
-                type: "text",
-                text: "Please extract all commercial real estate listings from this PDF document.",
-              },
-              {
-                type: "image_url",
-                image_url: {
-                  url: `data:application/pdf;base64,${base64}`,
-                },
-              },
-            ],
+            type: "text",
+            text: "Please extract all commercial real estate listings from this PDF document.",
+          },
+          {
+            type: "image_url",
+            image_url: {
+              url: `data:application/pdf;base64,${base64}`,
+            },
           },
         ],
-        tools: [extractionTool],
-        tool_choice: { type: "function", function: { name: "extract_listings" } },
-        temperature: 0.1,
-        max_tokens: 12000,
-      }),
+      },
+    ];
+
+    // Attempt 1: provide tool schema but do NOT force tool_choice (Gemini can error on forced tool calls)
+    let aiResponse = await makeAiRequest({
+      model: "google/gemini-2.5-flash",
+      messages: baseMessages,
+      tools: [extractionTool],
+      temperature: 0.1,
+      max_tokens: 12000,
     });
 
     if (!aiResponse.ok) {
@@ -248,8 +283,36 @@ Focus on precision and completeness. Do not add commentary.${hintsPrompt}`;
       throw new Error(`AI extraction failed: ${errorText}`);
     }
 
-    const aiData = await aiResponse.json();
-    const choice = aiData.choices?.[0];
+    let aiData = await aiResponse.json();
+    let choice = aiData.choices?.[0];
+
+    // If Gemini returns MALFORMED_FUNCTION_CALL, retry once without tools and demand JSON-only output.
+    if (choice?.native_finish_reason === "MALFORMED_FUNCTION_CALL" || choice?.finish_reason === "error") {
+      console.error("AI tool call malformed, retrying with JSON-only response.");
+      aiResponse = await makeAiRequest({
+        model: "google/gemini-2.5-flash",
+        messages: [
+          {
+            role: "system",
+            content:
+              systemPrompt +
+              "\n\nIMPORTANT: Return ONLY valid JSON. Do not use markdown code fences.",
+          },
+          baseMessages[1],
+        ],
+        temperature: 0.1,
+        max_tokens: 12000,
+      });
+
+      if (!aiResponse.ok) {
+        const errorText = await aiResponse.text();
+        console.error("AI Gateway retry error:", aiResponse.status, errorText);
+        throw new Error(`AI extraction failed: ${errorText}`);
+      }
+
+      aiData = await aiResponse.json();
+      choice = aiData.choices?.[0];
+    }
     
     // Extract data from tool call response
     let parsedResult: {
@@ -263,11 +326,9 @@ Focus on precision and completeness. Do not add commentary.${hintsPrompt}`;
       if (toolCall?.function?.arguments) {
         parsedResult = JSON.parse(toolCall.function.arguments);
       } else {
-        // Fallback: try to parse from content if no tool call
         const content = choice?.message?.content || "";
-        const jsonMatch = content.match(/```json\s*([\s\S]*?)\s*```/) || content.match(/```\s*([\s\S]*?)\s*```/);
-        const jsonStr = jsonMatch ? jsonMatch[1] : content;
-        parsedResult = JSON.parse(jsonStr.trim());
+        const jsonStr = extractJsonObjectFromText(content);
+        parsedResult = JSON.parse(jsonStr);
       }
     } catch (parseError) {
       console.error("Failed to parse AI response:", JSON.stringify(aiData, null, 2));
