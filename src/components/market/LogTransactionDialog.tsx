@@ -409,36 +409,6 @@ export function LogTransactionDialog({
                   </div>
                 </div>
               </div>
-
-              {/* Commission */}
-              <div className="space-y-3">
-                <Label className="text-muted-foreground text-xs uppercase tracking-wider">
-                  Commission
-                </Label>
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="commission_percent">Percent (%)</Label>
-                    <Input
-                      id="commission_percent"
-                      value={commissionPercent}
-                      onChange={(e) => setCommissionPercent(e.target.value)}
-                      placeholder="e.g., 5.0"
-                      className={cn(inputClass(commissionPercent), 'placeholder-light')}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="commission_amount">Amount ($)</Label>
-                    <Input
-                      id="commission_amount"
-                      value={commissionAmount}
-                      onChange={(e) => setCommissionAmount(e.target.value)}
-                      placeholder="e.g., 50,000"
-                      className={cn(inputClass(commissionAmount), 'placeholder-light')}
-                    />
-                  </div>
-                </div>
-              </div>
-
               {/* Notes */}
               <div className="space-y-2">
                 <Label htmlFor="notes">Notes</Label>
