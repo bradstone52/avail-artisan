@@ -23,9 +23,7 @@ import {
   Package,
   Settings,
   Briefcase,
-  UserSearch,
-  Building,
-  UserRound
+  UserSearch
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -70,8 +68,7 @@ const navigation: NavigationEntry[] = [
     items: [
       { name: 'Deals', href: '/deals', icon: Briefcase },
       { name: 'Prospects', href: '/prospects', icon: UserSearch },
-      { name: 'Brokerages', href: '/brokerages', icon: Building },
-      { name: 'Agents', href: '/agents', icon: UserRound },
+      { name: 'Settings', href: '/settings', icon: Settings },
     ]
   },
 ];

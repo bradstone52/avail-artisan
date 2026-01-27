@@ -1,23 +1,43 @@
+import { useState } from 'react';
 import { AppLayout } from '@/components/layout/AppLayout';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { UserSearch } from 'lucide-react';
+import { PageHeader } from '@/components/common/PageHeader';
+import { ProspectsTable } from '@/components/prospects/ProspectsTable';
+import { ProspectFormDialog } from '@/components/prospects/ProspectFormDialog';
+import { useProspects } from '@/hooks/useProspects';
+import { Button } from '@/components/ui/button';
+import { UserSearch, Plus } from 'lucide-react';
+import type { Prospect } from '@/types/prospect';
 
 export default function Prospects() {
+  const { data: prospects, isLoading } = useProspects();
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [editingProspect, setEditingProspect] = useState<Prospect | null>(null);
+
+  const handleEdit = (prospect: Prospect) => {
+    setEditingProspect(prospect);
+    setDialogOpen(true);
+  };
+
+  const handleClose = () => {
+    setDialogOpen(false);
+    setEditingProspect(null);
+  };
+
   return (
     <AppLayout>
       <div className="p-6 lg:p-8">
-        <div className="flex items-center gap-3 mb-6">
-          <UserSearch className="w-8 h-8 text-primary" />
-          <h1 className="text-2xl font-black uppercase tracking-tight">Prospects</h1>
-        </div>
-        <Card>
-          <CardHeader>
-            <CardTitle>Prospect Tracking</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-muted-foreground">Lead and prospect management coming soon.</p>
-          </CardContent>
-        </Card>
+        <PageHeader
+          title="Prospects"
+          icon={UserSearch}
+          actions={
+            <Button onClick={() => setDialogOpen(true)}>
+              <Plus className="w-4 h-4 mr-2" />
+              New Prospect
+            </Button>
+          }
+        />
+        <ProspectsTable prospects={prospects || []} isLoading={isLoading} onEdit={handleEdit} />
+        <ProspectFormDialog open={dialogOpen} onOpenChange={handleClose} prospect={editingProspect} />
       </div>
     </AppLayout>
   );
