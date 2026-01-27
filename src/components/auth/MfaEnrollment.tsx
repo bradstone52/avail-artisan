@@ -65,19 +65,42 @@ export function MfaEnrollment({ open, onOpenChange, onEnrolled, mandatory = fals
         await supabase.auth.mfa.unenroll({ factorId: factor.id });
       }
 
-      const { data, error } = await supabase.auth.mfa.enroll({
-        factorType: 'totp',
-        friendlyName: 'Logistics-Space.net',
-      });
+      const enrollOnce = async () => {
+        const { data, error } = await supabase.auth.mfa.enroll({
+          factorType: 'totp',
+          friendlyName: 'Logistics-Space.net',
+        });
+        if (error) throw error;
+        return data;
+      };
 
-      if (error) {
-        throw error;
+      let enrollData: any;
+      try {
+        enrollData = await enrollOnce();
+      } catch (err: any) {
+        // If a previous/stale factor exists with the same friendly name,
+        // remove it and retry to generate a fresh QR code.
+        if (err?.code === 'mfa_factor_name_conflict') {
+          const { data: factorsAgain } = await supabase.auth.mfa.listFactors();
+          const allTotp = (factorsAgain?.totp || []) as any[];
+          const conflicting = allTotp.find(
+            (f) => (f?.friendly_name || '').toLowerCase() === 'logistics-space.net'
+          );
+          if (conflicting?.id) {
+            await supabase.auth.mfa.unenroll({ factorId: conflicting.id });
+            enrollData = await enrollOnce();
+          } else {
+            throw err;
+          }
+        } else {
+          throw err;
+        }
       }
 
-      if (data.totp) {
-        setQrCode(data.totp.qr_code);
-        setSecret(data.totp.secret);
-        setFactorId(data.id);
+      if (enrollData?.totp) {
+        setQrCode(enrollData.totp.qr_code);
+        setSecret(enrollData.totp.secret);
+        setFactorId(enrollData.id);
       }
     } catch (error: any) {
       console.error('MFA enrollment error:', error);
