@@ -135,11 +135,10 @@ export function LogTransactionDialog({
       };
 
       const created = await createTransaction(input);
-      if (created) {
-        onOpenChange(false);
-        onSaved?.();
-        // Stay on Market Listings page - filters are preserved
-      }
+      // Always close dialog and refresh - even if listing was already processed
+      // This handles the race condition case where another user already processed the listing
+      onOpenChange(false);
+      onSaved?.();
     } finally {
       setIsSaving(false);
     }
