@@ -105,12 +105,27 @@ export interface LinkedListing {
   link?: string | null;
 }
 
+export interface PropertyTransaction {
+  id: string;
+  transaction_type: string;
+  transaction_date: string | null;
+  closing_date: string | null;
+  size_sf: number;
+  sale_price: number | null;
+  lease_rate_psf: number | null;
+  lease_term_months: number | null;
+  buyer_tenant_company: string | null;
+  seller_landlord_company: string | null;
+  created_at: string;
+}
+
 export interface PropertyWithLinks extends Property {
   linked_listings?: LinkedListing[];
   active_listing_count?: number;
   photos?: PropertyPhoto[];
   brochures?: PropertyBrochure[];
   permits?: PropertyPermit[];
+  transactions?: PropertyTransaction[];
 }
 
 export function useProperties() {
@@ -485,6 +500,7 @@ export function usePropertyDetail(propertyId: string | undefined) {
   const [property, setProperty] = useState<PropertyWithLinks | null>(null);
   const [brochures, setBrochures] = useState<PropertyBrochure[]>([]);
   const [permits, setPermits] = useState<PropertyPermit[]>([]);
+  const [transactions, setTransactions] = useState<PropertyTransaction[]>([]);
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
 
@@ -526,6 +542,13 @@ export function usePropertyDetail(propertyId: string | undefined) {
         .select('*')
         .eq('property_id', propertyId)
         .order('issued_date', { ascending: false });
+
+      // Fetch transactions linked to this property
+      const { data: transactionsData } = await supabase
+        .from('transactions')
+        .select('id, transaction_type, transaction_date, closing_date, size_sf, sale_price, lease_rate_psf, lease_term_months, buyer_tenant_company, seller_landlord_company, created_at')
+        .eq('property_id', propertyId)
+        .order('transaction_date', { ascending: false });
 
       // Fetch linked listings
       const { data: linksData } = await supabase
@@ -582,11 +605,13 @@ export function usePropertyDetail(propertyId: string | undefined) {
         ...propertyData,
         photos: photosData || [],
         linked_listings: allLinked,
-        active_listing_count: activeCount
+        active_listing_count: activeCount,
+        transactions: transactionsData || []
       } as PropertyWithLinks);
 
       setBrochures(brochuresData || []);
       setPermits(permitsData || []);
+      setTransactions(transactionsData || []);
     } catch (error: any) {
       console.error('Error fetching property detail:', error);
       toast({
@@ -607,6 +632,7 @@ export function usePropertyDetail(propertyId: string | undefined) {
     property,
     brochures,
     permits,
+    transactions,
     loading,
     refetch: fetchPropertyDetail
   };
