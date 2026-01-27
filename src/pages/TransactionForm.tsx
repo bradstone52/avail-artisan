@@ -224,7 +224,7 @@ export default function TransactionForm() {
                 <Label htmlFor="transaction_type">Transaction Type *</Label>
                 <Select
                   value={formData.transaction_type}
-                  onValueChange={(v) => handleChange('transaction_type', v as 'Sale' | 'Lease' | 'Sublease')}
+                  onValueChange={(v) => handleChange('transaction_type', v as 'Sale' | 'Lease' | 'Sublease' | 'Unknown/Removed')}
                 >
                   <SelectTrigger>
                     <SelectValue />
@@ -233,6 +233,7 @@ export default function TransactionForm() {
                     <SelectItem value="Sale">Sale</SelectItem>
                     <SelectItem value="Lease">Lease</SelectItem>
                     <SelectItem value="Sublease">Sublease</SelectItem>
+                    <SelectItem value="Unknown/Removed">Unknown/Removed</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
