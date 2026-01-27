@@ -45,6 +45,7 @@ export function LogTransactionDialog({
   const [transactionType, setTransactionType] = useState<'Sale' | 'Lease' | 'Sublease' | 'Unknown/Removed'>('Lease');
   const [transactionDate, setTransactionDate] = useState('');
   const [closingDate, setClosingDate] = useState('');
+  const [listingRemovalDate, setListingRemovalDate] = useState('');
   const [salePrice, setSalePrice] = useState('');
   const [leaseRatePsf, setLeaseRatePsf] = useState('');
   const [leaseTermMonths, setLeaseTermMonths] = useState('');
@@ -82,6 +83,7 @@ export function LogTransactionDialog({
       // Reset other fields
       setTransactionDate('');
       setClosingDate('');
+      setListingRemovalDate('');
       setSalePrice('');
       setLeaseRatePsf('');
       setLeaseTermMonths('');
@@ -116,8 +118,9 @@ export function LogTransactionDialog({
         submarket: listing.submarket,
         size_sf: sizeSf ? parseInt(sizeSf.replace(/,/g, '')) : listing.size_sf,
         transaction_type: transactionType,
-        transaction_date: transactionDate || null,
-        closing_date: closingDate || null,
+        transaction_date: transactionType === 'Unknown/Removed' ? null : (transactionDate || null),
+        closing_date: transactionType === 'Unknown/Removed' ? null : (closingDate || null),
+        listing_removal_date: transactionType === 'Unknown/Removed' ? (listingRemovalDate || null) : null,
         sale_price: salePrice ? parseFloat(salePrice.replace(/,/g, '')) : null,
         lease_rate_psf: leaseRatePsf ? parseFloat(leaseRatePsf.replace(/,/g, '')) : null,
         lease_term_months: leaseTermMonths ? parseInt(leaseTermMonths) : null,
@@ -269,29 +272,42 @@ export function LogTransactionDialog({
                 </div>
               )}
 
-              {/* Dates */}
-              <div className="grid grid-cols-2 gap-4">
+              {/* Dates - show different fields based on transaction type */}
+              {transactionType === 'Unknown/Removed' ? (
                 <div className="space-y-2">
-                  <Label htmlFor="transaction_date">Transaction Date</Label>
+                  <Label htmlFor="listing_removal_date">Listing Removal Date</Label>
                   <Input
-                    id="transaction_date"
+                    id="listing_removal_date"
                     type="date"
-                    value={transactionDate}
-                    onChange={(e) => setTransactionDate(e.target.value)}
-                    className={inputClass(transactionDate)}
+                    value={listingRemovalDate}
+                    onChange={(e) => setListingRemovalDate(e.target.value)}
+                    className={inputClass(listingRemovalDate)}
                   />
                 </div>
-                <div className="space-y-2">
-                  <Label htmlFor="closing_date">Closing Date</Label>
-                  <Input
-                    id="closing_date"
-                    type="date"
-                    value={closingDate}
-                    onChange={(e) => setClosingDate(e.target.value)}
-                    className={inputClass(closingDate)}
-                  />
+              ) : (
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="transaction_date">Transaction Date</Label>
+                    <Input
+                      id="transaction_date"
+                      type="date"
+                      value={transactionDate}
+                      onChange={(e) => setTransactionDate(e.target.value)}
+                      className={inputClass(transactionDate)}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="closing_date">Closing Date</Label>
+                    <Input
+                      id="closing_date"
+                      type="date"
+                      value={closingDate}
+                      onChange={(e) => setClosingDate(e.target.value)}
+                      className={inputClass(closingDate)}
+                    />
+                  </div>
                 </div>
-              </div>
+              )}
 
               {/* Buyer/Tenant */}
               <div className="space-y-3">

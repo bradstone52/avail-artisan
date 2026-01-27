@@ -695,9 +695,13 @@ export default function PropertyDetail() {
                           </Badge>
                           <div>
                             <p className="font-medium">
-                              {tx.transaction_date
-                                ? format(new Date(tx.transaction_date), 'MMM d, yyyy')
-                                : 'Date pending'
+                              {tx.transaction_type === 'Unknown/Removed'
+                                ? (tx.listing_removal_date
+                                    ? format(new Date(tx.listing_removal_date), 'MMM d, yyyy')
+                                    : 'Date pending')
+                                : (tx.transaction_date
+                                    ? format(new Date(tx.transaction_date), 'MMM d, yyyy')
+                                    : 'Date pending')
                               }
                             </p>
                             <p className="text-sm text-muted-foreground">
