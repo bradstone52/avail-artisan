@@ -11,7 +11,6 @@ import {
   CommandList,
   CommandSeparator,
 } from '@/components/ui/command';
-import { ScrollArea } from '@/components/ui/scroll-area';
 import {
   Popover,
   PopoverContent,
@@ -109,46 +108,44 @@ export function BrokerageCombobox({ value, onChange, className }: BrokerageCombo
             value={inputValue}
             onValueChange={setInputValue}
           />
-          <CommandList className="max-h-none overflow-visible">
-            <ScrollArea className="h-[200px]">
-              <CommandEmpty className="py-2 px-4 text-sm text-muted-foreground">
-                No brokerages found.
-              </CommandEmpty>
-              {filteredBrokerages.length > 0 && (
-                <CommandGroup heading="Brokerages">
-                  {filteredBrokerages.map((brokerage) => (
-                    <CommandItem
-                      key={brokerage}
-                      value={brokerage}
-                      onSelect={() => handleSelect(brokerage)}
-                    >
-                      <Check
-                        className={cn(
-                          "mr-2 h-4 w-4",
-                          value === brokerage ? "opacity-100" : "opacity-0"
-                        )}
-                      />
-                      {brokerage}
-                    </CommandItem>
-                  ))}
-                </CommandGroup>
-              )}
-              {isNewEntry && (
-                <>
-                  <CommandSeparator />
-                  <CommandGroup>
-                    <CommandItem
-                      onSelect={handleAddNew}
-                      className="text-primary"
-                    >
-                      <Plus className="mr-2 h-4 w-4" />
-                      Add "{inputValue.trim()}"
-                    </CommandItem>
-                  </CommandGroup>
-                </>
-              )}
-            </ScrollArea>
-          </CommandList>
+        <CommandList>
+          <CommandEmpty className="py-2 px-4 text-sm text-muted-foreground">
+            No brokerages found.
+          </CommandEmpty>
+          {filteredBrokerages.length > 0 && (
+            <CommandGroup heading="Brokerages">
+              {filteredBrokerages.map((brokerage) => (
+                <CommandItem
+                  key={brokerage}
+                  value={brokerage}
+                  onSelect={() => handleSelect(brokerage)}
+                >
+                  <Check
+                    className={cn(
+                      "mr-2 h-4 w-4",
+                      value === brokerage ? "opacity-100" : "opacity-0"
+                    )}
+                  />
+                  {brokerage}
+                </CommandItem>
+              ))}
+            </CommandGroup>
+          )}
+          {isNewEntry && (
+            <>
+              <CommandSeparator />
+              <CommandGroup>
+                <CommandItem
+                  onSelect={handleAddNew}
+                  className="text-primary"
+                >
+                  <Plus className="mr-2 h-4 w-4" />
+                  Add "{inputValue.trim()}"
+                </CommandItem>
+              </CommandGroup>
+            </>
+          )}
+        </CommandList>
         </Command>
       </PopoverContent>
     </Popover>
