@@ -27,8 +27,7 @@ import PdfImport from "./pages/PdfImport";
 import AccountSettings from "./pages/AccountSettings";
 import Deals from "./pages/Deals";
 import Prospects from "./pages/Prospects";
-import Brokerages from "./pages/Brokerages";
-import Agents from "./pages/Agents";
+import Settings from "./pages/Settings";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient({
@@ -72,8 +71,7 @@ const App = () => (
             <Route path="/account" element={<AccountSettings />} />
             <Route path="/deals" element={<Deals />} />
             <Route path="/prospects" element={<Prospects />} />
-            <Route path="/brokerages" element={<Brokerages />} />
-            <Route path="/agents" element={<Agents />} />
+            <Route path="/settings" element={<Settings />} />
             <Route path="/distribution-map" element={<DistributionMapViewer />} />
             {/* Public distribution map - tokenized access, no auth required */}
             <Route path="/public/distribution-map" element={<PublicDistributionMap />} />
