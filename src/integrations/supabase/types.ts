@@ -14,6 +14,60 @@ export type Database = {
   }
   public: {
     Tables: {
+      agents: {
+        Row: {
+          brokerage_id: string | null
+          created_at: string
+          email: string | null
+          id: string
+          name: string
+          notes: string | null
+          org_id: string | null
+          phone: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          brokerage_id?: string | null
+          created_at?: string
+          email?: string | null
+          id?: string
+          name: string
+          notes?: string | null
+          org_id?: string | null
+          phone?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          brokerage_id?: string | null
+          created_at?: string
+          email?: string | null
+          id?: string
+          name?: string
+          notes?: string | null
+          org_id?: string | null
+          phone?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "agents_brokerage_id_fkey"
+            columns: ["brokerage_id"]
+            isOneToOne: false
+            referencedRelation: "brokerages"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "agents_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "orgs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       brokerage_profiles: {
         Row: {
           created_at: string
@@ -46,6 +100,144 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      brokerages: {
+        Row: {
+          address: string | null
+          created_at: string
+          email: string | null
+          id: string
+          name: string
+          notes: string | null
+          org_id: string | null
+          phone: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          address?: string | null
+          created_at?: string
+          email?: string | null
+          id?: string
+          name: string
+          notes?: string | null
+          org_id?: string | null
+          phone?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          address?: string | null
+          created_at?: string
+          email?: string | null
+          id?: string
+          name?: string
+          notes?: string | null
+          org_id?: string | null
+          phone?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "brokerages_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "orgs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      deals: {
+        Row: {
+          address: string
+          city: string | null
+          close_date: string | null
+          commission_percent: number | null
+          conditions: string | null
+          created_at: string
+          deal_number: string | null
+          deal_type: string
+          deal_value: number | null
+          deposit_amount: number | null
+          deposit_due_date: string | null
+          id: string
+          listing_id: string | null
+          notes: string | null
+          org_id: string | null
+          property_id: string | null
+          status: string
+          submarket: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          address: string
+          city?: string | null
+          close_date?: string | null
+          commission_percent?: number | null
+          conditions?: string | null
+          created_at?: string
+          deal_number?: string | null
+          deal_type?: string
+          deal_value?: number | null
+          deposit_amount?: number | null
+          deposit_due_date?: string | null
+          id?: string
+          listing_id?: string | null
+          notes?: string | null
+          org_id?: string | null
+          property_id?: string | null
+          status?: string
+          submarket?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          address?: string
+          city?: string | null
+          close_date?: string | null
+          commission_percent?: number | null
+          conditions?: string | null
+          created_at?: string
+          deal_number?: string | null
+          deal_type?: string
+          deal_value?: number | null
+          deposit_amount?: number | null
+          deposit_due_date?: string | null
+          id?: string
+          listing_id?: string | null
+          notes?: string | null
+          org_id?: string | null
+          property_id?: string | null
+          status?: string
+          submarket?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "deals_listing_id_fkey"
+            columns: ["listing_id"]
+            isOneToOne: false
+            referencedRelation: "market_listings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "deals_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "orgs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "deals_property_id_fkey"
+            columns: ["property_id"]
+            isOneToOne: false
+            referencedRelation: "properties"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       distribution_batches: {
         Row: {
@@ -1478,6 +1670,71 @@ export type Database = {
             columns: ["property_id"]
             isOneToOne: false
             referencedRelation: "properties"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      prospects: {
+        Row: {
+          budget: number | null
+          company: string | null
+          created_at: string
+          email: string | null
+          follow_up_date: string | null
+          id: string
+          max_size: number | null
+          min_size: number | null
+          name: string
+          notes: string | null
+          org_id: string | null
+          phone: string | null
+          requirements: string | null
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          budget?: number | null
+          company?: string | null
+          created_at?: string
+          email?: string | null
+          follow_up_date?: string | null
+          id?: string
+          max_size?: number | null
+          min_size?: number | null
+          name: string
+          notes?: string | null
+          org_id?: string | null
+          phone?: string | null
+          requirements?: string | null
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          budget?: number | null
+          company?: string | null
+          created_at?: string
+          email?: string | null
+          follow_up_date?: string | null
+          id?: string
+          max_size?: number | null
+          min_size?: number | null
+          name?: string
+          notes?: string | null
+          org_id?: string | null
+          phone?: string | null
+          requirements?: string | null
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "prospects_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "orgs"
             referencedColumns: ["id"]
           },
         ]

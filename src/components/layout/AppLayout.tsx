@@ -21,7 +21,11 @@ import {
   Database,
   Receipt,
   Package,
-  Settings
+  Settings,
+  Briefcase,
+  UserSearch,
+  Building,
+  UserRound
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -60,6 +64,16 @@ const navigation: NavigationEntry[] = [
   { name: 'Market Listings', href: '/market-listings', icon: Database },
   { name: 'Properties', href: '/properties', icon: Building2 },
   { name: 'Transactions', href: '/transactions', icon: Receipt },
+  { 
+    name: 'CRE Tracker', 
+    icon: Briefcase,
+    items: [
+      { name: 'Deals', href: '/deals', icon: Briefcase },
+      { name: 'Prospects', href: '/prospects', icon: UserSearch },
+      { name: 'Brokerages', href: '/brokerages', icon: Building },
+      { name: 'Agents', href: '/agents', icon: UserRound },
+    ]
+  },
 ];
 
 const adminNavigation = [
@@ -74,10 +88,17 @@ export function AppLayout({ children }: AppLayoutProps) {
   const navigate = useNavigate();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
-  const [distributionOpen, setDistributionOpen] = useState(() => {
-    // Default open if current route is a distribution route
-    return ['/listings', '/recipients'].includes(location.pathname);
+  const [openGroups, setOpenGroups] = useState<Record<string, boolean>>(() => {
+    // Default open groups based on current route
+    return {
+      'Distribution': ['/listings', '/recipients'].includes(location.pathname),
+      'CRE Tracker': ['/deals', '/prospects', '/brokerages', '/agents'].includes(location.pathname),
+    };
   });
+
+  const toggleGroup = (groupName: string) => {
+    setOpenGroups(prev => ({ ...prev, [groupName]: !prev[groupName] }));
+  };
 
   // Listen for global toasts (e.g., from background sync tasks)
   useGlobalToast();
@@ -143,7 +164,7 @@ export function AppLayout({ children }: AppLayoutProps) {
                 return (
                   <div key={entry.name}>
                     <button
-                      onClick={() => setDistributionOpen(!distributionOpen)}
+                      onClick={() => toggleGroup(entry.name)}
                       title={sidebarCollapsed ? entry.name : undefined}
                       className={cn(
                         "w-full flex items-center gap-3 py-3 text-sm font-bold uppercase tracking-wider transition-all border-2",
@@ -159,11 +180,11 @@ export function AppLayout({ children }: AppLayoutProps) {
                       {!sidebarCollapsed && (
                         <ChevronDown className={cn(
                           "w-4 h-4 ml-auto transition-transform",
-                          distributionOpen ? "" : "-rotate-90"
+                          openGroups[entry.name] ? "" : "-rotate-90"
                         )} />
                       )}
                     </button>
-                    {(distributionOpen || sidebarCollapsed) && (
+                    {(openGroups[entry.name] || sidebarCollapsed) && (
                       <div className={cn("space-y-1", !sidebarCollapsed && "ml-4 mt-1 pl-2 border-l-2 border-foreground/20")}>
                         {entry.items.map((item) => {
                           const isActive = location.pathname === item.href;
