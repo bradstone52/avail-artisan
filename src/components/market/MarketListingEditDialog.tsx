@@ -33,6 +33,7 @@ import {
 } from '@/components/ui/select';
 import { Loader2, Trash2 } from 'lucide-react';
 import { BrokerageCombobox } from './BrokerageCombobox';
+import { LandlordCombobox } from './LandlordCombobox';
 import { useOrg } from '@/hooks/useOrg';
 import { useAuth } from '@/contexts/AuthContext';
 
@@ -918,13 +919,12 @@ export function MarketListingEditDialog({
               <Label htmlFor="landlord" className="text-right">
                 Landlord
               </Label>
-              <Input
-                id="landlord"
-                value={landlord}
-                onChange={(e) => setLandlord(e.target.value)}
-                className={`col-span-3 placeholder-light ${landlord ? 'input-filled' : ''}`}
-                placeholder="e.g., Morguard, Oxford"
-              />
+              <div className="col-span-3">
+                <LandlordCombobox
+                  value={landlord}
+                  onChange={setLandlord}
+                />
+              </div>
             </div>
 
             {/* Brochure Link */}
