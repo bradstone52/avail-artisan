@@ -42,7 +42,7 @@ export function LogTransactionDialog({
   const [isSaving, setIsSaving] = useState(false);
 
   // Form state
-  const [transactionType, setTransactionType] = useState<'Sale' | 'Lease' | 'Sublease'>('Lease');
+  const [transactionType, setTransactionType] = useState<'Sale' | 'Lease' | 'Sublease' | 'Unknown/Removed'>('Lease');
   const [transactionDate, setTransactionDate] = useState('');
   const [closingDate, setClosingDate] = useState('');
   const [salePrice, setSalePrice] = useState('');
@@ -67,8 +67,10 @@ export function LogTransactionDialog({
       // Pre-fill from listing
       setSellerLandlordCompany(listing.landlord || '');
       setListingBrokerCompany(listing.broker_source || '');
-      // Infer transaction type from listing type
-      if (listing.listing_type === 'Sale') {
+      // Infer transaction type from listing status or type
+      if (listing.status === 'Unknown/Removed') {
+        setTransactionType('Unknown/Removed');
+      } else if (listing.listing_type === 'Sale') {
         setTransactionType('Sale');
       } else if (listing.listing_type === 'Sublease') {
         setTransactionType('Sublease');
@@ -216,7 +218,7 @@ export function LogTransactionDialog({
                 <Label>Transaction Type *</Label>
                 <Select
                   value={transactionType}
-                  onValueChange={(v) => setTransactionType(v as 'Sale' | 'Lease' | 'Sublease')}
+                  onValueChange={(v) => setTransactionType(v as 'Sale' | 'Lease' | 'Sublease' | 'Unknown/Removed')}
                 >
                   <SelectTrigger className={cn('h-9', transactionType && 'input-filled')}>
                     <SelectValue />
@@ -225,6 +227,7 @@ export function LogTransactionDialog({
                     <SelectItem value="Sale">Sale</SelectItem>
                     <SelectItem value="Lease">Lease</SelectItem>
                     <SelectItem value="Sublease">Sublease</SelectItem>
+                    <SelectItem value="Unknown/Removed">Unknown/Removed</SelectItem>
                   </SelectContent>
                 </Select>
               </div>

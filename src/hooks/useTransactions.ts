@@ -57,7 +57,7 @@ export interface Transaction {
   city: string;
   submarket: string;
   size_sf: number;
-  transaction_type: 'Sale' | 'Lease' | 'Sublease';
+  transaction_type: 'Sale' | 'Lease' | 'Sublease' | 'Unknown/Removed';
   transaction_date: string | null;
   closing_date: string | null;
   sale_price: number | null;
@@ -91,7 +91,7 @@ export interface TransactionInput {
   city?: string;
   submarket?: string;
   size_sf?: number;
-  transaction_type: 'Sale' | 'Lease' | 'Sublease';
+  transaction_type: 'Sale' | 'Lease' | 'Sublease' | 'Unknown/Removed';
   transaction_date?: string | null;
   closing_date?: string | null;
   sale_price?: number | null;
