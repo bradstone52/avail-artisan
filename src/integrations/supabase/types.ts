@@ -1776,13 +1776,6 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "transactions_market_listing_id_fkey"
-            columns: ["market_listing_id"]
-            isOneToOne: false
-            referencedRelation: "market_listings"
-            referencedColumns: ["id"]
-          },
-          {
             foreignKeyName: "transactions_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
