@@ -20,7 +20,8 @@ import {
   Mail,
   Database,
   Receipt,
-  Package
+  Package,
+  Settings
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -310,19 +311,34 @@ export function AppLayout({ children }: AppLayoutProps) {
                 </div>
               )}
             </div>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={handleSignOut}
-              title={sidebarCollapsed ? "Sign Out" : undefined}
-              className={cn(
-                "w-full mt-2 text-foreground/70 hover:text-foreground",
-                sidebarCollapsed ? "justify-center px-0" : "justify-start"
-              )}
-            >
-              <LogOut className="w-4 h-4" />
-              {!sidebarCollapsed && <span className="ml-2">Sign Out</span>}
-            </Button>
+            <div className={cn("flex gap-2 mt-2", sidebarCollapsed ? "flex-col" : "")}>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => navigate('/account')}
+                title={sidebarCollapsed ? "Account Settings" : undefined}
+                className={cn(
+                  "flex-1 text-foreground/70 hover:text-foreground",
+                  sidebarCollapsed ? "justify-center px-0" : "justify-start"
+                )}
+              >
+                <Settings className="w-4 h-4" />
+                {!sidebarCollapsed && <span className="ml-2">Settings</span>}
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={handleSignOut}
+                title={sidebarCollapsed ? "Sign Out" : undefined}
+                className={cn(
+                  "flex-1 text-foreground/70 hover:text-foreground",
+                  sidebarCollapsed ? "justify-center px-0" : "justify-start"
+                )}
+              >
+                <LogOut className="w-4 h-4" />
+                {!sidebarCollapsed && <span className="ml-2">Sign Out</span>}
+              </Button>
+            </div>
           </div>
         </div>
       </aside>
