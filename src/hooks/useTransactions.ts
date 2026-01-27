@@ -167,10 +167,37 @@ export function useTransactions() {
           .single();
 
         if (listingError) {
+          // Listing may have already been deleted by a previous transaction
+          if (listingError.code === 'PGRST116') {
+            toast.error('This listing has already been processed');
+            return null;
+          }
           console.error('Error fetching listing for snapshot:', listingError);
         } else if (listingData) {
           // Store full listing as snapshot for undo
           listingSnapshot = listingData as unknown as Json;
+        }
+      }
+
+      // Delete the market listing FIRST to prevent race conditions with duplicate submissions
+      // This acts as an atomic lock - only the first transaction to delete succeeds
+      if (input.market_listing_id) {
+        const { data: deletedRows, error: deleteError } = await supabase
+          .from('market_listings')
+          .delete()
+          .eq('id', input.market_listing_id)
+          .select('id');
+
+        if (deleteError) {
+          console.error('Error deleting market listing:', deleteError);
+          toast.error('Failed to process listing');
+          return null;
+        }
+        
+        // If no rows were deleted, the listing was already processed
+        if (!deletedRows || deletedRows.length === 0) {
+          toast.error('This listing has already been processed');
+          return null;
         }
       }
 
@@ -186,20 +213,23 @@ export function useTransactions() {
         .select()
         .single();
 
-      if (error) throw error;
-
-      // Delete the market listing after successful transaction creation
-      if (input.market_listing_id) {
-        const { error: deleteError } = await supabase
-          .from('market_listings')
-          .delete()
-          .eq('id', input.market_listing_id);
-
-        if (deleteError) {
-          console.error('Error deleting market listing:', deleteError);
-          // Don't fail the whole operation, but notify user
-          toast.warning('Transaction created, but listing could not be removed');
+      if (error) {
+        // If transaction creation fails after delete, try to restore the listing
+        if (listingSnapshot && input.market_listing_id) {
+          console.error('Transaction creation failed, attempting to restore listing...');
+          const snapshot = listingSnapshot as Record<string, Json | undefined>;
+          // eslint-disable-next-line @typescript-eslint/no-unused-vars
+          const { id: _id, created_at: _createdAt, ...restoreData } = snapshot;
+          await supabase
+            .from('market_listings')
+            .insert(restoreData as unknown as {
+              address: string;
+              listing_id: string;
+              user_id: string;
+              [key: string]: unknown;
+            });
         }
+        throw error;
       }
       
       toast.success('Transaction created');
