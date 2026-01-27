@@ -32,6 +32,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Loader2, Trash2 } from 'lucide-react';
+import { BrokerageCombobox } from './BrokerageCombobox';
 import { useOrg } from '@/hooks/useOrg';
 import { useAuth } from '@/contexts/AuthContext';
 
@@ -854,13 +855,12 @@ export function MarketListingEditDialog({
               <Label htmlFor="brokerSource" className="text-right">
                 Brokerage
               </Label>
-              <Input
-                id="brokerSource"
-                value={brokerSource}
-                onChange={(e) => setBrokerSource(e.target.value)}
-                className={`col-span-3 placeholder-light ${brokerSource ? 'input-filled' : ''}`}
-                placeholder="e.g., CBRE"
-              />
+              <div className="col-span-3">
+                <BrokerageCombobox
+                  value={brokerSource}
+                  onChange={setBrokerSource}
+                />
+              </div>
             </div>
 
             {/* Asking Rate / Op Costs */}
