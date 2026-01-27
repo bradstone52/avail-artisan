@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { AppLayout } from '@/components/layout/AppLayout';
-import { usePropertyDetail, PropertyBrochure, PropertyPermit } from '@/hooks/useProperties';
+import { usePropertyDetail, PropertyBrochure, PropertyPermit, PropertyTransaction } from '@/hooks/useProperties';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -26,7 +26,8 @@ import {
   HardHat,
   ClipboardList,
   Link as LinkIcon,
-  Archive
+  Archive,
+  Receipt
 } from 'lucide-react';
 import { format } from 'date-fns';
 
@@ -34,7 +35,7 @@ export default function PropertyDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { toast } = useToast();
-  const { property, brochures, permits, loading, refetch } = usePropertyDetail(id);
+  const { property, brochures, permits, transactions, loading, refetch } = usePropertyDetail(id);
   const { rate: millRate, year: millRateYear } = useMillRate();
   
   const [fetchingCityData, setFetchingCityData] = useState(false);
@@ -293,6 +294,10 @@ export default function PropertyDetail() {
             <TabsTrigger value="city-data" className="flex items-center gap-2">
               <ClipboardList className="h-4 w-4" />
               City Data
+            </TabsTrigger>
+            <TabsTrigger value="transactions" className="flex items-center gap-2">
+              <Receipt className="h-4 w-4" />
+              Transactions ({transactions.length})
             </TabsTrigger>
             <TabsTrigger value="photos" className="flex items-center gap-2">
               <Image className="h-4 w-4" />
@@ -664,6 +669,63 @@ export default function PropertyDetail() {
                 </CardContent>
               </Card>
             </div>
+          </TabsContent>
+
+          {/* Transactions Tab */}
+          <TabsContent value="transactions" className="space-y-4">
+            <Card>
+              <CardHeader>
+                <CardTitle>Transaction History</CardTitle>
+                <CardDescription>
+                  All transactions recorded for this property
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                {transactions.length > 0 ? (
+                  <div className="space-y-3">
+                    {transactions.map(tx => (
+                      <div
+                        key={tx.id}
+                        className="flex items-center justify-between p-4 border rounded-lg hover:bg-muted/50 cursor-pointer transition-colors"
+                        onClick={() => navigate(`/transactions/${tx.id}`)}
+                      >
+                        <div className="flex items-center gap-4">
+                          <Badge variant={tx.transaction_type === 'Sale' ? 'default' : 'secondary'}>
+                            {tx.transaction_type}
+                          </Badge>
+                          <div>
+                            <p className="font-medium">
+                              {tx.transaction_date
+                                ? format(new Date(tx.transaction_date), 'MMM d, yyyy')
+                                : 'Date pending'
+                              }
+                            </p>
+                            <p className="text-sm text-muted-foreground">
+                              {tx.size_sf?.toLocaleString()} SF
+                            </p>
+                          </div>
+                        </div>
+                        <div className="text-right">
+                          {tx.transaction_type === 'Sale' && tx.sale_price ? (
+                            <p className="font-medium">{formatCurrency(tx.sale_price)}</p>
+                          ) : tx.lease_rate_psf ? (
+                            <p className="font-medium">${Number(tx.lease_rate_psf).toFixed(2)}/SF</p>
+                          ) : null}
+                          {tx.buyer_tenant_company && (
+                            <p className="text-sm text-muted-foreground">{tx.buyer_tenant_company}</p>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-center py-8 text-muted-foreground">
+                    <Receipt className="h-12 w-12 mx-auto mb-2 opacity-50" />
+                    <p>No transactions recorded for this property yet.</p>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
           </TabsContent>
 
           {/* Photos Tab */}
