@@ -1692,6 +1692,7 @@ export type Database = {
           listing_broker_company: string | null
           listing_broker_name: string | null
           listing_id: string | null
+          listing_removal_date: string | null
           market_listing_id: string | null
           market_listing_snapshot: Json | null
           notes: string | null
@@ -1725,6 +1726,7 @@ export type Database = {
           listing_broker_company?: string | null
           listing_broker_name?: string | null
           listing_id?: string | null
+          listing_removal_date?: string | null
           market_listing_id?: string | null
           market_listing_snapshot?: Json | null
           notes?: string | null
@@ -1758,6 +1760,7 @@ export type Database = {
           listing_broker_company?: string | null
           listing_broker_name?: string | null
           listing_id?: string | null
+          listing_removal_date?: string | null
           market_listing_id?: string | null
           market_listing_snapshot?: Json | null
           notes?: string | null

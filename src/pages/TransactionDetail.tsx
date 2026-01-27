@@ -264,9 +264,15 @@ export default function TransactionDetail() {
                 </>
               )}
               <Separator />
-              <DetailRow label="Transaction Date" value={formatDate(transaction.transaction_date)} />
-              <Separator />
-              <DetailRow label="Closing Date" value={formatDate(transaction.closing_date)} />
+              {transaction.transaction_type === 'Unknown/Removed' ? (
+                <DetailRow label="Listing Removal Date" value={formatDate(transaction.listing_removal_date)} />
+              ) : (
+                <>
+                  <DetailRow label="Transaction Date" value={formatDate(transaction.transaction_date)} />
+                  <Separator />
+                  <DetailRow label="Closing Date" value={formatDate(transaction.closing_date)} />
+                </>
+              )}
               {transaction.commission_percent && (
                 <>
                   <Separator />

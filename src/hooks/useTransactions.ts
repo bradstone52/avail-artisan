@@ -61,6 +61,7 @@ export interface Transaction {
   transaction_type: 'Sale' | 'Lease' | 'Sublease' | 'Unknown/Removed';
   transaction_date: string | null;
   closing_date: string | null;
+  listing_removal_date: string | null;
   sale_price: number | null;
   lease_rate_psf: number | null;
   lease_term_months: number | null;
@@ -96,6 +97,7 @@ export interface TransactionInput {
   transaction_type: 'Sale' | 'Lease' | 'Sublease' | 'Unknown/Removed';
   transaction_date?: string | null;
   closing_date?: string | null;
+  listing_removal_date?: string | null;
   sale_price?: number | null;
   lease_rate_psf?: number | null;
   lease_term_months?: number | null;

@@ -110,6 +110,7 @@ export interface PropertyTransaction {
   transaction_type: string;
   transaction_date: string | null;
   closing_date: string | null;
+  listing_removal_date: string | null;
   size_sf: number;
   sale_price: number | null;
   lease_rate_psf: number | null;
@@ -546,7 +547,7 @@ export function usePropertyDetail(propertyId: string | undefined) {
       // Fetch transactions linked to this property
       const { data: transactionsData } = await supabase
         .from('transactions')
-        .select('id, transaction_type, transaction_date, closing_date, size_sf, sale_price, lease_rate_psf, lease_term_months, buyer_tenant_company, seller_landlord_company, created_at')
+        .select('id, transaction_type, transaction_date, closing_date, listing_removal_date, size_sf, sale_price, lease_rate_psf, lease_term_months, buyer_tenant_company, seller_landlord_company, created_at')
         .eq('property_id', propertyId)
         .order('transaction_date', { ascending: false });
 
