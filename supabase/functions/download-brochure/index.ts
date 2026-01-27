@@ -198,7 +198,7 @@ Deno.serve(async (req) => {
     // Download the PDF with browser-like headers
     console.log('Fetching brochure from URL...');
     
-    let pdfBuffer: ArrayBuffer;
+    let pdfData: Uint8Array;
     let contentType: string = 'application/pdf';
     let usedFallback = false;
     
@@ -206,13 +206,16 @@ Deno.serve(async (req) => {
     let directFetchFailed = false;
     let directFetchStatus = 0;
     
+    // Set a max file size to prevent memory issues (15 MB limit)
+    const MAX_FILE_SIZE = 15 * 1024 * 1024;
+    
     try {
       pdfResponse = await fetch(brochureUrl, {
         headers: {
           'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
           'Accept': 'application/pdf,application/octet-stream,*/*;q=0.8',
           'Accept-Language': 'en-US,en;q=0.9',
-          'Accept-Encoding': 'gzip, deflate, br',
+          'Accept-Encoding': 'identity', // Avoid compression to get accurate content-length
           'Referer': validatedUrl.origin ? `${validatedUrl.origin}/` : '',
           'Sec-Fetch-Dest': 'document',
           'Sec-Fetch-Mode': 'navigate',
@@ -225,6 +228,19 @@ Deno.serve(async (req) => {
       if (!pdfResponse.ok) {
         directFetchFailed = true;
         directFetchStatus = pdfResponse.status;
+      } else {
+        // Check content-length before downloading
+        const contentLength = pdfResponse.headers.get('content-length');
+        if (contentLength && parseInt(contentLength, 10) > MAX_FILE_SIZE) {
+          return new Response(JSON.stringify({ 
+            error: `File too large (${Math.round(parseInt(contentLength, 10) / 1024 / 1024)}MB). Max size is 15MB.`,
+            status: 'file_too_large',
+            url: brochureUrl
+          }), {
+            status: 200,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+          });
+        }
       }
     } catch (fetchError: any) {
       console.error('Direct fetch error:', fetchError);
@@ -251,10 +267,10 @@ Deno.serve(async (req) => {
       const fallbackResult = await tryFirecrawlFallback(brochureUrl);
       
       if (fallbackResult) {
-        pdfBuffer = fallbackResult.buffer;
+        pdfData = new Uint8Array(fallbackResult.buffer);
         contentType = fallbackResult.contentType;
         usedFallback = true;
-        console.log(`Firecrawl fallback succeeded! Got ${pdfBuffer.byteLength} bytes`);
+        console.log(`Firecrawl fallback succeeded! Got ${pdfData.byteLength} bytes`);
       } else {
         // Firecrawl also failed - return appropriate error
         if (directFetchStatus === 403) {
@@ -307,9 +323,46 @@ Deno.serve(async (req) => {
         });
       }
     } else if (pdfResponse) {
-      // Direct fetch succeeded
+      // Direct fetch succeeded - read in chunks to limit memory
       contentType = pdfResponse.headers.get('content-type') || 'application/pdf';
-      pdfBuffer = await pdfResponse.arrayBuffer();
+      
+      const reader = pdfResponse.body?.getReader();
+      if (!reader) {
+        throw new Error('Failed to get response reader');
+      }
+      
+      const chunks: Uint8Array[] = [];
+      let totalSize = 0;
+      
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        
+        totalSize += value.byteLength;
+        
+        // Check size limit during download
+        if (totalSize > MAX_FILE_SIZE) {
+          reader.cancel();
+          return new Response(JSON.stringify({ 
+            error: `File too large (>${Math.round(MAX_FILE_SIZE / 1024 / 1024)}MB). Download aborted.`,
+            status: 'file_too_large',
+            url: brochureUrl
+          }), {
+            status: 200,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+          });
+        }
+        
+        chunks.push(value);
+      }
+      
+      // Combine chunks into single array
+      pdfData = new Uint8Array(totalSize);
+      let offset = 0;
+      for (const chunk of chunks) {
+        pdfData.set(chunk, offset);
+        offset += chunk.byteLength;
+      }
     } else {
       return new Response(JSON.stringify({ 
         error: 'Unexpected error during download',
@@ -321,7 +374,7 @@ Deno.serve(async (req) => {
       });
     }
 
-    const fileSize = pdfBuffer.byteLength;
+    const fileSize = pdfData.byteLength;
 
     console.log(`Downloaded ${fileSize} bytes, content-type: ${contentType}`);
 
@@ -354,7 +407,7 @@ Deno.serve(async (req) => {
     console.log(`Uploading to storage: ${storagePath}`);
     const { error: uploadError } = await supabase.storage
       .from('property-brochures')
-      .upload(storagePath, pdfBuffer, {
+      .upload(storagePath, pdfData, {
         contentType: 'application/pdf',
         cacheControl: '3600',
         upsert: false // Don't overwrite - we want historical versions
