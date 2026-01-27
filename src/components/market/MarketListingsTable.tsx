@@ -352,8 +352,30 @@ export function MarketListingsTable({ listings, onEdit, onRefresh, sortColumn, s
       className="relative"
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
+      onFocusCapture={() => setIsHovered(true)}
+      onBlurCapture={() => setIsHovered(false)}
+      onWheel={(e) => {
+        // Fallback: if the user scrolls vertically over the table, translate that into horizontal scroll.
+        // This makes trackpad/mouse-wheel behavior feel consistent even when horizontal scroll isn't obvious.
+        const el = getScrollEl();
+        if (!el) return;
+
+        // If the user is intentionally horizontal scrolling (trackpad deltaX) or holding Shift, let the browser handle it.
+        if (Math.abs(e.deltaX) > Math.abs(e.deltaY) || e.shiftKey) return;
+
+        // Only hijack wheel when interacting with the table region.
+        if (!isHovered) return;
+
+        // If there's no horizontal overflow, nothing to do.
+        if (el.scrollWidth <= el.clientWidth) return;
+
+        // Prevent page vertical scrolling and instead scroll the table horizontally.
+        e.preventDefault();
+        el.scrollBy({ left: e.deltaY, behavior: 'auto' });
+      }}
       role="region"
       aria-label="Market listings table - use left and right arrow keys to scroll"
+      tabIndex={0}
     >
       {/* Keyboard scroll indicator */}
       {isHovered && (
