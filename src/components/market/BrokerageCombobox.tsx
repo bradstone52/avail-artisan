@@ -101,14 +101,23 @@ export function BrokerageCombobox({ value, onChange, className }: BrokerageCombo
           <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="w-[300px] p-0 z-50 bg-popover" align="start">
-        <Command shouldFilter={false}>
+      <PopoverContent
+        className="w-[300px] p-0 z-50 bg-popover"
+        align="start"
+        // Keep wheel scrolling inside the dropdown instead of bubbling to the dialog/page
+        onWheelCapture={(e) => e.stopPropagation()}
+        onTouchMoveCapture={(e) => e.stopPropagation()}
+      >
+        <Command shouldFilter={false} onWheelCapture={(e) => e.stopPropagation()}>
           <CommandInput 
             placeholder="Search or add brokerage..." 
             value={inputValue}
             onValueChange={setInputValue}
           />
-        <CommandList>
+        <CommandList
+          className="max-h-[240px] overflow-y-auto"
+          onWheelCapture={(e) => e.stopPropagation()}
+        >
           <CommandEmpty className="py-2 px-4 text-sm text-muted-foreground">
             No brokerages found.
           </CommandEmpty>
