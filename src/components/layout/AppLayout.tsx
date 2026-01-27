@@ -311,7 +311,7 @@ export function AppLayout({ children }: AppLayoutProps) {
                 </div>
               )}
             </div>
-            <div className={cn("flex gap-2 mt-2", sidebarCollapsed ? "flex-col" : "")}>
+            <div className="flex flex-col gap-1 mt-2">
               <Button
                 variant="ghost"
                 size="sm"
