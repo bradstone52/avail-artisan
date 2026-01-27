@@ -49,7 +49,7 @@ export function MfaEnrollment({ open, onOpenChange, onEnrolled, mandatory = fals
     try {
       const { data, error } = await supabase.auth.mfa.enroll({
         factorType: 'totp',
-        friendlyName: 'Authenticator App',
+        friendlyName: 'Logistics-Space.net',
       });
 
       if (error) {
