@@ -218,42 +218,81 @@ export default function Properties() {
   const handleSaveAllBrochures = async () => {
     setIsSavingAllBrochures(true);
     let saved = 0;
+    let skipped = 0;
     let failed = 0;
 
     try {
-      // Get all properties with linked listings that have brochure URLs
+      // First, get all already-saved brochures to avoid duplicates
+      const { data: existingBrochures } = await supabase
+        .from('property_brochures')
+        .select('property_id, market_listing_id, original_url');
+      
+      // Create a Set of already-saved combinations for fast lookup
+      const savedSet = new Set(
+        (existingBrochures || []).map(b => `${b.property_id}:${b.market_listing_id}:${b.original_url}`)
+      );
+
+      // Collect all brochures to download
+      const toDownload: Array<{ propertyId: string; listingId: string; marketListingId: string; link: string }> = [];
+      
       for (const property of properties) {
         if (!property.linked_listings) continue;
 
         for (const listing of property.linked_listings) {
           if (!listing.link) continue;
-
-          try {
-            const { error } = await supabase.functions.invoke('download-brochure', {
-              body: {
-                propertyId: property.id,
-                marketListingId: listing.id,
-                listingId: listing.listing_id,
-                brochureUrl: listing.link
-              }
-            });
-
-            if (error) {
-              console.error(`Error saving brochure for ${listing.listing_id}:`, error);
-              failed++;
-            } else {
-              saved++;
-            }
-          } catch (err) {
-            console.error(`Error saving brochure for ${listing.listing_id}:`, err);
-            failed++;
+          
+          // Check if already saved
+          const key = `${property.id}:${listing.id}:${listing.link}`;
+          if (savedSet.has(key)) {
+            skipped++;
+            continue;
           }
+          
+          toDownload.push({
+            propertyId: property.id,
+            marketListingId: listing.id,
+            listingId: listing.listing_id,
+            link: listing.link
+          });
         }
       }
 
+      // Download remaining brochures
+      for (const item of toDownload) {
+        try {
+          const { data, error } = await supabase.functions.invoke('download-brochure', {
+            body: {
+              propertyId: item.propertyId,
+              marketListingId: item.marketListingId,
+              listingId: item.listingId,
+              brochureUrl: item.link
+            }
+          });
+
+          // Check for application-level errors (returned as success: false)
+          if (error || (data && !data.success && data.status !== 'file_too_large')) {
+            console.error(`Error saving brochure for ${item.listingId}:`, error || data?.error);
+            failed++;
+          } else if (data?.status === 'file_too_large') {
+            console.log(`Skipped large file for ${item.listingId}`);
+            skipped++;
+          } else {
+            saved++;
+          }
+        } catch (err) {
+          console.error(`Error saving brochure for ${item.listingId}:`, err);
+          failed++;
+        }
+      }
+
+      const parts = [];
+      if (saved > 0) parts.push(`${saved} saved`);
+      if (skipped > 0) parts.push(`${skipped} skipped`);
+      if (failed > 0) parts.push(`${failed} failed`);
+
       toast({
         title: 'Brochure save complete',
-        description: `Saved ${saved} brochures${failed > 0 ? `, ${failed} failed` : ''}`
+        description: parts.join(', ') || 'No brochures to process'
       });
     } catch (error: any) {
       console.error('Error saving brochures:', error);
