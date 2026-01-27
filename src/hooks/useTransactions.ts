@@ -52,6 +52,7 @@ export interface Transaction {
   org_id: string | null;
   market_listing_id: string | null;
   listing_id: string | null;
+  property_id: string | null;
   address: string;
   display_address: string | null;
   city: string;
@@ -86,6 +87,7 @@ export interface Transaction {
 export interface TransactionInput {
   market_listing_id?: string | null;
   listing_id?: string | null;
+  property_id?: string | null;
   address: string;
   display_address?: string | null;
   city?: string;
@@ -157,6 +159,7 @@ export function useTransactions() {
 
     try {
       let listingSnapshot: Json | null = null;
+      let propertyId: string | null = input.property_id || null;
 
       // If there's a linked market listing, fetch the full record for snapshot and deletion
       if (input.market_listing_id) {
@@ -201,11 +204,26 @@ export function useTransactions() {
         }
       }
 
-      // Create the transaction with snapshot
+      // Auto-link to property by address if not already set
+      if (!propertyId && input.address) {
+        const { data: matchedProperty } = await supabase
+          .from('properties')
+          .select('id')
+          .ilike('address', input.address.trim())
+          .limit(1)
+          .maybeSingle();
+        
+        if (matchedProperty) {
+          propertyId = matchedProperty.id;
+        }
+      }
+
+      // Create the transaction with snapshot and property link
       const { data, error } = await supabase
         .from('transactions')
         .insert({
           ...input,
+          property_id: propertyId,
           market_listing_snapshot: listingSnapshot,
           org_id: orgId,
           created_by: user.id,

@@ -1696,6 +1696,7 @@ export type Database = {
           market_listing_snapshot: Json | null
           notes: string | null
           org_id: string | null
+          property_id: string | null
           sale_price: number | null
           seller_landlord_company: string | null
           seller_landlord_name: string | null
@@ -1728,6 +1729,7 @@ export type Database = {
           market_listing_snapshot?: Json | null
           notes?: string | null
           org_id?: string | null
+          property_id?: string | null
           sale_price?: number | null
           seller_landlord_company?: string | null
           seller_landlord_name?: string | null
@@ -1760,6 +1762,7 @@ export type Database = {
           market_listing_snapshot?: Json | null
           notes?: string | null
           org_id?: string | null
+          property_id?: string | null
           sale_price?: number | null
           seller_landlord_company?: string | null
           seller_landlord_name?: string | null
@@ -1784,6 +1787,13 @@ export type Database = {
             columns: ["org_id"]
             isOneToOne: false
             referencedRelation: "orgs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "transactions_property_id_fkey"
+            columns: ["property_id"]
+            isOneToOne: false
+            referencedRelation: "properties"
             referencedColumns: ["id"]
           },
         ]
