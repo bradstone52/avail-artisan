@@ -47,6 +47,24 @@ export function MfaEnrollment({ open, onOpenChange, onEnrolled, mandatory = fals
   const startEnrollment = async () => {
     setIsLoading(true);
     try {
+      // First check if user already has factors enrolled
+      const { data: factorsData } = await supabase.auth.mfa.listFactors();
+      const verifiedFactors = factorsData?.totp?.filter(f => f.status === 'verified') || [];
+      
+      if (verifiedFactors.length > 0) {
+        // User already has MFA - they should be verifying, not enrolling
+        // This can happen if the auth flow state gets confused
+        toast.info('You already have 2FA enabled. Please verify.');
+        onEnrolled(); // Trigger the enrolled callback to move to verification
+        return;
+      }
+
+      // Check for unverified factors and unenroll them first
+      const unverifiedFactors = factorsData?.totp?.filter(f => f.status !== 'verified') || [];
+      for (const factor of unverifiedFactors) {
+        await supabase.auth.mfa.unenroll({ factorId: factor.id });
+      }
+
       const { data, error } = await supabase.auth.mfa.enroll({
         factorType: 'totp',
         friendlyName: 'Logistics-Space.net',
