@@ -29,3 +29,6 @@ verify_jwt = false
 
 [functions.parse-brokerage-pdf]
 verify_jwt = false
+
+[functions.fetch-market-listings]
+verify_jwt = false
