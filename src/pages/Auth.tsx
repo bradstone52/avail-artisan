@@ -8,6 +8,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { toast } from 'sonner';
 import { Building2, Loader2, Mail, Lock } from 'lucide-react';
 import { z } from 'zod';
+import { supabase } from '@/integrations/supabase/client';
+import { MfaVerification } from '@/components/auth/MfaVerification';
 
 const emailSchema = z.string().email('Please enter a valid email address');
 const passwordSchema = z.string().min(6, 'Password must be at least 6 characters');
@@ -16,22 +18,51 @@ export default function Auth() {
   const navigate = useNavigate();
   const { user, signIn, loading: authLoading } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
+  const [showMfaVerification, setShowMfaVerification] = useState(false);
   
   // Login form state
   const [loginEmail, setLoginEmail] = useState('');
   const [loginPassword, setLoginPassword] = useState('');
 
   useEffect(() => {
-    if (user) {
-      // Check for pending invite code
-      const pendingCode = sessionStorage.getItem('pendingInviteCode');
-      if (pendingCode) {
-        navigate('/join');
-      } else {
-        navigate('/dashboard');
-      }
+    if (user && !showMfaVerification) {
+      checkMfaAndNavigate();
     }
-  }, [user, navigate]);
+  }, [user, showMfaVerification]);
+
+  const checkMfaAndNavigate = async () => {
+    if (!user) return;
+
+    try {
+      // Check if user has MFA enabled and needs verification
+      const { data: aalData } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
+      const { data: factorsData } = await supabase.auth.mfa.listFactors();
+      
+      const verifiedFactors = factorsData?.totp?.filter(f => f.status === 'verified') || [];
+      const hasMfaEnabled = verifiedFactors.length > 0;
+      
+      if (hasMfaEnabled && aalData?.currentLevel === 'aal1') {
+        // User has MFA but hasn't verified this session
+        setShowMfaVerification(true);
+        return;
+      }
+
+      // No MFA or already verified, proceed to dashboard
+      navigateAfterAuth();
+    } catch (error) {
+      console.error('Error checking MFA status:', error);
+      navigateAfterAuth();
+    }
+  };
+
+  const navigateAfterAuth = () => {
+    const pendingCode = sessionStorage.getItem('pendingInviteCode');
+    if (pendingCode) {
+      navigate('/join');
+    } else {
+      navigate('/dashboard');
+    }
+  };
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -58,14 +89,21 @@ export default function Auth() {
       }
     } else {
       toast.success('Welcome back!');
-      // Check for pending invite
-      const pendingCode = sessionStorage.getItem('pendingInviteCode');
-      if (pendingCode) {
-        navigate('/join');
-      } else {
-        navigate('/dashboard');
-      }
+      // checkMfaAndNavigate will be called by useEffect when user changes
     }
+  };
+
+  const handleMfaVerified = () => {
+    setShowMfaVerification(false);
+    toast.success('Authentication complete!');
+    navigateAfterAuth();
+  };
+
+  const handleMfaCancel = async () => {
+    // Sign out the user if they cancel MFA
+    await supabase.auth.signOut();
+    setShowMfaVerification(false);
+    toast.info('Login cancelled');
   };
 
   if (authLoading) {
@@ -73,6 +111,28 @@ export default function Auth() {
       <div className="min-h-screen flex items-center justify-center bg-background">
         <div className="border-2 border-foreground p-4 shadow-[4px_4px_0_hsl(var(--foreground))]" style={{ borderRadius: "var(--radius)" }}>
           <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        </div>
+      </div>
+    );
+  }
+
+  // Show MFA verification screen
+  if (showMfaVerification) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background p-4">
+        <div className="w-full max-w-md animate-fade-in">
+          <div className="text-center mb-8">
+            <div className="inline-flex items-center justify-center w-20 h-20 border-3 border-foreground bg-primary shadow-[6px_6px_0_hsl(var(--foreground))] mb-6" style={{ borderRadius: "var(--radius)" }}>
+              <Building2 className="w-10 h-10 text-primary-foreground" />
+            </div>
+            <h1 className="text-3xl font-black uppercase tracking-tight text-foreground">
+              Distribution Snapshot
+            </h1>
+          </div>
+          <MfaVerification 
+            onVerified={handleMfaVerified} 
+            onCancel={handleMfaCancel} 
+          />
         </div>
       </div>
     );
