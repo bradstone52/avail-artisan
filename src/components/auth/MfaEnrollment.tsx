@@ -18,9 +18,11 @@ interface MfaEnrollmentProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onEnrolled: () => void;
+  mandatory?: boolean;
+  onCancel?: () => void;
 }
 
-export function MfaEnrollment({ open, onOpenChange, onEnrolled }: MfaEnrollmentProps) {
+export function MfaEnrollment({ open, onOpenChange, onEnrolled, mandatory = false, onCancel }: MfaEnrollmentProps) {
   const [step, setStep] = useState<'qr' | 'verify'>('qr');
   const [qrCode, setQrCode] = useState<string>('');
   const [secret, setSecret] = useState<string>('');
@@ -120,6 +122,135 @@ export function MfaEnrollment({ open, onOpenChange, onEnrolled }: MfaEnrollmentP
     toast.success('Secret copied to clipboard');
     setTimeout(() => setCopiedSecret(false), 2000);
   };
+
+  // If mandatory, render as a Card instead of Dialog
+  if (mandatory) {
+    return (
+      <Card className="w-full max-w-md">
+        <CardHeader className="text-center">
+          <div className="mx-auto mb-4 w-16 h-16 border-3 border-foreground bg-primary shadow-[4px_4px_0_hsl(var(--foreground))] flex items-center justify-center" style={{ borderRadius: "var(--radius)" }}>
+            <ShieldCheck className="w-8 h-8 text-primary-foreground" />
+          </div>
+          <CardTitle>Enable Two-Factor Authentication</CardTitle>
+          <CardDescription>
+            Two-factor authentication is required to access your account
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          {isLoading && !qrCode ? (
+            <div className="flex items-center justify-center py-8">
+              <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            </div>
+          ) : step === 'qr' ? (
+            <div className="space-y-4">
+              <div className="text-center">
+                <p className="text-sm text-muted-foreground mb-4">
+                  Scan this QR code with your authenticator app (Google Authenticator, Authy, 1Password, etc.)
+                </p>
+                
+                {qrCode && (
+                  <div className="inline-block p-4 bg-white rounded-lg shadow-inner border-2 border-border">
+                    <img src={qrCode} alt="QR Code for 2FA" className="w-48 h-48" />
+                  </div>
+                )}
+              </div>
+
+              <div className="space-y-2">
+                <p className="text-xs text-muted-foreground text-center">
+                  Can't scan? Enter this code manually:
+                </p>
+                <div className="flex items-center gap-2">
+                  <code className="flex-1 p-2 bg-muted rounded text-xs font-mono break-all text-center">
+                    {secret}
+                  </code>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="icon"
+                    onClick={copySecret}
+                  >
+                    {copiedSecret ? (
+                      <Check className="h-4 w-4 text-green-500" />
+                    ) : (
+                      <Copy className="h-4 w-4" />
+                    )}
+                  </Button>
+                </div>
+              </div>
+
+              <Button
+                onClick={() => setStep('verify')}
+                className="w-full"
+              >
+                I've scanned the QR code
+              </Button>
+              
+              {onCancel && (
+                <Button
+                  variant="secondary"
+                  onClick={onCancel}
+                  className="w-full"
+                >
+                  Cancel & Sign Out
+                </Button>
+              )}
+            </div>
+          ) : (
+            <form onSubmit={handleVerify} className="space-y-4">
+              <p className="text-sm text-muted-foreground">
+                Enter the 6-digit code from your authenticator app to complete setup:
+              </p>
+              
+              <div className="space-y-2">
+                <Label htmlFor="verify-code" className="text-xs font-bold uppercase tracking-wider">
+                  Verification Code
+                </Label>
+                <Input
+                  id="verify-code"
+                  type="text"
+                  inputMode="numeric"
+                  pattern="[0-9]*"
+                  maxLength={6}
+                  placeholder="000000"
+                  value={code}
+                  onChange={(e) => setCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                  disabled={isLoading}
+                  autoComplete="one-time-code"
+                  className="text-center text-2xl tracking-[0.5em] font-mono"
+                />
+              </div>
+
+              <div className="flex gap-3">
+                <Button
+                  type="button"
+                  variant="secondary"
+                  onClick={() => setStep('qr')}
+                  disabled={isLoading}
+                  className="flex-1"
+                >
+                  Back
+                </Button>
+                <Button
+                  type="submit"
+                  disabled={isLoading || code.length !== 6}
+                  className="flex-1"
+                >
+                  {isLoading ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Verifying...
+                    </>
+                  ) : (
+                    'Enable 2FA'
+                  )}
+                </Button>
+              </div>
+            </form>
+          )}
+        </CardContent>
+      </Card>
+    );
+  }
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
