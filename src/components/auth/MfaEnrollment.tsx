@@ -31,6 +31,12 @@ export function MfaEnrollment({ open, onOpenChange, onEnrolled, mandatory = fals
   const [isLoading, setIsLoading] = useState(false);
   const [copiedSecret, setCopiedSecret] = useState(false);
 
+  const qrCodeSrc = qrCode
+    ? (qrCode.startsWith('data:')
+        ? qrCode
+        : `data:image/svg+xml;utf8,${encodeURIComponent(qrCode)}`)
+    : '';
+
   useEffect(() => {
     if (open) {
       startEnrollment();
@@ -189,9 +195,9 @@ export function MfaEnrollment({ open, onOpenChange, onEnrolled, mandatory = fals
                   Scan this QR code with your authenticator app (Google Authenticator, Authy, 1Password, etc.)
                 </p>
                 
-                {qrCode && (
+                 {qrCode && (
                   <div className="inline-block p-4 bg-white rounded-lg shadow-inner border-2 border-border">
-                    <img src={qrCode} alt="QR Code for 2FA" className="w-48 h-48" />
+                     <img src={qrCodeSrc} alt="QR Code for 2FA" className="w-48 h-48" />
                   </div>
                 )}
               </div>
@@ -317,9 +323,9 @@ export function MfaEnrollment({ open, onOpenChange, onEnrolled, mandatory = fals
                 Scan this QR code with your authenticator app (Google Authenticator, Authy, 1Password, etc.)
               </p>
               
-              {qrCode && (
+               {qrCode && (
                 <div className="inline-block p-4 bg-white rounded-lg shadow-inner border-2 border-border">
-                  <img src={qrCode} alt="QR Code for 2FA" className="w-48 h-48" />
+                   <img src={qrCodeSrc} alt="QR Code for 2FA" className="w-48 h-48" />
                 </div>
               )}
             </div>
