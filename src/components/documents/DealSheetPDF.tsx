@@ -16,32 +16,35 @@ interface DealSheetPDFProps {
   getBrokerage: (id: string | null | undefined) => Brokerage | undefined;
 }
 
-// Brand colors matching the reference PDF
-const BRAND_GOLD = '#C4A052';
-const BRAND_DARK = '#1a1a1a';
-const BRAND_GRAY = '#666666';
-const BRAND_LIGHT_GRAY = '#f5f5f5';
+// Color palette matching reference PDF
+const BLUE_HEADER = '#B4C7DC';
+const YELLOW_BG = '#FFF9E6';
+const GREEN_BG = '#D5E8D4';
+const PINK_BG = '#FFE6E6';
+const YELLOW_NOTES = '#FFFACD';
+const BLACK = '#000000';
+const DARK_TEXT = '#1a1a1a';
+const GRAY_TEXT = '#666666';
+const WHITE = '#FFFFFF';
 
 const styles = StyleSheet.create({
   page: {
-    padding: 40,
+    padding: 30,
     fontFamily: 'Helvetica',
-    fontSize: 10,
-    backgroundColor: '#fff',
+    fontSize: 9,
+    backgroundColor: WHITE,
   },
   // Header section
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-start',
-    marginBottom: 20,
-    paddingBottom: 15,
-    borderBottomWidth: 3,
-    borderBottomColor: BRAND_GOLD,
+    marginBottom: 15,
+    paddingBottom: 10,
   },
   logo: {
-    width: 200,
-    height: 50,
+    width: 180,
+    height: 45,
     objectFit: 'contain',
   },
   headerRight: {
@@ -49,192 +52,266 @@ const styles = StyleSheet.create({
     alignItems: 'flex-end',
   },
   mainTitle: {
-    fontSize: 16,
+    fontSize: 14,
     fontWeight: 'bold',
-    color: BRAND_DARK,
-    marginBottom: 8,
+    color: DARK_TEXT,
+    marginBottom: 6,
   },
   dealInfo: {
-    fontSize: 10,
-    color: BRAND_GRAY,
+    fontSize: 9,
+    color: GRAY_TEXT,
     marginBottom: 2,
   },
   dealInfoBold: {
-    fontSize: 10,
+    fontSize: 9,
     fontWeight: 'bold',
-    color: BRAND_DARK,
+    color: DARK_TEXT,
   },
-  // Section styling
-  section: {
-    marginBottom: 15,
-  },
+  // Section styling with blue header
   sectionHeader: {
-    backgroundColor: BRAND_GOLD,
-    padding: 6,
-    paddingLeft: 10,
-    marginBottom: 8,
+    backgroundColor: BLUE_HEADER,
+    padding: 5,
+    paddingLeft: 8,
+    borderWidth: 1,
+    borderColor: BLACK,
+    borderBottomWidth: 0,
   },
   sectionTitle: {
-    fontSize: 10,
+    fontSize: 9,
     fontWeight: 'bold',
-    color: '#fff',
+    color: DARK_TEXT,
     textTransform: 'uppercase',
-    letterSpacing: 0.5,
   },
-  sectionContent: {
-    paddingHorizontal: 4,
+  // Property Summary Table
+  summaryTable: {
+    borderWidth: 1,
+    borderColor: BLACK,
+    marginBottom: 10,
   },
-  // Row styles
-  row: {
+  summaryRow: {
     flexDirection: 'row',
-    marginBottom: 4,
+    borderBottomWidth: 1,
+    borderBottomColor: BLACK,
   },
-  label: {
-    width: 120,
-    fontSize: 9,
-    color: BRAND_GRAY,
+  summaryRowLast: {
+    flexDirection: 'row',
   },
-  value: {
-    flex: 1,
+  summaryCell: {
+    padding: 6,
+    borderRightWidth: 1,
+    borderRightColor: BLACK,
+  },
+  summaryCellLast: {
+    padding: 6,
+  },
+  summaryLabel: {
+    fontSize: 8,
+    color: GRAY_TEXT,
+    marginBottom: 2,
+  },
+  summaryValue: {
     fontSize: 9,
     fontWeight: 'bold',
-    color: BRAND_DARK,
+    color: DARK_TEXT,
   },
   // Two column layout
   twoColumn: {
     flexDirection: 'row',
-    gap: 20,
+    marginBottom: 10,
   },
   column: {
     flex: 1,
   },
-  // Conditions
-  conditionItem: {
-    marginBottom: 4,
-    fontSize: 9,
-    color: BRAND_DARK,
+  // Party sections with yellow background
+  partySection: {
+    flex: 1,
+    borderWidth: 1,
+    borderColor: BLACK,
   },
-  // Party info block
-  partyBlock: {
-    marginBottom: 10,
+  partyHeader: {
+    backgroundColor: BLUE_HEADER,
+    padding: 5,
+    paddingLeft: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: BLACK,
   },
-  partyTitle: {
-    fontSize: 9,
-    fontWeight: 'bold',
-    color: BRAND_DARK,
-    marginBottom: 4,
-    textTransform: 'uppercase',
+  partyBody: {
+    backgroundColor: YELLOW_BG,
+    padding: 8,
   },
   partyRow: {
     flexDirection: 'row',
-    marginBottom: 2,
+    marginBottom: 3,
   },
   partyLabel: {
-    width: 60,
-    fontSize: 9,
-    color: BRAND_GRAY,
+    width: 50,
+    fontSize: 8,
+    color: GRAY_TEXT,
   },
   partyValue: {
     flex: 1,
     fontSize: 9,
-    color: BRAND_DARK,
+    color: DARK_TEXT,
   },
   // Agency section
-  agencyRow: {
-    marginBottom: 6,
+  agencySection: {
+    borderWidth: 1,
+    borderColor: BLACK,
+    marginBottom: 10,
+  },
+  agencyBody: {
+    flexDirection: 'row',
+    backgroundColor: WHITE,
+  },
+  agencyColumn: {
+    flex: 1,
+    padding: 8,
+    borderRightWidth: 1,
+    borderRightColor: BLACK,
+  },
+  agencyColumnLast: {
+    flex: 1,
+    padding: 8,
   },
   agencyLabel: {
-    fontSize: 9,
-    color: BRAND_GRAY,
-    marginBottom: 2,
+    fontSize: 8,
+    color: GRAY_TEXT,
+    marginBottom: 3,
   },
   agencyValue: {
     fontSize: 9,
     fontWeight: 'bold',
-    color: BRAND_DARK,
+    color: DARK_TEXT,
+    marginBottom: 2,
   },
-  // Commission tables
-  commissionContainer: {
+  // Calculation notes strip
+  calculationNotes: {
+    backgroundColor: YELLOW_NOTES,
+    padding: 6,
+    borderWidth: 1,
+    borderColor: BLACK,
+    marginBottom: 10,
+  },
+  calculationText: {
+    fontSize: 8,
+    color: DARK_TEXT,
+  },
+  // Commission and Financial section
+  commissionFinancialRow: {
     flexDirection: 'row',
-    gap: 12,
-    marginTop: 15,
+    marginBottom: 10,
   },
-  commissionBox: {
+  commissionSection: {
     flex: 1,
     borderWidth: 1,
-    borderColor: '#ddd',
-    borderRadius: 2,
+    borderColor: BLACK,
+    marginRight: 5,
   },
-  commissionHeader: {
-    backgroundColor: BRAND_GOLD,
-    padding: 6,
+  financialSection: {
+    flex: 1,
+    borderWidth: 1,
+    borderColor: BLACK,
+    marginLeft: 5,
   },
-  commissionHeaderText: {
-    fontSize: 9,
-    fontWeight: 'bold',
-    color: '#fff',
-    textAlign: 'center',
-    textTransform: 'uppercase',
+  greenHeader: {
+    backgroundColor: BLUE_HEADER,
+    padding: 5,
+    paddingLeft: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: BLACK,
   },
-  commissionBody: {
+  greenBody: {
+    backgroundColor: GREEN_BG,
     padding: 8,
+  },
+  commissionBlock: {
+    marginBottom: 8,
+    paddingBottom: 6,
+    borderBottomWidth: 1,
+    borderBottomColor: BLACK,
+  },
+  commissionBlockLast: {
+    marginBottom: 0,
+  },
+  commissionTitle: {
+    fontSize: 8,
+    fontWeight: 'bold',
+    color: DARK_TEXT,
+    marginBottom: 4,
+    textTransform: 'uppercase',
   },
   commissionRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginBottom: 3,
+    marginBottom: 2,
   },
   commissionLabel: {
-    fontSize: 9,
-    color: BRAND_GRAY,
+    fontSize: 8,
+    color: GRAY_TEXT,
   },
   commissionValue: {
-    fontSize: 9,
+    fontSize: 8,
     fontWeight: 'bold',
-    color: BRAND_DARK,
+    color: DARK_TEXT,
   },
   commissionTotal: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     borderTopWidth: 1,
-    borderTopColor: '#ddd',
-    paddingTop: 4,
-    marginTop: 4,
+    borderTopColor: BLACK,
+    paddingTop: 3,
+    marginTop: 3,
   },
-  commissionTotalLabel: {
+  // Deposit rows
+  depositItem: {
+    marginBottom: 8,
+  },
+  depositLabel: {
+    fontSize: 8,
+    color: GRAY_TEXT,
+  },
+  depositValue: {
     fontSize: 9,
     fontWeight: 'bold',
-    color: BRAND_DARK,
+    color: DARK_TEXT,
   },
-  commissionTotalValue: {
-    fontSize: 9,
-    fontWeight: 'bold',
-    color: BRAND_DARK,
+  depositHeldBy: {
+    fontSize: 8,
+    color: GRAY_TEXT,
+    marginLeft: 10,
   },
-  // Notes section
-  notesSection: {
-    marginTop: 15,
+  // Comments section
+  commentsSection: {
+    backgroundColor: PINK_BG,
     padding: 10,
-    backgroundColor: BRAND_LIGHT_GRAY,
+    borderWidth: 1,
+    borderColor: BLACK,
   },
-  notesTitle: {
-    fontSize: 10,
-    fontWeight: 'bold',
-    color: BRAND_DARK,
-    marginBottom: 6,
-    textTransform: 'uppercase',
+  commentsHeader: {
+    backgroundColor: BLUE_HEADER,
+    padding: 5,
+    paddingLeft: 8,
+    borderWidth: 1,
+    borderColor: BLACK,
+    borderBottomWidth: 0,
   },
-  notesText: {
+  commentsBody: {
+    backgroundColor: PINK_BG,
+    padding: 10,
+    borderWidth: 1,
+    borderTopWidth: 0,
+    borderColor: BLACK,
+  },
+  commentsText: {
     fontSize: 9,
-    color: BRAND_DARK,
+    color: DARK_TEXT,
     lineHeight: 1.4,
   },
-  // Calculation note
-  calculationNote: {
-    fontSize: 9,
-    color: BRAND_GRAY,
-    marginTop: 10,
-    fontStyle: 'italic',
+  // Conditions in summary
+  conditionItem: {
+    fontSize: 8,
+    color: DARK_TEXT,
+    marginBottom: 2,
   },
 });
 
@@ -268,9 +345,11 @@ export function DealSheetPDF({ deal, conditions, deposits, getAgent, getBrokerag
   const sellingAgent1 = getAgent(deal.selling_agent1_id);
   const sellingAgent2 = getAgent(deal.selling_agent2_id);
 
-  const dealTypeLabel = deal.deal_type === 'Lease' ? 'LEASE' : 'SALE';
-  const valueLabel = deal.deal_type === 'Lease' ? 'Lease Value:' : 'Sale Price:';
+  const valueLabel = deal.deal_type === 'Lease' ? 'Lease Value' : 'Sale Price';
   const agentLabel = deal.deal_type === 'Lease' ? 'Leasing' : 'Selling';
+
+  // Get first 3 deposits
+  const displayDeposits = deposits.slice(0, 3);
 
   return (
     <Document>
@@ -279,7 +358,7 @@ export function DealSheetPDF({ deal, conditions, deposits, getAgent, getBrokerag
         <View style={styles.header}>
           <Image src={clearviewLogo} style={styles.logo} />
           <View style={styles.headerRight}>
-            <Text style={styles.mainTitle}>CLEARVIEW {dealTypeLabel} DEALSHEET</Text>
+            <Text style={styles.mainTitle}>sale/lease dealsheet</Text>
             <View style={{ flexDirection: 'row', gap: 4 }}>
               <Text style={styles.dealInfo}>Deal #:</Text>
               <Text style={styles.dealInfoBold}>{deal.deal_number || '_________'}</Text>
@@ -292,60 +371,61 @@ export function DealSheetPDF({ deal, conditions, deposits, getAgent, getBrokerag
         </View>
 
         {/* Property / Deal Summary */}
-        <View style={styles.section}>
-          <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>Property / Deal Summary</Text>
+        <View style={styles.sectionHeader}>
+          <Text style={styles.sectionTitle}>Property / Deal Summary</Text>
+        </View>
+        <View style={styles.summaryTable}>
+          {/* Row 1: Address, Closing, Price */}
+          <View style={styles.summaryRow}>
+            <View style={[styles.summaryCell, { flex: 2 }]}>
+              <Text style={styles.summaryLabel}>Property Address:</Text>
+              <Text style={styles.summaryValue}>{deal.address}{deal.city ? `, ${deal.city}` : ''}</Text>
+            </View>
+            <View style={[styles.summaryCell, { flex: 1 }]}>
+              <Text style={styles.summaryLabel}>Closing Date:</Text>
+              <Text style={styles.summaryValue}>{deal.close_date ? format(new Date(deal.close_date), 'MMM d, yyyy') : '—'}</Text>
+            </View>
+            <View style={[styles.summaryCellLast, { flex: 1 }]}>
+              <Text style={styles.summaryLabel}>{valueLabel}:</Text>
+              <Text style={styles.summaryValue}>{formatCurrency(dealValue)}</Text>
+            </View>
           </View>
-          <View style={styles.sectionContent}>
-            <View style={styles.row}>
-              <Text style={styles.label}>Property Address:</Text>
-              <Text style={styles.value}>{deal.address}{deal.city ? `, ${deal.city}` : ''}</Text>
+          {/* Row 2: Size, Conditions */}
+          <View style={styles.summaryRowLast}>
+            <View style={[styles.summaryCell, { flex: 1 }]}>
+              <Text style={styles.summaryLabel}>Premises Size:</Text>
+              <Text style={styles.summaryValue}>{deal.size_sf ? `${deal.size_sf.toLocaleString()} SF` : '—'}</Text>
             </View>
-            <View style={styles.row}>
-              <Text style={styles.label}>Closing Date:</Text>
-              <Text style={styles.value}>{deal.close_date ? format(new Date(deal.close_date), 'MMMM d, yyyy') : ''}</Text>
-            </View>
-            <View style={styles.row}>
-              <Text style={styles.label}>{valueLabel}</Text>
-              <Text style={styles.value}>{formatCurrency(dealValue)}</Text>
-            </View>
-            <View style={styles.row}>
-              <Text style={styles.label}>Premises Size:</Text>
-              <Text style={styles.value}>{deal.size_sf ? `${deal.size_sf.toLocaleString()} SF` : '—'}</Text>
+            <View style={[styles.summaryCellLast, { flex: 3 }]}>
+              <Text style={styles.summaryLabel}>Key Conditions & Removal Dates:</Text>
+              {conditions.length > 0 ? (
+                conditions.map((c, i) => (
+                  <Text key={c.id} style={styles.conditionItem}>
+                    {i + 1}. {c.description} {c.due_date ? `– ${format(new Date(c.due_date), 'MMM d, yyyy')}` : ''}
+                  </Text>
+                ))
+              ) : (
+                <Text style={styles.conditionItem}>—</Text>
+              )}
             </View>
           </View>
         </View>
 
-        {/* Key Conditions */}
-        {conditions.length > 0 && (
-          <View style={styles.section}>
-            <View style={styles.sectionHeader}>
-              <Text style={styles.sectionTitle}>Key Conditions & Removal Dates</Text>
-            </View>
-            <View style={styles.sectionContent}>
-              {conditions.map((c, i) => (
-                <Text key={c.id} style={styles.conditionItem}>
-                  {i + 1}. {c.description} {c.due_date ? `– Removal by ${format(new Date(c.due_date), 'MMMM d, yyyy')}` : ''}
-                </Text>
-              ))}
-            </View>
-          </View>
-        )}
-
         {/* Seller & Buyer Information */}
         <View style={styles.twoColumn}>
-          <View style={[styles.section, styles.column]}>
-            <View style={styles.sectionHeader}>
+          {/* Seller */}
+          <View style={[styles.partySection, { marginRight: 5 }]}>
+            <View style={styles.partyHeader}>
               <Text style={styles.sectionTitle}>Seller Information</Text>
             </View>
-            <View style={styles.sectionContent}>
+            <View style={styles.partyBody}>
               <View style={styles.partyRow}>
                 <Text style={styles.partyLabel}>Name:</Text>
-                <Text style={styles.partyValue}>{deal.seller_name || ''}</Text>
+                <Text style={styles.partyValue}>{deal.seller_name || '—'}</Text>
               </View>
               <View style={styles.partyRow}>
                 <Text style={styles.partyLabel}>Address:</Text>
-                <Text style={styles.partyValue}>{sellerBrokerage ? `c/o ${sellerBrokerage.name}` : ''}</Text>
+                <Text style={styles.partyValue}>{sellerBrokerage ? `c/o ${sellerBrokerage.name}` : '—'}</Text>
               </View>
               {sellerBrokerage?.address && (
                 <View style={styles.partyRow}>
@@ -376,18 +456,19 @@ export function DealSheetPDF({ deal, conditions, deposits, getAgent, getBrokerag
             </View>
           </View>
 
-          <View style={[styles.section, styles.column]}>
-            <View style={styles.sectionHeader}>
+          {/* Buyer */}
+          <View style={[styles.partySection, { marginLeft: 5 }]}>
+            <View style={styles.partyHeader}>
               <Text style={styles.sectionTitle}>Buyer Information</Text>
             </View>
-            <View style={styles.sectionContent}>
+            <View style={styles.partyBody}>
               <View style={styles.partyRow}>
                 <Text style={styles.partyLabel}>Name:</Text>
-                <Text style={styles.partyValue}>{deal.buyer_name || ''}</Text>
+                <Text style={styles.partyValue}>{deal.buyer_name || '—'}</Text>
               </View>
               <View style={styles.partyRow}>
                 <Text style={styles.partyLabel}>Address:</Text>
-                <Text style={styles.partyValue}>{buyerBrokerage ? `c/o ${buyerBrokerage.name}` : ''}</Text>
+                <Text style={styles.partyValue}>{buyerBrokerage ? `c/o ${buyerBrokerage.name}` : '—'}</Text>
               </View>
               {buyerBrokerage?.address && (
                 <View style={styles.partyRow}>
@@ -420,113 +501,139 @@ export function DealSheetPDF({ deal, conditions, deposits, getAgent, getBrokerag
         </View>
 
         {/* Agency & Commission Summary */}
-        <View style={styles.section}>
+        <View style={styles.agencySection}>
           <View style={styles.sectionHeader}>
             <Text style={styles.sectionTitle}>Agency & Commission Summary</Text>
           </View>
-          <View style={styles.sectionContent}>
-            <View style={styles.twoColumn}>
-              <View style={styles.column}>
-                <View style={styles.agencyRow}>
-                  <Text style={styles.agencyLabel}>Listing Agent(s) / Brokerage:</Text>
-                  {listingAgent1 && (
-                    <Text style={styles.agencyValue}>{listingAgent1.name} / {listingBrokerage?.name || ''}</Text>
-                  )}
-                  {listingAgent2 && (
-                    <Text style={styles.agencyValue}>{listingAgent2.name} / {listingBrokerage?.name || ''}</Text>
-                  )}
-                </View>
-              </View>
-              <View style={styles.column}>
-                <View style={styles.agencyRow}>
-                  <Text style={styles.agencyLabel}>{agentLabel} Agent(s) / Brokerage:</Text>
-                  {sellingAgent1 && (
-                    <Text style={styles.agencyValue}>{sellingAgent1.name} / {sellingBrokerage?.name || ''}</Text>
-                  )}
-                  {sellingAgent2 && (
-                    <Text style={styles.agencyValue}>{sellingAgent2.name} / {sellingBrokerage?.name || ''}</Text>
-                  )}
-                </View>
-              </View>
+          <View style={styles.agencyBody}>
+            <View style={styles.agencyColumn}>
+              <Text style={styles.agencyLabel}>Listing Agent(s) / Brokerage:</Text>
+              {listingAgent1 && (
+                <Text style={styles.agencyValue}>{listingAgent1.name} / {listingBrokerage?.name || '—'}</Text>
+              )}
+              {listingAgent2 && (
+                <Text style={styles.agencyValue}>{listingAgent2.name} / {listingBrokerage?.name || '—'}</Text>
+              )}
+              {!listingAgent1 && !listingAgent2 && (
+                <Text style={styles.agencyValue}>—</Text>
+              )}
             </View>
-            <Text style={styles.calculationNote}>
-              Commission Calculation Notes: {formatCurrency(dealValue)} x {commissionRate}%
-            </Text>
+            <View style={styles.agencyColumnLast}>
+              <Text style={styles.agencyLabel}>{agentLabel} Agent(s) / Brokerage:</Text>
+              {sellingAgent1 && (
+                <Text style={styles.agencyValue}>{sellingAgent1.name} / {sellingBrokerage?.name || '—'}</Text>
+              )}
+              {sellingAgent2 && (
+                <Text style={styles.agencyValue}>{sellingAgent2.name} / {sellingBrokerage?.name || '—'}</Text>
+              )}
+              {!sellingAgent1 && !sellingAgent2 && (
+                <Text style={styles.agencyValue}>—</Text>
+              )}
+            </View>
           </View>
         </View>
 
-        {/* Commission Breakdown */}
-        <View style={styles.commissionContainer}>
-          {/* Total Commission */}
-          <View style={styles.commissionBox}>
-            <View style={styles.commissionHeader}>
-              <Text style={styles.commissionHeaderText}>Total Commission</Text>
+        {/* Commission Calculation Notes */}
+        <View style={styles.calculationNotes}>
+          <Text style={styles.calculationText}>
+            Commission Calculation Notes: {formatCurrency(dealValue)} × {commissionRate}% = {formatCurrency(totalCommission)}
+          </Text>
+        </View>
+
+        {/* Commission Breakdown & Financial/Trust Details */}
+        <View style={styles.commissionFinancialRow}>
+          {/* Commission Breakdown */}
+          <View style={styles.commissionSection}>
+            <View style={styles.greenHeader}>
+              <Text style={styles.sectionTitle}>Commission Breakdown</Text>
             </View>
-            <View style={styles.commissionBody}>
-              <View style={styles.commissionRow}>
-                <Text style={styles.commissionLabel}>Commission (excl. GST):</Text>
-                <Text style={styles.commissionValue}>{formatCurrency(totalCommission)}</Text>
+            <View style={styles.greenBody}>
+              {/* Total Commission */}
+              <View style={styles.commissionBlock}>
+                <Text style={styles.commissionTitle}>Total Commission</Text>
+                <View style={styles.commissionRow}>
+                  <Text style={styles.commissionLabel}>Commission (excl. GST):</Text>
+                  <Text style={styles.commissionValue}>{formatCurrency(totalCommission)}</Text>
+                </View>
+                <View style={styles.commissionRow}>
+                  <Text style={styles.commissionLabel}>GST on Commission:</Text>
+                  <Text style={styles.commissionValue}>{formatCurrency(totalGST)}</Text>
+                </View>
+                <View style={styles.commissionTotal}>
+                  <Text style={styles.commissionLabel}>Total (incl. GST):</Text>
+                  <Text style={styles.commissionValue}>{formatCurrency(totalWithGST)}</Text>
+                </View>
               </View>
-              <View style={styles.commissionRow}>
-                <Text style={styles.commissionLabel}>GST on Commission:</Text>
-                <Text style={styles.commissionValue}>{formatCurrency(totalGST)}</Text>
+
+              {/* Other Brokerage */}
+              <View style={styles.commissionBlock}>
+                <Text style={styles.commissionTitle}>Other Brokerage – {otherRate}%</Text>
+                <View style={styles.commissionRow}>
+                  <Text style={styles.commissionLabel}>Commission (excl. GST):</Text>
+                  <Text style={styles.commissionValue}>{formatCurrency(otherCommission)}</Text>
+                </View>
+                <View style={styles.commissionRow}>
+                  <Text style={styles.commissionLabel}>GST:</Text>
+                  <Text style={styles.commissionValue}>{formatCurrency(otherGST)}</Text>
+                </View>
+                <View style={styles.commissionTotal}>
+                  <Text style={styles.commissionLabel}>Total:</Text>
+                  <Text style={styles.commissionValue}>{formatCurrency(otherTotal)}</Text>
+                </View>
               </View>
-              <View style={styles.commissionTotal}>
-                <Text style={styles.commissionTotalLabel}>Total Commission (incl. GST):</Text>
-                <Text style={styles.commissionTotalValue}>{formatCurrency(totalWithGST)}</Text>
+
+              {/* Clearview */}
+              <View style={styles.commissionBlockLast}>
+                <Text style={styles.commissionTitle}>Clearview – {cvRate}%</Text>
+                <View style={styles.commissionRow}>
+                  <Text style={styles.commissionLabel}>Commission (excl. GST):</Text>
+                  <Text style={styles.commissionValue}>{formatCurrency(cvCommission)}</Text>
+                </View>
+                <View style={styles.commissionRow}>
+                  <Text style={styles.commissionLabel}>GST:</Text>
+                  <Text style={styles.commissionValue}>{formatCurrency(cvGST)}</Text>
+                </View>
+                <View style={styles.commissionTotal}>
+                  <Text style={styles.commissionLabel}>Total:</Text>
+                  <Text style={styles.commissionValue}>{formatCurrency(cvTotal)}</Text>
+                </View>
               </View>
             </View>
           </View>
 
-          {/* Other Brokerage Portion */}
-          <View style={styles.commissionBox}>
-            <View style={styles.commissionHeader}>
-              <Text style={styles.commissionHeaderText}>Other Brokerage - {otherRate}%</Text>
+          {/* Financial/Trust Details */}
+          <View style={styles.financialSection}>
+            <View style={styles.greenHeader}>
+              <Text style={styles.sectionTitle}>Financial / Trust Details</Text>
             </View>
-            <View style={styles.commissionBody}>
-              <View style={styles.commissionRow}>
-                <Text style={styles.commissionLabel}>Commission (excl. GST):</Text>
-                <Text style={styles.commissionValue}>{formatCurrency(otherCommission)}</Text>
-              </View>
-              <View style={styles.commissionRow}>
-                <Text style={styles.commissionLabel}>GST:</Text>
-                <Text style={styles.commissionValue}>{formatCurrency(otherGST)}</Text>
-              </View>
-              <View style={styles.commissionTotal}>
-                <Text style={styles.commissionTotalLabel}>Total:</Text>
-                <Text style={styles.commissionTotalValue}>{formatCurrency(otherTotal)}</Text>
-              </View>
-            </View>
-          </View>
-
-          {/* Clearview Portion */}
-          <View style={styles.commissionBox}>
-            <View style={styles.commissionHeader}>
-              <Text style={styles.commissionHeaderText}>Clearview - {cvRate}%</Text>
-            </View>
-            <View style={styles.commissionBody}>
-              <View style={styles.commissionRow}>
-                <Text style={styles.commissionLabel}>Commission (excl. GST):</Text>
-                <Text style={styles.commissionValue}>{formatCurrency(cvCommission)}</Text>
-              </View>
-              <View style={styles.commissionRow}>
-                <Text style={styles.commissionLabel}>GST:</Text>
-                <Text style={styles.commissionValue}>{formatCurrency(cvGST)}</Text>
-              </View>
-              <View style={styles.commissionTotal}>
-                <Text style={styles.commissionTotalLabel}>Total:</Text>
-                <Text style={styles.commissionTotalValue}>{formatCurrency(cvTotal)}</Text>
-              </View>
+            <View style={styles.greenBody}>
+              {displayDeposits.length > 0 ? (
+                displayDeposits.map((deposit, index) => (
+                  <View key={deposit.id} style={styles.depositItem}>
+                    <Text style={styles.depositLabel}>{index === 0 ? '1st' : index === 1 ? '2nd' : '3rd'} Deposit Received:</Text>
+                    <Text style={styles.depositValue}>{formatCurrency(deposit.amount)}</Text>
+                    <Text style={styles.depositHeldBy}>Held By: {deposit.held_by || '—'}</Text>
+                  </View>
+                ))
+              ) : (
+                <View style={styles.depositItem}>
+                  <Text style={styles.depositLabel}>No deposits recorded</Text>
+                </View>
+              )}
             </View>
           </View>
         </View>
 
         {/* Comments */}
         {deal.notes && (
-          <View style={styles.notesSection}>
-            <Text style={styles.notesTitle}>Comments</Text>
-            <Text style={styles.notesText}>{deal.notes}</Text>
-          </View>
+          <>
+            <View style={styles.commentsHeader}>
+              <Text style={styles.sectionTitle}>Comments</Text>
+            </View>
+            <View style={styles.commentsBody}>
+              <Text style={styles.commentsText}>{deal.notes}</Text>
+            </View>
+          </>
         )}
       </Page>
     </Document>
