@@ -6,6 +6,7 @@ import { useDeal, useDeleteDeal, useUpdateDeal } from '@/hooks/useDeals';
 import { useDealDocuments } from '@/hooks/useDealDocuments';
 import { useDealConditions } from '@/hooks/useDealConditions';
 import { useDealDeposits } from '@/hooks/useDealDeposits';
+import { useDealSummaryActions } from '@/hooks/useDealSummaryActions';
 import { DealViewCard } from '@/components/deals/detail/DealViewCard';
 import { DealImportantDatesSection } from '@/components/deals/detail/DealImportantDatesSection';
 import { DealDocumentsCard } from '@/components/deals/detail/DealDocumentsCard';
@@ -24,6 +25,7 @@ export default function DealDetail() {
   const { documents, uploadDocument, deleteDocument, isUploading } = useDealDocuments(id);
   const { conditions } = useDealConditions(id);
   const { deposits } = useDealDeposits(id);
+  const { actions } = useDealSummaryActions(id);
   const deleteDeal = useDeleteDeal();
   
   const [editOpen, setEditOpen] = useState(false);
@@ -113,7 +115,7 @@ export default function DealDetail() {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <div className="space-y-6">
             <DealViewCard deal={deal} onEdit={() => setEditOpen(true)} />
-            <DealImportantDatesSection deal={deal} conditions={conditions} deposits={deposits} />
+            <DealImportantDatesSection deal={deal} conditions={conditions} deposits={deposits} actions={actions} />
           </div>
           <div className="space-y-6">
             <DealDocumentsCard 

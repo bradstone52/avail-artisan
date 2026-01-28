@@ -4,18 +4,20 @@ import { format, isBefore } from 'date-fns';
 import type { Deal } from '@/types/database';
 import type { DealCondition } from '@/hooks/useDealConditions';
 import type { DealDeposit } from '@/hooks/useDealDeposits';
+import type { DealSummaryAction } from '@/hooks/useDealSummaryActions';
 
 interface DealImportantDatesSectionProps {
   deal: Deal;
   conditions: DealCondition[];
   deposits: DealDeposit[];
+  actions?: DealSummaryAction[];
 }
 
-export function DealImportantDatesSection({ deal, conditions, deposits }: DealImportantDatesSectionProps) {
+export function DealImportantDatesSection({ deal, conditions, deposits, actions = [] }: DealImportantDatesSectionProps) {
   const today = new Date();
   
   // Gather all important dates
-  const importantDates: { date: Date; label: string; type: 'condition' | 'deposit' | 'closing'; isPast: boolean }[] = [];
+  const importantDates: { date: Date; label: string; type: 'condition' | 'deposit' | 'closing' | 'action'; isPast: boolean }[] = [];
 
   // Add condition removal dates with new format: "Condition 1 - description - date"
   conditions.forEach((c, index) => {
@@ -38,6 +40,19 @@ export function DealImportantDatesSection({ deal, conditions, deposits }: DealIm
         date,
         label: `Deposit: $${d.amount.toLocaleString()} ${d.held_by ? `(${d.held_by})` : ''}`,
         type: 'deposit',
+        isPast: isBefore(date, today),
+      });
+    }
+  });
+
+  // Add actions from deal summary (not met yet)
+  actions.forEach((a) => {
+    if (a.due_date && !a.date_met) {
+      const date = new Date(a.due_date);
+      importantDates.push({
+        date,
+        label: `Action: ${a.description}${a.acting_party ? ` (${a.acting_party})` : ''}`,
+        type: 'action',
         isPast: isBefore(date, today),
       });
     }

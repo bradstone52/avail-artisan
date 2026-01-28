@@ -35,6 +35,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useQueryClient } from '@tanstack/react-query';
 import { DealSummaryPDF } from '@/components/documents/DealSummaryPDF';
 import { useDealDeposits } from '@/hooks/useDealDeposits';
+import { useDealSummaryActions } from '@/hooks/useDealSummaryActions';
 import type { Deal } from '@/types/database';
 
 interface GenerateDealSummaryDialogProps {
@@ -69,6 +70,7 @@ export function GenerateDealSummaryDialog({ open, onOpenChange, deal }: Generate
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const { deposits: existingDeposits } = useDealDeposits(deal.id);
+  const { actions: existingActions, saveActions } = useDealSummaryActions(deal.id);
   const [generating, setGenerating] = useState(false);
 
   // Basic Info state
@@ -169,10 +171,24 @@ export function GenerateDealSummaryDialog({ open, onOpenChange, deal }: Generate
         setDeposits([createEmptyDeposit()]);
       }
       
-      // Initialize with one empty action
-      setActions([createEmptyAction()]);
+      // Auto-populate actions from saved data if they exist
+      if (existingActions && existingActions.length > 0) {
+        setActions(existingActions.map(a => ({
+          id: crypto.randomUUID(),
+          dueDate: a.due_date ? new Date(a.due_date) : undefined,
+          dueHour: a.due_time ? a.due_time.split(':')[0]?.replace(/^0/, '') || '' : '',
+          dueMinute: a.due_time ? a.due_time.split(':')[1]?.split(' ')[0] || '00' : '00',
+          duePeriod: a.due_time?.includes('AM') ? 'AM' : 'PM',
+          dateMet: a.date_met ? new Date(a.date_met) : undefined,
+          actingParty: a.acting_party || '',
+          description: a.description || '',
+        })));
+      } else {
+        // Initialize with one empty action
+        setActions([createEmptyAction()]);
+      }
     }
-  }, [open, deal, existingDeposits]);
+  }, [open, deal, existingDeposits, existingActions]);
 
   const createEmptyDeposit = (): LocalDeposit => ({
     id: crypto.randomUUID(),
@@ -281,8 +297,21 @@ export function GenerateDealSummaryDialog({ open, onOpenChange, deal }: Generate
           action: a.description,
         })),
         balanceOnClosing,
-        contacts: [], // TODO: Add contacts from deal or org
+        contacts: [{ name: 'Clearview Commercial Realty Inc.' }], // Default contact for footer
       };
+
+      // Save actions to database for future regeneration
+      const actionsToSave = actions.filter(a => a.description || a.dueDate).map((a, index) => ({
+        deal_id: deal.id,
+        due_date: a.dueDate ? format(a.dueDate, 'yyyy-MM-dd') : null,
+        due_time: a.dueHour ? `${a.dueHour}:${a.dueMinute} ${a.duePeriod}` : null,
+        date_met: a.dateMet ? format(a.dateMet, 'yyyy-MM-dd') : null,
+        acting_party: a.actingParty || null,
+        description: a.description,
+        sort_order: index,
+      }));
+      
+      await saveActions(actionsToSave);
 
       const blob = await pdf(<DealSummaryPDF {...pdfData} />).toBlob();
       

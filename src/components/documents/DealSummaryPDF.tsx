@@ -51,8 +51,8 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   logo: {
-    width: 120,
-    height: 40,
+    width: 180,
+    height: 60,
     objectFit: 'contain',
   },
   title: {
@@ -264,7 +264,7 @@ export function DealSummaryPDF({
             <Text style={styles.valueCell}>{effectiveDate ? formatDate(effectiveDate) : ' '}</Text>
           </View>
 
-          {/* Dynamic Rows: Deposits */}
+          {/* Dynamic Rows: Deposits - formatted as "Amount payable to Payee on Date by Time" */}
           {validDeposits.map((deposit, index) => (
             <View style={styles.dealRow} key={index}>
               <Text style={styles.labelCell}>{getDepositLabel(index)}:</Text>
@@ -332,19 +332,23 @@ export function DealSummaryPDF({
         )}
 
         {/* === FOOTER: Contact Information (fixed to bottom) === */}
-        {contacts.length > 0 && (
-          <View style={styles.contactsSection} fixed>
-            <View style={styles.contactsTable}>
-              {contacts.slice(0, 3).map((contact, index) => (
+        <View style={styles.contactsSection} fixed>
+          <View style={styles.contactsTable}>
+            {contacts.length > 0 ? (
+              contacts.slice(0, 3).map((contact, index) => (
                 <View style={styles.contactColumn} key={index}>
                   <Text style={styles.contactName}>{contact.name}</Text>
                   {contact.email && <Text style={styles.contactDetail}>{contact.email}</Text>}
                   {contact.phone && <Text style={styles.contactDetail}>{contact.phone}</Text>}
                 </View>
-              ))}
-            </View>
+              ))
+            ) : (
+              <View style={styles.contactColumn}>
+                <Text style={styles.contactName}>Clearview Commercial Realty Inc.</Text>
+              </View>
+            )}
           </View>
-        )}
+        </View>
       </Page>
     </Document>
   );
