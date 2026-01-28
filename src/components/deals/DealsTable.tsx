@@ -31,7 +31,7 @@ interface DealsTableProps {
 }
 
 const DEAL_TYPES = ['All', 'Lease', 'Sale'];
-const DEAL_STATUSES = ['All', 'Active', 'Pending', 'Closed', 'Cancelled'];
+const DEAL_STATUSES = ['All', 'Conditional', 'Firm', 'Closed'];
 
 export function DealsTable({ deals, isLoading, onEdit }: DealsTableProps) {
   const navigate = useNavigate();
