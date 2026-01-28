@@ -593,6 +593,7 @@ export type Database = {
           id: string
           notes: string | null
           phone: string | null
+          scale: string | null
           title: string | null
         }
         Insert: {
@@ -604,6 +605,7 @@ export type Database = {
           id?: string
           notes?: string | null
           phone?: string | null
+          scale?: string | null
           title?: string | null
         }
         Update: {
@@ -615,6 +617,7 @@ export type Database = {
           id?: string
           notes?: string | null
           phone?: string | null
+          scale?: string | null
           title?: string | null
         }
         Relationships: []

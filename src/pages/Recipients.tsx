@@ -38,6 +38,8 @@ import { BatchList } from "@/components/recipients/BatchList";
 import { BatchDetailView } from "@/components/recipients/BatchDetailView";
 import { NewBatchDialog } from "@/components/recipients/NewBatchDialog";
 import { PositionCombobox } from "@/components/recipients/PositionCombobox";
+import { CompanyCombobox } from "@/components/recipients/CompanyCombobox";
+import { ScaleCombobox } from "@/components/recipients/ScaleCombobox";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -52,6 +54,7 @@ const emptyForm: RecipientInsert = {
   email: "",
   notes: null,
   default_owner: "Unassigned",
+  scale: null,
 };
 
 export default function Recipients() {
@@ -127,6 +130,7 @@ export default function Recipients() {
       email: recipient.email,
       notes: recipient.notes,
       default_owner: recipient.default_owner || "Unassigned",
+      scale: recipient.scale,
     });
     setDialogOpen(true);
   };
@@ -320,13 +324,10 @@ export default function Recipients() {
             </DialogHeader>
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="company_name">Company Name *</Label>
-                <Input
-                  id="company_name"
+                <Label>Company Name *</Label>
+                <CompanyCombobox
                   value={form.company_name}
-                  onChange={(e) => setForm({ ...form, company_name: e.target.value })}
-                  required
-                  className={form.company_name ? "input-filled" : ""}
+                  onChange={(value) => setForm({ ...form, company_name: value })}
                 />
               </div>
               <div className="grid grid-cols-2 gap-4">
@@ -373,23 +374,32 @@ export default function Recipients() {
                   />
                 </div>
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="default_owner">Default Owner</Label>
-                <Select
-                  value={form.default_owner || "Unassigned"}
-                  onValueChange={(value) => setForm({ ...form, default_owner: value })}
-                >
-                  <SelectTrigger className={form.default_owner && form.default_owner !== "Unassigned" ? "input-filled" : ""}>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {OWNER_OPTIONS.map((opt) => (
-                      <SelectItem key={opt} value={opt}>
-                        {opt}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="default_owner">Default Owner</Label>
+                  <Select
+                    value={form.default_owner || "Unassigned"}
+                    onValueChange={(value) => setForm({ ...form, default_owner: value })}
+                  >
+                    <SelectTrigger className={form.default_owner && form.default_owner !== "Unassigned" ? "input-filled" : ""}>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {OWNER_OPTIONS.map((opt) => (
+                        <SelectItem key={opt} value={opt}>
+                          {opt}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label>Scale</Label>
+                  <ScaleCombobox
+                    value={form.scale || ""}
+                    onChange={(value) => setForm({ ...form, scale: value || null })}
+                  />
+                </div>
               </div>
               <div className="space-y-2">
                 <Label htmlFor="notes">Notes</Label>
