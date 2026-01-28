@@ -1,185 +1,92 @@
 
 
-# Deal Sheet PDF Redesign Plan
+# Fix Deal Sheet PDF Rendering Issues
 
-## Overview
-Complete redesign of the Deal Sheet PDF (`DealSheetPDF.tsx`) to match the reference template, with the following changes:
-1. New color scheme with blue headers, yellow party sections, green commission area, and pink comments
-2. Static title "sale/lease dealsheet" instead of dynamic "CLEARVIEW [TYPE] DEALSHEET"
-3. Date auto-populates with today's date (already working - no changes needed)
-4. Keep Clearview logo in top left
-5. Bordered table layout for Property/Deal Summary
-6. Display up to 3 deposits in Financial/Trust Details section
+## Problem Analysis
+The `DealSheetPDF.tsx` file has been updated with the new design (blue headers, yellow party sections, green commission, pink comments), but there are rendering bugs preventing the PDF from generating correctly:
+
+1. **Empty Text Component Warning** - Lines 432-435 and 475-477 contain empty `<Text>` components that cause react-pdf warnings
+2. **Unsupported CSS Property** - Lines 362 and 366 use `gap: 4` which is not fully supported in react-pdf
+3. **Buffer Not Defined** - A known react-pdf browser compatibility issue
 
 ---
 
-## Color Palette (from reference)
-
-| Section | Color | Hex Code |
-|---------|-------|----------|
-| Section Headers | Light Blue | `#B4C7DC` |
-| Party Info Background | Yellow/Cream | `#FFF9E6` |
-| Commission/Financial Area | Sage Green | `#D5E8D4` |
-| Comments Background | Pink/Salmon | `#FFE6E6` |
-| Calculation Notes Strip | Light Yellow | `#FFFACD` |
-| Borders | Black | `#000000` |
-
----
-
-## Layout Structure
-
-```text
-+--------------------------------------------------+
-| [CLEARVIEW LOGO]                                 |
-|                                                  |
-| sale/lease dealsheet                             |
-| Deal #: ________    Date: January 28, 2026       |
-+--------------------------------------------------+
-| PROPERTY / DEAL SUMMARY (blue header)            |
-| +------------------------------------------------+
-| | Property Address: | Closing: | Sale/Lease Price|
-| | [address]         | [date]   | [amount]        |
-| | Premises Size:    | Key Conditions & Dates...  |
-| | [size SF]         | 1. [condition] - [date]    |
-| +------------------------------------------------+
-+--------------------------------------------------+
-| SELLER INFO (yellow)  | BUYER INFO (yellow)      |
-| Name:                 | Name:                     |
-| Address: c/o ...      | Address: c/o ...          |
-| Contact:              | Contact:                  |
-| Phone:                | Phone:                    |
-| Email:                | Email:                    |
-+--------------------------------------------------+
-| AGENCY & COMMISSION SUMMARY (blue header)        |
-| Listing Agent(s):     | Leasing/Selling Agent(s): |
-| [agents/brokerage]    | [agents/brokerage]        |
-+--------------------------------------------------+
-| Commission Calculation Notes: [formula] (yellow) |
-+--------------------------------------------------+
-| TOTAL COMMISSION (green) | FINANCIAL/TRUST (green)|
-| Commission (excl GST):   | 1st Deposit: [amt]     |
-| GST on Commission:       |   Held By: [holder]    |
-| Total (incl GST):        | 2nd Deposit: [amt]     |
-|                          |   Held By: [holder]    |
-| OTHER BROKERAGE - X%     | 3rd Deposit: [amt]     |
-| Commission/GST/Total     |   Held By: [holder]    |
-|                          |                        |
-| CLEARVIEW - X%           |                        |
-| Commission/GST/Total     |                        |
-+--------------------------------------------------+
-| COMMENTS (pink background)                       |
-| [comments text]                                  |
-+--------------------------------------------------+
-```
-
----
-
-## Technical Implementation
+## Fixes Required
 
 ### File: `src/components/documents/DealSheetPDF.tsx`
 
-#### 1. Update Color Constants
+#### Fix 1: Replace `gap` with `marginRight` in header (Lines 362-369)
 
-**Replace:**
-```typescript
-const BRAND_GOLD = '#C4A052';
-const BRAND_DARK = '#1a1a1a';
-const BRAND_GRAY = '#666666';
-const BRAND_LIGHT_GRAY = '#f5f5f5';
-```
-
-**With:**
-```typescript
-const BLUE_HEADER = '#B4C7DC';
-const YELLOW_BG = '#FFF9E6';
-const GREEN_BG = '#D5E8D4';
-const PINK_BG = '#FFE6E6';
-const YELLOW_NOTES = '#FFFACD';
-const BLACK = '#000000';
-const DARK_TEXT = '#1a1a1a';
-const GRAY_TEXT = '#666666';
-```
-
-#### 2. Update Styles
-
-Complete style overhaul including:
-
-**Header:** Remove gold border, keep logo left-aligned
-
-**Section Headers:** Blue background with black text, bordered
-
-**Property Summary:** Table with black borders containing:
-- Row 1: Property Address | Closing Date | Sale/Lease Price
-- Row 2: Premises Size | Key Conditions (spanning 2 columns)
-
-**Party Sections:** Yellow background with black borders, side-by-side for Seller/Buyer
-
-**Agency Section:** Blue header, two-column layout for agents
-
-**Commission Notes:** Yellow background strip with calculation formula
-
-**Commission/Financial:** Two-column green background area:
-- Left: Commission breakdown (Total, Other Brokerage, Clearview)
-- Right: Financial/Trust Details with up to 3 deposits
-
-**Comments:** Pink background section
-
-#### 3. Update Title (Line 282)
-
-**Change from:**
+**Current:**
 ```tsx
-<Text style={styles.mainTitle}>CLEARVIEW {dealTypeLabel} DEALSHEET</Text>
+<View style={{ flexDirection: 'row', gap: 4 }}>
+  <Text style={styles.dealInfo}>Deal #:</Text>
+  <Text style={styles.dealInfoBold}>{deal.deal_number || '_________'}</Text>
+</View>
+<View style={{ flexDirection: 'row', gap: 4 }}>
+  <Text style={styles.dealInfo}>Date:</Text>
+  <Text style={styles.dealInfoBold}>{format(new Date(), 'MMMM d, yyyy')}</Text>
+</View>
 ```
 
-**To:**
+**Fixed:**
 ```tsx
-<Text style={styles.mainTitle}>sale/lease dealsheet</Text>
+<View style={{ flexDirection: 'row' }}>
+  <Text style={[styles.dealInfo, { marginRight: 4 }]}>Deal #:</Text>
+  <Text style={styles.dealInfoBold}>{deal.deal_number || '_________'}</Text>
+</View>
+<View style={{ flexDirection: 'row' }}>
+  <Text style={[styles.dealInfo, { marginRight: 4 }]}>Date:</Text>
+  <Text style={styles.dealInfoBold}>{format(new Date(), 'MMMM d, yyyy')}</Text>
+</View>
 ```
 
-#### 4. Restructure Property/Deal Summary
+#### Fix 2: Remove empty Text elements (Lines 430-435 and 473-478)
 
-Create bordered table layout with cells:
-- Property Address spanning left portion
-- Closing Date in middle
-- Sale Price/Lease Value on right
-- Premises Size on left of second row
-- Key Conditions & Removal Dates spanning right portion of second row
+**Current:**
+```tsx
+{sellerBrokerage?.address && (
+  <View style={styles.partyRow}>
+    <Text style={styles.partyLabel}></Text>
+    <Text style={styles.partyValue}>{sellerBrokerage.address}</Text>
+  </View>
+)}
+```
 
-#### 5. Update Party Information Sections
+**Fixed:**
+```tsx
+{sellerBrokerage?.address && (
+  <View style={styles.partyRow}>
+    <Text style={styles.partyLabel}>{' '}</Text>
+    <Text style={styles.partyValue}>{sellerBrokerage.address}</Text>
+  </View>
+)}
+```
 
-- Add yellow background (`#FFF9E6`)
-- Add black borders
-- Keep side-by-side layout for Seller/Buyer
+Same fix needed for buyer brokerage address section (lines 473-478).
 
-#### 6. Add Financial/Trust Details
+#### Fix 3: Add Buffer polyfill (vite.config.ts)
 
-New section within the green commission area displaying:
-- 1st Deposit Received: [amount] / Held By: [holder]
-- 2nd Deposit Received: [amount] / Held By: [holder]
-- 3rd Deposit Received: [amount] / Held By: [holder]
+To fix the "Buffer is not defined" error, need to add a polyfill configuration:
 
-Using the `deposits` prop already passed to the component
+**File: `vite.config.ts`**
 
-#### 7. Update Comments Section
-
-Change background color from gray to pink (`#FFE6E6`)
-
----
-
-## Files to Modify
-
-| File | Changes |
-|------|---------|
-| `src/components/documents/DealSheetPDF.tsx` | Complete redesign - colors, layout, title, deposits display |
+Add define option to provide Buffer polyfill for browser environments.
 
 ---
 
 ## Summary of Changes
 
-1. **Title**: Static "sale/lease dealsheet" (lowercase as shown in reference)
-2. **Date**: Already auto-populates today's date - no change needed
-3. **Colors**: Blue headers, yellow party info, green financials, pink comments
-4. **Layout**: Bordered tables, side-by-side sections matching reference
-5. **Deposits**: Display up to 3 deposits in Financial/Trust Details section
-6. **Logo**: Keep Clearview logo in top left position
+| File | Issue | Fix |
+|------|-------|-----|
+| `DealSheetPDF.tsx` | `gap` property unsupported | Replace with `marginRight: 4` |
+| `DealSheetPDF.tsx` | Empty Text components | Replace empty strings with `{' '}` |
+| `vite.config.ts` | Buffer not defined | Add global Buffer definition |
+
+---
+
+## Files to Modify
+
+1. `src/components/documents/DealSheetPDF.tsx` - Fix gap and empty text issues
+2. `vite.config.ts` - Add Buffer polyfill for react-pdf compatibility
 
