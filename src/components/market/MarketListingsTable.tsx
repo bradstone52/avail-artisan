@@ -395,12 +395,10 @@ export function MarketListingsTable({ listings, onEdit, onRefresh, sortColumn, s
             <TableHead className="text-background min-w-[90px] bg-zinc-700 dark:bg-zinc-600">Avail</TableHead>
             <TableHead className="text-background min-w-[140px] bg-zinc-700 dark:bg-zinc-600">Landlord</TableHead>
             <TableHead className="text-background min-w-[140px] bg-zinc-700 dark:bg-zinc-600">Brokerage</TableHead>
-            <TableHead className="text-background min-w-[50px] bg-zinc-700 dark:bg-zinc-600">Geo</TableHead>
-            <TableHead className="text-background min-w-[50px] bg-zinc-700 dark:bg-zinc-600">Link</TableHead>
             <TableHead className="text-background min-w-[180px] bg-zinc-700 dark:bg-zinc-600">Notes</TableHead>
             <TableHead className="text-background min-w-[130px] bg-zinc-700 dark:bg-zinc-600">Status</TableHead>
             <TableHead className="text-background min-w-[100px] bg-zinc-700 dark:bg-zinc-600">Verified</TableHead>
-            <TableHead className="sticky right-0 z-30 min-w-[120px] bg-zinc-700 dark:bg-zinc-600 text-background shadow-[-2px_0_5px_-2px_rgba(0,0,0,0.3)]">Actions</TableHead>
+            <TableHead className="sticky right-0 z-30 min-w-[160px] bg-zinc-700 dark:bg-zinc-600 text-background shadow-[-2px_0_5px_-2px_rgba(0,0,0,0.3)]">Actions</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -592,80 +590,6 @@ export function MarketListingsTable({ listings, onEdit, onRefresh, sortColumn, s
                 </div>
               </TableCell>
               
-              {/* Geocoded - with edit functionality */}
-              <TableCell>
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button 
-                      variant="ghost" 
-                      size="icon" 
-                      className={cn(
-                        "h-8 w-8 relative",
-                        listing.geocode_source === 'manual' && "ring-2 ring-warning ring-offset-1"
-                      )}
-                      onClick={(e) => e.stopPropagation()}
-                    >
-                      {listing.latitude && listing.longitude ? (
-                        <>
-                          <MapPin className={cn(
-                            "w-4 h-4",
-                            listing.geocode_source === 'manual' ? "text-warning" : "text-green-600"
-                          )} />
-                          {listing.geocode_source === 'manual' && (
-                            <Hand className="w-2.5 h-2.5 absolute -top-0.5 -right-0.5 text-warning" />
-                          )}
-                        </>
-                      ) : (
-                        <MapPinOff className="w-4 h-4 text-muted-foreground" />
-                      )}
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end">
-                    <DropdownMenuItem onClick={(e) => { e.stopPropagation(); setEditPinListing(listing); }}>
-                      <Pencil className="w-4 h-4 mr-2" />
-                      Edit pin location
-                    </DropdownMenuItem>
-                    {listing.geocode_source !== 'manual' && (
-                      <DropdownMenuItem
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleAutoGeocode(listing);
-                        }}
-                        disabled={geocodingId === listing.id}
-                      >
-                        <MapPin className="w-4 h-4 mr-2" />
-                        {geocodingId === listing.id ? 'Auto-geocoding…' : 'Auto-geocode now'}
-                      </DropdownMenuItem>
-                    )}
-                    {listing.geocode_source === 'manual' && (
-                      <DropdownMenuItem 
-                        onClick={(e) => { e.stopPropagation(); handleResetPin(listing); }}
-                      >
-                        <RotateCcw className="w-4 h-4 mr-2" />
-                        Reset to auto-geocode
-                      </DropdownMenuItem>
-                    )}
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              </TableCell>
-              
-              {/* Link */}
-              <TableCell>
-                {listing.link ? (
-                  <a 
-                    href={listing.link} 
-                    target="_blank" 
-                    rel="noopener noreferrer"
-                    className="inline-flex items-center text-primary hover:text-primary/80"
-                    onClick={(e) => e.stopPropagation()}
-                  >
-                    <ExternalLink className="w-4 h-4" />
-                  </a>
-                ) : (
-                  <span className="text-muted-foreground text-sm">-</span>
-                )}
-              </TableCell>
-              
               {/* Notes */}
               <TableCell>
                 <div className="truncate max-w-[170px] text-sm text-muted-foreground" title={listing.notes_public || ''}>
@@ -693,6 +617,89 @@ export function MarketListingsTable({ listings, onEdit, onRefresh, sortColumn, s
               {/* Actions - Sticky with shadow left border that persists during scroll */}
               <TableCell className={`sticky right-0 z-20 shadow-[-2px_0_5px_-2px_rgba(0,0,0,0.3)] transition-colors ${stickyBg} ${stickyHoverClass}`}>
                 <div className="flex items-center gap-0.5">
+                  {/* Geo Dropdown */}
+                  <DropdownMenu>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <DropdownMenuTrigger asChild>
+                          <Button 
+                            variant="ghost" 
+                            size="icon" 
+                            className={cn(
+                              "h-7 w-7 relative",
+                              listing.geocode_source === 'manual' && "ring-2 ring-warning ring-offset-1"
+                            )}
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            {listing.latitude && listing.longitude ? (
+                              <>
+                                <MapPin className={cn(
+                                  "h-3.5 w-3.5",
+                                  listing.geocode_source === 'manual' ? "text-warning" : "text-green-600"
+                                )} />
+                                {listing.geocode_source === 'manual' && (
+                                  <Hand className="w-2 h-2 absolute -top-0.5 -right-0.5 text-warning" />
+                                )}
+                              </>
+                            ) : (
+                              <MapPinOff className="h-3.5 w-3.5 text-muted-foreground" />
+                            )}
+                          </Button>
+                        </DropdownMenuTrigger>
+                      </TooltipTrigger>
+                      <TooltipContent>Geocode</TooltipContent>
+                    </Tooltip>
+                    <DropdownMenuContent align="end">
+                      <DropdownMenuItem onClick={(e) => { e.stopPropagation(); setEditPinListing(listing); }}>
+                        <Pencil className="w-4 h-4 mr-2" />
+                        Edit pin location
+                      </DropdownMenuItem>
+                      {listing.geocode_source !== 'manual' && (
+                        <DropdownMenuItem
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleAutoGeocode(listing);
+                          }}
+                          disabled={geocodingId === listing.id}
+                        >
+                          <MapPin className="w-4 h-4 mr-2" />
+                          {geocodingId === listing.id ? 'Auto-geocoding…' : 'Auto-geocode now'}
+                        </DropdownMenuItem>
+                      )}
+                      {listing.geocode_source === 'manual' && (
+                        <DropdownMenuItem 
+                          onClick={(e) => { e.stopPropagation(); handleResetPin(listing); }}
+                        >
+                          <RotateCcw className="w-4 h-4 mr-2" />
+                          Reset to auto-geocode
+                        </DropdownMenuItem>
+                      )}
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                  
+                  {/* Link */}
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      {listing.link ? (
+                        <a 
+                          href={listing.link} 
+                          target="_blank" 
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center justify-center h-7 w-7 text-primary hover:text-primary/80 hover:bg-muted rounded-sm"
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          <ExternalLink className="h-3.5 w-3.5" />
+                        </a>
+                      ) : (
+                        <span className="inline-flex items-center justify-center h-7 w-7 text-muted-foreground">
+                          <ExternalLink className="h-3.5 w-3.5 opacity-30" />
+                        </span>
+                      )}
+                    </TooltipTrigger>
+                    <TooltipContent>{listing.link ? 'Open Link' : 'No Link'}</TooltipContent>
+                  </Tooltip>
+                  
+                  {/* Verify */}
                   <Tooltip>
                     <TooltipTrigger asChild>
                       <Button
@@ -707,6 +714,8 @@ export function MarketListingsTable({ listings, onEdit, onRefresh, sortColumn, s
                     </TooltipTrigger>
                     <TooltipContent>Verify Listing</TooltipContent>
                   </Tooltip>
+                  
+                  {/* Edit */}
                   <Tooltip>
                     <TooltipTrigger asChild>
                       <Button
@@ -720,6 +729,8 @@ export function MarketListingsTable({ listings, onEdit, onRefresh, sortColumn, s
                     </TooltipTrigger>
                     <TooltipContent>Edit Listing</TooltipContent>
                   </Tooltip>
+                  
+                  {/* Log Transaction */}
                   <Tooltip>
                     <TooltipTrigger asChild>
                       <Button
