@@ -58,13 +58,17 @@ export function useCreateDeal() {
     mutationFn: async (formData: DealFormData) => {
       if (!user?.id || !org?.id) throw new Error('Not authenticated');
 
+      // Convert empty date strings to null
+      const sanitizedData = {
+        ...formData,
+        close_date: formData.close_date || null,
+        user_id: user.id,
+        org_id: org.id,
+      };
+
       const { data, error } = await supabase
         .from('deals')
-        .insert({
-          ...formData,
-          user_id: user.id,
-          org_id: org.id,
-        })
+        .insert(sanitizedData)
         .select()
         .single();
 
@@ -87,9 +91,15 @@ export function useUpdateDeal() {
 
   return useMutation({
     mutationFn: async ({ id, ...formData }: DealFormData & { id: string }) => {
+      // Convert empty date strings to null
+      const sanitizedData = {
+        ...formData,
+        close_date: formData.close_date || null,
+      };
+
       const { data, error } = await supabase
         .from('deals')
-        .update(formData)
+        .update(sanitizedData)
         .eq('id', id)
         .select()
         .single();

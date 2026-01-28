@@ -137,9 +137,6 @@ export interface DealFormData {
   commission_percent?: number;
   close_date?: string;
   status: DealStatus;
-  conditions?: string;
-  deposit_amount?: number;
-  deposit_due_date?: string;
   listing_id?: string;
   property_id?: string;
   notes?: string;
