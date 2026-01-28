@@ -132,7 +132,8 @@ export function GenerateDealSummaryDialog({ open, onOpenChange, deal }: Generate
   // Reset and initialize state when dialog opens
   useEffect(() => {
     if (open) {
-      setVendor('Clearview Commercial Realty Inc.');
+      setVendor(deal.seller_name || 'Clearview Commercial Realty Inc.');
+      // Transfer buyer name from deal (set by Deal Sheet) to Purchaser
       setPurchaser(deal.buyer_name || '');
       setPropertyAddress(deal.address || '');
       
@@ -145,7 +146,9 @@ export function GenerateDealSummaryDialog({ open, onOpenChange, deal }: Generate
       setPropertyDescription(description);
       
       setEffectiveDate(undefined);
+      // Transfer closing date from deal (set by Deal Sheet)
       setClosingDate(deal.close_date ? new Date(deal.close_date) : undefined);
+      // Transfer deal value from deal (set by Deal Sheet) to Purchase Price
       const initialPrice = deal.deal_value ? deal.deal_value : 0;
       setPurchasePrice(initialPrice.toString());
       setPurchasePriceDisplay(initialPrice ? formatNumberWithCommas(initialPrice) : '');

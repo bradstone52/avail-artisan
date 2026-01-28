@@ -93,6 +93,9 @@ export function GenerateDealSheetDialog({ open, onOpenChange, deal }: GenerateDe
   const [otherBrokeragePercent, setOtherBrokeragePercent] = useState(deal.other_brokerage_percent || 1.5);
   const [clearviewPercent, setClearviewPercent] = useState(deal.clearview_percent || 1.5);
   const [gstRate, setGstRate] = useState(deal.gst_rate || 5);
+  const [closingDate, setClosingDate] = useState<Date | undefined>(
+    deal.close_date ? new Date(deal.close_date) : undefined
+  );
 
   // Local conditions & deposits
   const [localConditions, setLocalConditions] = useState<LocalCondition[]>([]);
@@ -242,6 +245,7 @@ export function GenerateDealSheetDialog({ open, onOpenChange, deal }: GenerateDe
           other_brokerage_percent: otherBrokeragePercent || null,
           clearview_percent: clearviewPercent || null,
           gst_rate: gstRate || null,
+          close_date: closingDate ? format(closingDate, 'yyyy-MM-dd') : null,
         })
         .eq('id', deal.id);
 
@@ -500,8 +504,30 @@ export function GenerateDealSheetDialog({ open, onOpenChange, deal }: GenerateDe
                         <Input value={deal.city || ''} disabled className="bg-muted" />
                       </div>
                       <div className="space-y-2">
-                        <Label>Date</Label>
-                        <Input value={todayFormatted} disabled className="bg-muted" />
+                        <Label>Closing Date</Label>
+                        <Popover>
+                          <PopoverTrigger asChild>
+                            <Button
+                              variant="outline"
+                              className={cn(
+                                "w-full justify-start text-left font-normal",
+                                !closingDate && "text-muted-foreground"
+                              )}
+                            >
+                              <CalendarIcon className="mr-2 h-4 w-4" />
+                              {closingDate ? format(closingDate, "MMMM d, yyyy") : "Select date"}
+                            </Button>
+                          </PopoverTrigger>
+                          <PopoverContent className="w-auto p-0" align="start">
+                            <Calendar
+                              mode="single"
+                              selected={closingDate}
+                              onSelect={setClosingDate}
+                              initialFocus
+                              className="pointer-events-auto"
+                            />
+                          </PopoverContent>
+                        </Popover>
                       </div>
                     </div>
                     <div className="space-y-2">
