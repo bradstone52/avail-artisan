@@ -176,7 +176,7 @@ export function GenerateDealSummaryDialog({ open, onOpenChange, deal }: Generate
         setActions(existingActions.map(a => ({
           id: crypto.randomUUID(),
           dueDate: a.due_date ? new Date(a.due_date) : undefined,
-          dueHour: a.due_time ? a.due_time.split(':')[0]?.replace(/^0/, '') || '' : '',
+          dueHour: a.due_time ? a.due_time.split(':')[0]?.replace(/^0/, '') || '4' : '4',
           dueMinute: a.due_time ? a.due_time.split(':')[1]?.split(' ')[0] || '00' : '00',
           duePeriod: a.due_time?.includes('AM') ? 'AM' : 'PM',
           dateMet: a.date_met ? new Date(a.date_met) : undefined,
@@ -204,7 +204,7 @@ export function GenerateDealSummaryDialog({ open, onOpenChange, deal }: Generate
   const createEmptyAction = (): LocalAction => ({
     id: crypto.randomUUID(),
     dueDate: undefined,
-    dueHour: '',
+    dueHour: '4',
     dueMinute: '00',
     duePeriod: 'PM',
     dateMet: undefined,
