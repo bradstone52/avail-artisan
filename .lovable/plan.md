@@ -1,118 +1,206 @@
 
-# Fix Deal Sheet PDF Issues
+# Redesign Deal Sheet PDF to New Specification
 
-## Problems Identified
-
-1. **Green background not filling Financial/Trust section**: The right column (Financial/Trust Details) doesn't have green background extending to match the height of the Commission Breakdown section
-2. **Comments section getting cut off**: Comments should flow to a second page if there's no space, rather than being cut off
-3. **Title showing "sale/lease"**: The dynamic title logic is in place but may not be rendering correctly
+## Overview
+Complete rewrite of `DealSheetPDF.tsx` to match the new layout specification with updated colors, structure, and styling.
 
 ---
 
-## Fixes Required
+## Key Changes Summary
+
+| Area | Current | New |
+|------|---------|-----|
+| Colors | Blue headers, Yellow/Pink sections | Gray headers, Yellow seller, Blue buyer, Green agency |
+| Header | Logo left, lowercase title | Logo left, UPPERCASE title |
+| Summary Table | Custom styling | Gray background label rows |
+| Party Sections | Yellow background both | Yellow seller, Blue buyer |
+| Agency Section | White background | Green background |
+| Comments | Pink background | Simple border with underlined title |
+
+---
+
+## New Color Palette
+
+```typescript
+const colors = {
+  headerBg: '#f5f5f5',      // Gray - label cells
+  yellowBg: '#fffde7',      // Seller section
+  blueBg: '#e3f2fd',        // Buyer section  
+  greenBg: '#e8f5e9',       // Agency section
+  border: '#333333',        // Dark borders
+  lightBorder: '#cccccc',   // Light borders
+};
+```
+
+---
+
+## Structural Changes
+
+### 1. Header Section
+- Logo on left (180x40px)
+- Right side: UPPERCASE title "{DEAL_TYPE} DEALSHEET"
+- Deal # and Date fields below title
+
+### 2. Property/Deal Summary Table
+- Section title: "PROPERTY / DEAL SUMMARY" (underlined, bold)
+- 4-row table with outer dark border
+- Row 1 (Labels): Gray background - Property Address, Closing Date, Sale Price/Lease Value
+- Row 2 (Values): Data values
+- Row 3 (Labels): Gray background - Premises Size, Key Conditions & Removal Dates
+- Row 4 (Values): Size SF, Numbered conditions list
+
+### 3. Seller & Buyer Information (Two Columns)
+- **Left Column (Seller)**: Yellow background (#fffde7)
+  - Title: "SELLER INFORMATION" (underlined)
+  - Fields: Name, Address (c/o brokerage), Contact, Phone, Email
+
+- **Right Column (Buyer)**: Blue background (#e3f2fd)
+  - Title: "BUYER INFORMATION" (underlined)
+  - Same field structure
+
+### 4. Agency & Commission Summary (Two Columns)
+- **Green background (#e8f5e9)** for both columns
+- Left: "Listing Agent(s) / Brokerage:"
+- Right: "Selling Agent(s) / Brokerage:" (or "Leasing" for lease deals)
+
+### 5. Commission Calculation Notes
+- Simple text: "Commission Calculation Notes: [value] x [percent]%"
+- Bold, underlined
+
+### 6. Commission Details (Two Columns)
+**Left Column - Commission Calculations:**
+- TOTAL COMMISSION (underlined title)
+  - Commission (excl. GST): [value]
+  - GST on Commission: [value]
+  - Total Commission (incl. GST): [bold value]
+
+- OTHER BROKERAGE PORTION - [X]%
+  - Commission (excl. GST): [value]
+  - GST: [value]
+  - Total: [bold]
+
+- CLEARVIEW PORTION - [X]%
+  - Same structure
+
+**Right Column - Deposits:**
+- FINANCIAL / TRUST DETAILS (underlined title)
+- 1st Deposit: [amount] Held By: [holder]
+- 2nd Deposit: (if exists)
+- 3rd Deposit: (if exists)
+
+### 7. Comments Section
+- Simple border with underlined "COMMENTS" title
+- `wrap={false}` to ensure it flows to second page if needed
+
+---
+
+## Technical Implementation
 
 ### File: `src/components/documents/DealSheetPDF.tsx`
 
-#### Fix 1: Green Background Full Height (Lines 201-227)
+**Complete rewrite with:**
 
-The issue is that while `greenBody` has `flex: 1`, the parent `financialSection` View doesn't have proper flex styling to stretch to match the sibling column. Need to add `display: 'flex'` and ensure both columns stretch equally.
+1. **New color constants**
+2. **New StyleSheet** following the provided specification exactly
+3. **Updated component structure** matching the layout
 
-**Update styles:**
-- Add `display: 'flex'` and `flexDirection: 'column'` to `commissionSection` and `financialSection`
-- Ensure `greenBody` fills remaining space with `flexGrow: 1`
+### Format Functions to Add
+```typescript
+// Currency (CAD with 2 decimals)
+const formatCurrencyCAD = (value: number | null | undefined) => {
+  if (value === null || value === undefined) return '';
+  return new Intl.NumberFormat('en-CA', { 
+    style: 'currency', 
+    currency: 'CAD', 
+    minimumFractionDigits: 2 
+  }).format(value);
+};
 
-**Current `financialSection` style (line 211-216):**
-```tsx
-financialSection: {
-  flex: 1,
-  borderWidth: 1,
-  borderColor: BLACK,
-  marginLeft: 5,
-},
+// Date (January 28, 2026 format)
+const formatDateLong = (date: string | null | undefined) => {
+  if (!date) return '';
+  return new Date(date).toLocaleDateString('en-CA', { 
+    year: 'numeric', 
+    month: 'long', 
+    day: 'numeric' 
+  });
+};
+
+// Today's date formatted
+const getTodayFormatted = () => {
+  return new Date().toLocaleDateString('en-CA', { 
+    year: 'numeric', 
+    month: 'long', 
+    day: 'numeric' 
+  });
+};
 ```
 
-**Updated:**
-```tsx
-financialSection: {
-  flex: 1,
-  borderWidth: 1,
-  borderColor: BLACK,
-  marginLeft: 5,
-  display: 'flex',
-  flexDirection: 'column',
-},
+### Conditions Formatting
+```typescript
+const conditionsText = conditions.map((c, i) => 
+  `${i + 1}) ${c.description}${c.due_date ? ` – Removal by ${formatDateLong(c.due_date)}` : ''}`
+).join('\n');
 ```
-
-Same update needed for `commissionSection`.
-
-Also update `greenBody` to:
-```tsx
-greenBody: {
-  backgroundColor: GREEN_BG,
-  padding: 8,
-  flexGrow: 1,
-},
-```
-
-#### Fix 2: Comments Section on Second Page (Lines 629-635)
-
-Move the Comments section outside the main `<Page>` and create it as a second page that can accommodate the content without being cut off. Or use `wrap={false}` to prevent partial rendering.
-
-**Solution**: Wrap the comments section in its own `<View wrap={false}>` which will push it to the next page if it doesn't fit, OR explicitly put comments on a separate page.
-
-Better approach: Use `break="before"` on the comments section to ensure it always starts on a fresh page OR use `wrap` property to prevent breaking within comments.
-
-**Updated Comments section:**
-```tsx
-{/* Comments - on second page if needed */}
-<View wrap={false}>
-  <View style={styles.commentsHeader}>
-    <Text style={styles.sectionTitle}>Comments</Text>
-  </View>
-  <View style={styles.commentsBody}>
-    <Text style={styles.commentsText}>{deal.notes || '—'}</Text>
-  </View>
-</View>
-```
-
-This ensures the comments header + body stay together and if they don't fit on page 1, they'll flow to page 2.
-
-#### Fix 3: Title Not Updating
-
-The code at line 363 appears correct:
-```tsx
-<Text style={styles.mainTitle}>{deal.deal_type === 'Lease' ? 'lease' : 'sale'} dealsheet</Text>
-```
-
-However, possible issues:
-1. The deal might have a `deal_type` value that's not exactly "Lease" (e.g., lowercase or different value)
-2. Need to ensure the comparison handles case-insensitivity
-
-**Updated logic:**
-```tsx
-<Text style={styles.mainTitle}>
-  {deal.deal_type?.toLowerCase() === 'lease' ? 'lease' : 'sale'} dealsheet
-</Text>
-```
-
-This makes the check case-insensitive and handles undefined gracefully.
-
----
-
-## Summary of Changes
-
-| Location | Issue | Fix |
-|----------|-------|-----|
-| Styles (lines 205-227) | Green BG not filling | Add `display: 'flex'`, `flexDirection: 'column'` to sections, change `flex: 1` to `flexGrow: 1` in `greenBody` |
-| Lines 629-635 | Comments cut off | Wrap in `<View wrap={false}>` to keep header+body together |
-| Line 363 | Title not dynamic | Use case-insensitive comparison: `deal.deal_type?.toLowerCase() === 'lease'` |
 
 ---
 
 ## Files to Modify
 
-1. `src/components/documents/DealSheetPDF.tsx`
-   - Update `commissionSection` and `financialSection` styles to use flex column layout
-   - Update `greenBody` to use `flexGrow: 1`
-   - Wrap comments section with `wrap={false}`
-   - Make title comparison case-insensitive
+1. **`src/components/documents/DealSheetPDF.tsx`** - Complete rewrite with new specification
+   - Replace color palette
+   - Replace StyleSheet with new styles
+   - Restructure component layout
+   - Add new format functions
+   - Update title to uppercase dynamic
+   - Update party sections with correct background colors
+   - Update agency section with green background
+   - Simplify comments section styling
+
+---
+
+## Visual Layout Reference
+
+```text
+┌──────────────────────────────────────────────────────────────┐
+│ [LOGO]                              SALE DEALSHEET           │
+│                                     Deal #: 12345            │
+│                                     Date: January 28, 2026   │
+├──────────────────────────────────────────────────────────────┤
+│ PROPERTY / DEAL SUMMARY                                      │
+├──────────────────────────────────────────────────────────────┤
+│ Property Address: │ Closing Date: │ Sale Price:              │
+│ 123 Main St       │ Feb 15, 2026  │ $1,500,000               │
+├───────────────────┴───────────────┴──────────────────────────┤
+│ Premises Size:    │ Key Conditions & Removal Dates:          │
+│ 15,000 SF         │ 1) Financing – Removal by Jan 30, 2026   │
+│                   │ 2) Inspection – Removal by Feb 1, 2026   │
+├───────────────────┴──────────────────────────────────────────┤
+│ SELLER INFORMATION (Yellow)  │ BUYER INFORMATION (Blue)      │
+│ Name: ABC Corp               │ Name: XYZ Inc                 │
+│ Address: c/o Brokerage       │ Address: c/o Brokerage        │
+│ Contact: John Smith          │ Contact: Jane Doe             │
+│ Phone: 555-1234              │ Phone: 555-5678               │
+│ Email: john@email.com        │ Email: jane@email.com         │
+├──────────────────────────────┴───────────────────────────────┤
+│ AGENCY & COMMISSION SUMMARY (Green)                          │
+│ Listing Agent(s):            │ Selling Agent(s):             │
+│ John Smith / ABC Realty      │ Jane Doe / XYZ Realty         │
+├──────────────────────────────────────────────────────────────┤
+│ Commission Calculation Notes: $1,500,000 x 3%                │
+├──────────────────────────────┬───────────────────────────────┤
+│ TOTAL COMMISSION             │ FINANCIAL / TRUST DETAILS     │
+│ Commission (excl. GST): $45K │ 1st Deposit: $50,000          │
+│ GST: $2,250                  │   Held By: ABC Trust          │
+│ Total: $47,250               │ 2nd Deposit: $100,000         │
+│                              │   Held By: ABC Trust          │
+│ OTHER BROKERAGE – 1.5%       │                               │
+│ ...                          │                               │
+│                              │                               │
+│ CLEARVIEW – 1.5%             │                               │
+│ ...                          │                               │
+├──────────────────────────────┴───────────────────────────────┤
+│ COMMENTS                                                     │
+│ [deal notes text here]                                       │
+└──────────────────────────────────────────────────────────────┘
+```
