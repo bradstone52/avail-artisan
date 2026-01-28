@@ -34,5 +34,10 @@ export default defineConfig(({ mode }) => ({
   // Define build timestamp for debugging cache issues
   define: {
     __BUILD_TIME__: JSON.stringify(new Date().toISOString()),
+    // Buffer polyfill for react-pdf compatibility
+    "global.Buffer": "globalThis.Buffer",
+  },
+  optimizeDeps: {
+    include: ["buffer"],
   },
 }));
