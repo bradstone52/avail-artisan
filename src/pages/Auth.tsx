@@ -43,21 +43,29 @@ export default function Auth() {
         console.error('Error refreshing session:', refreshError);
       }
 
-      // Use AAL (Authenticator Assurance Level) as the authoritative source
-      // After an MFA reset, listFactors() can return stale cached data
+      // AAL is authoritative for whether the backend requires MFA (aal2),
+      // but we also need to know whether the user actually has any verified factors.
       const { data: aalData } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
+      const { data: factorsData, error: factorsError } = await supabase.auth.mfa.listFactors();
+      if (factorsError) {
+        console.error('Error listing factors:', factorsError);
+      }
 
       const currentLevel = aalData?.currentLevel;
       const nextLevel = aalData?.nextLevel;
 
-      // nextLevel === 'aal1' means no MFA is enrolled/required => must enroll (mandatory)
-      // nextLevel === 'aal2' && currentLevel === 'aal1' means MFA required but not verified
-      if (nextLevel === 'aal1') {
+      const verifiedTotpCount = factorsData?.totp?.filter((f) => f.status === 'verified')?.length ?? 0;
+      const hasVerifiedFactor = verifiedTotpCount > 0;
+
+      // If the user has no verified factors, enrollment is mandatory.
+      // This handles admin MFA resets cleanly even if AAL still reports aal2 requirement.
+      if (!hasVerifiedFactor) {
         setShowMfaVerification(false);
         setShowMfaEnrollment(true);
         return;
       }
 
+      // Verified factors exist; if the session isn't verified yet, prompt for code.
       if (nextLevel === 'aal2' && currentLevel === 'aal1') {
         setShowMfaEnrollment(false);
         setShowMfaVerification(true);
