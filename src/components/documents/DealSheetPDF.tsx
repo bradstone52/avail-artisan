@@ -207,12 +207,16 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: BLACK,
     marginRight: 5,
+    display: 'flex',
+    flexDirection: 'column',
   },
   financialSection: {
     flex: 1,
     borderWidth: 1,
     borderColor: BLACK,
     marginLeft: 5,
+    display: 'flex',
+    flexDirection: 'column',
   },
   greenHeader: {
     backgroundColor: BLUE_HEADER,
@@ -224,7 +228,7 @@ const styles = StyleSheet.create({
   greenBody: {
     backgroundColor: GREEN_BG,
     padding: 8,
-    flex: 1,
+    flexGrow: 1,
   },
   commissionBlock: {
     marginBottom: 8,
@@ -360,7 +364,7 @@ export function DealSheetPDF({ deal, conditions, deposits, getAgent, getBrokerag
         <View style={styles.header}>
           <Image src={clearviewLogo} style={styles.logo} />
           <View style={styles.headerRight}>
-            <Text style={styles.mainTitle}>{deal.deal_type === 'Lease' ? 'lease' : 'sale'} dealsheet</Text>
+            <Text style={styles.mainTitle}>{deal.deal_type?.toLowerCase() === 'lease' ? 'lease' : 'sale'} dealsheet</Text>
           <View style={{ flexDirection: 'row' }}>
               <Text style={[styles.dealInfo, { marginRight: 4 }]}>Deal #:</Text>
               <Text style={styles.dealInfoBold}>{deal.deal_number || '_________'}</Text>
@@ -626,12 +630,14 @@ export function DealSheetPDF({ deal, conditions, deposits, getAgent, getBrokerag
           </View>
         </View>
 
-        {/* Comments */}
-        <View style={styles.commentsHeader}>
-          <Text style={styles.sectionTitle}>Comments</Text>
-        </View>
-        <View style={styles.commentsBody}>
-          <Text style={styles.commentsText}>{deal.notes || '—'}</Text>
+        {/* Comments - wraps to second page if needed */}
+        <View wrap={false}>
+          <View style={styles.commentsHeader}>
+            <Text style={styles.sectionTitle}>Comments</Text>
+          </View>
+          <View style={styles.commentsBody}>
+            <Text style={styles.commentsText}>{deal.notes || '—'}</Text>
+          </View>
         </View>
       </Page>
     </Document>
