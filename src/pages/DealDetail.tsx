@@ -12,10 +12,10 @@ import { DealDocumentsCard } from '@/components/deals/detail/DealDocumentsCard';
 import { DealFinancialSummaryCard } from '@/components/deals/detail/DealFinancialSummaryCard';
 import { DealEditDialog } from '@/components/deals/detail/DealEditDialog';
 import { GenerateDealSheetDialog } from '@/components/deals/GenerateDealSheetDialog';
+import { GenerateDealSummaryDialog } from '@/components/deals/GenerateDealSummaryDialog';
 import { ConfirmDialog } from '@/components/common/ConfirmDialog';
 import { Skeleton } from '@/components/ui/skeleton';
-import { ArrowLeft, FileText, Edit, Trash2, Briefcase, FileBarChart } from 'lucide-react';
-import { toast } from 'sonner';
+import { ArrowLeft, FileText, Trash2, Briefcase, FileBarChart } from 'lucide-react';
 
 export default function DealDetail() {
   const { id } = useParams<{ id: string }>();
@@ -29,6 +29,7 @@ export default function DealDetail() {
   const [editOpen, setEditOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [generateSheetOpen, setGenerateSheetOpen] = useState(false);
+  const [generateSummaryOpen, setGenerateSummaryOpen] = useState(false);
 
   const handleDelete = async () => {
     if (!id) return;
@@ -41,9 +42,6 @@ export default function DealDetail() {
     }
   };
 
-  const handleGenerateSummary = () => {
-    toast.info('Deal Summary PDF generation coming soon');
-  };
 
   if (isLoading) {
     return (
@@ -86,13 +84,7 @@ export default function DealDetail() {
               <ArrowLeft className="w-4 h-4 mr-2" />
               Back
             </Button>
-            <div className="flex items-center gap-3">
-              <h1 className="text-xl font-bold">{deal.address}</h1>
-              <Button variant="outline" size="sm" onClick={() => setEditOpen(true)}>
-                <Edit className="w-4 h-4 mr-2" />
-                EDIT
-              </Button>
-            </div>
+            <h1 className="text-xl font-bold">{deal.address}</h1>
           </div>
           
           <div className="flex flex-wrap gap-2">
@@ -105,7 +97,7 @@ export default function DealDetail() {
             </Button>
             <Button 
               variant="outline" 
-              onClick={handleGenerateSummary}
+              onClick={() => setGenerateSummaryOpen(true)}
             >
               <FileBarChart className="w-4 h-4 mr-2" />
               GENERATE DEAL SUMMARY
@@ -120,7 +112,7 @@ export default function DealDetail() {
         {/* Two-column content grid */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <div className="space-y-6">
-            <DealViewCard deal={deal} />
+            <DealViewCard deal={deal} onEdit={() => setEditOpen(true)} />
             <DealImportantDatesSection deal={deal} conditions={conditions} deposits={deposits} />
           </div>
           <div className="space-y-6">
@@ -157,6 +149,13 @@ export default function DealDetail() {
       <GenerateDealSheetDialog
         open={generateSheetOpen}
         onOpenChange={setGenerateSheetOpen}
+        deal={deal}
+      />
+
+      {/* Generate Deal Summary Dialog */}
+      <GenerateDealSummaryDialog
+        open={generateSummaryOpen}
+        onOpenChange={setGenerateSummaryOpen}
         deal={deal}
       />
     </AppLayout>

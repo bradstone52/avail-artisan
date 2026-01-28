@@ -1,9 +1,10 @@
 import { Document, Page, Text, View, StyleSheet } from '@react-pdf/renderer';
 import { formatCurrency, formatDate } from '@/lib/format';
-import type { Deal } from '@/types/database';
+import type { Deal, DealDeposit } from '@/types/database';
 
 interface DealSummaryPDFProps {
   deal: Deal;
+  deposits?: DealDeposit[];
 }
 
 const styles = StyleSheet.create({
@@ -42,6 +43,28 @@ const styles = StyleSheet.create({
   value: {
     fontSize: 12,
   },
+  section: {
+    marginTop: 20,
+    paddingTop: 15,
+    borderTop: '1px solid #ddd',
+  },
+  sectionTitle: {
+    fontSize: 12,
+    fontWeight: 'bold',
+    marginBottom: 10,
+  },
+  depositRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 6,
+  },
+  depositLabel: {
+    fontSize: 10,
+  },
+  depositStatus: {
+    fontSize: 10,
+    color: '#666',
+  },
   footer: {
     marginTop: 40,
     paddingTop: 20,
@@ -52,7 +75,16 @@ const styles = StyleSheet.create({
   },
 });
 
-export function DealSummaryPDF({ deal }: DealSummaryPDFProps) {
+export function DealSummaryPDF({ deal, deposits = [] }: DealSummaryPDFProps) {
+  const formatDepositAmount = (amount: number) => {
+    return new Intl.NumberFormat('en-CA', {
+      style: 'currency',
+      currency: 'CAD',
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0,
+    }).format(amount);
+  };
+
   return (
     <Document>
       <Page size="LETTER" style={styles.page}>
@@ -89,6 +121,23 @@ export function DealSummaryPDF({ deal }: DealSummaryPDFProps) {
             <Text style={styles.value}>{deal.city || '-'}</Text>
           </View>
         </View>
+
+        {deposits.length > 0 && (
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Deposits</Text>
+            {deposits.map((deposit, index) => (
+              <View key={deposit.id} style={styles.depositRow}>
+                <Text style={styles.depositLabel}>
+                  Deposit {index + 1}: {formatDepositAmount(deposit.amount)}
+                  {deposit.due_date ? ` (Due: ${formatDate(deposit.due_date)})` : ''}
+                </Text>
+                <Text style={styles.depositStatus}>
+                  {deposit.received ? 'Received' : 'Pending'}
+                </Text>
+              </View>
+            ))}
+          </View>
+        )}
 
         <View style={styles.footer}>
           <Text>Generated on {formatDate(new Date().toISOString())}</Text>
