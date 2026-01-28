@@ -2,7 +2,7 @@ import * as React from 'react';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { PageHeader } from '@/components/common/PageHeader';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Briefcase, UserSearch, Users, ArrowRight, Calendar } from 'lucide-react';
+import { Briefcase, UserSearch, Users, ArrowRight, Calendar, BarChart3 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useDeals } from '@/hooks/useDeals';
 import { useAllDealImportantDates } from '@/hooks/useAllDealImportantDates';
@@ -10,6 +10,8 @@ import { useUpcomingFollowUps } from '@/hooks/useUpcomingFollowUps';
 import { formatCurrency } from '@/lib/format';
 import { format, parseISO, isSameDay, addDays } from 'date-fns';
 import { Calendar as CalendarComponent } from '@/components/ui/calendar';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Button } from '@/components/ui/button';
 
 export default function CRETracker() {
   const { data: deals = [] } = useDeals();
@@ -21,13 +23,32 @@ export default function CRETracker() {
   const activeDeals = deals.filter(d => d.status === 'Conditional' || d.status === 'Firm');
   const closedDeals = deals.filter(d => d.status === 'Closed');
   
-  // Calculate closed deal totals
-  const closedTotalSF = closedDeals.reduce((sum, deal) => sum + (deal.size_sf || 0), 0);
-  const closedTotalCommission = closedDeals.reduce((sum, deal) => {
-    const dealValue = deal.deal_value || deal.lease_value || 0;
-    const commissionPercent = deal.commission_percent || 0;
-    return sum + (dealValue * commissionPercent / 100);
-  }, 0);
+  // Calculate deal stats by status and type
+  const calculateStats = (status: string, dealType: string) => {
+    const filtered = deals.filter(d => d.status === status && d.deal_type === dealType);
+    const totalSF = filtered.reduce((sum, deal) => sum + (deal.size_sf || 0), 0);
+    const totalCommission = filtered.reduce((sum, deal) => {
+      const dealValue = deal.deal_value || deal.lease_value || 0;
+      const commissionPercent = deal.commission_percent || 0;
+      return sum + (dealValue * commissionPercent / 100);
+    }, 0);
+    return { count: filtered.length, totalSF, totalCommission };
+  };
+
+  const dealBreakdown = {
+    conditional: {
+      sale: calculateStats('Conditional', 'Sale'),
+      lease: calculateStats('Conditional', 'Lease'),
+    },
+    firm: {
+      sale: calculateStats('Firm', 'Sale'),
+      lease: calculateStats('Firm', 'Lease'),
+    },
+    closed: {
+      sale: calculateStats('Closed', 'Sale'),
+      lease: calculateStats('Closed', 'Lease'),
+    },
+  };
 
   // Collect all important dates for calendar
   const calendarDates = [
@@ -83,10 +104,7 @@ export default function CRETracker() {
         { label: 'Active', value: activeDeals.length },
         { label: 'Closed', value: closedDeals.length },
       ],
-      closedStats: {
-        totalSF: closedTotalSF,
-        totalCommission: closedTotalCommission,
-      },
+      hasDealBreakdown: true,
       color: 'bg-primary',
     },
     {
@@ -115,6 +133,17 @@ export default function CRETracker() {
       default: return 'bg-secondary';
     }
   };
+
+  const StatRow = ({ label, stats }: { label: string; stats: { count: number; totalSF: number; totalCommission: number } }) => (
+    <div className="space-y-1">
+      <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{label}</p>
+      <div className="grid grid-cols-3 gap-2 text-sm">
+        <span>{stats.count} deals</span>
+        <span>{stats.totalSF.toLocaleString()} SF</span>
+        <span>{formatCurrency(stats.totalCommission)}</span>
+      </div>
+    </div>
+  );
 
   return (
     <AppLayout>
@@ -147,18 +176,51 @@ export default function CRETracker() {
                           </div>
                         ))}
                       </div>
-                      {'closedStats' in section && section.closedStats && section.closedStats.totalSF > 0 && (
-                        <div className="pt-2 border-t border-foreground/10">
-                          <p className="text-xs text-muted-foreground uppercase tracking-wide mb-1">Closed Totals</p>
-                          <div className="flex gap-4">
-                            <div>
-                              <p className="text-sm font-bold">{section.closedStats.totalSF.toLocaleString()} SF</p>
+                      {'hasDealBreakdown' in section && section.hasDealBreakdown && (
+                        <Popover>
+                          <PopoverTrigger asChild onClick={(e) => e.preventDefault()}>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="w-full gap-2 border-2 border-foreground/20 hover:border-foreground"
+                            >
+                              <BarChart3 className="w-4 h-4" />
+                              View Deal Breakdown
+                            </Button>
+                          </PopoverTrigger>
+                          <PopoverContent className="w-80 border-2 border-foreground" align="start">
+                            <div className="space-y-4">
+                              <h4 className="font-bold text-sm uppercase tracking-wide">Deal Breakdown</h4>
+                              
+                              {/* Conditional */}
+                              <div className="space-y-2 pb-3 border-b border-foreground/10">
+                                <p className="font-bold text-sm text-yellow-600">Conditional</p>
+                                <div className="pl-2 space-y-2">
+                                  <StatRow label="Sale" stats={dealBreakdown.conditional.sale} />
+                                  <StatRow label="Lease" stats={dealBreakdown.conditional.lease} />
+                                </div>
+                              </div>
+                              
+                              {/* Firm */}
+                              <div className="space-y-2 pb-3 border-b border-foreground/10">
+                                <p className="font-bold text-sm text-orange-600">Firm</p>
+                                <div className="pl-2 space-y-2">
+                                  <StatRow label="Sale" stats={dealBreakdown.firm.sale} />
+                                  <StatRow label="Lease" stats={dealBreakdown.firm.lease} />
+                                </div>
+                              </div>
+                              
+                              {/* Closed */}
+                              <div className="space-y-2">
+                                <p className="font-bold text-sm text-primary">Closed</p>
+                                <div className="pl-2 space-y-2">
+                                  <StatRow label="Sale" stats={dealBreakdown.closed.sale} />
+                                  <StatRow label="Lease" stats={dealBreakdown.closed.lease} />
+                                </div>
+                              </div>
                             </div>
-                            <div>
-                              <p className="text-sm font-bold">{formatCurrency(section.closedStats.totalCommission)}</p>
-                            </div>
-                          </div>
-                        </div>
+                          </PopoverContent>
+                        </Popover>
                       )}
                     </div>
                   ) : (
