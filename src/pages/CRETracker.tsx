@@ -4,15 +4,16 @@ import { PageHeader } from '@/components/common/PageHeader';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Briefcase, UserSearch, Users, ArrowRight, Calendar } from 'lucide-react';
 import { Link } from 'react-router-dom';
-import { useDeals, useDealsClosingInNext30Days } from '@/hooks/useDeals';
+import { useDeals } from '@/hooks/useDeals';
+import { useAllDealImportantDates } from '@/hooks/useAllDealImportantDates';
 import { useUpcomingFollowUps } from '@/hooks/useUpcomingFollowUps';
 import { format, parseISO, isSameDay } from 'date-fns';
 import { Calendar as CalendarComponent } from '@/components/ui/calendar';
 
 export default function CRETracker() {
   const { data: deals = [] } = useDeals();
-  const closingDeals = useDealsClosingInNext30Days();
-  const upcomingFollowUps = useUpcomingFollowUps(30);
+  const { data: dealDates = [] } = useAllDealImportantDates(60);
+  const upcomingFollowUps = useUpcomingFollowUps(60);
 
   // Calculate deal stats
   const activeDeals = deals.filter(d => d.status === 'Conditional' || d.status === 'Firm');
@@ -20,18 +21,26 @@ export default function CRETracker() {
 
   // Collect all important dates for calendar
   const calendarDates = [
-    ...closingDeals.map(deal => ({
-      date: parseISO(deal.close_date!),
-      type: 'deal-close' as const,
-      label: `Close: ${deal.address}`,
-      id: deal.id,
+    // Deal dates (deposits, conditions, actions, closing)
+    ...dealDates.map(d => ({
+      date: parseISO(d.date),
+      type: d.type as 'deposit' | 'condition' | 'action' | 'closing',
+      label: d.label,
+      sublabel: d.time ? `at ${d.time}` : d.description,
+      id: d.dealId,
+      linkPath: `/deals/${d.dealId}`,
     })),
-    ...upcomingFollowUps.map(item => ({
-      date: parseISO(item.date),
-      type: item.type as 'deal' | 'prospect',
-      label: `Follow-up: ${item.name}`,
-      id: item.id,
-    })),
+    // Prospect follow-ups
+    ...upcomingFollowUps
+      .filter(item => item.type === 'prospect')
+      .map(item => ({
+        date: parseISO(item.date),
+        type: 'prospect' as const,
+        label: `Follow-up: ${item.name}`,
+        sublabel: item.notes,
+        id: item.id,
+        linkPath: `/prospects/${item.id}`,
+      })),
   ];
 
   const [selectedDate, setSelectedDate] = React.useState<Date | undefined>(undefined);
@@ -67,6 +76,17 @@ export default function CRETracker() {
       color: 'bg-accent',
     },
   ];
+
+  const getEventColor = (type: string) => {
+    switch (type) {
+      case 'closing': return 'bg-primary';
+      case 'deposit': return 'bg-yellow-500';
+      case 'condition': return 'bg-orange-500';
+      case 'action': return 'bg-blue-500';
+      case 'prospect': return 'bg-accent';
+      default: return 'bg-secondary';
+    }
+  };
 
   return (
     <AppLayout>
@@ -137,58 +157,54 @@ export default function CRETracker() {
                 {selectedDate && eventsOnSelectedDate.length === 0 && (
                   <p className="text-sm text-muted-foreground">No events on this date</p>
                 )}
-                <div className="space-y-2">
-                  {eventsOnSelectedDate.map((event, i) => {
-                    const linkPath = event.type === 'deal-close' || event.type === 'deal' 
-                      ? `/deals/${event.id}` 
-                      : `/prospects/${event.id}`;
-                    return (
-                      <Link
-                        key={i}
-                        to={linkPath}
-                        className="flex items-center gap-2 p-2 border-2 border-foreground/20 hover:border-foreground hover:bg-muted/50 transition-all"
-                        style={{ borderRadius: 'var(--radius)' }}
-                      >
-                        <div className={`w-2 h-2 rounded-full ${
-                          event.type === 'deal-close' ? 'bg-primary' :
-                          event.type === 'deal' ? 'bg-secondary' : 'bg-accent'
-                        }`} />
-                        <span className="text-sm">{event.label}</span>
-                      </Link>
-                    );
-                  })}
+                <div className="space-y-2 max-h-[300px] overflow-y-auto">
+                  {eventsOnSelectedDate.map((event, i) => (
+                    <Link
+                      key={i}
+                      to={event.linkPath}
+                      className="flex items-start gap-2 p-2 border-2 border-foreground/20 hover:border-foreground hover:bg-muted/50 transition-all"
+                      style={{ borderRadius: 'var(--radius)' }}
+                    >
+                      <div className={`w-2 h-2 rounded-full mt-1.5 flex-shrink-0 ${getEventColor(event.type)}`} />
+                      <div className="min-w-0 flex-1">
+                        <span className="text-sm block truncate">{event.label}</span>
+                        {event.sublabel && (
+                          <span className="text-xs text-muted-foreground block truncate">{event.sublabel}</span>
+                        )}
+                      </div>
+                    </Link>
+                  ))}
                 </div>
                 {!selectedDate && (
-                  <div className="space-y-2">
+                  <div className="space-y-2 max-h-[300px] overflow-y-auto">
                     <p className="text-sm text-muted-foreground mb-2">Upcoming events:</p>
                     {calendarDates
                       .filter(d => d.date >= new Date())
-                      .sort((a, b) => a.date.getTime() - b.date.getTime())
-                      .slice(0, 5)
-                      .map((event, i) => {
-                        const linkPath = event.type === 'deal-close' || event.type === 'deal' 
-                          ? `/deals/${event.id}` 
-                          : `/prospects/${event.id}`;
-                        return (
-                          <Link
-                            key={i}
-                            to={linkPath}
-                            className="flex items-center justify-between p-2 border-2 border-foreground/20 hover:border-foreground hover:bg-muted/50 transition-all"
-                            style={{ borderRadius: 'var(--radius)' }}
-                          >
-                            <div className="flex items-center gap-2">
-                              <div className={`w-2 h-2 rounded-full ${
-                                event.type === 'deal-close' ? 'bg-primary' :
-                                event.type === 'deal' ? 'bg-secondary' : 'bg-accent'
-                              }`} />
-                              <span className="text-sm">{event.label}</span>
+                      .slice(0, 10)
+                      .map((event, i) => (
+                        <Link
+                          key={i}
+                          to={event.linkPath}
+                          className="flex items-start justify-between p-2 border-2 border-foreground/20 hover:border-foreground hover:bg-muted/50 transition-all"
+                          style={{ borderRadius: 'var(--radius)' }}
+                        >
+                          <div className="flex items-start gap-2 min-w-0 flex-1">
+                            <div className={`w-2 h-2 rounded-full mt-1.5 flex-shrink-0 ${getEventColor(event.type)}`} />
+                            <div className="min-w-0 flex-1">
+                              <span className="text-sm block truncate">{event.label}</span>
+                              {event.sublabel && (
+                                <span className="text-xs text-muted-foreground block truncate">{event.sublabel}</span>
+                              )}
                             </div>
-                            <span className="text-xs text-muted-foreground">
-                              {format(event.date, 'MMM d')}
-                            </span>
-                          </Link>
-                        );
-                      })}
+                          </div>
+                          <span className="text-xs text-muted-foreground flex-shrink-0 ml-2">
+                            {format(event.date, 'MMM d')}
+                          </span>
+                        </Link>
+                      ))}
+                    {calendarDates.length === 0 && (
+                      <p className="text-sm text-muted-foreground text-center py-4">No upcoming dates</p>
+                    )}
                   </div>
                 )}
               </div>
