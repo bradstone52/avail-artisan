@@ -31,6 +31,7 @@ import DealDetail from "./pages/DealDetail";
 import Prospects from "./pages/Prospects";
 import ProspectDetail from "./pages/ProspectDetail";
 import Settings from "./pages/Settings";
+import CRETracker from "./pages/CRETracker";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient({
@@ -72,6 +73,7 @@ const App = () => (
             <Route path="/recipients" element={<Recipients />} />
             <Route path="/pdf-import" element={<PdfImport />} />
             <Route path="/account" element={<AccountSettings />} />
+            <Route path="/cre-tracker" element={<CRETracker />} />
             <Route path="/deals" element={<Deals />} />
             <Route path="/deals/:id" element={<DealDetail />} />
             <Route path="/prospects" element={<Prospects />} />
