@@ -58,6 +58,7 @@ serve(async (req) => {
     const body = await req.json().catch(() => ({}));
     const emailRaw = typeof body.email === "string" ? body.email : "";
     const email = emailRaw.trim().toLowerCase();
+    const debug = body?.debug === true;
     if (!email) {
       return jsonResponse({ error: "email is required" }, 400);
     }
@@ -110,6 +111,11 @@ serve(async (req) => {
     };
 
     const factors = Array.isArray(factorsPayload.factors) ? factorsPayload.factors : [];
+
+    if (debug) {
+      return jsonResponse({ success: true, message: "Debug: listed MFA factors", targetUserId, factors });
+    }
+
     if (factors.length === 0) {
       return jsonResponse({ success: true, message: "No MFA factors to reset", removed: 0 });
     }
