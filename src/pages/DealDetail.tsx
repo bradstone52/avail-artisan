@@ -126,10 +126,7 @@ export default function DealDetail() {
               Back
             </Button>
             <div>
-              <h1 className="text-xl font-bold">
-                {deal.deal_number ? `Deal #${deal.deal_number}` : 'Deal Details'}
-              </h1>
-              <p className="text-muted-foreground text-sm">{deal.address}</p>
+              <h1 className="text-xl font-bold">{deal.address}</h1>
             </div>
           </div>
           
