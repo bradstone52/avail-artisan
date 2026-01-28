@@ -189,6 +189,7 @@ export type Database = {
           created_at: string
           deal_id: string
           due_date: string | null
+          due_time: string | null
           held_by: string | null
           id: string
           received: boolean
@@ -198,6 +199,7 @@ export type Database = {
           created_at?: string
           deal_id: string
           due_date?: string | null
+          due_time?: string | null
           held_by?: string | null
           id?: string
           received?: boolean
@@ -207,6 +209,7 @@ export type Database = {
           created_at?: string
           deal_id?: string
           due_date?: string | null
+          due_time?: string | null
           held_by?: string | null
           id?: string
           received?: boolean
@@ -252,6 +255,50 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "deal_documents_deal_id_fkey"
+            columns: ["deal_id"]
+            isOneToOne: false
+            referencedRelation: "deals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      deal_summary_actions: {
+        Row: {
+          acting_party: string | null
+          created_at: string
+          date_met: string | null
+          deal_id: string
+          description: string
+          due_date: string | null
+          due_time: string | null
+          id: string
+          sort_order: number
+        }
+        Insert: {
+          acting_party?: string | null
+          created_at?: string
+          date_met?: string | null
+          deal_id: string
+          description: string
+          due_date?: string | null
+          due_time?: string | null
+          id?: string
+          sort_order?: number
+        }
+        Update: {
+          acting_party?: string | null
+          created_at?: string
+          date_met?: string | null
+          deal_id?: string
+          description?: string
+          due_date?: string | null
+          due_time?: string | null
+          id?: string
+          sort_order?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "deal_summary_actions_deal_id_fkey"
             columns: ["deal_id"]
             isOneToOne: false
             referencedRelation: "deals"
