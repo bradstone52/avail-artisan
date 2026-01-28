@@ -1,303 +1,350 @@
-import { Document, Page, Text, View, StyleSheet } from '@react-pdf/renderer';
-import { formatCurrency, formatDate } from '@/lib/format';
-import type { Deal } from '@/types/database';
+import { Document, Page, Text, View, Image, StyleSheet } from '@react-pdf/renderer';
 
-interface DepositData {
-  label: string;
+// Import logo
+import clearviewLogo from '@/assets/clearview-logo.png';
+
+interface DealSummaryDeposit {
   amount: number;
-  payableTo: string;
-  dueDate: string | null;
-  dueTime: string | null;
+  payable_to: string;
+  due_date: string;
+  due_time?: string;
 }
 
-interface ActionData {
-  label: string;
-  dueDate: string | null;
-  dueTime: string | null;
-  dateMet: string | null;
-  actingParty: string;
-  description: string;
+interface DealSummaryAction {
+  due_date: string;
+  due_time?: string;
+  date_met?: string;
+  acting_party: string;
+  action: string;
 }
 
-interface FormData {
+interface DealSummaryPDFProps {
   vendor: string;
   purchaser: string;
   propertyAddress: string;
   propertyDescription: string;
-  effectiveDate: string | null;
-  closingDate: string | null;
+  effectiveDate?: string | null;
+  deposits: DealSummaryDeposit[];
   purchasePrice: number;
-  deposits: DepositData[];
-  actions: ActionData[];
-  totalDeposits: number;
   balanceOnClosing: number;
-}
-
-interface DealSummaryPDFProps {
-  deal: Deal;
-  formData?: FormData;
+  closingDate?: string | null;
+  actions: DealSummaryAction[];
+  contacts: { name: string; email?: string; phone?: string }[];
+  logoBase64?: string;
 }
 
 const styles = StyleSheet.create({
+  // PAGE: Letter size, 40px padding, extra bottom padding for footer
   page: {
     padding: 40,
-    fontFamily: 'Helvetica',
+    paddingBottom: 130,
     fontSize: 10,
+    fontFamily: 'Helvetica',
+    position: 'relative',
   },
+
+  // HEADER: Logo left, title right
   header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
     marginBottom: 20,
-    textAlign: 'center',
+  },
+  logo: {
+    width: 120,
+    height: 40,
+    objectFit: 'contain',
   },
   title: {
     fontSize: 18,
     fontWeight: 'bold',
-    marginBottom: 5,
   },
-  subtitle: {
-    fontSize: 12,
-    color: '#666',
-  },
-  section: {
-    marginBottom: 15,
-  },
-  sectionTitle: {
-    fontSize: 12,
-    fontWeight: 'bold',
-    marginBottom: 8,
-    paddingBottom: 4,
-    borderBottomWidth: 1,
-    borderBottomColor: '#ddd',
-  },
-  grid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-  },
-  cell: {
-    width: '50%',
-    marginBottom: 10,
-  },
-  cellFull: {
+
+  // MAIN TABLE: Two-column layout (35% label, 65% value)
+  dealDetailsTable: {
     width: '100%',
-    marginBottom: 10,
+    borderWidth: 1,
+    borderColor: '#000',
+    borderStyle: 'solid',
   },
-  label: {
-    fontSize: 8,
-    color: '#666',
+  dealRow: {
+    flexDirection: 'row',
+    borderBottomWidth: 1,
+    borderBottomColor: '#000',
+    borderBottomStyle: 'solid',
+  },
+  dealRowLast: {
+    flexDirection: 'row',
+  },
+  labelCell: {
+    width: '35%',
+    padding: 6,
+    backgroundColor: '#f5f5f5',
+    borderRightWidth: 1,
+    borderRightColor: '#000',
+    borderRightStyle: 'solid',
+    fontWeight: 'bold',
+  },
+  valueCell: {
+    width: '65%',
+    padding: 6,
+  },
+
+  // ACTIONS TABLE: Four columns
+  actionsTable: {
+    width: '100%',
+    borderWidth: 1,
+    borderColor: '#000',
+    borderStyle: 'solid',
+    marginTop: 20,
+  },
+  actionsHeaderRow: {
+    flexDirection: 'row',
+    backgroundColor: '#e0e0e0',
+    borderBottomWidth: 1,
+    borderBottomColor: '#000',
+    borderBottomStyle: 'solid',
+  },
+  actionsRow: {
+    flexDirection: 'row',
+    borderBottomWidth: 1,
+    borderBottomColor: '#000',
+    borderBottomStyle: 'solid',
+  },
+  actionsRowLast: {
+    flexDirection: 'row',
+  },
+  actionsCellHeader: {
+    padding: 6,
+    fontWeight: 'bold',
+    fontSize: 9,
+    borderRightWidth: 1,
+    borderRightColor: '#000',
+    borderRightStyle: 'solid',
+  },
+  actionsCell: {
+    padding: 6,
+    fontSize: 9,
+    borderRightWidth: 1,
+    borderRightColor: '#000',
+    borderRightStyle: 'solid',
+  },
+  actionsCellLast: {
+    padding: 6,
+    fontSize: 9,
+  },
+
+  // Column widths for actions table
+  dueDateCol: { width: '20%' },
+  dateMetCol: { width: '20%' },
+  actingPartyCol: { width: '20%' },
+  actionCol: { width: '40%' },
+
+  // FOOTER: Yellow background, fixed to bottom
+  contactsSection: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    backgroundColor: '#fbaf15',
+    paddingTop: 12,
+    paddingBottom: 12,
+    paddingLeft: 40,
+    paddingRight: 40,
+  },
+  contactsTable: {
+    flexDirection: 'row',
+  },
+  contactColumn: {
+    flex: 1,
+    paddingRight: 10,
+  },
+  contactName: {
+    fontWeight: 'bold',
     marginBottom: 2,
-    textTransform: 'uppercase',
+    color: '#000000',
   },
-  value: {
-    fontSize: 10,
-  },
-  depositCard: {
-    borderWidth: 1,
-    borderColor: '#ddd',
-    padding: 10,
-    marginBottom: 8,
-    borderRadius: 4,
-  },
-  depositHeader: {
-    fontSize: 10,
-    fontWeight: 'bold',
-    marginBottom: 6,
-  },
-  depositRow: {
-    flexDirection: 'row',
-    marginBottom: 4,
-  },
-  depositCell: {
-    width: '50%',
-  },
-  actionCard: {
-    borderWidth: 1,
-    borderColor: '#ddd',
-    padding: 10,
-    marginBottom: 8,
-    borderRadius: 4,
-  },
-  actionHeader: {
-    fontSize: 10,
-    fontWeight: 'bold',
-    marginBottom: 6,
-  },
-  summaryRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: 4,
-  },
-  summaryLabel: {
-    color: '#666',
-  },
-  summaryValue: {
-    fontWeight: 'bold',
-  },
-  footer: {
-    marginTop: 30,
-    paddingTop: 15,
-    borderTopWidth: 1,
-    borderTopColor: '#ddd',
-    fontSize: 8,
-    color: '#999',
-    textAlign: 'center',
+  contactDetail: {
+    fontSize: 9,
+    marginBottom: 1,
+    color: '#000000',
   },
 });
 
-export function DealSummaryPDF({ deal, formData }: DealSummaryPDFProps) {
-  const formatPdfCurrency = (amount: number) => {
-    return new Intl.NumberFormat('en-CA', {
-      style: 'currency',
-      currency: 'CAD',
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2,
-    }).format(amount);
-  };
+// Currency: CAD with 2 decimals
+const formatCurrency = (value: number | null | undefined): string => {
+  if (value === null || value === undefined) return '';
+  return new Intl.NumberFormat('en-CA', {
+    style: 'currency',
+    currency: 'CAD',
+    minimumFractionDigits: 2,
+  }).format(value);
+};
 
-  // Use formData if provided, otherwise fall back to deal data
-  const vendor = formData?.vendor || 'Clearview Commercial Realty Inc.';
-  const purchaser = formData?.purchaser || deal.buyer_name || '-';
-  const propertyAddress = formData?.propertyAddress || deal.address;
-  const propertyDescription = formData?.propertyDescription || (deal.size_sf ? `${deal.size_sf.toLocaleString()} SF` : '-');
-  const effectiveDate = formData?.effectiveDate;
-  const closingDate = formData?.closingDate || deal.close_date;
-  const purchasePrice = formData?.purchasePrice || deal.deal_value || 0;
-  const deposits = formData?.deposits || [];
-  const actions = formData?.actions || [];
-  const totalDeposits = formData?.totalDeposits || 0;
-  const balanceOnClosing = formData?.balanceOnClosing || purchasePrice;
+// Date: "January 28, 2026" format
+const formatDate = (date: string | null | undefined): string => {
+  if (!date) return '';
+  try {
+    return new Date(date).toLocaleDateString('en-CA', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+    });
+  } catch {
+    return '';
+  }
+};
+
+// Get deposit label
+const getDepositLabel = (index: number): string => {
+  const labels = ['First Deposit', 'Second Deposit', 'Third Deposit'];
+  return labels[index] || `Deposit ${index + 1}`;
+};
+
+export function DealSummaryPDF({
+  vendor,
+  purchaser,
+  propertyAddress,
+  propertyDescription,
+  effectiveDate,
+  deposits,
+  purchasePrice,
+  balanceOnClosing,
+  closingDate,
+  actions,
+  contacts,
+}: DealSummaryPDFProps) {
+  // Filter out empty deposits
+  const validDeposits = deposits.filter(d => d.amount > 0);
+  // Filter out empty actions
+  const validActions = actions.filter(a => a.action || a.due_date);
+  
+  // Count rows to determine which is last
+  const baseRows = 8; // Vendor, Purchaser, Address, Description, Effective Date, Purchase Price, Balance, Closing Date
+  const totalRows = baseRows + validDeposits.length;
 
   return (
     <Document>
       <Page size="LETTER" style={styles.page}>
-        {/* Header */}
+        {/* === HEADER === */}
         <View style={styles.header}>
-          <Text style={styles.title}>DEAL SUMMARY</Text>
-          <Text style={styles.subtitle}>{propertyAddress}</Text>
+          <Image src={clearviewLogo} style={styles.logo} />
+          <Text style={styles.title}>Deal Summary</Text>
         </View>
 
-        {/* Basic Info Section */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Basic Information</Text>
-          <View style={styles.grid}>
-            <View style={styles.cell}>
-              <Text style={styles.label}>Vendor</Text>
-              <Text style={styles.value}>{vendor}</Text>
+        {/* === DEAL DETAILS TABLE === */}
+        <View style={styles.dealDetailsTable}>
+          {/* Row: Vendor */}
+          <View style={styles.dealRow}>
+            <Text style={styles.labelCell}>Vendor:</Text>
+            <Text style={styles.valueCell}>{vendor || ' '}</Text>
+          </View>
+
+          {/* Row: Purchaser */}
+          <View style={styles.dealRow}>
+            <Text style={styles.labelCell}>Purchaser:</Text>
+            <Text style={styles.valueCell}>{purchaser || ' '}</Text>
+          </View>
+
+          {/* Row: Property Address */}
+          <View style={styles.dealRow}>
+            <Text style={styles.labelCell}>Property Address:</Text>
+            <Text style={styles.valueCell}>{propertyAddress || ' '}</Text>
+          </View>
+
+          {/* Row: Property Description */}
+          <View style={styles.dealRow}>
+            <Text style={styles.labelCell}>Property Description:</Text>
+            <Text style={styles.valueCell}>{propertyDescription || ' '}</Text>
+          </View>
+
+          {/* Row: Effective Date */}
+          <View style={styles.dealRow}>
+            <Text style={styles.labelCell}>Effective Date:</Text>
+            <Text style={styles.valueCell}>{effectiveDate ? formatDate(effectiveDate) : ' '}</Text>
+          </View>
+
+          {/* Dynamic Rows: Deposits */}
+          {validDeposits.map((deposit, index) => (
+            <View style={styles.dealRow} key={index}>
+              <Text style={styles.labelCell}>{getDepositLabel(index)}:</Text>
+              <Text style={styles.valueCell}>
+                {formatCurrency(deposit.amount)}
+                {deposit.payable_to ? ` payable to ${deposit.payable_to}` : ''}
+                {deposit.due_date ? ` on ${formatDate(deposit.due_date)}` : ''}
+                {deposit.due_time ? ` by ${deposit.due_time}` : ''}
+              </Text>
             </View>
-            <View style={styles.cell}>
-              <Text style={styles.label}>Purchaser</Text>
-              <Text style={styles.value}>{purchaser}</Text>
-            </View>
-            <View style={styles.cellFull}>
-              <Text style={styles.label}>Property Address</Text>
-              <Text style={styles.value}>{propertyAddress}</Text>
-            </View>
-            <View style={styles.cellFull}>
-              <Text style={styles.label}>Property Description</Text>
-              <Text style={styles.value}>{propertyDescription}</Text>
-            </View>
-            <View style={styles.cell}>
-              <Text style={styles.label}>Effective Date</Text>
-              <Text style={styles.value}>{effectiveDate ? formatDate(effectiveDate) : '-'}</Text>
-            </View>
-            <View style={styles.cell}>
-              <Text style={styles.label}>Closing Date</Text>
-              <Text style={styles.value}>{closingDate ? formatDate(closingDate) : '-'}</Text>
-            </View>
-            <View style={styles.cell}>
-              <Text style={styles.label}>Purchase Price</Text>
-              <Text style={styles.value}>{formatPdfCurrency(purchasePrice)}</Text>
-            </View>
+          ))}
+
+          {/* Row: Purchase Price */}
+          <View style={styles.dealRow}>
+            <Text style={styles.labelCell}>Purchase Price:</Text>
+            <Text style={styles.valueCell}>{formatCurrency(purchasePrice)}</Text>
+          </View>
+
+          {/* Row: Balance on Closing */}
+          <View style={styles.dealRow}>
+            <Text style={styles.labelCell}>Balance on Closing:</Text>
+            <Text style={styles.valueCell}>{formatCurrency(balanceOnClosing)}</Text>
+          </View>
+
+          {/* Row: Closing Date (LAST ROW - no bottom border) */}
+          <View style={styles.dealRowLast}>
+            <Text style={styles.labelCell}>Closing Date:</Text>
+            <Text style={styles.valueCell}>{closingDate ? formatDate(closingDate) : ' '}</Text>
           </View>
         </View>
 
-        {/* Deposits Section */}
-        {deposits.length > 0 && (
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Deposits</Text>
-            {deposits.map((deposit, index) => (
-              <View key={index} style={styles.depositCard}>
-                <Text style={styles.depositHeader}>{deposit.label}</Text>
-                <View style={styles.depositRow}>
-                  <View style={styles.depositCell}>
-                    <Text style={styles.label}>Amount</Text>
-                    <Text style={styles.value}>{formatPdfCurrency(deposit.amount)}</Text>
-                  </View>
-                  <View style={styles.depositCell}>
-                    <Text style={styles.label}>Payable To</Text>
-                    <Text style={styles.value}>{deposit.payableTo || '-'}</Text>
-                  </View>
-                </View>
-                <View style={styles.depositRow}>
-                  <View style={styles.depositCell}>
-                    <Text style={styles.label}>Due Date</Text>
-                    <Text style={styles.value}>{deposit.dueDate ? formatDate(deposit.dueDate) : '-'}</Text>
-                  </View>
-                  <View style={styles.depositCell}>
-                    <Text style={styles.label}>Due Time</Text>
-                    <Text style={styles.value}>{deposit.dueTime || '-'}</Text>
-                  </View>
-                </View>
-              </View>
-            ))}
-
-            {/* Summary */}
-            <View style={{ marginTop: 10, paddingTop: 10, borderTopWidth: 1, borderTopColor: '#eee' }}>
-              <View style={styles.summaryRow}>
-                <Text style={styles.summaryLabel}>Total Deposits:</Text>
-                <Text style={styles.summaryValue}>{formatPdfCurrency(totalDeposits)}</Text>
-              </View>
-              <View style={styles.summaryRow}>
-                <Text style={styles.summaryLabel}>Purchase Price:</Text>
-                <Text style={styles.summaryValue}>{formatPdfCurrency(purchasePrice)}</Text>
-              </View>
-              <View style={styles.summaryRow}>
-                <Text style={styles.summaryLabel}>Balance on Closing:</Text>
-                <Text style={styles.summaryValue}>{formatPdfCurrency(balanceOnClosing)}</Text>
-              </View>
+        {/* === ACTIONS TABLE (only if actions exist) === */}
+        {validActions.length > 0 && (
+          <View style={styles.actionsTable}>
+            {/* Header Row */}
+            <View style={styles.actionsHeaderRow}>
+              <Text style={[styles.actionsCellHeader, styles.dueDateCol]}>Due Date</Text>
+              <Text style={[styles.actionsCellHeader, styles.dateMetCol]}>Date Met</Text>
+              <Text style={[styles.actionsCellHeader, styles.actingPartyCol]}>Acting Party</Text>
+              <Text style={[styles.actionsCellHeader, styles.actionCol, { borderRightWidth: 0 }]}>Action</Text>
             </View>
-          </View>
-        )}
 
-        {/* Actions Section */}
-        {actions.length > 0 && actions.some(a => a.description || a.dueDate) && (
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Actions & Milestones</Text>
-            {actions.filter(a => a.description || a.dueDate).map((action, index) => (
-              <View key={index} style={styles.actionCard}>
-                <Text style={styles.actionHeader}>{action.label}</Text>
-                <View style={styles.depositRow}>
-                  <View style={styles.depositCell}>
-                    <Text style={styles.label}>Due Date</Text>
-                    <Text style={styles.value}>
-                      {action.dueDate ? formatDate(action.dueDate) : '-'}
-                      {action.dueTime ? ` at ${action.dueTime}` : ''}
-                    </Text>
-                  </View>
-                  <View style={styles.depositCell}>
-                    <Text style={styles.label}>Date Met</Text>
-                    <Text style={styles.value}>{action.dateMet ? formatDate(action.dateMet) : '-'}</Text>
-                  </View>
-                </View>
-                <View style={styles.depositRow}>
-                  <View style={styles.depositCell}>
-                    <Text style={styles.label}>Acting Party</Text>
-                    <Text style={styles.value}>{action.actingParty || '-'}</Text>
-                  </View>
-                </View>
-                {action.description && (
-                  <View style={{ marginTop: 4 }}>
-                    <Text style={styles.label}>Description</Text>
-                    <Text style={styles.value}>{action.description}</Text>
-                  </View>
-                )}
+            {/* Data Rows */}
+            {validActions.map((action, index) => (
+              <View
+                style={index === validActions.length - 1 ? styles.actionsRowLast : styles.actionsRow}
+                key={index}
+              >
+                <Text style={[styles.actionsCell, styles.dueDateCol]}>
+                  {formatDate(action.due_date)}
+                  {action.due_time ? `, by ${action.due_time}` : ''}
+                </Text>
+                <Text style={[styles.actionsCell, styles.dateMetCol]}>
+                  {action.date_met ? formatDate(action.date_met) : ' '}
+                </Text>
+                <Text style={[styles.actionsCell, styles.actingPartyCol]}>
+                  {action.acting_party || ' '}
+                </Text>
+                <Text style={[styles.actionsCellLast, styles.actionCol]}>
+                  {action.action || ' '}
+                </Text>
               </View>
             ))}
           </View>
         )}
 
-        {/* Footer */}
-        <View style={styles.footer}>
-          <Text>Generated on {formatDate(new Date().toISOString())}</Text>
-        </View>
+        {/* === FOOTER: Contact Information (fixed to bottom) === */}
+        {contacts.length > 0 && (
+          <View style={styles.contactsSection} fixed>
+            <View style={styles.contactsTable}>
+              {contacts.slice(0, 3).map((contact, index) => (
+                <View style={styles.contactColumn} key={index}>
+                  <Text style={styles.contactName}>{contact.name}</Text>
+                  {contact.email && <Text style={styles.contactDetail}>{contact.email}</Text>}
+                  {contact.phone && <Text style={styles.contactDetail}>{contact.phone}</Text>}
+                </View>
+              ))}
+            </View>
+          </View>
+        )}
       </Page>
     </Document>
   );
