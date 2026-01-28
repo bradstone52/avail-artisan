@@ -161,12 +161,12 @@ export default function AdminUsers() {
   };
 
   const handleResetMfa = async (userId: string, email: string) => {
-    if (userId === currentUser?.id) {
-      toast.error("You can't reset your own 2FA from here");
-      return;
-    }
+    const isSelf = userId === currentUser?.id;
+    const confirmMessage = isSelf
+      ? 'Are you sure you want to reset your own 2FA? You will need to set up a new authenticator on next login.'
+      : `Are you sure you want to reset 2FA for ${email}? They will need to set up a new authenticator.`;
 
-    if (!confirm(`Are you sure you want to reset 2FA for ${email}? They will need to set up a new authenticator.`)) {
+    if (!confirm(confirmMessage)) {
       return;
     }
 
@@ -345,10 +345,10 @@ export default function AdminUsers() {
                       </TableCell>
                       <TableCell>{getRoleBadge(user.role)}</TableCell>
                       <TableCell>
-                        {user.id === currentUser?.id ? (
-                          <span className="text-xs text-muted-foreground">Cannot edit self</span>
-                        ) : (
-                          <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-2">
+                          {user.id === currentUser?.id ? (
+                            <span className="text-xs text-muted-foreground w-[140px]">Cannot edit self</span>
+                          ) : (
                             <Select
                               value={user.role || 'none'}
                               onValueChange={(value) =>
@@ -370,21 +370,21 @@ export default function AdminUsers() {
                                 <SelectItem value="none">No Role</SelectItem>
                               </SelectContent>
                             </Select>
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => handleResetMfa(user.id, user.email)}
-                              disabled={resettingMfa === user.id}
-                              title="Reset 2FA"
-                            >
-                              {resettingMfa === user.id ? (
-                                <Loader2 className="w-4 h-4 animate-spin" />
-                              ) : (
-                                <KeyRound className="w-4 h-4" />
-                              )}
-                            </Button>
-                          </div>
-                        )}
+                          )}
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleResetMfa(user.id, user.email)}
+                            disabled={resettingMfa === user.id}
+                            title="Reset 2FA"
+                          >
+                            {resettingMfa === user.id ? (
+                              <Loader2 className="w-4 h-4 animate-spin" />
+                            ) : (
+                              <KeyRound className="w-4 h-4" />
+                            )}
+                          </Button>
+                        </div>
                       </TableCell>
                     </TableRow>
                   ))}
