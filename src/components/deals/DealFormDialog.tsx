@@ -68,6 +68,9 @@ export function DealFormDialog({ open, onOpenChange, deal }: DealFormDialogProps
     notes: '',
   });
 
+  // Track size unit for display
+  const [sizeUnit, setSizeUnit] = useState<'SF' | 'AC'>('SF');
+
   const [selectedListing, setSelectedListing] = useState<MarketListing | null>(null);
 
   // Calculate commission amount
@@ -121,18 +124,23 @@ export function DealFormDialog({ open, onOpenChange, deal }: DealFormDialogProps
       if (listing.listing_type === 'Sale') dealType = 'Sale';
       else if (listing.listing_type === 'Sublease') dealType = 'Sublease';
       
-      // Auto-populate size: prefer size_sf, fall back to land_acres converted
+      // Auto-populate size: prefer size_sf, fall back to land_acres (keep as acres, don't convert)
       let size: number | undefined = undefined;
+      let unit: 'SF' | 'AC' = 'SF';
+      
       if (listing.size_sf && listing.size_sf > 0) {
         size = listing.size_sf;
+        unit = 'SF';
       } else if (listing.land_acres) {
-        // Parse land_acres (it's a string) and convert to SF (1 acre = 43,560 SF)
+        // Parse land_acres (it's a string) and keep as acres
         const acres = parseFloat(listing.land_acres);
         if (!isNaN(acres) && acres > 0) {
-          size = Math.round(acres * 43560);
+          size = acres;
+          unit = 'AC';
         }
       }
       
+      setSizeUnit(unit);
       setFormData(prev => ({
         ...prev,
         listing_id: listing.id,
@@ -143,6 +151,7 @@ export function DealFormDialog({ open, onOpenChange, deal }: DealFormDialogProps
         size_sf: size,
       }));
     } else {
+      setSizeUnit('SF');
       setFormData(prev => ({
         ...prev,
         listing_id: undefined,
@@ -265,13 +274,20 @@ export function DealFormDialog({ open, onOpenChange, deal }: DealFormDialogProps
 
           <div className="grid grid-cols-3 gap-4">
             <div className="space-y-2">
-              <Label>Size (SF)</Label>
-              <FormattedNumberInput
-                value={formData.size_sf}
-                onChange={(value) => setFormData({ ...formData, size_sf: value ?? undefined })}
-                disabled={hasLinkedListing}
-                className={hasLinkedListing ? 'bg-muted' : ''}
-              />
+              <Label>Size</Label>
+              {hasLinkedListing ? (
+                <Input
+                  value={formData.size_sf ? `${formData.size_sf.toLocaleString()} ${sizeUnit}` : ''}
+                  disabled
+                  className="bg-muted"
+                />
+              ) : (
+                <FormattedNumberInput
+                  value={formData.size_sf}
+                  onChange={(value) => setFormData({ ...formData, size_sf: value ?? undefined })}
+                  suffix=" SF"
+                />
+              )}
             </div>
             <div className="space-y-2">
               <Label htmlFor="status">Status</Label>

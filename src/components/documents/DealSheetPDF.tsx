@@ -16,48 +16,60 @@ interface DealSheetPDFProps {
   getBrokerage: (id: string | null | undefined) => Brokerage | undefined;
 }
 
+// Brand colors matching the logo
+const BRAND_GOLD = '#E4A815';
+const BRAND_DARK = '#1a1a1a';
+
 const styles = StyleSheet.create({
   page: {
     padding: 40,
     fontFamily: 'Helvetica',
     fontSize: 10,
+    backgroundColor: '#fff',
   },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-start',
-    marginBottom: 20,
+    marginBottom: 15,
+    paddingBottom: 15,
+    borderBottomWidth: 2,
+    borderBottomColor: BRAND_GOLD,
   },
   logo: {
-    width: 150,
-    height: 40,
+    width: 180,
+    height: 45,
+    objectFit: 'contain',
   },
   headerRight: {
     textAlign: 'right',
   },
   title: {
-    fontSize: 16,
+    fontSize: 14,
     fontWeight: 'bold',
+    color: BRAND_DARK,
     marginBottom: 5,
   },
   subtitle: {
-    fontSize: 10,
+    fontSize: 9,
     color: '#666',
   },
   section: {
-    marginBottom: 15,
+    marginBottom: 12,
     padding: 10,
-    backgroundColor: '#f8f9fa',
+    backgroundColor: '#fafafa',
     borderRadius: 4,
+    borderWidth: 1,
+    borderColor: '#e5e5e5',
   },
   sectionTitle: {
-    fontSize: 11,
+    fontSize: 10,
     fontWeight: 'bold',
     marginBottom: 8,
-    color: '#333',
-    borderBottomWidth: 1,
-    borderBottomColor: '#ddd',
+    color: BRAND_DARK,
     paddingBottom: 4,
+    borderBottomWidth: 1,
+    borderBottomColor: BRAND_GOLD,
   },
   row: {
     flexDirection: 'row',
@@ -72,10 +84,11 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 9,
     fontWeight: 'bold',
+    color: BRAND_DARK,
   },
   twoColumn: {
     flexDirection: 'row',
-    gap: 15,
+    gap: 12,
   },
   column: {
     flex: 1,
@@ -83,6 +96,7 @@ const styles = StyleSheet.create({
   conditionItem: {
     marginBottom: 5,
     fontSize: 9,
+    color: BRAND_DARK,
   },
   commissionBox: {
     marginTop: 10,
@@ -95,6 +109,7 @@ const styles = StyleSheet.create({
     fontSize: 10,
     fontWeight: 'bold',
     marginBottom: 5,
+    color: BRAND_DARK,
   },
   commissionRow: {
     flexDirection: 'row',
@@ -108,21 +123,34 @@ const styles = StyleSheet.create({
   commissionValue: {
     fontSize: 9,
     fontWeight: 'bold',
+    color: BRAND_DARK,
   },
   threeColumn: {
     flexDirection: 'row',
-    gap: 10,
-    marginTop: 15,
+    gap: 8,
+    marginTop: 12,
   },
   commissionColumn: {
     flex: 1,
     padding: 8,
     backgroundColor: '#fff',
     borderWidth: 1,
-    borderColor: '#ddd',
+    borderColor: '#e5e5e5',
+    borderRadius: 4,
+  },
+  commissionColumnHeader: {
+    backgroundColor: BRAND_GOLD,
+    color: '#fff',
+    padding: 6,
+    marginBottom: 8,
+    marginTop: -8,
+    marginLeft: -8,
+    marginRight: -8,
+    borderTopLeftRadius: 3,
+    borderTopRightRadius: 3,
   },
   footer: {
-    marginTop: 20,
+    marginTop: 15,
   },
   notes: {
     fontSize: 9,
