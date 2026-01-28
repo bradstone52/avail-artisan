@@ -8,7 +8,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Building2, ExternalLink } from 'lucide-react';
+import { Building2, ExternalLink, Edit } from 'lucide-react';
 import { format } from 'date-fns';
 import { Link } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
@@ -18,11 +18,12 @@ import type { Deal } from '@/types/database';
 
 interface DealViewCardProps {
   deal: Deal;
+  onEdit?: () => void;
 }
 
 const DEAL_STATUSES = ['Conditional', 'Firm', 'Closed'];
 
-export function DealViewCard({ deal }: DealViewCardProps) {
+export function DealViewCard({ deal, onEdit }: DealViewCardProps) {
   const queryClient = useQueryClient();
 
   const formatNumber = (num: number | null | undefined) => {
@@ -78,10 +79,18 @@ export function DealViewCard({ deal }: DealViewCardProps) {
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <Building2 className="w-5 h-5" />
-          Deal Details
-        </CardTitle>
+        <div className="flex items-center justify-between">
+          <CardTitle className="flex items-center gap-2">
+            <Building2 className="w-5 h-5" />
+            Deal Details
+          </CardTitle>
+          {onEdit && (
+            <Button variant="outline" size="sm" onClick={onEdit}>
+              <Edit className="w-4 h-4 mr-2" />
+              Edit
+            </Button>
+          )}
+        </div>
       </CardHeader>
       <CardContent>
         <div className="grid grid-cols-2 gap-4">

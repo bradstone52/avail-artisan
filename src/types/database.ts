@@ -67,9 +67,13 @@ export interface DealCondition {
 }
 
 export interface DealDeposit {
+  id: string;
+  deal_id: string;
   amount: number;
   due_date?: string | null;
   received: boolean;
+  held_by?: string | null;
+  created_at: string;
 }
 
 export interface DealDocument {

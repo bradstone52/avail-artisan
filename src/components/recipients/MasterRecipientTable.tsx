@@ -12,7 +12,6 @@ import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Pencil, Trash2, Search, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
 import { Recipient } from "@/hooks/useRecipients";
-import { format } from "date-fns";
 
 interface MasterRecipientTableProps {
   recipients: Recipient[];
@@ -199,8 +198,7 @@ export function MasterRecipientTable({
               </TableHead>
               <TableHead className="w-[180px]">Email</TableHead>
               <TableHead className="w-[130px]">Phone</TableHead>
-              <TableHead className="w-[100px]">Owner</TableHead>
-              <TableHead className="w-[100px]">Created</TableHead>
+              <TableHead className="w-[200px]">Notes</TableHead>
               <TableHead className="w-[80px]">Actions</TableHead>
             </TableRow>
           </TableHeader>
@@ -220,9 +218,7 @@ export function MasterRecipientTable({
                 <TableCell className="text-muted-foreground">{recipient.scale || "—"}</TableCell>
                 <TableCell className="text-muted-foreground">{recipient.email}</TableCell>
                 <TableCell className="text-muted-foreground">{recipient.phone || "—"}</TableCell>
-                <TableCell>{recipient.default_owner}</TableCell>
-                <TableCell className="text-sm text-muted-foreground">
-                  {format(new Date(recipient.created_at), "MMM d, yyyy")}
+                <TableCell className="text-muted-foreground truncate max-w-[200px]">{recipient.notes || "—"}
                 </TableCell>
                 <TableCell>
                   <div className="flex gap-1">
