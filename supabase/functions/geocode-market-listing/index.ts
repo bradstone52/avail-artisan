@@ -334,12 +334,15 @@ serve(async (req) => {
     }
 
     const shouldAssignSubmarket = listing.city === 'Calgary';
-
-    // If already has valid coordinates (and for Calgary, a real submarket), do nothing
+    
+    // Check if we need to re-geocode: either no coords, or using old mapbox data
     const hasCoords = !!(listing.latitude && listing.longitude);
+    const isOldMapboxData = listing.geocode_source === 'mapbox';
     const hasValidSubmarket = !!(listing.submarket && listing.submarket !== 'Pending' && listing.submarket !== '');
-    if (hasCoords && (!shouldAssignSubmarket || hasValidSubmarket)) {
-      console.log('[Geocode Market Listing] Already geocoded; nothing to do');
+    
+    // Skip only if: has coords from Google AND (not Calgary OR has valid submarket)
+    if (hasCoords && !isOldMapboxData && (!shouldAssignSubmarket || hasValidSubmarket)) {
+      console.log('[Geocode Market Listing] Already geocoded with Google; nothing to do');
       return new Response(JSON.stringify({ 
         success: true, 
         message: 'Listing already has coordinates',
@@ -349,6 +352,10 @@ serve(async (req) => {
       }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
+    }
+    
+    if (isOldMapboxData) {
+      console.log('[Geocode Market Listing] Re-geocoding old Mapbox data with Google');
     }
 
     // Get Google API key
