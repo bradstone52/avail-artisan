@@ -17,6 +17,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { FormattedNumberInput } from '@/components/common/FormattedNumberInput';
 import { useCreateProspect, useUpdateProspect } from '@/hooks/useProspects';
 import type { Prospect, ProspectFormData, ProspectType, ProspectSource } from '@/types/prospect';
@@ -44,7 +45,6 @@ export function ProspectFormDialog({ open, onOpenChange, prospect }: ProspectFor
     source: 'Network',
     follow_up_date: '',
     referral: '',
-    min_size: undefined,
     max_size: undefined,
     loading: '',
     use_type: '',
@@ -63,7 +63,6 @@ export function ProspectFormDialog({ open, onOpenChange, prospect }: ProspectFor
         source: (prospect.source as ProspectSource) || 'Network',
         follow_up_date: prospect.follow_up_date || '',
         referral: prospect.referral || '',
-        min_size: prospect.min_size ?? undefined,
         max_size: prospect.max_size ?? undefined,
         loading: prospect.loading || '',
         use_type: prospect.use_type || '',
@@ -80,7 +79,6 @@ export function ProspectFormDialog({ open, onOpenChange, prospect }: ProspectFor
         source: 'Network',
         follow_up_date: '',
         referral: '',
-        min_size: undefined,
         max_size: undefined,
         loading: '',
         use_type: '',
@@ -118,172 +116,162 @@ export function ProspectFormDialog({ open, onOpenChange, prospect }: ProspectFor
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-6">
-          {/* Prospect Info Section */}
-          <div className="space-y-4">
-            <h3 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground border-b pb-2">
-              Prospect Info
-            </h3>
-            
-            <div className="grid grid-cols-2 gap-4">
+          <Tabs defaultValue="prospect" className="w-full">
+            <TabsList className="grid w-full grid-cols-2">
+              <TabsTrigger value="prospect">Prospect Info</TabsTrigger>
+              <TabsTrigger value="site">Site Info</TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="prospect" className="space-y-4 pt-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="name">Name *</Label>
+                  <Input
+                    id="name"
+                    value={formData.name}
+                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                    required
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="prospect_type">Type</Label>
+                  <Select
+                    value={formData.prospect_type}
+                    onValueChange={(value) => setFormData({ ...formData, prospect_type: value as ProspectType })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select type" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {prospectTypes.map((type) => (
+                        <SelectItem key={type} value={type}>{type}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="source">Source</Label>
+                  <Select
+                    value={formData.source}
+                    onValueChange={(value) => setFormData({ ...formData, source: value as ProspectSource })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select source" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {prospectSources.map((source) => (
+                        <SelectItem key={source} value={source}>{source}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="follow_up_date">Follow-up Date</Label>
+                  <Input
+                    id="follow_up_date"
+                    type="date"
+                    value={formData.follow_up_date}
+                    onChange={(e) => setFormData({ ...formData, follow_up_date: e.target.value })}
+                  />
+                </div>
+              </div>
+
               <div className="space-y-2">
-                <Label htmlFor="name">Name *</Label>
+                <Label htmlFor="referral">Referral</Label>
                 <Input
-                  id="name"
-                  value={formData.name}
-                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  required
+                  id="referral"
+                  value={formData.referral}
+                  onChange={(e) => setFormData({ ...formData, referral: e.target.value })}
+                  placeholder="Who referred this prospect?"
                 />
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="prospect_type">Type</Label>
-                <Select
-                  value={formData.prospect_type}
-                  onValueChange={(value) => setFormData({ ...formData, prospect_type: value as ProspectType })}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select type" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {prospectTypes.map((type) => (
-                      <SelectItem key={type} value={type}>{type}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
+            </TabsContent>
 
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="source">Source</Label>
-                <Select
-                  value={formData.source}
-                  onValueChange={(value) => setFormData({ ...formData, source: value as ProspectSource })}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select source" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {prospectSources.map((source) => (
-                      <SelectItem key={source} value={source}>{source}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+            <TabsContent value="site" className="space-y-4 pt-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>Required Size (SF)</Label>
+                  <FormattedNumberInput
+                    value={formData.max_size}
+                    onChange={(value) => setFormData({ ...formData, max_size: value ?? undefined })}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="loading">Loading</Label>
+                  <Input
+                    id="loading"
+                    value={formData.loading}
+                    onChange={(e) => setFormData({ ...formData, loading: e.target.value })}
+                    placeholder="e.g., Dock level, Grade level"
+                  />
+                </div>
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="follow_up_date">Follow-up Date</Label>
-                <Input
-                  id="follow_up_date"
-                  type="date"
-                  value={formData.follow_up_date}
-                  onChange={(e) => setFormData({ ...formData, follow_up_date: e.target.value })}
-                />
-              </div>
-            </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="referral">Referral</Label>
-              <Input
-                id="referral"
-                value={formData.referral}
-                onChange={(e) => setFormData({ ...formData, referral: e.target.value })}
-                placeholder="Who referred this prospect?"
-              />
-            </div>
-          </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="use_type">Use</Label>
+                  <Input
+                    id="use_type"
+                    value={formData.use_type}
+                    onChange={(e) => setFormData({ ...formData, use_type: e.target.value })}
+                    placeholder="e.g., Warehouse, Manufacturing"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="occupancy_date">Occupancy Date</Label>
+                  <Input
+                    id="occupancy_date"
+                    type="date"
+                    value={formData.occupancy_date}
+                    onChange={(e) => setFormData({ ...formData, occupancy_date: e.target.value })}
+                  />
+                </div>
+              </div>
 
-          {/* Site Info Section */}
-          <div className="space-y-4">
-            <h3 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground border-b pb-2">
-              Site Info
-            </h3>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="flex items-center gap-3 pt-6">
+                  <Checkbox
+                    id="yard_required"
+                    checked={formData.yard_required}
+                    onCheckedChange={(checked) => setFormData({ ...formData, yard_required: checked === true })}
+                  />
+                  <Label htmlFor="yard_required" className="cursor-pointer">Yard Required</Label>
+                </div>
+                <div className="space-y-2">
+                  <Label>Estimated Value</Label>
+                  <FormattedNumberInput
+                    value={formData.estimated_value}
+                    onChange={(value) => setFormData({ ...formData, estimated_value: value ?? undefined })}
+                    prefix="$"
+                  />
+                </div>
+              </div>
 
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label>Min Size (SF)</Label>
-                <FormattedNumberInput
-                  value={formData.min_size}
-                  onChange={(value) => setFormData({ ...formData, min_size: value ?? undefined })}
-                />
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>Commission (%)</Label>
+                  <FormattedNumberInput
+                    value={formData.commission}
+                    onChange={(value) => setFormData({ ...formData, commission: value ?? undefined })}
+                    suffix="%"
+                  />
+                </div>
               </div>
-              <div className="space-y-2">
-                <Label>Max Size (SF)</Label>
-                <FormattedNumberInput
-                  value={formData.max_size}
-                  onChange={(value) => setFormData({ ...formData, max_size: value ?? undefined })}
-                />
-              </div>
-            </div>
 
-            <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="loading">Loading</Label>
-                <Input
-                  id="loading"
-                  value={formData.loading}
-                  onChange={(e) => setFormData({ ...formData, loading: e.target.value })}
-                  placeholder="e.g., Dock level, Grade level"
+                <Label htmlFor="notes">Notes</Label>
+                <Textarea
+                  id="notes"
+                  value={formData.notes}
+                  onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+                  rows={3}
                 />
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="use_type">Use</Label>
-                <Input
-                  id="use_type"
-                  value={formData.use_type}
-                  onChange={(e) => setFormData({ ...formData, use_type: e.target.value })}
-                  placeholder="e.g., Warehouse, Manufacturing"
-                />
-              </div>
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="occupancy_date">Occupancy Date</Label>
-                <Input
-                  id="occupancy_date"
-                  type="date"
-                  value={formData.occupancy_date}
-                  onChange={(e) => setFormData({ ...formData, occupancy_date: e.target.value })}
-                />
-              </div>
-              <div className="flex items-center gap-3 pt-6">
-                <Checkbox
-                  id="yard_required"
-                  checked={formData.yard_required}
-                  onCheckedChange={(checked) => setFormData({ ...formData, yard_required: checked === true })}
-                />
-                <Label htmlFor="yard_required" className="cursor-pointer">Yard Required</Label>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label>Estimated Value</Label>
-                <FormattedNumberInput
-                  value={formData.estimated_value}
-                  onChange={(value) => setFormData({ ...formData, estimated_value: value ?? undefined })}
-                  prefix="$"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label>Commission (%)</Label>
-                <FormattedNumberInput
-                  value={formData.commission}
-                  onChange={(value) => setFormData({ ...formData, commission: value ?? undefined })}
-                  suffix="%"
-                />
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="notes">Notes</Label>
-              <Textarea
-                id="notes"
-                value={formData.notes}
-                onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-                rows={3}
-              />
-            </div>
-          </div>
+            </TabsContent>
+          </Tabs>
 
           <div className="flex justify-end gap-2 pt-4">
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>

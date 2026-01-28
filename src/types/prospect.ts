@@ -42,7 +42,6 @@ export interface ProspectFormData {
   source?: ProspectSource;
   follow_up_date?: string;
   referral?: string;
-  min_size?: number;
   max_size?: number;
   loading?: string;
   use_type?: string;
