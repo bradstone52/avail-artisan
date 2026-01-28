@@ -163,7 +163,7 @@ export function GenerateDealSummaryDialog({ open, onOpenChange, deal }: Generate
           amountDisplay: d.amount ? formatNumberWithCommas(d.amount) : '',
           payableTo: d.held_by || '',
           dueDate: d.due_date ? new Date(d.due_date) : undefined,
-          dueHour: '',
+          dueHour: '4',
           dueMinute: '00',
           duePeriod: 'PM',
         })));
@@ -196,7 +196,7 @@ export function GenerateDealSummaryDialog({ open, onOpenChange, deal }: Generate
     amountDisplay: '',
     payableTo: '',
     dueDate: undefined,
-    dueHour: '',
+    dueHour: '4',
     dueMinute: '00',
     duePeriod: 'PM',
   });
