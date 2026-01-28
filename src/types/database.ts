@@ -87,9 +87,12 @@ export interface Deal {
   address: string;
   city: string;
   submarket: string;
+  size_sf?: number | null;
   deal_value?: number | null;
   commission_percent?: number | null;
   close_date?: string | null;
+  closing_date?: string | null;
+  lease_value?: number | null;
   status: string;
   conditions?: string | null;
   deposit_amount?: number | null;
@@ -98,6 +101,23 @@ export interface Deal {
   listing?: Listing | null;
   property_id?: string | null;
   notes?: string | null;
+  // Agent fields
+  listing_brokerage_id?: string | null;
+  listing_agent1_id?: string | null;
+  listing_agent2_id?: string | null;
+  selling_brokerage_id?: string | null;
+  selling_agent1_id?: string | null;
+  selling_agent2_id?: string | null;
+  cv_agent_id?: string | null;
+  // Party fields
+  seller_name?: string | null;
+  seller_brokerage_id?: string | null;
+  buyer_name?: string | null;
+  buyer_brokerage_id?: string | null;
+  // Financial fields
+  other_brokerage_percent?: number | null;
+  clearview_percent?: number | null;
+  gst_rate?: number | null;
   user_id: string;
   org_id?: string | null;
   created_at: string;

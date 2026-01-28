@@ -27,6 +27,7 @@ import PdfOpenMap from "./pages/PdfOpenMap";
 import PdfImport from "./pages/PdfImport";
 import AccountSettings from "./pages/AccountSettings";
 import Deals from "./pages/Deals";
+import DealDetail from "./pages/DealDetail";
 import Prospects from "./pages/Prospects";
 import Settings from "./pages/Settings";
 import NotFound from "./pages/NotFound";
@@ -71,8 +72,9 @@ const App = () => (
             <Route path="/pdf-import" element={<PdfImport />} />
             <Route path="/account" element={<AccountSettings />} />
             <Route path="/deals" element={<Deals />} />
+            <Route path="/deals/:id" element={<DealDetail />} />
             <Route path="/prospects" element={<Prospects />} />
-            <Route path="/settings" element={<Settings />} />
+            <Route path="/contacts" element={<Settings />} />
             <Route path="/distribution-map" element={<DistributionMapViewer />} />
             <Route path="/market-listings-map" element={<MarketListingsMap />} />
             {/* Public distribution map - tokenized access, no auth required */}

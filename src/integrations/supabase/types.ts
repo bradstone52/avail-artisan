@@ -148,24 +148,152 @@ export type Database = {
           },
         ]
       }
+      deal_conditions: {
+        Row: {
+          created_at: string
+          deal_id: string
+          description: string
+          due_date: string | null
+          id: string
+          is_satisfied: boolean
+        }
+        Insert: {
+          created_at?: string
+          deal_id: string
+          description: string
+          due_date?: string | null
+          id?: string
+          is_satisfied?: boolean
+        }
+        Update: {
+          created_at?: string
+          deal_id?: string
+          description?: string
+          due_date?: string | null
+          id?: string
+          is_satisfied?: boolean
+        }
+        Relationships: [
+          {
+            foreignKeyName: "deal_conditions_deal_id_fkey"
+            columns: ["deal_id"]
+            isOneToOne: false
+            referencedRelation: "deals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      deal_deposits: {
+        Row: {
+          amount: number
+          created_at: string
+          deal_id: string
+          due_date: string | null
+          held_by: string | null
+          id: string
+          received: boolean
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          deal_id: string
+          due_date?: string | null
+          held_by?: string | null
+          id?: string
+          received?: boolean
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          deal_id?: string
+          due_date?: string | null
+          held_by?: string | null
+          id?: string
+          received?: boolean
+        }
+        Relationships: [
+          {
+            foreignKeyName: "deal_deposits_deal_id_fkey"
+            columns: ["deal_id"]
+            isOneToOne: false
+            referencedRelation: "deals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      deal_documents: {
+        Row: {
+          deal_id: string
+          file_path: string
+          file_size: number | null
+          id: string
+          name: string
+          uploaded_at: string
+          uploaded_by: string | null
+        }
+        Insert: {
+          deal_id: string
+          file_path: string
+          file_size?: number | null
+          id?: string
+          name: string
+          uploaded_at?: string
+          uploaded_by?: string | null
+        }
+        Update: {
+          deal_id?: string
+          file_path?: string
+          file_size?: number | null
+          id?: string
+          name?: string
+          uploaded_at?: string
+          uploaded_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "deal_documents_deal_id_fkey"
+            columns: ["deal_id"]
+            isOneToOne: false
+            referencedRelation: "deals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       deals: {
         Row: {
           address: string
+          buyer_brokerage_id: string | null
+          buyer_name: string | null
           city: string | null
+          clearview_percent: number | null
           close_date: string | null
+          closing_date: string | null
           commission_percent: number | null
           conditions: string | null
           created_at: string
+          cv_agent_id: string | null
           deal_number: string | null
           deal_type: string
           deal_value: number | null
           deposit_amount: number | null
           deposit_due_date: string | null
+          gst_rate: number | null
           id: string
+          lease_value: number | null
+          listing_agent1_id: string | null
+          listing_agent2_id: string | null
+          listing_brokerage_id: string | null
           listing_id: string | null
           notes: string | null
           org_id: string | null
+          other_brokerage_percent: number | null
           property_id: string | null
+          seller_brokerage_id: string | null
+          seller_name: string | null
+          selling_agent1_id: string | null
+          selling_agent2_id: string | null
+          selling_brokerage_id: string | null
+          size_sf: number | null
           status: string
           submarket: string | null
           updated_at: string
@@ -173,21 +301,38 @@ export type Database = {
         }
         Insert: {
           address: string
+          buyer_brokerage_id?: string | null
+          buyer_name?: string | null
           city?: string | null
+          clearview_percent?: number | null
           close_date?: string | null
+          closing_date?: string | null
           commission_percent?: number | null
           conditions?: string | null
           created_at?: string
+          cv_agent_id?: string | null
           deal_number?: string | null
           deal_type?: string
           deal_value?: number | null
           deposit_amount?: number | null
           deposit_due_date?: string | null
+          gst_rate?: number | null
           id?: string
+          lease_value?: number | null
+          listing_agent1_id?: string | null
+          listing_agent2_id?: string | null
+          listing_brokerage_id?: string | null
           listing_id?: string | null
           notes?: string | null
           org_id?: string | null
+          other_brokerage_percent?: number | null
           property_id?: string | null
+          seller_brokerage_id?: string | null
+          seller_name?: string | null
+          selling_agent1_id?: string | null
+          selling_agent2_id?: string | null
+          selling_brokerage_id?: string | null
+          size_sf?: number | null
           status?: string
           submarket?: string | null
           updated_at?: string
@@ -195,27 +340,79 @@ export type Database = {
         }
         Update: {
           address?: string
+          buyer_brokerage_id?: string | null
+          buyer_name?: string | null
           city?: string | null
+          clearview_percent?: number | null
           close_date?: string | null
+          closing_date?: string | null
           commission_percent?: number | null
           conditions?: string | null
           created_at?: string
+          cv_agent_id?: string | null
           deal_number?: string | null
           deal_type?: string
           deal_value?: number | null
           deposit_amount?: number | null
           deposit_due_date?: string | null
+          gst_rate?: number | null
           id?: string
+          lease_value?: number | null
+          listing_agent1_id?: string | null
+          listing_agent2_id?: string | null
+          listing_brokerage_id?: string | null
           listing_id?: string | null
           notes?: string | null
           org_id?: string | null
+          other_brokerage_percent?: number | null
           property_id?: string | null
+          seller_brokerage_id?: string | null
+          seller_name?: string | null
+          selling_agent1_id?: string | null
+          selling_agent2_id?: string | null
+          selling_brokerage_id?: string | null
+          size_sf?: number | null
           status?: string
           submarket?: string | null
           updated_at?: string
           user_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "deals_buyer_brokerage_id_fkey"
+            columns: ["buyer_brokerage_id"]
+            isOneToOne: false
+            referencedRelation: "brokerages"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "deals_cv_agent_id_fkey"
+            columns: ["cv_agent_id"]
+            isOneToOne: false
+            referencedRelation: "agents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "deals_listing_agent1_id_fkey"
+            columns: ["listing_agent1_id"]
+            isOneToOne: false
+            referencedRelation: "agents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "deals_listing_agent2_id_fkey"
+            columns: ["listing_agent2_id"]
+            isOneToOne: false
+            referencedRelation: "agents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "deals_listing_brokerage_id_fkey"
+            columns: ["listing_brokerage_id"]
+            isOneToOne: false
+            referencedRelation: "brokerages"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "deals_listing_id_fkey"
             columns: ["listing_id"]
@@ -235,6 +432,34 @@ export type Database = {
             columns: ["property_id"]
             isOneToOne: false
             referencedRelation: "properties"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "deals_seller_brokerage_id_fkey"
+            columns: ["seller_brokerage_id"]
+            isOneToOne: false
+            referencedRelation: "brokerages"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "deals_selling_agent1_id_fkey"
+            columns: ["selling_agent1_id"]
+            isOneToOne: false
+            referencedRelation: "agents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "deals_selling_agent2_id_fkey"
+            columns: ["selling_agent2_id"]
+            isOneToOne: false
+            referencedRelation: "agents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "deals_selling_brokerage_id_fkey"
+            columns: ["selling_brokerage_id"]
+            isOneToOne: false
+            referencedRelation: "brokerages"
             referencedColumns: ["id"]
           },
         ]
