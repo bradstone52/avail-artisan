@@ -34,6 +34,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useQueryClient } from '@tanstack/react-query';
 import { DealSummaryPDF } from '@/components/documents/DealSummaryPDF';
+import { useDealDeposits } from '@/hooks/useDealDeposits';
 import type { Deal } from '@/types/database';
 
 interface GenerateDealSummaryDialogProps {
@@ -67,6 +68,7 @@ interface LocalAction {
 export function GenerateDealSummaryDialog({ open, onOpenChange, deal }: GenerateDealSummaryDialogProps) {
   const { user } = useAuth();
   const queryClient = useQueryClient();
+  const { deposits: existingDeposits } = useDealDeposits(deal.id);
   const [generating, setGenerating] = useState(false);
 
   // Basic Info state
@@ -148,13 +150,26 @@ export function GenerateDealSummaryDialog({ open, onOpenChange, deal }: Generate
       setPurchasePrice(initialPrice.toString());
       setPurchasePriceDisplay(initialPrice ? formatNumberWithCommas(initialPrice) : '');
       
-      // Initialize with one empty deposit
-      setDeposits([createEmptyDeposit()]);
+      // Auto-populate deposits from Deal Sheet if they exist
+      if (existingDeposits && existingDeposits.length > 0) {
+        setDeposits(existingDeposits.map(d => ({
+          id: crypto.randomUUID(),
+          amount: d.amount || 0,
+          amountDisplay: d.amount ? formatNumberWithCommas(d.amount) : '',
+          payableTo: d.held_by || '',
+          dueDate: d.due_date ? new Date(d.due_date) : undefined,
+          dueHour: '',
+          dueMinute: '00',
+          duePeriod: 'PM',
+        })));
+      } else {
+        setDeposits([createEmptyDeposit()]);
+      }
       
       // Initialize with one empty action
       setActions([createEmptyAction()]);
     }
-  }, [open, deal]);
+  }, [open, deal, existingDeposits]);
 
   const createEmptyDeposit = (): LocalDeposit => ({
     id: crypto.randomUUID(),
