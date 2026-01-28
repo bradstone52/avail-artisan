@@ -36,6 +36,13 @@ export default function Auth() {
     if (!user) return;
 
     try {
+      // Refresh the session to get the latest factor data from the server
+      // This is critical after an MFA reset - the cached session may have stale factor data
+      const { data: refreshData, error: refreshError } = await supabase.auth.refreshSession();
+      if (refreshError) {
+        console.error('Error refreshing session:', refreshError);
+      }
+
       // Check if user has MFA enabled and needs verification
       const { data: aalData } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
       const { data: factorsData } = await supabase.auth.mfa.listFactors();
