@@ -4,6 +4,7 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogDescription,
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -17,7 +18,9 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { FormattedNumberInput } from '@/components/common/FormattedNumberInput';
+import { ListingCombobox } from '@/components/deals/ListingCombobox';
 import { useCreateDeal, useUpdateDeal } from '@/hooks/useDeals';
+import { MarketListing } from '@/hooks/useMarketListings';
 import type { Deal, DealFormData, DealType, DealStatus } from '@/types/database';
 
 interface DealFormDialogProps {
@@ -41,14 +44,19 @@ export function DealFormDialog({ open, onOpenChange, deal }: DealFormDialogProps
     city: '',
     submarket: '',
     deal_value: undefined,
-    commission_percent: undefined,
+    commission_percent: 3,
     close_date: '',
     status: 'Active',
-    conditions: '',
-    deposit_amount: undefined,
-    deposit_due_date: '',
+    listing_id: undefined,
     notes: '',
   });
+
+  const [selectedListing, setSelectedListing] = useState<MarketListing | null>(null);
+
+  // Calculate commission amount
+  const calculatedCommission = formData.deal_value && formData.commission_percent
+    ? (formData.deal_value * formData.commission_percent) / 100
+    : 0;
 
   useEffect(() => {
     if (deal) {
@@ -59,14 +67,15 @@ export function DealFormDialog({ open, onOpenChange, deal }: DealFormDialogProps
         city: deal.city,
         submarket: deal.submarket,
         deal_value: deal.deal_value ?? undefined,
-        commission_percent: deal.commission_percent ?? undefined,
+        commission_percent: deal.commission_percent ?? 3,
         close_date: deal.close_date || '',
         status: deal.status as DealStatus,
-        conditions: deal.conditions || '',
-        deposit_amount: deal.deposit_amount ?? undefined,
-        deposit_due_date: deal.deposit_due_date || '',
+        listing_id: deal.listing_id ?? undefined,
         notes: deal.notes || '',
       });
+      // Note: We don't have the full listing object when editing, so selectedListing stays null
+      // The address fields will show the saved values but be editable if no listing_id
+      setSelectedListing(null);
     } else {
       setFormData({
         deal_number: '',
@@ -75,16 +84,36 @@ export function DealFormDialog({ open, onOpenChange, deal }: DealFormDialogProps
         city: '',
         submarket: '',
         deal_value: undefined,
-        commission_percent: undefined,
+        commission_percent: 3,
         close_date: '',
         status: 'Active',
-        conditions: '',
-        deposit_amount: undefined,
-        deposit_due_date: '',
+        listing_id: undefined,
         notes: '',
       });
+      setSelectedListing(null);
     }
   }, [deal, open]);
+
+  const handleListingChange = (listing: MarketListing | null) => {
+    setSelectedListing(listing);
+    if (listing) {
+      setFormData(prev => ({
+        ...prev,
+        listing_id: listing.id,
+        address: listing.address,
+        city: listing.city,
+        submarket: listing.submarket,
+      }));
+    } else {
+      setFormData(prev => ({
+        ...prev,
+        listing_id: undefined,
+        address: '',
+        city: '',
+        submarket: '',
+      }));
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -102,15 +131,31 @@ export function DealFormDialog({ open, onOpenChange, deal }: DealFormDialogProps
   };
 
   const isSubmitting = createDeal.isPending || updateDeal.isPending;
+  const hasLinkedListing = !!selectedListing || (isEditing && !!deal?.listing_id);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>{isEditing ? 'Edit Deal' : 'New Deal'}</DialogTitle>
+          <DialogDescription>
+            {isEditing ? 'Update deal details below.' : 'Create a new deal by filling out the form below.'}
+          </DialogDescription>
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-4">
+          {/* Listing Selector */}
+          <div className="space-y-2">
+            <Label>Listing</Label>
+            <ListingCombobox
+              value={formData.listing_id || null}
+              onChange={handleListingChange}
+            />
+            <p className="text-xs text-muted-foreground">
+              Select a listing to auto-fill address details
+            </p>
+          </div>
+
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="deal_number">Deal Number</Label>
@@ -146,6 +191,8 @@ export function DealFormDialog({ open, onOpenChange, deal }: DealFormDialogProps
               value={formData.address}
               onChange={(e) => setFormData({ ...formData, address: e.target.value })}
               required
+              disabled={hasLinkedListing}
+              className={hasLinkedListing ? 'bg-muted' : ''}
             />
           </div>
 
@@ -156,6 +203,8 @@ export function DealFormDialog({ open, onOpenChange, deal }: DealFormDialogProps
                 id="city"
                 value={formData.city}
                 onChange={(e) => setFormData({ ...formData, city: e.target.value })}
+                disabled={hasLinkedListing}
+                className={hasLinkedListing ? 'bg-muted' : ''}
               />
             </div>
             <div className="space-y-2">
@@ -164,26 +213,8 @@ export function DealFormDialog({ open, onOpenChange, deal }: DealFormDialogProps
                 id="submarket"
                 value={formData.submarket}
                 onChange={(e) => setFormData({ ...formData, submarket: e.target.value })}
-              />
-            </div>
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label>Deal Value</Label>
-              <FormattedNumberInput
-                value={formData.deal_value}
-                onChange={(value) => setFormData({ ...formData, deal_value: value ?? undefined })}
-                prefix="$"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label>Commission %</Label>
-              <FormattedNumberInput
-                value={formData.commission_percent}
-                onChange={(value) => setFormData({ ...formData, commission_percent: value ?? undefined })}
-                suffix="%"
-                max={100}
+                disabled={hasLinkedListing}
+                className={hasLinkedListing ? 'bg-muted' : ''}
               />
             </div>
           </div>
@@ -216,34 +247,32 @@ export function DealFormDialog({ open, onOpenChange, deal }: DealFormDialogProps
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-3 gap-4">
             <div className="space-y-2">
-              <Label>Deposit Amount</Label>
+              <Label>Deal Value</Label>
               <FormattedNumberInput
-                value={formData.deposit_amount}
-                onChange={(value) => setFormData({ ...formData, deposit_amount: value ?? undefined })}
+                value={formData.deal_value}
+                onChange={(value) => setFormData({ ...formData, deal_value: value ?? undefined })}
                 prefix="$"
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="deposit_due_date">Deposit Due Date</Label>
-              <Input
-                id="deposit_due_date"
-                type="date"
-                value={formData.deposit_due_date}
-                onChange={(e) => setFormData({ ...formData, deposit_due_date: e.target.value })}
+              <Label>Commission %</Label>
+              <FormattedNumberInput
+                value={formData.commission_percent}
+                onChange={(value) => setFormData({ ...formData, commission_percent: value ?? undefined })}
+                suffix="%"
+                max={100}
               />
             </div>
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="conditions">Conditions</Label>
-            <Textarea
-              id="conditions"
-              value={formData.conditions}
-              onChange={(e) => setFormData({ ...formData, conditions: e.target.value })}
-              rows={3}
-            />
+            <div className="space-y-2">
+              <Label>Commission Amount</Label>
+              <Input
+                value={calculatedCommission > 0 ? `$${calculatedCommission.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : '—'}
+                disabled
+                className="bg-muted"
+              />
+            </div>
           </div>
 
           <div className="space-y-2">
