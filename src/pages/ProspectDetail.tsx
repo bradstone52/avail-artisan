@@ -4,6 +4,7 @@ import { AppLayout } from '@/components/layout/AppLayout';
 import { Button } from '@/components/ui/button';
 import { useProspect, useDeleteProspect } from '@/hooks/useProspects';
 import { ProspectViewCard } from '@/components/prospects/ProspectViewCard';
+import { FollowUpDatesSection } from '@/components/prospects/FollowUpDatesSection';
 import { MatchingListingsSection } from '@/components/prospects/MatchingListingsSection';
 import { ProspectFormDialog } from '@/components/prospects/ProspectFormDialog';
 import { ConfirmDialog } from '@/components/common/ConfirmDialog';
@@ -86,6 +87,7 @@ export default function ProspectDetail() {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <div className="space-y-6">
             <ProspectViewCard prospect={prospect} onEdit={() => setEditOpen(true)} />
+            <FollowUpDatesSection prospect={prospect} />
           </div>
           <div className="space-y-6">
             <MatchingListingsSection prospect={prospect} />
