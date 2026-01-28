@@ -17,13 +17,13 @@ export function DealImportantDatesSection({ deal, conditions, deposits }: DealIm
   // Gather all important dates
   const importantDates: { date: Date; label: string; type: 'condition' | 'deposit' | 'closing'; isPast: boolean }[] = [];
 
-  // Add condition removal dates with new format: "Condition 1: description - date"
+  // Add condition removal dates with new format: "Condition 1 - description - date"
   conditions.forEach((c, index) => {
     if (c.due_date && !c.is_satisfied) {
       const date = new Date(c.due_date);
       importantDates.push({
         date,
-        label: `Condition ${index + 1}: ${c.description}`,
+        label: `Condition ${index + 1} - ${c.description}`,
         type: 'condition',
         isPast: isBefore(date, today),
       });
@@ -88,21 +88,14 @@ export function DealImportantDatesSection({ deal, conditions, deposits }: DealIm
           {importantDates.map((d, i) => (
             <div 
               key={i} 
-              className={`flex items-center justify-between text-sm p-2 rounded ${
+              className={`flex items-center text-sm p-2 rounded ${
                 d.isPast ? 'bg-destructive/10 text-destructive' : ''
               }`}
             >
               <div className="flex items-center gap-2 flex-1 min-w-0">
                 {d.isPast && <AlertCircle className="w-4 h-4 flex-shrink-0" />}
-                <span className={`px-2 py-0.5 rounded text-xs font-medium flex-shrink-0 ${
-                  d.type === 'condition' ? 'bg-blue-100 text-blue-700' :
-                  d.type === 'deposit' ? 'bg-green-100 text-green-700' :
-                  'bg-purple-100 text-purple-700'
-                }`}>
-                  {d.type === 'condition' ? 'Condition' : d.type === 'deposit' ? 'Deposit' : 'Closing'}
-                </span>
-                <span className="truncate">{d.label}</span>
-                <span className="text-muted-foreground mx-1 flex-shrink-0">—</span>
+                <span className="truncate flex-1">{d.label}</span>
+                <span className="text-muted-foreground mx-2 flex-shrink-0">—</span>
                 <span className="font-medium flex-shrink-0">{format(d.date, 'MMM d, yyyy')}</span>
               </div>
             </div>
