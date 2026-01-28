@@ -187,6 +187,24 @@ export function useTransactions() {
       // Delete the market listing FIRST to prevent race conditions with duplicate submissions
       // This acts as an atomic lock - only the first transaction to delete succeeds
       if (input.market_listing_id) {
+        // Clear any pdf_import_staging references first (foreign key constraint)
+        await supabase
+          .from('pdf_import_staging')
+          .update({ matched_listing_id: null })
+          .eq('matched_listing_id', input.market_listing_id);
+
+        // Clear any property_listing_links references
+        await supabase
+          .from('property_listing_links')
+          .delete()
+          .eq('market_listing_id', input.market_listing_id);
+
+        // Clear any issue_listings references
+        await supabase
+          .from('issue_listings')
+          .delete()
+          .eq('listing_id', input.market_listing_id);
+
         const { data: deletedRows, error: deleteError } = await supabase
           .from('market_listings')
           .delete()
