@@ -300,6 +300,34 @@ export function GenerateDealSummaryDialog({ open, onOpenChange, deal }: Generate
         contacts: [{ name: 'Clearview Commercial Realty Inc.' }], // Default contact for footer
       };
 
+      // Save deposits to database for Important Dates tracking
+      // Delete existing deposits first, then insert new ones
+      await supabase
+        .from('deal_deposits')
+        .delete()
+        .eq('deal_id', deal.id);
+
+      const depositsWithAmounts = deposits.filter(d => d.amount > 0);
+      if (depositsWithAmounts.length > 0) {
+        const depositsToSave = depositsWithAmounts.map(d => ({
+          deal_id: deal.id,
+          amount: d.amount,
+          held_by: d.payableTo || null,
+          due_date: d.dueDate ? format(d.dueDate, 'yyyy-MM-dd') : null,
+          due_time: d.dueHour ? `${d.dueHour}:${d.dueMinute} ${d.duePeriod}` : null,
+          received: false,
+        }));
+
+        const { error: depositError } = await supabase
+          .from('deal_deposits')
+          .insert(depositsToSave);
+
+        if (depositError) {
+          console.error('Error saving deposits:', depositError);
+          // Continue with PDF generation even if deposit save fails
+        }
+      }
+
       // Save actions to database for future regeneration
       const actionsToSave = actions.filter(a => a.description || a.dueDate).map((a, index) => ({
         deal_id: deal.id,
@@ -312,6 +340,11 @@ export function GenerateDealSummaryDialog({ open, onOpenChange, deal }: Generate
       }));
       
       await saveActions(actionsToSave);
+
+      // Invalidate queries to refresh important dates
+      queryClient.invalidateQueries({ queryKey: ['deal_deposits', deal.id] });
+      queryClient.invalidateQueries({ queryKey: ['deal_summary_actions', deal.id] });
+      queryClient.invalidateQueries({ queryKey: ['all_deal_important_dates'] });
 
       const blob = await pdf(<DealSummaryPDF {...pdfData} />).toBlob();
       
