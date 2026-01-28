@@ -7,7 +7,7 @@ export default function Settings() {
   return (
     <AppLayout>
       <div className="p-6 lg:p-8">
-        <PageHeader title="Contacts" icon={Users} />
+        <PageHeader title="BrokerageDB" icon={Users} />
         <BrokeragesAndAgentsTab />
       </div>
     </AppLayout>
