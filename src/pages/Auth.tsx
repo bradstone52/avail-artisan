@@ -38,31 +38,33 @@ export default function Auth() {
     try {
       // Refresh the session to get the latest factor data from the server
       // This is critical after an MFA reset - the cached session may have stale factor data
-      const { data: refreshData, error: refreshError } = await supabase.auth.refreshSession();
+      const { error: refreshError } = await supabase.auth.refreshSession();
       if (refreshError) {
         console.error('Error refreshing session:', refreshError);
       }
 
-      // Check if user has MFA enabled and needs verification
+      // Use AAL (Authenticator Assurance Level) as the authoritative source
+      // After an MFA reset, listFactors() can return stale cached data
       const { data: aalData } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
-      const { data: factorsData } = await supabase.auth.mfa.listFactors();
-      
-      const verifiedFactors = factorsData?.totp?.filter(f => f.status === 'verified') || [];
-      const hasMfaEnabled = verifiedFactors.length > 0;
-      
-      if (!hasMfaEnabled) {
-        // User doesn't have MFA - force enrollment (mandatory)
+
+      const currentLevel = aalData?.currentLevel;
+      const nextLevel = aalData?.nextLevel;
+
+      // nextLevel === 'aal1' means no MFA is enrolled/required => must enroll (mandatory)
+      // nextLevel === 'aal2' && currentLevel === 'aal1' means MFA required but not verified
+      if (nextLevel === 'aal1') {
+        setShowMfaVerification(false);
         setShowMfaEnrollment(true);
         return;
       }
-      
-      if (hasMfaEnabled && aalData?.currentLevel === 'aal1') {
-        // User has MFA but hasn't verified this session
+
+      if (nextLevel === 'aal2' && currentLevel === 'aal1') {
+        setShowMfaEnrollment(false);
         setShowMfaVerification(true);
         return;
       }
 
-      // MFA enabled and verified, proceed to dashboard
+      // MFA enabled and verified (currentLevel === 'aal2'), proceed to dashboard
       navigateAfterAuth();
     } catch (error) {
       console.error('Error checking MFA status:', error);
