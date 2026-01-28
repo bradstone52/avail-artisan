@@ -359,12 +359,12 @@ export function DealSheetPDF({ deal, conditions, deposits, getAgent, getBrokerag
           <Image src={clearviewLogo} style={styles.logo} />
           <View style={styles.headerRight}>
             <Text style={styles.mainTitle}>sale/lease dealsheet</Text>
-            <View style={{ flexDirection: 'row', gap: 4 }}>
-              <Text style={styles.dealInfo}>Deal #:</Text>
+          <View style={{ flexDirection: 'row' }}>
+              <Text style={[styles.dealInfo, { marginRight: 4 }]}>Deal #:</Text>
               <Text style={styles.dealInfoBold}>{deal.deal_number || '_________'}</Text>
             </View>
-            <View style={{ flexDirection: 'row', gap: 4 }}>
-              <Text style={styles.dealInfo}>Date:</Text>
+            <View style={{ flexDirection: 'row' }}>
+              <Text style={[styles.dealInfo, { marginRight: 4 }]}>Date:</Text>
               <Text style={styles.dealInfoBold}>{format(new Date(), 'MMMM d, yyyy')}</Text>
             </View>
           </View>
@@ -429,7 +429,7 @@ export function DealSheetPDF({ deal, conditions, deposits, getAgent, getBrokerag
               </View>
               {sellerBrokerage?.address && (
                 <View style={styles.partyRow}>
-                  <Text style={styles.partyLabel}></Text>
+                  <Text style={styles.partyLabel}>{' '}</Text>
                   <Text style={styles.partyValue}>{sellerBrokerage.address}</Text>
                 </View>
               )}
@@ -472,7 +472,7 @@ export function DealSheetPDF({ deal, conditions, deposits, getAgent, getBrokerag
               </View>
               {buyerBrokerage?.address && (
                 <View style={styles.partyRow}>
-                  <Text style={styles.partyLabel}></Text>
+                  <Text style={styles.partyLabel}>{' '}</Text>
                   <Text style={styles.partyValue}>{buyerBrokerage.address}</Text>
                 </View>
               )}
