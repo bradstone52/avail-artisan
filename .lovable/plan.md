@@ -1,242 +1,185 @@
 
 
-# Deal Creation & Deal Sheet Generator Updates
+# Deal Sheet PDF Redesign Plan
 
 ## Overview
-This plan addresses multiple improvements:
-1. Rename "Size (SF)" to "Size" in the new deal form
-2. Fix acres population and display with proper unit suffixes (SF or AC)
-3. Create a comprehensive "Generate Deal Sheet" modal with all the required sections
-4. Fix PDF styling to match the example (proper logo aspect ratio and colors)
+Complete redesign of the Deal Sheet PDF (`DealSheetPDF.tsx`) to match the reference template, with the following changes:
+1. New color scheme with blue headers, yellow party sections, green commission area, and pink comments
+2. Static title "sale/lease dealsheet" instead of dynamic "CLEARVIEW [TYPE] DEALSHEET"
+3. Date auto-populates with today's date (already working - no changes needed)
+4. Keep Clearview logo in top left
+5. Bordered table layout for Property/Deal Summary
+6. Display up to 3 deposits in Financial/Trust Details section
 
 ---
 
-## Part 1: New Deal Form Updates
+## Color Palette (from reference)
 
-### File: `src/components/deals/DealFormDialog.tsx`
+| Section | Color | Hex Code |
+|---------|-------|----------|
+| Section Headers | Light Blue | `#B4C7DC` |
+| Party Info Background | Yellow/Cream | `#FFF9E6` |
+| Commission/Financial Area | Sage Green | `#D5E8D4` |
+| Comments Background | Pink/Salmon | `#FFE6E6` |
+| Calculation Notes Strip | Light Yellow | `#FFFACD` |
+| Borders | Black | `#000000` |
 
-**Changes:**
-- Rename the "Size (SF)" label to just "Size"
-- Track whether the size is in SF or AC with a new state variable `sizeUnit`
-- Fix the acres conversion logic to properly handle string parsing
-- Display the size with the appropriate unit suffix (e.g., "1,234 SF" or "12.5 AC")
+---
 
-**Logic for size population:**
+## Layout Structure
+
 ```text
-When a listing is selected:
-1. If listing.size_sf > 0:
-   - Use size_sf as the value
-   - Set sizeUnit = 'SF'
-2. Else if listing.land_acres is a valid number > 0:
-   - Use the acres value directly (don't convert to SF)
-   - Set sizeUnit = 'AC'
-3. Display the size with the unit suffix in a read-only formatted input
++--------------------------------------------------+
+| [CLEARVIEW LOGO]                                 |
+|                                                  |
+| sale/lease dealsheet                             |
+| Deal #: ________    Date: January 28, 2026       |
++--------------------------------------------------+
+| PROPERTY / DEAL SUMMARY (blue header)            |
+| +------------------------------------------------+
+| | Property Address: | Closing: | Sale/Lease Price|
+| | [address]         | [date]   | [amount]        |
+| | Premises Size:    | Key Conditions & Dates...  |
+| | [size SF]         | 1. [condition] - [date]    |
+| +------------------------------------------------+
++--------------------------------------------------+
+| SELLER INFO (yellow)  | BUYER INFO (yellow)      |
+| Name:                 | Name:                     |
+| Address: c/o ...      | Address: c/o ...          |
+| Contact:              | Contact:                  |
+| Phone:                | Phone:                    |
+| Email:                | Email:                    |
++--------------------------------------------------+
+| AGENCY & COMMISSION SUMMARY (blue header)        |
+| Listing Agent(s):     | Leasing/Selling Agent(s): |
+| [agents/brokerage]    | [agents/brokerage]        |
++--------------------------------------------------+
+| Commission Calculation Notes: [formula] (yellow) |
++--------------------------------------------------+
+| TOTAL COMMISSION (green) | FINANCIAL/TRUST (green)|
+| Commission (excl GST):   | 1st Deposit: [amt]     |
+| GST on Commission:       |   Held By: [holder]    |
+| Total (incl GST):        | 2nd Deposit: [amt]     |
+|                          |   Held By: [holder]    |
+| OTHER BROKERAGE - X%     | 3rd Deposit: [amt]     |
+| Commission/GST/Total     |   Held By: [holder]    |
+|                          |                        |
+| CLEARVIEW - X%           |                        |
+| Commission/GST/Total     |                        |
++--------------------------------------------------+
+| COMMENTS (pink background)                       |
+| [comments text]                                  |
++--------------------------------------------------+
 ```
 
 ---
 
-## Part 2: Generate Deal Sheet Modal
-
-### New File: `src/components/deals/GenerateDealSheetDialog.tsx`
-
-A comprehensive multi-section dialog that opens when clicking "GENERATE DEAL SHEET":
-
-**Sections:**
-
-**A. Basic Information**
-- Deal Number (auto-filled, disabled)
-- Deal Type (auto-filled, disabled)
-- Address (auto-filled, disabled)
-- City (auto-filled, disabled)
-- Size with unit suffix (auto-filled, disabled)
-- Notes/Comments (editable text area)
-
-**B. Agents - Listing Side**
-- Listing Brokerage (dropdown with "Add New" option)
-- Listing Agent 1 (dropdown filtered by selected brokerage)
-- Listing Agent 2 (dropdown filtered by selected brokerage)
-- "Add New" brokerage dialog with:
-  - Brokerage Name
-  - Address
-  - Button to "Add Agent" (Name, Phone, Email)
-
-**C. Agents - Selling Side**
-- Selling Brokerage (dropdown with "Add New" option)
-- Selling Agent 1 (dropdown filtered by selected brokerage)
-- Selling Agent 2 (dropdown filtered by selected brokerage)
-
-**D. CV Agent**
-- Dropdown showing only agents where brokerage.name = 'Clearview Commercial Realty Inc.'
-
-**E. Parties**
-- Seller Name (text input)
-- Seller Brokerage (dropdown with "Add New" option)
-- Buyer Name (text input)
-- Buyer Brokerage (dropdown with "Add New" option)
-
-**F. Conditions**
-- Add multiple conditions with:
-  - Description (text input)
-  - Date (date picker)
-
-**G. Deposits**
-- Amount (currency input)
-- Held By (text input)
-
-**H. Financial**
-- Sale Price/Deal Value (currency input, pre-filled from deal)
-- Total Commission % (default 3%)
-- Other Brokerage % (default 1.5%)
-- Clearview % (default 1.5%)
-- GST Rate % (default 5%)
-
-**I. Commission Preview**
-- Real-time calculations showing:
-  - Total Commission (excl. GST)
-  - GST on Commission
-  - Total Commission (incl. GST)
-  - Other Brokerage portion
-  - Clearview portion
-
-**J. Actions**
-- "Preview" button - Shows a summary of all entered data
-- "Download PDF" button - Generates and downloads the deal sheet
-
-### Helper Components to Create:
-
-1. **`src/components/deals/detail/AddBrokerageWithAgentsDialog.tsx`**
-   - Dialog for adding new brokerage with optional agents
-   - Fields: Brokerage Name, Address
-   - Expandable section to add agents (Name, Phone, Email)
-
-2. **`src/components/deals/detail/AgentSelector.tsx`**
-   - Reusable component for selecting agents filtered by brokerage
-
----
-
-## Part 3: PDF Styling Fixes
+## Technical Implementation
 
 ### File: `src/components/documents/DealSheetPDF.tsx`
 
-**Logo Fix:**
-- Current: `width: 150, height: 40` - This squishes the logo
-- The uploaded logo has an aspect ratio of approximately 6:1 (wide logo)
-- Fix: Use `width: 200, height: 50` or use `objectFit: 'contain'`
+#### 1. Update Color Constants
 
-**Color Matching:**
-Based on the example PDF:
-- Section headers have an orange/gold underline: `#E4A815` (matching the logo)
-- Section background: White with subtle border
-- Table headers: Gold/orange background: `#E4A815` or `#F7C948`
-- Text colors: Dark gray `#333` for headings, `#666` for labels
-
-**Updated styles:**
-```javascript
-// Header section underline
-headerUnderline: {
-  borderBottomWidth: 2,
-  borderBottomColor: '#E4A815',
-  marginBottom: 20,
-}
-
-// Section title styling
-sectionTitle: {
-  fontSize: 11,
-  fontWeight: 'bold',
-  marginBottom: 8,
-  color: '#333',
-  textDecoration: 'underline',
-}
-
-// Table header row (gold background)
-tableHeader: {
-  backgroundColor: '#E4A815',
-  color: '#fff',
-  padding: 8,
-}
+**Replace:**
+```typescript
+const BRAND_GOLD = '#C4A052';
+const BRAND_DARK = '#1a1a1a';
+const BRAND_GRAY = '#666666';
+const BRAND_LIGHT_GRAY = '#f5f5f5';
 ```
+
+**With:**
+```typescript
+const BLUE_HEADER = '#B4C7DC';
+const YELLOW_BG = '#FFF9E6';
+const GREEN_BG = '#D5E8D4';
+const PINK_BG = '#FFE6E6';
+const YELLOW_NOTES = '#FFFACD';
+const BLACK = '#000000';
+const DARK_TEXT = '#1a1a1a';
+const GRAY_TEXT = '#666666';
+```
+
+#### 2. Update Styles
+
+Complete style overhaul including:
+
+**Header:** Remove gold border, keep logo left-aligned
+
+**Section Headers:** Blue background with black text, bordered
+
+**Property Summary:** Table with black borders containing:
+- Row 1: Property Address | Closing Date | Sale/Lease Price
+- Row 2: Premises Size | Key Conditions (spanning 2 columns)
+
+**Party Sections:** Yellow background with black borders, side-by-side for Seller/Buyer
+
+**Agency Section:** Blue header, two-column layout for agents
+
+**Commission Notes:** Yellow background strip with calculation formula
+
+**Commission/Financial:** Two-column green background area:
+- Left: Commission breakdown (Total, Other Brokerage, Clearview)
+- Right: Financial/Trust Details with up to 3 deposits
+
+**Comments:** Pink background section
+
+#### 3. Update Title (Line 282)
+
+**Change from:**
+```tsx
+<Text style={styles.mainTitle}>CLEARVIEW {dealTypeLabel} DEALSHEET</Text>
+```
+
+**To:**
+```tsx
+<Text style={styles.mainTitle}>sale/lease dealsheet</Text>
+```
+
+#### 4. Restructure Property/Deal Summary
+
+Create bordered table layout with cells:
+- Property Address spanning left portion
+- Closing Date in middle
+- Sale Price/Lease Value on right
+- Premises Size on left of second row
+- Key Conditions & Removal Dates spanning right portion of second row
+
+#### 5. Update Party Information Sections
+
+- Add yellow background (`#FFF9E6`)
+- Add black borders
+- Keep side-by-side layout for Seller/Buyer
+
+#### 6. Add Financial/Trust Details
+
+New section within the green commission area displaying:
+- 1st Deposit Received: [amount] / Held By: [holder]
+- 2nd Deposit Received: [amount] / Held By: [holder]
+- 3rd Deposit Received: [amount] / Held By: [holder]
+
+Using the `deposits` prop already passed to the component
+
+#### 7. Update Comments Section
+
+Change background color from gray to pink (`#FFE6E6`)
 
 ---
 
-## Part 4: Update DealDetail.tsx
+## Files to Modify
 
-### File: `src/pages/DealDetail.tsx`
-
-**Changes:**
-- Replace direct `handleGenerateDealSheet` with opening the new `GenerateDealSheetDialog`
-- Pass the deal data to the dialog
-- The dialog will handle saving updates to the deal and generating the PDF
+| File | Changes |
+|------|---------|
+| `src/components/documents/DealSheetPDF.tsx` | Complete redesign - colors, layout, title, deposits display |
 
 ---
 
-## Implementation Summary
+## Summary of Changes
 
-### Files to Create:
-1. `src/components/deals/GenerateDealSheetDialog.tsx` - Main dialog with all sections
-2. `src/components/deals/detail/AddBrokerageWithAgentsDialog.tsx` - Add brokerage + agents
-3. `src/components/deals/detail/AgentSelector.tsx` - Agent dropdown filtered by brokerage
-
-### Files to Modify:
-1. `src/components/deals/DealFormDialog.tsx` - Size field label and unit handling
-2. `src/components/documents/DealSheetPDF.tsx` - Logo sizing and color matching
-3. `src/pages/DealDetail.tsx` - Open dialog instead of direct PDF generation
-
-### Database Updates Needed:
-- Add `size_unit` field to deals table (optional - can be derived from listing)
-- Alternatively, store a `size_display` string like "1,234 SF" or "12.5 AC"
-
----
-
-## Technical Details
-
-### Size Unit Logic (DealFormDialog.tsx):
-```typescript
-// State to track size and its unit
-const [sizeValue, setSizeValue] = useState<number | undefined>();
-const [sizeUnit, setSizeUnit] = useState<'SF' | 'AC'>('SF');
-
-// When listing is selected
-const handleListingChange = (listing: MarketListing | null) => {
-  if (listing) {
-    if (listing.size_sf && listing.size_sf > 0) {
-      setSizeValue(listing.size_sf);
-      setSizeUnit('SF');
-    } else if (listing.land_acres) {
-      const acres = parseFloat(listing.land_acres);
-      if (!isNaN(acres) && acres > 0) {
-        setSizeValue(acres);
-        setSizeUnit('AC');
-      }
-    }
-  }
-};
-
-// Display format
-const sizeDisplay = sizeValue 
-  ? `${sizeValue.toLocaleString()} ${sizeUnit}` 
-  : '';
-```
-
-### CV Agent Filter (GenerateDealSheetDialog.tsx):
-```typescript
-const cvAgents = agents?.filter(agent => 
-  agent.brokerage?.name === 'Clearview Commercial Realty Inc.'
-) || [];
-```
-
-### Commission Calculations:
-```typescript
-const dealValue = formData.deal_value || 0;
-const commissionRate = formData.commission_percent || 3;
-const otherRate = formData.other_brokerage_percent || 1.5;
-const cvRate = formData.clearview_percent || 1.5;
-const gstRate = formData.gst_rate || 5;
-
-const totalCommission = dealValue * commissionRate / 100;
-const totalGST = totalCommission * gstRate / 100;
-const totalWithGST = totalCommission + totalGST;
-
-const otherCommission = dealValue * otherRate / 100;
-const cvCommission = dealValue * cvRate / 100;
-```
+1. **Title**: Static "sale/lease dealsheet" (lowercase as shown in reference)
+2. **Date**: Already auto-populates today's date - no change needed
+3. **Colors**: Blue headers, yellow party info, green financials, pink comments
+4. **Layout**: Bordered tables, side-by-side sections matching reference
+5. **Deposits**: Display up to 3 deposits in Financial/Trust Details section
+6. **Logo**: Keep Clearview logo in top left position
 
