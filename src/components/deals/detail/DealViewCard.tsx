@@ -1,7 +1,11 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Building2 } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Building2, ExternalLink } from 'lucide-react';
 import { format } from 'date-fns';
+import { Link } from 'react-router-dom';
+import { useQuery } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client';
 import type { Deal } from '@/types/database';
 
 interface DealViewCardProps {
@@ -13,6 +17,33 @@ export function DealViewCard({ deal }: DealViewCardProps) {
     if (!num) return '—';
     return num.toLocaleString();
   };
+
+  // Fetch linked property if listing_id exists
+  const { data: linkedProperty } = useQuery({
+    queryKey: ['linked-property', deal.listing_id],
+    queryFn: async () => {
+      if (!deal.listing_id) return null;
+      
+      // First get the market listing
+      const { data: listing } = await supabase
+        .from('market_listings')
+        .select('address')
+        .eq('id', deal.listing_id)
+        .single();
+      
+      if (!listing) return null;
+      
+      // Find matching property by address
+      const { data: property } = await supabase
+        .from('properties')
+        .select('id, name, address')
+        .ilike('address', listing.address)
+        .maybeSingle();
+      
+      return property;
+    },
+    enabled: !!deal.listing_id,
+  });
 
   return (
     <Card>
@@ -77,6 +108,18 @@ export function DealViewCard({ deal }: DealViewCardProps) {
             </div>
           )}
         </div>
+        
+        {linkedProperty && (
+          <div className="mt-4 pt-4 border-t">
+            <p className="text-sm text-muted-foreground mb-1">Linked Property</p>
+            <Button variant="link" className="p-0 h-auto" asChild>
+              <Link to={`/properties/${linkedProperty.id}`} className="flex items-center gap-1 text-primary">
+                {linkedProperty.name || linkedProperty.address}
+                <ExternalLink className="w-3 h-3" />
+              </Link>
+            </Button>
+          </div>
+        )}
         
         {deal.notes && (
           <div className="mt-4 pt-4 border-t">

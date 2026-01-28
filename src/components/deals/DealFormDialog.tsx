@@ -29,24 +29,41 @@ interface DealFormDialogProps {
   deal?: Deal | null;
 }
 
+interface ExtendedDealFormData {
+  deal_number?: string;
+  deal_type: DealType;
+  address: string;
+  city: string;
+  submarket: string;
+  size_sf?: number;
+  deal_value?: number;
+  commission_percent?: number;
+  close_date?: string;
+  status: string;
+  listing_id?: string;
+  property_id?: string;
+  notes?: string;
+}
+
 const dealTypes: DealType[] = ['Lease', 'Sale', 'Sublease', 'Renewal', 'Expansion'];
-const dealStatuses: DealStatus[] = ['Active', 'Under Contract', 'Closed', 'Lost', 'On Hold'];
+const createDealStatuses = ['Conditional', 'Firm', 'Closed'];
 
 export function DealFormDialog({ open, onOpenChange, deal }: DealFormDialogProps) {
   const createDeal = useCreateDeal();
   const updateDeal = useUpdateDeal();
   const isEditing = !!deal;
 
-  const [formData, setFormData] = useState<DealFormData>({
+  const [formData, setFormData] = useState<ExtendedDealFormData>({
     deal_number: '',
     deal_type: 'Lease',
     address: '',
     city: '',
     submarket: '',
+    size_sf: undefined,
     deal_value: undefined,
     commission_percent: 3,
     close_date: '',
-    status: 'Active',
+    status: 'Conditional',
     listing_id: undefined,
     notes: '',
   });
@@ -66,6 +83,7 @@ export function DealFormDialog({ open, onOpenChange, deal }: DealFormDialogProps
         address: deal.address,
         city: deal.city,
         submarket: deal.submarket,
+        size_sf: deal.size_sf ?? undefined,
         deal_value: deal.deal_value ?? undefined,
         commission_percent: deal.commission_percent ?? 3,
         close_date: deal.close_date || '',
@@ -83,10 +101,11 @@ export function DealFormDialog({ open, onOpenChange, deal }: DealFormDialogProps
         address: '',
         city: '',
         submarket: '',
+        size_sf: undefined,
         deal_value: undefined,
         commission_percent: 3,
         close_date: '',
-        status: 'Active',
+        status: 'Conditional',
         listing_id: undefined,
         notes: '',
       });
@@ -102,6 +121,18 @@ export function DealFormDialog({ open, onOpenChange, deal }: DealFormDialogProps
       if (listing.listing_type === 'Sale') dealType = 'Sale';
       else if (listing.listing_type === 'Sublease') dealType = 'Sublease';
       
+      // Auto-populate size: prefer size_sf, fall back to land_acres converted
+      let size: number | undefined = undefined;
+      if (listing.size_sf && listing.size_sf > 0) {
+        size = listing.size_sf;
+      } else if (listing.land_acres) {
+        // Parse land_acres (it's a string) and convert to SF (1 acre = 43,560 SF)
+        const acres = parseFloat(listing.land_acres);
+        if (!isNaN(acres) && acres > 0) {
+          size = Math.round(acres * 43560);
+        }
+      }
+      
       setFormData(prev => ({
         ...prev,
         listing_id: listing.id,
@@ -109,6 +140,7 @@ export function DealFormDialog({ open, onOpenChange, deal }: DealFormDialogProps
         city: listing.city,
         submarket: listing.submarket,
         deal_type: dealType,
+        size_sf: size,
       }));
     } else {
       setFormData(prev => ({
@@ -117,6 +149,7 @@ export function DealFormDialog({ open, onOpenChange, deal }: DealFormDialogProps
         address: '',
         city: '',
         submarket: '',
+        size_sf: undefined,
       }));
     }
   };
@@ -125,10 +158,14 @@ export function DealFormDialog({ open, onOpenChange, deal }: DealFormDialogProps
     e.preventDefault();
     
     try {
+      // Extract size_sf from extended form data
+      const { size_sf, ...dealData } = formData;
+      const submitData = { ...dealData, size_sf } as DealFormData & { size_sf?: number };
+      
       if (isEditing && deal) {
-        await updateDeal.mutateAsync({ id: deal.id, ...formData });
+        await updateDeal.mutateAsync({ id: deal.id, ...submitData });
       } else {
-        await createDeal.mutateAsync(formData);
+        await createDeal.mutateAsync(submitData);
       }
       onOpenChange(false);
     } catch (error) {
@@ -226,7 +263,16 @@ export function DealFormDialog({ open, onOpenChange, deal }: DealFormDialogProps
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-3 gap-4">
+            <div className="space-y-2">
+              <Label>Size (SF)</Label>
+              <FormattedNumberInput
+                value={formData.size_sf}
+                onChange={(value) => setFormData({ ...formData, size_sf: value ?? undefined })}
+                disabled={hasLinkedListing}
+                className={hasLinkedListing ? 'bg-muted' : ''}
+              />
+            </div>
             <div className="space-y-2">
               <Label htmlFor="status">Status</Label>
               <Select
@@ -237,7 +283,7 @@ export function DealFormDialog({ open, onOpenChange, deal }: DealFormDialogProps
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  {dealStatuses.map((status) => (
+                  {createDealStatuses.map((status) => (
                     <SelectItem key={status} value={status}>{status}</SelectItem>
                   ))}
                 </SelectContent>
