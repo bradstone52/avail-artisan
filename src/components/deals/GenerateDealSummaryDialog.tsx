@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -30,6 +30,9 @@ import { format } from 'date-fns';
 import { toast } from 'sonner';
 import { pdf } from '@react-pdf/renderer';
 import { cn } from '@/lib/utils';
+import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/contexts/AuthContext';
+import { useQueryClient } from '@tanstack/react-query';
 import { DealSummaryPDF } from '@/components/documents/DealSummaryPDF';
 import type { Deal } from '@/types/database';
 
@@ -61,6 +64,8 @@ interface LocalAction {
 }
 
 export function GenerateDealSummaryDialog({ open, onOpenChange, deal }: GenerateDealSummaryDialogProps) {
+  const { user } = useAuth();
+  const queryClient = useQueryClient();
   const [generating, setGenerating] = useState(false);
 
   // Basic Info state
@@ -71,6 +76,7 @@ export function GenerateDealSummaryDialog({ open, onOpenChange, deal }: Generate
   const [effectiveDate, setEffectiveDate] = useState<Date | undefined>(undefined);
   const [closingDate, setClosingDate] = useState<Date | undefined>(undefined);
   const [purchasePrice, setPurchasePrice] = useState('');
+  const [purchasePriceDisplay, setPurchasePriceDisplay] = useState('');
 
   // Deposits state
   const [deposits, setDeposits] = useState<LocalDeposit[]>([]);
@@ -95,7 +101,9 @@ export function GenerateDealSummaryDialog({ open, onOpenChange, deal }: Generate
       
       setEffectiveDate(undefined);
       setClosingDate(deal.close_date ? new Date(deal.close_date) : undefined);
-      setPurchasePrice(deal.deal_value ? deal.deal_value.toString() : '');
+      const initialPrice = deal.deal_value ? deal.deal_value.toString() : '';
+      setPurchasePrice(initialPrice);
+      setPurchasePriceDisplay(initialPrice ? formatCurrencyInput(parseFloat(initialPrice)) : '');
       
       // Initialize with one empty deposit
       setDeposits([createEmptyDeposit()]);
@@ -137,6 +145,29 @@ export function GenerateDealSummaryDialog({ open, onOpenChange, deal }: Generate
     }).format(num);
   };
 
+  const formatCurrencyInput = (value: number) => {
+    if (!value || isNaN(value)) return '';
+    return new Intl.NumberFormat('en-CA', {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    }).format(value);
+  };
+
+  const handlePurchasePriceChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    const raw = e.target.value;
+    // Remove everything except digits and decimal
+    const cleaned = raw.replace(/[^0-9.]/g, '');
+    setPurchasePrice(cleaned);
+    setPurchasePriceDisplay(raw);
+  }, []);
+
+  const handlePurchasePriceBlur = useCallback(() => {
+    const num = parseFloat(purchasePrice);
+    if (!isNaN(num)) {
+      setPurchasePriceDisplay(formatCurrencyInput(num));
+    }
+  }, [purchasePrice]);
+
   const totalDeposits = deposits.reduce((sum, d) => sum + (d.amount || 0), 0);
   const purchasePriceNum = parseFloat(purchasePrice.replace(/,/g, '')) || 0;
   const balanceOnClosing = purchasePriceNum - totalDeposits;
@@ -170,6 +201,11 @@ export function GenerateDealSummaryDialog({ open, onOpenChange, deal }: Generate
   };
 
   const handleGeneratePdf = async () => {
+    if (!user?.id) {
+      toast.error('You must be logged in to generate documents');
+      return;
+    }
+    
     setGenerating(true);
     try {
       // Build PDF data
@@ -203,16 +239,61 @@ export function GenerateDealSummaryDialog({ open, onOpenChange, deal }: Generate
 
       const blob = await pdf(<DealSummaryPDF deal={deal} formData={pdfData} />).toBlob();
       
+      // Save to documents section
+      const fileName = `Deal Summary - ${deal.address}.pdf`;
+      const filePath = `${deal.id}/${Date.now()}-deal-summary.pdf`;
+      
+      // Delete any existing Deal Summary for this deal
+      const { data: existingDocs } = await supabase
+        .from('deal_documents')
+        .select('id, file_path')
+        .eq('deal_id', deal.id)
+        .ilike('name', '%Deal Summary%');
+      
+      if (existingDocs && existingDocs.length > 0) {
+        // Delete old files from storage
+        const pathsToDelete = existingDocs.map(doc => doc.file_path);
+        await supabase.storage.from('deals').remove(pathsToDelete);
+        
+        // Delete old records from database
+        const idsToDelete = existingDocs.map(doc => doc.id);
+        await supabase.from('deal_documents').delete().in('id', idsToDelete);
+      }
+      
+      // Upload to storage
+      const { error: uploadError } = await supabase.storage
+        .from('deals')
+        .upload(filePath, blob, { contentType: 'application/pdf' });
+      
+      if (uploadError) throw uploadError;
+      
+      // Save to deal_documents
+      const { error: dbError } = await supabase
+        .from('deal_documents')
+        .insert({
+          deal_id: deal.id,
+          name: fileName,
+          file_path: filePath,
+          file_size: blob.size,
+          uploaded_by: user.id,
+        });
+      
+      if (dbError) throw dbError;
+      
+      // Invalidate documents query to refresh the list
+      queryClient.invalidateQueries({ queryKey: ['deal_documents', deal.id] });
+      
+      // Also download the file
       const url = URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = url;
-      link.download = `Deal Summary - ${deal.address}.pdf`;
+      link.download = fileName;
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
       URL.revokeObjectURL(url);
 
-      toast.success('Deal Summary PDF generated successfully');
+      toast.success('Deal Summary saved to documents and downloaded');
       onOpenChange(false);
     } catch (error) {
       console.error('Error generating PDF:', error);
@@ -338,8 +419,9 @@ export function GenerateDealSummaryDialog({ open, onOpenChange, deal }: Generate
                 <div className="relative">
                   <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">$</span>
                   <Input 
-                    value={purchasePrice}
-                    onChange={(e) => setPurchasePrice(e.target.value.replace(/[^0-9.,]/g, ''))}
+                    value={purchasePriceDisplay}
+                    onChange={handlePurchasePriceChange}
+                    onBlur={handlePurchasePriceBlur}
                     className="pl-7"
                     placeholder="0.00"
                   />
@@ -348,136 +430,140 @@ export function GenerateDealSummaryDialog({ open, onOpenChange, deal }: Generate
             </TabsContent>
 
             {/* Deposits Tab */}
-            <TabsContent value="deposits" className="space-y-4 pr-4 m-0">
-              {deposits.map((deposit, index) => (
-                <Card key={deposit.id}>
-                  <CardContent className="p-4 space-y-4">
-                    <div className="flex justify-between items-center">
-                      <span className="font-medium">
-                        {index === 0 ? 'First Deposit' : `Deposit ${index + 1}`}
-                      </span>
-                      {deposits.length > 1 && (
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => removeDeposit(deposit.id)}
-                          className="text-destructive hover:text-destructive"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      )}
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-4">
-                      <div className="space-y-2">
-                        <Label>Amount</Label>
-                        <div className="relative">
-                          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">$</span>
-                          <Input 
-                            value={deposit.amount || ''}
-                            onChange={(e) => updateDeposit(deposit.id, { 
-                              amount: parseFloat(e.target.value.replace(/[^0-9.]/g, '')) || 0 
-                            })}
-                            className="pl-7"
-                            placeholder="0.00"
-                          />
-                        </div>
-                      </div>
-                      <div className="space-y-2">
-                        <Label>Payable To</Label>
-                        <Input 
-                          value={deposit.payableTo}
-                          onChange={(e) => updateDeposit(deposit.id, { payableTo: e.target.value })}
-                          placeholder="e.g., Seller's Lawyer"
-                        />
-                      </div>
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-4">
-                      <div className="space-y-2">
-                        <Label>Due Date</Label>
-                        <Popover>
-                          <PopoverTrigger asChild>
+            <TabsContent value="deposits" className="m-0 h-full">
+              <ScrollArea className="h-[350px] pr-4">
+                <div className="space-y-4">
+                  {deposits.map((deposit, index) => (
+                    <Card key={deposit.id}>
+                      <CardContent className="p-4 space-y-4">
+                        <div className="flex justify-between items-center">
+                          <span className="font-medium">
+                            {index === 0 ? 'First Deposit' : `Deposit ${index + 1}`}
+                          </span>
+                          {deposits.length > 1 && (
                             <Button
-                              variant="outline"
-                              className={cn(
-                                "w-full justify-start text-left font-normal",
-                                !deposit.dueDate && "text-muted-foreground"
-                              )}
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => removeDeposit(deposit.id)}
+                              className="text-destructive hover:text-destructive"
                             >
-                              <CalendarIcon className="mr-2 h-4 w-4" />
-                              {deposit.dueDate ? format(deposit.dueDate, "yyyy-MM-dd") : "yyyy - mm - dd"}
+                              <Trash2 className="h-4 w-4" />
                             </Button>
-                          </PopoverTrigger>
-                          <PopoverContent className="w-auto p-0" align="start">
-                            <Calendar
-                              mode="single"
-                              selected={deposit.dueDate}
-                              onSelect={(date) => updateDeposit(deposit.id, { dueDate: date })}
-                              initialFocus
-                              className="pointer-events-auto"
-                            />
-                          </PopoverContent>
-                        </Popover>
-                      </div>
-                      <div className="space-y-2">
-                        <Label>Due Time</Label>
-                        <div className="flex gap-2">
-                          <Select 
-                            value={deposit.dueHour} 
-                            onValueChange={(v) => updateDeposit(deposit.id, { dueHour: v })}
-                          >
-                            <SelectTrigger className="w-[70px]">
-                              <SelectValue placeholder="Hr" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {hours.map(h => (
-                                <SelectItem key={h} value={h}>{h}</SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                          <Select 
-                            value={deposit.dueMinute} 
-                            onValueChange={(v) => updateDeposit(deposit.id, { dueMinute: v })}
-                          >
-                            <SelectTrigger className="w-[70px]">
-                              <SelectValue placeholder=":00" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {minutes.map(m => (
-                                <SelectItem key={m} value={m}>:{m}</SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                          <Select 
-                            value={deposit.duePeriod} 
-                            onValueChange={(v) => updateDeposit(deposit.id, { duePeriod: v })}
-                          >
-                            <SelectTrigger className="w-[70px]">
-                              <SelectValue placeholder="PM" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="AM">AM</SelectItem>
-                              <SelectItem value="PM">PM</SelectItem>
-                            </SelectContent>
-                          </Select>
+                          )}
                         </div>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
 
-              <Button 
-                variant="outline" 
-                onClick={addDeposit}
-                className="w-full"
-              >
-                <Plus className="h-4 w-4 mr-2" />
-                ADD DEPOSIT
-              </Button>
+                        <div className="grid grid-cols-2 gap-4">
+                          <div className="space-y-2">
+                            <Label>Amount</Label>
+                            <div className="relative">
+                              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">$</span>
+                              <Input 
+                                value={deposit.amount || ''}
+                                onChange={(e) => updateDeposit(deposit.id, { 
+                                  amount: parseFloat(e.target.value.replace(/[^0-9.]/g, '')) || 0 
+                                })}
+                                className="pl-7"
+                                placeholder="0.00"
+                              />
+                            </div>
+                          </div>
+                          <div className="space-y-2">
+                            <Label>Payable To</Label>
+                            <Input 
+                              value={deposit.payableTo}
+                              onChange={(e) => updateDeposit(deposit.id, { payableTo: e.target.value })}
+                              placeholder="e.g., Seller's Lawyer"
+                            />
+                          </div>
+                        </div>
 
-              <div className="space-y-2 pt-4 border-t">
+                        <div className="grid grid-cols-2 gap-4">
+                          <div className="space-y-2">
+                            <Label>Due Date</Label>
+                            <Popover>
+                              <PopoverTrigger asChild>
+                                <Button
+                                  variant="outline"
+                                  className={cn(
+                                    "w-full justify-start text-left font-normal",
+                                    !deposit.dueDate && "text-muted-foreground"
+                                  )}
+                                >
+                                  <CalendarIcon className="mr-2 h-4 w-4" />
+                                  {deposit.dueDate ? format(deposit.dueDate, "yyyy-MM-dd") : "yyyy - mm - dd"}
+                                </Button>
+                              </PopoverTrigger>
+                              <PopoverContent className="w-auto p-0" align="start">
+                                <Calendar
+                                  mode="single"
+                                  selected={deposit.dueDate}
+                                  onSelect={(date) => updateDeposit(deposit.id, { dueDate: date })}
+                                  initialFocus
+                                  className="pointer-events-auto"
+                                />
+                              </PopoverContent>
+                            </Popover>
+                          </div>
+                          <div className="space-y-2">
+                            <Label>Due Time</Label>
+                            <div className="flex gap-2">
+                              <Select 
+                                value={deposit.dueHour} 
+                                onValueChange={(v) => updateDeposit(deposit.id, { dueHour: v })}
+                              >
+                                <SelectTrigger className="w-[70px]">
+                                  <SelectValue placeholder="Hr" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  {hours.map(h => (
+                                    <SelectItem key={h} value={h}>{h}</SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                              <Select 
+                                value={deposit.dueMinute} 
+                                onValueChange={(v) => updateDeposit(deposit.id, { dueMinute: v })}
+                              >
+                                <SelectTrigger className="w-[70px]">
+                                  <SelectValue placeholder=":00" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  {minutes.map(m => (
+                                    <SelectItem key={m} value={m}>:{m}</SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                              <Select 
+                                value={deposit.duePeriod} 
+                                onValueChange={(v) => updateDeposit(deposit.id, { duePeriod: v })}
+                              >
+                                <SelectTrigger className="w-[70px]">
+                                  <SelectValue placeholder="PM" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="AM">AM</SelectItem>
+                                  <SelectItem value="PM">PM</SelectItem>
+                                </SelectContent>
+                              </Select>
+                            </div>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
+
+                  <Button 
+                    variant="outline" 
+                    onClick={addDeposit}
+                    className="w-full"
+                  >
+                    <Plus className="h-4 w-4 mr-2" />
+                    ADD DEPOSIT
+                  </Button>
+                </div>
+              </ScrollArea>
+
+              <div className="space-y-2 pt-4 border-t mt-4">
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Total Deposits:</span>
                   <span>{formatCurrency(totalDeposits)}</span>
@@ -494,166 +580,170 @@ export function GenerateDealSummaryDialog({ open, onOpenChange, deal }: Generate
             </TabsContent>
 
             {/* Actions Tab */}
-            <TabsContent value="actions" className="space-y-4 pr-4 m-0">
-              <p className="text-sm text-muted-foreground">
+            <TabsContent value="actions" className="m-0 h-full">
+              <p className="text-sm text-muted-foreground mb-4">
                 Add due dates and actions to track deal milestones.
               </p>
 
-              {actions.map((action, index) => (
-                <Card key={action.id}>
-                  <CardContent className="p-4 space-y-4">
-                    <div className="flex justify-between items-center">
-                      <span className="font-medium">Action {index + 1}</span>
-                      {actions.length > 1 && (
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => removeAction(action.id)}
-                          className="text-destructive hover:text-destructive"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      )}
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-4">
-                      <div className="space-y-2">
-                        <Label>Due Date</Label>
-                        <Popover>
-                          <PopoverTrigger asChild>
+              <ScrollArea className="h-[350px] pr-4">
+                <div className="space-y-4">
+                  {actions.map((action, index) => (
+                    <Card key={action.id}>
+                      <CardContent className="p-4 space-y-4">
+                        <div className="flex justify-between items-center">
+                          <span className="font-medium">Action {index + 1}</span>
+                          {actions.length > 1 && (
                             <Button
-                              variant="outline"
-                              className={cn(
-                                "w-full justify-start text-left font-normal",
-                                !action.dueDate && "text-muted-foreground"
-                              )}
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => removeAction(action.id)}
+                              className="text-destructive hover:text-destructive"
                             >
-                              <CalendarIcon className="mr-2 h-4 w-4" />
-                              {action.dueDate ? format(action.dueDate, "yyyy-MM-dd") : "yyyy - mm - dd"}
+                              <Trash2 className="h-4 w-4" />
                             </Button>
-                          </PopoverTrigger>
-                          <PopoverContent className="w-auto p-0" align="start">
-                            <Calendar
-                              mode="single"
-                              selected={action.dueDate}
-                              onSelect={(date) => updateAction(action.id, { dueDate: date })}
-                              initialFocus
-                              className="pointer-events-auto"
-                            />
-                          </PopoverContent>
-                        </Popover>
-                      </div>
-                      <div className="space-y-2">
-                        <Label>Due Time</Label>
-                        <div className="flex gap-2">
-                          <Select 
-                            value={action.dueHour} 
-                            onValueChange={(v) => updateAction(action.id, { dueHour: v })}
-                          >
-                            <SelectTrigger className="w-[70px]">
-                              <SelectValue placeholder="Hr" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {hours.map(h => (
-                                <SelectItem key={h} value={h}>{h}</SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                          <Select 
-                            value={action.dueMinute} 
-                            onValueChange={(v) => updateAction(action.id, { dueMinute: v })}
-                          >
-                            <SelectTrigger className="w-[70px]">
-                              <SelectValue placeholder=":00" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {minutes.map(m => (
-                                <SelectItem key={m} value={m}>:{m}</SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                          <Select 
-                            value={action.duePeriod} 
-                            onValueChange={(v) => updateAction(action.id, { duePeriod: v })}
-                          >
-                            <SelectTrigger className="w-[70px]">
-                              <SelectValue placeholder="PM" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="AM">AM</SelectItem>
-                              <SelectItem value="PM">PM</SelectItem>
-                            </SelectContent>
-                          </Select>
+                          )}
                         </div>
-                      </div>
-                    </div>
 
-                    <div className="grid grid-cols-2 gap-4">
-                      <div className="space-y-2">
-                        <Label>Date Met</Label>
-                        <Popover>
-                          <PopoverTrigger asChild>
-                            <Button
-                              variant="outline"
-                              className={cn(
-                                "w-full justify-start text-left font-normal",
-                                !action.dateMet && "text-muted-foreground"
-                              )}
+                        <div className="grid grid-cols-2 gap-4">
+                          <div className="space-y-2">
+                            <Label>Due Date</Label>
+                            <Popover>
+                              <PopoverTrigger asChild>
+                                <Button
+                                  variant="outline"
+                                  className={cn(
+                                    "w-full justify-start text-left font-normal",
+                                    !action.dueDate && "text-muted-foreground"
+                                  )}
+                                >
+                                  <CalendarIcon className="mr-2 h-4 w-4" />
+                                  {action.dueDate ? format(action.dueDate, "yyyy-MM-dd") : "yyyy - mm - dd"}
+                                </Button>
+                              </PopoverTrigger>
+                              <PopoverContent className="w-auto p-0" align="start">
+                                <Calendar
+                                  mode="single"
+                                  selected={action.dueDate}
+                                  onSelect={(date) => updateAction(action.id, { dueDate: date })}
+                                  initialFocus
+                                  className="pointer-events-auto"
+                                />
+                              </PopoverContent>
+                            </Popover>
+                          </div>
+                          <div className="space-y-2">
+                            <Label>Due Time</Label>
+                            <div className="flex gap-2">
+                              <Select 
+                                value={action.dueHour} 
+                                onValueChange={(v) => updateAction(action.id, { dueHour: v })}
+                              >
+                                <SelectTrigger className="w-[70px]">
+                                  <SelectValue placeholder="Hr" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  {hours.map(h => (
+                                    <SelectItem key={h} value={h}>{h}</SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                              <Select 
+                                value={action.dueMinute} 
+                                onValueChange={(v) => updateAction(action.id, { dueMinute: v })}
+                              >
+                                <SelectTrigger className="w-[70px]">
+                                  <SelectValue placeholder=":00" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  {minutes.map(m => (
+                                    <SelectItem key={m} value={m}>:{m}</SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                              <Select 
+                                value={action.duePeriod} 
+                                onValueChange={(v) => updateAction(action.id, { duePeriod: v })}
+                              >
+                                <SelectTrigger className="w-[70px]">
+                                  <SelectValue placeholder="PM" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="AM">AM</SelectItem>
+                                  <SelectItem value="PM">PM</SelectItem>
+                                </SelectContent>
+                              </Select>
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-4">
+                          <div className="space-y-2">
+                            <Label>Date Met</Label>
+                            <Popover>
+                              <PopoverTrigger asChild>
+                                <Button
+                                  variant="outline"
+                                  className={cn(
+                                    "w-full justify-start text-left font-normal",
+                                    !action.dateMet && "text-muted-foreground"
+                                  )}
+                                >
+                                  <CalendarIcon className="mr-2 h-4 w-4" />
+                                  {action.dateMet ? format(action.dateMet, "yyyy-MM-dd") : "yyyy - mm - dd"}
+                                </Button>
+                              </PopoverTrigger>
+                              <PopoverContent className="w-auto p-0" align="start">
+                                <Calendar
+                                  mode="single"
+                                  selected={action.dateMet}
+                                  onSelect={(date) => updateAction(action.id, { dateMet: date })}
+                                  initialFocus
+                                  className="pointer-events-auto"
+                                />
+                              </PopoverContent>
+                            </Popover>
+                          </div>
+                          <div className="space-y-2">
+                            <Label>Acting Party</Label>
+                            <Select 
+                              value={action.actingParty} 
+                              onValueChange={(v) => updateAction(action.id, { actingParty: v })}
                             >
-                              <CalendarIcon className="mr-2 h-4 w-4" />
-                              {action.dateMet ? format(action.dateMet, "yyyy-MM-dd") : "yyyy - mm - dd"}
-                            </Button>
-                          </PopoverTrigger>
-                          <PopoverContent className="w-auto p-0" align="start">
-                            <Calendar
-                              mode="single"
-                              selected={action.dateMet}
-                              onSelect={(date) => updateAction(action.id, { dateMet: date })}
-                              initialFocus
-                              className="pointer-events-auto"
-                            />
-                          </PopoverContent>
-                        </Popover>
-                      </div>
-                      <div className="space-y-2">
-                        <Label>Acting Party</Label>
-                        <Select 
-                          value={action.actingParty} 
-                          onValueChange={(v) => updateAction(action.id, { actingParty: v })}
-                        >
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select party" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="Vendor">Vendor</SelectItem>
-                            <SelectItem value="Purchaser">Purchaser</SelectItem>
-                            <SelectItem value="Both">Both</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-                    </div>
+                              <SelectTrigger>
+                                <SelectValue placeholder="Select party" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="Vendor">Vendor</SelectItem>
+                                <SelectItem value="Purchaser">Purchaser</SelectItem>
+                                <SelectItem value="Both">Both</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
+                        </div>
 
-                    <div className="space-y-2">
-                      <Label>Action Description</Label>
-                      <Textarea 
-                        value={action.description}
-                        onChange={(e) => updateAction(action.id, { description: e.target.value })}
-                        placeholder="e.g., Waiver of Conditions"
-                        className="min-h-[60px]"
-                      />
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
+                        <div className="space-y-2">
+                          <Label>Action Description</Label>
+                          <Textarea 
+                            value={action.description}
+                            onChange={(e) => updateAction(action.id, { description: e.target.value })}
+                            placeholder="e.g., Waiver of Conditions"
+                            className="min-h-[60px]"
+                          />
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
 
-              <Button 
-                variant="outline" 
-                onClick={addAction}
-                className="w-full"
-              >
-                <Plus className="h-4 w-4 mr-2" />
-                ADD ACTION
-              </Button>
+                  <Button 
+                    variant="outline" 
+                    onClick={addAction}
+                    className="w-full"
+                  >
+                    <Plus className="h-4 w-4 mr-2" />
+                    ADD ACTION
+                  </Button>
+                </div>
+              </ScrollArea>
             </TabsContent>
           </ScrollArea>
         </Tabs>
