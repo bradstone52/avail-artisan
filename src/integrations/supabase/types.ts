@@ -1952,6 +1952,44 @@ export type Database = {
           },
         ]
       }
+      prospect_follow_up_dates: {
+        Row: {
+          completed: boolean
+          created_at: string
+          date: string
+          id: string
+          notes: string | null
+          prospect_id: string
+          updated_at: string
+        }
+        Insert: {
+          completed?: boolean
+          created_at?: string
+          date: string
+          id?: string
+          notes?: string | null
+          prospect_id: string
+          updated_at?: string
+        }
+        Update: {
+          completed?: boolean
+          created_at?: string
+          date?: string
+          id?: string
+          notes?: string | null
+          prospect_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "prospect_follow_up_dates_prospect_id_fkey"
+            columns: ["prospect_id"]
+            isOneToOne: false
+            referencedRelation: "prospects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       prospects: {
         Row: {
           budget: number | null
