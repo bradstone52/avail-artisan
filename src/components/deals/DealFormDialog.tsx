@@ -97,12 +97,18 @@ export function DealFormDialog({ open, onOpenChange, deal }: DealFormDialogProps
   const handleListingChange = (listing: MarketListing | null) => {
     setSelectedListing(listing);
     if (listing) {
+      // Map listing_type to deal_type
+      let dealType: DealType = 'Lease';
+      if (listing.listing_type === 'Sale') dealType = 'Sale';
+      else if (listing.listing_type === 'Sublease') dealType = 'Sublease';
+      
       setFormData(prev => ({
         ...prev,
         listing_id: listing.id,
         address: listing.address,
         city: listing.city,
         submarket: listing.submarket,
+        deal_type: dealType,
       }));
     } else {
       setFormData(prev => ({
@@ -171,8 +177,9 @@ export function DealFormDialog({ open, onOpenChange, deal }: DealFormDialogProps
               <Select
                 value={formData.deal_type}
                 onValueChange={(value) => setFormData({ ...formData, deal_type: value as DealType })}
+                disabled={hasLinkedListing}
               >
-                <SelectTrigger>
+                <SelectTrigger className={hasLinkedListing ? 'bg-muted' : ''}>
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
