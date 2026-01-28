@@ -11,14 +11,10 @@ import { DealImportantDatesSection } from '@/components/deals/detail/DealImporta
 import { DealDocumentsCard } from '@/components/deals/detail/DealDocumentsCard';
 import { DealFinancialSummaryCard } from '@/components/deals/detail/DealFinancialSummaryCard';
 import { DealEditDialog } from '@/components/deals/detail/DealEditDialog';
+import { GenerateDealSheetDialog } from '@/components/deals/GenerateDealSheetDialog';
 import { ConfirmDialog } from '@/components/common/ConfirmDialog';
 import { Skeleton } from '@/components/ui/skeleton';
 import { ArrowLeft, FileText, Edit, Trash2, Briefcase } from 'lucide-react';
-import { toast } from 'sonner';
-import { pdf } from '@react-pdf/renderer';
-import { DealSheetPDF } from '@/components/documents/DealSheetPDF';
-import { useAgents } from '@/hooks/useAgents';
-import { useBrokerages } from '@/hooks/useBrokerages';
 
 export default function DealDetail() {
   const { id } = useParams<{ id: string }>();
@@ -29,49 +25,9 @@ export default function DealDetail() {
   const { deposits } = useDealDeposits(id);
   const deleteDeal = useDeleteDeal();
   
-  const { data: agents } = useAgents();
-  const { data: brokerages } = useBrokerages();
-  
   const [editOpen, setEditOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
-  const [generating, setGenerating] = useState(false);
-
-  // Helper to get agent/brokerage names for PDF
-  const getAgent = (agentId: string | null | undefined) => agents?.find(a => a.id === agentId);
-  const getBrokerage = (brokerageId: string | null | undefined) => brokerages?.find(b => b.id === brokerageId);
-
-  const handleGenerateDealSheet = async () => {
-    if (!deal) return;
-    
-    setGenerating(true);
-    try {
-      const blob = await pdf(
-        <DealSheetPDF 
-          deal={deal} 
-          conditions={conditions}
-          deposits={deposits}
-          getAgent={getAgent}
-          getBrokerage={getBrokerage}
-        />
-      ).toBlob();
-      
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `${deal.address.replace(/[^a-zA-Z0-9]/g, '_')}_Dealsheet.pdf`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
-      
-      toast.success('Deal Sheet PDF generated successfully');
-    } catch (error) {
-      console.error('Error generating deal sheet:', error);
-      toast.error('Failed to generate deal sheet');
-    } finally {
-      setGenerating(false);
-    }
-  };
+  const [generateSheetOpen, setGenerateSheetOpen] = useState(false);
 
   const handleDelete = async () => {
     if (!id) return;
@@ -133,11 +89,10 @@ export default function DealDetail() {
           <div className="flex flex-wrap gap-2">
             <Button 
               variant="outline" 
-              onClick={handleGenerateDealSheet}
-              disabled={generating}
+              onClick={() => setGenerateSheetOpen(true)}
             >
               <FileText className="w-4 h-4 mr-2" />
-              {generating ? 'Generating...' : 'GENERATE DEAL SHEET'}
+              GENERATE DEAL SHEET
             </Button>
             <Button variant="outline" onClick={() => setEditOpen(true)}>
               <Edit className="w-4 h-4 mr-2" />
@@ -184,6 +139,13 @@ export default function DealDetail() {
         confirmLabel="Delete"
         variant="destructive"
         onConfirm={handleDelete}
+      />
+
+      {/* Generate Deal Sheet Dialog */}
+      <GenerateDealSheetDialog
+        open={generateSheetOpen}
+        onOpenChange={setGenerateSheetOpen}
+        deal={deal}
       />
     </AppLayout>
   );
