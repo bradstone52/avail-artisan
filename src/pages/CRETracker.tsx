@@ -12,8 +12,8 @@ import { Calendar as CalendarComponent } from '@/components/ui/calendar';
 
 export default function CRETracker() {
   const { data: deals = [] } = useDeals();
-  const { data: dealDates = [] } = useAllDealImportantDates(60);
-  const upcomingFollowUps = useUpcomingFollowUps(60);
+  const { data: dealDates = [] } = useAllDealImportantDates(120);
+  const upcomingFollowUps = useUpcomingFollowUps(120);
 
   // Calculate deal stats
   const activeDeals = deals.filter(d => d.status === 'Conditional' || d.status === 'Firm');
