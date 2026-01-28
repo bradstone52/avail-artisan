@@ -163,11 +163,7 @@ export function useTransactions() {
       let listingSnapshot: Json | null = null;
       let propertyId: string | null = input.property_id || null;
 
-      // Determine if we should delete the listing after creating transaction
-      // For "Unknown/Removed" transactions, keep the listing in the database
-      const shouldDeleteListing = input.transaction_type !== 'Unknown/Removed';
-
-      // If there's a linked market listing, fetch the full record for snapshot
+      // If there's a linked market listing, fetch the full record for snapshot and deletion
       if (input.market_listing_id) {
         const { data: listingData, error: listingError } = await supabase
           .from('market_listings')
@@ -190,8 +186,7 @@ export function useTransactions() {
 
       // Delete the market listing FIRST to prevent race conditions with duplicate submissions
       // This acts as an atomic lock - only the first transaction to delete succeeds
-      // Skip deletion for "Unknown/Removed" transactions - listing stays in database
-      if (input.market_listing_id && shouldDeleteListing) {
+      if (input.market_listing_id) {
         const { data: deletedRows, error: deleteError } = await supabase
           .from('market_listings')
           .delete()
@@ -240,8 +235,7 @@ export function useTransactions() {
 
       if (error) {
         // If transaction creation fails after delete, try to restore the listing
-        // Only restore if we actually deleted it (not for Unknown/Removed transactions)
-        if (shouldDeleteListing && listingSnapshot && input.market_listing_id) {
+        if (listingSnapshot && input.market_listing_id) {
           console.error('Transaction creation failed, attempting to restore listing...');
           const snapshot = listingSnapshot as Record<string, Json | undefined>;
           // eslint-disable-next-line @typescript-eslint/no-unused-vars
