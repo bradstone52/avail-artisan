@@ -7,6 +7,7 @@ import { Link } from 'react-router-dom';
 import { useDeals } from '@/hooks/useDeals';
 import { useAllDealImportantDates } from '@/hooks/useAllDealImportantDates';
 import { useUpcomingFollowUps } from '@/hooks/useUpcomingFollowUps';
+import { formatCurrency } from '@/lib/format';
 import { format, parseISO, isSameDay, addDays } from 'date-fns';
 import { Calendar as CalendarComponent } from '@/components/ui/calendar';
 
@@ -19,6 +20,14 @@ export default function CRETracker() {
   // Calculate deal stats
   const activeDeals = deals.filter(d => d.status === 'Conditional' || d.status === 'Firm');
   const closedDeals = deals.filter(d => d.status === 'Closed');
+  
+  // Calculate closed deal totals
+  const closedTotalSF = closedDeals.reduce((sum, deal) => sum + (deal.size_sf || 0), 0);
+  const closedTotalCommission = closedDeals.reduce((sum, deal) => {
+    const dealValue = deal.deal_value || deal.lease_value || 0;
+    const commissionPercent = deal.commission_percent || 0;
+    return sum + (dealValue * commissionPercent / 100);
+  }, 0);
 
   // Collect all important dates for calendar
   const calendarDates = [
@@ -74,6 +83,10 @@ export default function CRETracker() {
         { label: 'Active', value: activeDeals.length },
         { label: 'Closed', value: closedDeals.length },
       ],
+      closedStats: {
+        totalSF: closedTotalSF,
+        totalCommission: closedTotalCommission,
+      },
       color: 'bg-primary',
     },
     {
@@ -125,13 +138,28 @@ export default function CRETracker() {
                 </CardHeader>
                 <CardContent>
                   {'stats' in section && section.stats ? (
-                    <div className="flex gap-4">
-                      {section.stats.map((stat) => (
-                        <div key={stat.label} className="flex-1">
-                          <p className="text-2xl font-black">{stat.value}</p>
-                          <p className="text-xs text-muted-foreground uppercase tracking-wide">{stat.label}</p>
+                    <div className="space-y-3">
+                      <div className="flex gap-4">
+                        {section.stats.map((stat) => (
+                          <div key={stat.label} className="flex-1">
+                            <p className="text-2xl font-black">{stat.value}</p>
+                            <p className="text-xs text-muted-foreground uppercase tracking-wide">{stat.label}</p>
+                          </div>
+                        ))}
+                      </div>
+                      {'closedStats' in section && section.closedStats && section.closedStats.totalSF > 0 && (
+                        <div className="pt-2 border-t border-foreground/10">
+                          <p className="text-xs text-muted-foreground uppercase tracking-wide mb-1">Closed Totals</p>
+                          <div className="flex gap-4">
+                            <div>
+                              <p className="text-sm font-bold">{section.closedStats.totalSF.toLocaleString()} SF</p>
+                            </div>
+                            <div>
+                              <p className="text-sm font-bold">{formatCurrency(section.closedStats.totalCommission)}</p>
+                            </div>
+                          </div>
                         </div>
-                      ))}
+                      )}
                     </div>
                   ) : (
                     <p className="text-sm text-muted-foreground">Click to view</p>
