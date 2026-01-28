@@ -100,7 +100,11 @@ export function GenerateDealSheetDialog({ open, onOpenChange, deal }: GenerateDe
   const [generating, setGenerating] = useState(false);
   const [saving, setSaving] = useState(false);
 
-  // Initialize local conditions and deposits from existing
+  // Create stable dependency strings based on IDs to prevent infinite loops
+  const conditionIds = existingConditions?.map(c => c.id).join(',') || '';
+  const depositIds = existingDeposits?.map(d => d.id).join(',') || '';
+
+  // Initialize local conditions and deposits from existing (using stable ID-based dependencies)
   useEffect(() => {
     if (existingConditions) {
       setLocalConditions(existingConditions.map(c => ({
@@ -109,7 +113,7 @@ export function GenerateDealSheetDialog({ open, onOpenChange, deal }: GenerateDe
         due_date: c.due_date,
       })));
     }
-  }, [existingConditions]);
+  }, [conditionIds]);
 
   useEffect(() => {
     if (existingDeposits) {
@@ -119,7 +123,7 @@ export function GenerateDealSheetDialog({ open, onOpenChange, deal }: GenerateDe
         held_by: d.held_by || '',
       })));
     }
-  }, [existingDeposits]);
+  }, [depositIds]);
 
   // Filter agents by brokerage, excluding already selected agent
   const getAgentsForBrokerage = (brokerageId: string, excludeAgentId?: string) => {
