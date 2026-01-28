@@ -1,13 +1,11 @@
 
+# Fix Deal Sheet PDF Issues
 
-# Fix Deal Sheet PDF Rendering Issues
+## Problems Identified
 
-## Problem Analysis
-The `DealSheetPDF.tsx` file has been updated with the new design (blue headers, yellow party sections, green commission, pink comments), but there are rendering bugs preventing the PDF from generating correctly:
-
-1. **Empty Text Component Warning** - Lines 432-435 and 475-477 contain empty `<Text>` components that cause react-pdf warnings
-2. **Unsupported CSS Property** - Lines 362 and 366 use `gap: 4` which is not fully supported in react-pdf
-3. **Buffer Not Defined** - A known react-pdf browser compatibility issue
+1. **Green background not filling Financial/Trust section**: The right column (Financial/Trust Details) doesn't have green background extending to match the height of the Commission Breakdown section
+2. **Comments section getting cut off**: Comments should flow to a second page if there's no space, rather than being cut off
+3. **Title showing "sale/lease"**: The dynamic title logic is in place but may not be rendering correctly
 
 ---
 
@@ -15,78 +13,106 @@ The `DealSheetPDF.tsx` file has been updated with the new design (blue headers, 
 
 ### File: `src/components/documents/DealSheetPDF.tsx`
 
-#### Fix 1: Replace `gap` with `marginRight` in header (Lines 362-369)
+#### Fix 1: Green Background Full Height (Lines 201-227)
 
-**Current:**
+The issue is that while `greenBody` has `flex: 1`, the parent `financialSection` View doesn't have proper flex styling to stretch to match the sibling column. Need to add `display: 'flex'` and ensure both columns stretch equally.
+
+**Update styles:**
+- Add `display: 'flex'` and `flexDirection: 'column'` to `commissionSection` and `financialSection`
+- Ensure `greenBody` fills remaining space with `flexGrow: 1`
+
+**Current `financialSection` style (line 211-216):**
 ```tsx
-<View style={{ flexDirection: 'row', gap: 4 }}>
-  <Text style={styles.dealInfo}>Deal #:</Text>
-  <Text style={styles.dealInfoBold}>{deal.deal_number || '_________'}</Text>
-</View>
-<View style={{ flexDirection: 'row', gap: 4 }}>
-  <Text style={styles.dealInfo}>Date:</Text>
-  <Text style={styles.dealInfoBold}>{format(new Date(), 'MMMM d, yyyy')}</Text>
-</View>
+financialSection: {
+  flex: 1,
+  borderWidth: 1,
+  borderColor: BLACK,
+  marginLeft: 5,
+},
 ```
 
-**Fixed:**
+**Updated:**
 ```tsx
-<View style={{ flexDirection: 'row' }}>
-  <Text style={[styles.dealInfo, { marginRight: 4 }]}>Deal #:</Text>
-  <Text style={styles.dealInfoBold}>{deal.deal_number || '_________'}</Text>
-</View>
-<View style={{ flexDirection: 'row' }}>
-  <Text style={[styles.dealInfo, { marginRight: 4 }]}>Date:</Text>
-  <Text style={styles.dealInfoBold}>{format(new Date(), 'MMMM d, yyyy')}</Text>
-</View>
+financialSection: {
+  flex: 1,
+  borderWidth: 1,
+  borderColor: BLACK,
+  marginLeft: 5,
+  display: 'flex',
+  flexDirection: 'column',
+},
 ```
 
-#### Fix 2: Remove empty Text elements (Lines 430-435 and 473-478)
+Same update needed for `commissionSection`.
 
-**Current:**
+Also update `greenBody` to:
 ```tsx
-{sellerBrokerage?.address && (
-  <View style={styles.partyRow}>
-    <Text style={styles.partyLabel}></Text>
-    <Text style={styles.partyValue}>{sellerBrokerage.address}</Text>
+greenBody: {
+  backgroundColor: GREEN_BG,
+  padding: 8,
+  flexGrow: 1,
+},
+```
+
+#### Fix 2: Comments Section on Second Page (Lines 629-635)
+
+Move the Comments section outside the main `<Page>` and create it as a second page that can accommodate the content without being cut off. Or use `wrap={false}` to prevent partial rendering.
+
+**Solution**: Wrap the comments section in its own `<View wrap={false}>` which will push it to the next page if it doesn't fit, OR explicitly put comments on a separate page.
+
+Better approach: Use `break="before"` on the comments section to ensure it always starts on a fresh page OR use `wrap` property to prevent breaking within comments.
+
+**Updated Comments section:**
+```tsx
+{/* Comments - on second page if needed */}
+<View wrap={false}>
+  <View style={styles.commentsHeader}>
+    <Text style={styles.sectionTitle}>Comments</Text>
   </View>
-)}
-```
-
-**Fixed:**
-```tsx
-{sellerBrokerage?.address && (
-  <View style={styles.partyRow}>
-    <Text style={styles.partyLabel}>{' '}</Text>
-    <Text style={styles.partyValue}>{sellerBrokerage.address}</Text>
+  <View style={styles.commentsBody}>
+    <Text style={styles.commentsText}>{deal.notes || '—'}</Text>
   </View>
-)}
+</View>
 ```
 
-Same fix needed for buyer brokerage address section (lines 473-478).
+This ensures the comments header + body stay together and if they don't fit on page 1, they'll flow to page 2.
 
-#### Fix 3: Add Buffer polyfill (vite.config.ts)
+#### Fix 3: Title Not Updating
 
-To fix the "Buffer is not defined" error, need to add a polyfill configuration:
+The code at line 363 appears correct:
+```tsx
+<Text style={styles.mainTitle}>{deal.deal_type === 'Lease' ? 'lease' : 'sale'} dealsheet</Text>
+```
 
-**File: `vite.config.ts`**
+However, possible issues:
+1. The deal might have a `deal_type` value that's not exactly "Lease" (e.g., lowercase or different value)
+2. Need to ensure the comparison handles case-insensitivity
 
-Add define option to provide Buffer polyfill for browser environments.
+**Updated logic:**
+```tsx
+<Text style={styles.mainTitle}>
+  {deal.deal_type?.toLowerCase() === 'lease' ? 'lease' : 'sale'} dealsheet
+</Text>
+```
+
+This makes the check case-insensitive and handles undefined gracefully.
 
 ---
 
 ## Summary of Changes
 
-| File | Issue | Fix |
-|------|-------|-----|
-| `DealSheetPDF.tsx` | `gap` property unsupported | Replace with `marginRight: 4` |
-| `DealSheetPDF.tsx` | Empty Text components | Replace empty strings with `{' '}` |
-| `vite.config.ts` | Buffer not defined | Add global Buffer definition |
+| Location | Issue | Fix |
+|----------|-------|-----|
+| Styles (lines 205-227) | Green BG not filling | Add `display: 'flex'`, `flexDirection: 'column'` to sections, change `flex: 1` to `flexGrow: 1` in `greenBody` |
+| Lines 629-635 | Comments cut off | Wrap in `<View wrap={false}>` to keep header+body together |
+| Line 363 | Title not dynamic | Use case-insensitive comparison: `deal.deal_type?.toLowerCase() === 'lease'` |
 
 ---
 
 ## Files to Modify
 
-1. `src/components/documents/DealSheetPDF.tsx` - Fix gap and empty text issues
-2. `vite.config.ts` - Add Buffer polyfill for react-pdf compatibility
-
+1. `src/components/documents/DealSheetPDF.tsx`
+   - Update `commissionSection` and `financialSection` styles to use flex column layout
+   - Update `greenBody` to use `flexGrow: 1`
+   - Wrap comments section with `wrap={false}`
+   - Make title comparison case-insensitive
