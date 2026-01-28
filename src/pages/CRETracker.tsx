@@ -7,13 +7,14 @@ import { Link } from 'react-router-dom';
 import { useDeals } from '@/hooks/useDeals';
 import { useAllDealImportantDates } from '@/hooks/useAllDealImportantDates';
 import { useUpcomingFollowUps } from '@/hooks/useUpcomingFollowUps';
-import { format, parseISO, isSameDay } from 'date-fns';
+import { format, parseISO, isSameDay, addDays } from 'date-fns';
 import { Calendar as CalendarComponent } from '@/components/ui/calendar';
 
 export default function CRETracker() {
   const { data: deals = [] } = useDeals();
-  const { data: dealDates = [] } = useAllDealImportantDates(30);
-  const upcomingFollowUps = useUpcomingFollowUps(30);
+  // Fetch 365 days for calendar display, but filter list to 30 days
+  const { data: dealDates = [] } = useAllDealImportantDates(365);
+  const upcomingFollowUps = useUpcomingFollowUps(365);
 
   // Calculate deal stats
   const activeDeals = deals.filter(d => d.status === 'Conditional' || d.status === 'Firm');
@@ -45,9 +46,23 @@ export default function CRETracker() {
 
   const [selectedDate, setSelectedDate] = React.useState<Date | undefined>(undefined);
   
+  // Filter for upcoming list (30 days only)
+  const today = new Date();
+  const thirtyDaysFromNow = addDays(today, 30);
+  const upcomingEvents = calendarDates
+    .filter(d => d.date >= today && d.date <= thirtyDaysFromNow)
+    .sort((a, b) => a.date.getTime() - b.date.getTime());
+
   const eventsOnSelectedDate = selectedDate
     ? calendarDates.filter(d => isSameDay(d.date, selectedDate))
     : [];
+
+  // Group calendar dates by type for color-coded modifiers
+  const closingDates = calendarDates.filter(d => d.type === 'closing').map(d => d.date);
+  const depositDates = calendarDates.filter(d => d.type === 'deposit').map(d => d.date);
+  const conditionDates = calendarDates.filter(d => d.type === 'condition').map(d => d.date);
+  const actionDates = calendarDates.filter(d => d.type === 'action').map(d => d.date);
+  const prospectDates = calendarDates.filter(d => d.type === 'prospect').map(d => d.date);
 
   const sections = [
     {
@@ -143,10 +158,18 @@ export default function CRETracker() {
                   selected={selectedDate}
                   onSelect={(date) => setSelectedDate(date === selectedDate ? undefined : date)}
                   modifiers={{
-                    hasEvent: calendarDates.map(d => d.date),
+                    closing: closingDates,
+                    deposit: depositDates,
+                    condition: conditionDates,
+                    action: actionDates,
+                    prospect: prospectDates,
                   }}
                   modifiersClassNames={{
-                    hasEvent: 'bg-primary/30 font-bold text-primary-foreground',
+                    closing: 'bg-primary text-primary-foreground font-bold',
+                    deposit: 'bg-yellow-500 text-white font-bold',
+                    condition: 'bg-orange-500 text-white font-bold',
+                    action: 'bg-blue-500 text-white font-bold',
+                    prospect: 'bg-accent text-accent-foreground font-bold',
                   }}
                   className="pointer-events-auto"
                 />
@@ -188,10 +211,7 @@ export default function CRETracker() {
                 </div>
                 {!selectedDate && (
                   <div className="space-y-2 max-h-[300px] overflow-y-auto">
-                    {calendarDates
-                      .filter(d => d.date >= new Date())
-                      .sort((a, b) => a.date.getTime() - b.date.getTime())
-                      .map((event, i) => (
+                    {upcomingEvents.map((event, i) => (
                         <Link
                           key={i}
                           to={event.linkPath}
@@ -212,8 +232,8 @@ export default function CRETracker() {
                           </span>
                         </Link>
                       ))}
-                    {calendarDates.filter(d => d.date >= new Date()).length === 0 && (
-                      <p className="text-sm text-muted-foreground text-center py-4">No upcoming dates</p>
+                    {upcomingEvents.length === 0 && (
+                      <p className="text-sm text-muted-foreground text-center py-4">No upcoming dates in the next 30 days</p>
                     )}
                   </div>
                 )}
