@@ -13,7 +13,8 @@ import {
 import { SearchInput } from '@/components/common/SearchInput';
 import { ConfirmDialog } from '@/components/common/ConfirmDialog';
 import { useBrokerages, useCreateBrokerage, useUpdateBrokerage, useDeleteBrokerage } from '@/hooks/useBrokerages';
-import { Edit, Trash2, Plus } from 'lucide-react';
+import { useAgents, useCreateAgent, useDeleteAgent } from '@/hooks/useAgents';
+import { Edit, Trash2, Plus, ChevronDown, ChevronRight, UserPlus } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -25,14 +26,28 @@ import type { Brokerage, BrokerageFormData } from '@/types/database';
 
 export function BrokeragesTab() {
   const { data: brokerages, isLoading } = useBrokerages();
+  const { data: agents } = useAgents();
   const createBrokerage = useCreateBrokerage();
   const updateBrokerage = useUpdateBrokerage();
   const deleteBrokerage = useDeleteBrokerage();
+  const createAgent = useCreateAgent();
+  const deleteAgent = useDeleteAgent();
 
   const [search, setSearch] = useState('');
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingBrokerage, setEditingBrokerage] = useState<Brokerage | null>(null);
   const [deleteId, setDeleteId] = useState<string | null>(null);
+  const [expandedBrokerages, setExpandedBrokerages] = useState<Set<string>>(new Set());
+
+  // Add agent dialog state
+  const [addAgentDialogOpen, setAddAgentDialogOpen] = useState(false);
+  const [addAgentBrokerageId, setAddAgentBrokerageId] = useState<string | null>(null);
+  const [agentFormData, setAgentFormData] = useState({
+    name: '',
+    phone: '',
+    email: '',
+  });
+  const [deleteAgentId, setDeleteAgentId] = useState<string | null>(null);
 
   const [formData, setFormData] = useState<BrokerageFormData>({
     name: '',
@@ -44,6 +59,22 @@ export function BrokeragesTab() {
   const filteredBrokerages = brokerages?.filter(brokerage =>
     brokerage.name.toLowerCase().includes(search.toLowerCase())
   ) || [];
+
+  const toggleBrokerage = (id: string) => {
+    setExpandedBrokerages(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) {
+        next.delete(id);
+      } else {
+        next.add(id);
+      }
+      return next;
+    });
+  };
+
+  const getAgentsForBrokerage = (brokerageId: string) => {
+    return agents?.filter(agent => agent.brokerage_id === brokerageId) || [];
+  };
 
   const handleOpenDialog = (brokerage?: Brokerage) => {
     if (brokerage) {
@@ -67,7 +98,7 @@ export function BrokeragesTab() {
       if (editingBrokerage) {
         await updateBrokerage.mutateAsync({ id: editingBrokerage.id, ...formData });
       } else {
-        await createBrokerage.mutateAsync(formData);
+        await createBrokerage.mutateAsync({ name: formData.name, address: formData.address });
       }
       setDialogOpen(false);
     } catch (error) {
@@ -79,6 +110,38 @@ export function BrokeragesTab() {
     if (deleteId) {
       await deleteBrokerage.mutateAsync(deleteId);
       setDeleteId(null);
+    }
+  };
+
+  const handleOpenAddAgentDialog = (brokerageId: string) => {
+    setAddAgentBrokerageId(brokerageId);
+    setAgentFormData({ name: '', phone: '', email: '' });
+    setAddAgentDialogOpen(true);
+  };
+
+  const handleAddAgent = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!addAgentBrokerageId) return;
+    
+    try {
+      await createAgent.mutateAsync({
+        name: agentFormData.name,
+        phone: agentFormData.phone,
+        email: agentFormData.email,
+        brokerage_id: addAgentBrokerageId,
+      });
+      setAddAgentDialogOpen(false);
+      // Expand the brokerage to show the new agent
+      setExpandedBrokerages(prev => new Set(prev).add(addAgentBrokerageId));
+    } catch (error) {
+      // Error handled by mutation
+    }
+  };
+
+  const handleDeleteAgent = async () => {
+    if (deleteAgentId) {
+      await deleteAgent.mutateAsync(deleteAgentId);
+      setDeleteAgentId(null);
     }
   };
 
@@ -108,37 +171,99 @@ export function BrokeragesTab() {
           <Table>
             <TableHeader>
               <TableRow>
+                <TableHead className="w-[40px]"></TableHead>
                 <TableHead>Name</TableHead>
                 <TableHead>Address</TableHead>
-                <TableHead>Phone</TableHead>
-                <TableHead>Email</TableHead>
-                <TableHead className="w-[80px]">Actions</TableHead>
+                <TableHead>Agents</TableHead>
+                <TableHead className="w-[120px]">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filteredBrokerages.map((brokerage) => (
-                <TableRow key={brokerage.id}>
-                  <TableCell className="font-medium">{brokerage.name}</TableCell>
-                  <TableCell>{brokerage.address || '-'}</TableCell>
-                  <TableCell>{brokerage.phone || '-'}</TableCell>
-                  <TableCell>{brokerage.email || '-'}</TableCell>
-                  <TableCell>
-                    <div className="flex items-center gap-1">
-                      <Button variant="ghost" size="icon" className="w-8 h-8" onClick={() => handleOpenDialog(brokerage)}>
-                        <Edit className="w-4 h-4" />
-                      </Button>
-                      <Button variant="ghost" size="icon" className="w-8 h-8 text-destructive" onClick={() => setDeleteId(brokerage.id)}>
-                        <Trash2 className="w-4 h-4" />
-                      </Button>
-                    </div>
-                  </TableCell>
-                </TableRow>
-              ))}
+              {filteredBrokerages.map((brokerage) => {
+                const brokerageAgents = getAgentsForBrokerage(brokerage.id);
+                const isExpanded = expandedBrokerages.has(brokerage.id);
+                
+                return (
+                  <>
+                    <TableRow key={brokerage.id}>
+                      <TableCell>
+                        <Button 
+                          variant="ghost" 
+                          size="icon" 
+                          className="w-6 h-6"
+                          onClick={() => toggleBrokerage(brokerage.id)}
+                        >
+                          {isExpanded ? (
+                            <ChevronDown className="w-4 h-4" />
+                          ) : (
+                            <ChevronRight className="w-4 h-4" />
+                          )}
+                        </Button>
+                      </TableCell>
+                      <TableCell className="font-medium">{brokerage.name}</TableCell>
+                      <TableCell>{brokerage.address || '-'}</TableCell>
+                      <TableCell>{brokerageAgents.length}</TableCell>
+                      <TableCell>
+                        <div className="flex items-center gap-1">
+                          <Button 
+                            variant="ghost" 
+                            size="icon" 
+                            className="w-8 h-8"
+                            onClick={() => handleOpenAddAgentDialog(brokerage.id)}
+                            title="Add Agent"
+                          >
+                            <UserPlus className="w-4 h-4" />
+                          </Button>
+                          <Button variant="ghost" size="icon" className="w-8 h-8" onClick={() => handleOpenDialog(brokerage)}>
+                            <Edit className="w-4 h-4" />
+                          </Button>
+                          <Button variant="ghost" size="icon" className="w-8 h-8 text-destructive" onClick={() => setDeleteId(brokerage.id)}>
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                    {isExpanded && brokerageAgents.length > 0 && brokerageAgents.map(agent => (
+                      <TableRow key={agent.id} className="bg-muted/30">
+                        <TableCell></TableCell>
+                        <TableCell className="pl-8">
+                          <span className="text-muted-foreground">↳</span> {agent.name}
+                        </TableCell>
+                        <TableCell>
+                          {agent.email && <span className="text-sm text-muted-foreground">{agent.email}</span>}
+                        </TableCell>
+                        <TableCell>
+                          {agent.phone && <span className="text-sm text-muted-foreground">{agent.phone}</span>}
+                        </TableCell>
+                        <TableCell>
+                          <Button 
+                            variant="ghost" 
+                            size="icon" 
+                            className="w-8 h-8 text-destructive" 
+                            onClick={() => setDeleteAgentId(agent.id)}
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                    {isExpanded && brokerageAgents.length === 0 && (
+                      <TableRow className="bg-muted/30">
+                        <TableCell></TableCell>
+                        <TableCell colSpan={4} className="pl-8 text-muted-foreground text-sm">
+                          No agents. Click <UserPlus className="w-3 h-3 inline mx-1" /> to add one.
+                        </TableCell>
+                      </TableRow>
+                    )}
+                  </>
+                );
+              })}
             </TableBody>
           </Table>
         )}
       </CardContent>
 
+      {/* Add/Edit Brokerage Dialog */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent>
           <DialogHeader>
@@ -146,7 +271,7 @@ export function BrokeragesTab() {
           </DialogHeader>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
-              <Label>Name *</Label>
+              <Label>Brokerage Name *</Label>
               <Input
                 value={formData.name}
                 onChange={(e) => setFormData({ ...formData, name: e.target.value })}
@@ -160,24 +285,66 @@ export function BrokeragesTab() {
                 onChange={(e) => setFormData({ ...formData, address: e.target.value })}
               />
             </div>
+            {editingBrokerage && (
+              <>
+                <div className="space-y-2">
+                  <Label>Phone</Label>
+                  <Input
+                    value={formData.phone}
+                    onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Email</Label>
+                  <Input
+                    type="email"
+                    value={formData.email}
+                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                  />
+                </div>
+              </>
+            )}
+            <div className="flex justify-end gap-2">
+              <Button type="button" variant="outline" onClick={() => setDialogOpen(false)}>Cancel</Button>
+              <Button type="submit">{editingBrokerage ? 'Update' : 'Create'}</Button>
+            </div>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Add Agent Dialog */}
+      <Dialog open={addAgentDialogOpen} onOpenChange={setAddAgentDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Add Agent</DialogTitle>
+          </DialogHeader>
+          <form onSubmit={handleAddAgent} className="space-y-4">
+            <div className="space-y-2">
+              <Label>Name *</Label>
+              <Input
+                value={agentFormData.name}
+                onChange={(e) => setAgentFormData({ ...agentFormData, name: e.target.value })}
+                required
+              />
+            </div>
             <div className="space-y-2">
               <Label>Phone</Label>
               <Input
-                value={formData.phone}
-                onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                value={agentFormData.phone}
+                onChange={(e) => setAgentFormData({ ...agentFormData, phone: e.target.value })}
               />
             </div>
             <div className="space-y-2">
               <Label>Email</Label>
               <Input
                 type="email"
-                value={formData.email}
-                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                value={agentFormData.email}
+                onChange={(e) => setAgentFormData({ ...agentFormData, email: e.target.value })}
               />
             </div>
             <div className="flex justify-end gap-2">
-              <Button type="button" variant="outline" onClick={() => setDialogOpen(false)}>Cancel</Button>
-              <Button type="submit">{editingBrokerage ? 'Update' : 'Create'}</Button>
+              <Button type="button" variant="outline" onClick={() => setAddAgentDialogOpen(false)}>Cancel</Button>
+              <Button type="submit">Add Agent</Button>
             </div>
           </form>
         </DialogContent>
@@ -191,6 +358,16 @@ export function BrokeragesTab() {
         confirmLabel="Delete"
         variant="destructive"
         onConfirm={handleDelete}
+      />
+
+      <ConfirmDialog
+        open={!!deleteAgentId}
+        onOpenChange={(open) => !open && setDeleteAgentId(null)}
+        title="Delete Agent"
+        description="Are you sure you want to delete this agent?"
+        confirmLabel="Delete"
+        variant="destructive"
+        onConfirm={handleDeleteAgent}
       />
     </Card>
   );
