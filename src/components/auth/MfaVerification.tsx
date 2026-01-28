@@ -16,11 +16,8 @@ export function MfaVerification({ onVerified, onCancel }: MfaVerificationProps) 
   const [code, setCode] = useState('');
   const [isVerifying, setIsVerifying] = useState(false);
 
-  const handleVerify = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    if (code.length !== 6) {
-      toast.error('Please enter a 6-digit code');
+  const performVerification = async (verifyCode: string) => {
+    if (verifyCode.length !== 6 || isVerifying) {
       return;
     }
 
@@ -51,12 +48,13 @@ export function MfaVerification({ onVerified, onCancel }: MfaVerificationProps) 
       const { error: verifyError } = await supabase.auth.mfa.verify({
         factorId: totpFactor.id,
         challengeId: challengeData.id,
-        code,
+        code: verifyCode,
       });
 
       if (verifyError) {
         if (verifyError.message.includes('Invalid')) {
           toast.error('Invalid verification code. Please try again.');
+          setCode('');
         } else {
           throw verifyError;
         }
@@ -68,9 +66,25 @@ export function MfaVerification({ onVerified, onCancel }: MfaVerificationProps) 
     } catch (error: any) {
       console.error('MFA verification error:', error);
       toast.error(error.message || 'Verification failed');
+      setCode('');
     } finally {
       setIsVerifying(false);
     }
+  };
+
+  const handleCodeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const newCode = e.target.value.replace(/\D/g, '').slice(0, 6);
+    setCode(newCode);
+    
+    // Auto-verify when 6 digits are entered
+    if (newCode.length === 6) {
+      performVerification(newCode);
+    }
+  };
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    performVerification(code);
   };
 
   return (
@@ -85,7 +99,7 @@ export function MfaVerification({ onVerified, onCancel }: MfaVerificationProps) 
         </CardDescription>
       </CardHeader>
       <CardContent>
-        <form onSubmit={handleVerify} className="space-y-4">
+        <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
             <Label htmlFor="mfa-code" className="text-xs font-bold uppercase tracking-wider">
               Verification Code
@@ -98,9 +112,10 @@ export function MfaVerification({ onVerified, onCancel }: MfaVerificationProps) 
               maxLength={6}
               placeholder="000000"
               value={code}
-              onChange={(e) => setCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+              onChange={handleCodeChange}
               disabled={isVerifying}
               autoComplete="one-time-code"
+              autoFocus
               className="text-center text-2xl tracking-[0.5em] font-mono"
             />
           </div>
