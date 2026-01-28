@@ -7,6 +7,7 @@ export interface Recipient {
   company_name: string;
   contact_name: string;
   title: string | null;
+  phone: string | null;
   email: string;
   notes: string | null;
   default_owner: string;
@@ -44,6 +45,7 @@ export function useRecipients() {
           company_name: recipient.company_name,
           contact_name: recipient.contact_name,
           title: recipient.title,
+          phone: recipient.phone,
           email: recipient.email,
           notes: recipient.notes,
           default_owner: recipient.default_owner || "Unassigned",
@@ -71,6 +73,7 @@ export function useRecipients() {
           company_name: updates.company_name,
           contact_name: updates.contact_name,
           title: updates.title,
+          phone: updates.phone,
           email: updates.email,
           notes: updates.notes,
           default_owner: updates.default_owner || "Unassigned",
