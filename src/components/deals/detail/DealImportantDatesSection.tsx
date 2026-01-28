@@ -64,7 +64,21 @@ export function DealImportantDatesSection({ deal, conditions, deposits }: DealIm
   );
 
   if (importantDates.length === 0) {
-    return null;
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Calendar className="w-5 h-5" />
+            Important Dates
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <p className="text-sm text-muted-foreground text-center py-4">
+            No important dates. Add conditions or deposits to track important deadlines.
+          </p>
+        </CardContent>
+      </Card>
+    );
   }
 
   return (
