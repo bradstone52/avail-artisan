@@ -9,19 +9,29 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Textarea } from '@/components/ui/textarea';
+import { Card, CardContent } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Checkbox } from '@/components/ui/checkbox';
-import { Badge } from '@/components/ui/badge';
-import { Separator } from '@/components/ui/separator';
-import { Download, ArrowLeft, Info, DollarSign, Play } from 'lucide-react';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/ui/popover';
+import { Calendar } from '@/components/ui/calendar';
+import { Download, Plus, Trash2, CalendarIcon } from 'lucide-react';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
 import { pdf } from '@react-pdf/renderer';
-import { supabase } from '@/integrations/supabase/client';
-import { useDealDeposits } from '@/hooks/useDealDeposits';
+import { cn } from '@/lib/utils';
 import { DealSummaryPDF } from '@/components/documents/DealSummaryPDF';
-import type { Deal, DealDeposit } from '@/types/database';
+import type { Deal } from '@/types/database';
 
 interface GenerateDealSummaryDialogProps {
   open: boolean;
@@ -29,39 +39,170 @@ interface GenerateDealSummaryDialogProps {
   deal: Deal;
 }
 
+interface LocalDeposit {
+  id: string;
+  amount: number;
+  payableTo: string;
+  dueDate: Date | undefined;
+  dueHour: string;
+  dueMinute: string;
+  duePeriod: string;
+}
+
+interface LocalAction {
+  id: string;
+  dueDate: Date | undefined;
+  dueHour: string;
+  dueMinute: string;
+  duePeriod: string;
+  dateMet: Date | undefined;
+  actingParty: string;
+  description: string;
+}
+
 export function GenerateDealSummaryDialog({ open, onOpenChange, deal }: GenerateDealSummaryDialogProps) {
-  const { deposits } = useDealDeposits(deal.id);
-  const [viewState, setViewState] = useState<'form' | 'preview'>('form');
   const [generating, setGenerating] = useState(false);
-  const [generationDate] = useState(format(new Date(), 'MMM d, yyyy'));
 
-  // Local state for deposits
-  const [localDeposits, setLocalDeposits] = useState<DealDeposit[]>([]);
+  // Basic Info state
+  const [vendor, setVendor] = useState('Clearview Commercial Realty Inc.');
+  const [purchaser, setPurchaser] = useState('');
+  const [propertyAddress, setPropertyAddress] = useState('');
+  const [propertyDescription, setPropertyDescription] = useState('');
+  const [effectiveDate, setEffectiveDate] = useState<Date | undefined>(undefined);
+  const [closingDate, setClosingDate] = useState<Date | undefined>(undefined);
+  const [purchasePrice, setPurchasePrice] = useState('');
 
-  // Reset state when dialog opens
+  // Deposits state
+  const [deposits, setDeposits] = useState<LocalDeposit[]>([]);
+
+  // Actions state
+  const [actions, setActions] = useState<LocalAction[]>([]);
+
+  // Reset and initialize state when dialog opens
   useEffect(() => {
     if (open) {
-      setViewState('form');
-      setLocalDeposits(deposits || []);
+      setVendor('Clearview Commercial Realty Inc.');
+      setPurchaser(deal.buyer_name || '');
+      setPropertyAddress(deal.address || '');
+      
+      // Build property description from size/acres
+      let description = '';
+      if (deal.size_sf) {
+        const formattedSf = deal.size_sf.toLocaleString();
+        description = `${formattedSf} SF`;
+      }
+      setPropertyDescription(description);
+      
+      setEffectiveDate(undefined);
+      setClosingDate(deal.close_date ? new Date(deal.close_date) : undefined);
+      setPurchasePrice(deal.deal_value ? deal.deal_value.toString() : '');
+      
+      // Initialize with one empty deposit
+      setDeposits([createEmptyDeposit()]);
+      
+      // Initialize with one empty action
+      setActions([createEmptyAction()]);
     }
-  }, [open, deposits]);
+  }, [open, deal]);
 
-  const formatCurrency = (value: number | null | undefined) => {
-    if (!value) return '—';
+  const createEmptyDeposit = (): LocalDeposit => ({
+    id: crypto.randomUUID(),
+    amount: 0,
+    payableTo: '',
+    dueDate: undefined,
+    dueHour: '',
+    dueMinute: '00',
+    duePeriod: 'PM',
+  });
+
+  const createEmptyAction = (): LocalAction => ({
+    id: crypto.randomUUID(),
+    dueDate: undefined,
+    dueHour: '',
+    dueMinute: '00',
+    duePeriod: 'PM',
+    dateMet: undefined,
+    actingParty: '',
+    description: '',
+  });
+
+  const formatCurrency = (value: number | string | null | undefined) => {
+    const num = typeof value === 'string' ? parseFloat(value.replace(/,/g, '')) : value;
+    if (!num || isNaN(num)) return '$0.00';
     return new Intl.NumberFormat('en-CA', {
       style: 'currency',
       currency: 'CAD',
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0,
-    }).format(value);
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    }).format(num);
+  };
+
+  const totalDeposits = deposits.reduce((sum, d) => sum + (d.amount || 0), 0);
+  const purchasePriceNum = parseFloat(purchasePrice.replace(/,/g, '')) || 0;
+  const balanceOnClosing = purchasePriceNum - totalDeposits;
+
+  const addDeposit = () => {
+    setDeposits([...deposits, createEmptyDeposit()]);
+  };
+
+  const removeDeposit = (id: string) => {
+    if (deposits.length > 1) {
+      setDeposits(deposits.filter(d => d.id !== id));
+    }
+  };
+
+  const updateDeposit = (id: string, updates: Partial<LocalDeposit>) => {
+    setDeposits(deposits.map(d => d.id === id ? { ...d, ...updates } : d));
+  };
+
+  const addAction = () => {
+    setActions([...actions, createEmptyAction()]);
+  };
+
+  const removeAction = (id: string) => {
+    if (actions.length > 1) {
+      setActions(actions.filter(a => a.id !== id));
+    }
+  };
+
+  const updateAction = (id: string, updates: Partial<LocalAction>) => {
+    setActions(actions.map(a => a.id === id ? { ...a, ...updates } : a));
   };
 
   const handleGeneratePdf = async () => {
     setGenerating(true);
     try {
-      const blob = await pdf(<DealSummaryPDF deal={deal} deposits={localDeposits} />).toBlob();
+      // Build PDF data
+      const pdfData = {
+        ...deal,
+        vendor,
+        purchaser,
+        propertyAddress,
+        propertyDescription,
+        effectiveDate: effectiveDate ? format(effectiveDate, 'yyyy-MM-dd') : null,
+        closingDate: closingDate ? format(closingDate, 'yyyy-MM-dd') : null,
+        purchasePrice: purchasePriceNum,
+        deposits: deposits.map((d, i) => ({
+          label: i === 0 ? 'First Deposit' : `Deposit ${i + 1}`,
+          amount: d.amount,
+          payableTo: d.payableTo,
+          dueDate: d.dueDate ? format(d.dueDate, 'yyyy-MM-dd') : null,
+          dueTime: d.dueHour ? `${d.dueHour}:${d.dueMinute} ${d.duePeriod}` : null,
+        })),
+        actions: actions.map((a, i) => ({
+          label: `Action ${i + 1}`,
+          dueDate: a.dueDate ? format(a.dueDate, 'yyyy-MM-dd') : null,
+          dueTime: a.dueHour ? `${a.dueHour}:${a.dueMinute} ${a.duePeriod}` : null,
+          dateMet: a.dateMet ? format(a.dateMet, 'yyyy-MM-dd') : null,
+          actingParty: a.actingParty,
+          description: a.description,
+        })),
+        totalDeposits,
+        balanceOnClosing,
+      };
+
+      const blob = await pdf(<DealSummaryPDF deal={deal} formData={pdfData} />).toBlob();
       
-      // Create download link
       const url = URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = url;
@@ -81,11 +222,8 @@ export function GenerateDealSummaryDialog({ open, onOpenChange, deal }: Generate
     }
   };
 
-  const toggleDepositReceived = (depositId: string) => {
-    setLocalDeposits(prev => 
-      prev.map(d => d.id === depositId ? { ...d, received: !d.received } : d)
-    );
-  };
+  const hours = Array.from({ length: 12 }, (_, i) => (i + 1).toString());
+  const minutes = ['00', '15', '30', '45'];
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -94,211 +232,441 @@ export function GenerateDealSummaryDialog({ open, onOpenChange, deal }: Generate
           <DialogTitle>Generate Deal Summary</DialogTitle>
         </DialogHeader>
 
-        {viewState === 'form' ? (
-          <>
-            <Tabs defaultValue="basic" className="flex-1">
-              <TabsList className="w-full justify-start">
-                <TabsTrigger value="basic" className="gap-2">
-                  <Info className="w-4 h-4" />
-                  Basic Info
-                </TabsTrigger>
-                <TabsTrigger value="deposits" className="gap-2">
-                  <DollarSign className="w-4 h-4" />
-                  Deposits
-                </TabsTrigger>
-                <TabsTrigger value="actions" className="gap-2">
-                  <Play className="w-4 h-4" />
-                  Actions
-                </TabsTrigger>
-              </TabsList>
+        <Tabs defaultValue="basic" className="flex-1 flex flex-col">
+          <TabsList className="w-full grid grid-cols-3">
+            <TabsTrigger value="basic">Basic Info</TabsTrigger>
+            <TabsTrigger value="deposits">Deposits</TabsTrigger>
+            <TabsTrigger value="actions">Actions</TabsTrigger>
+          </TabsList>
 
-              <ScrollArea className="h-[400px] mt-4">
-                <TabsContent value="basic" className="space-y-4 pr-4">
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label>Date</Label>
-                      <Input value={generationDate} disabled className="bg-muted" />
-                    </div>
-                    <div className="space-y-2">
-                      <Label>Deal Type</Label>
-                      <Input value={deal.deal_type} disabled className="bg-muted" />
-                    </div>
-                    <div className="space-y-2">
-                      <Label>Address</Label>
-                      <Input value={deal.address} disabled className="bg-muted" />
-                    </div>
-                    <div className="space-y-2">
-                      <Label>Status</Label>
-                      <Input value={deal.status} disabled className="bg-muted" />
-                    </div>
-                    <div className="space-y-2">
-                      <Label>Deal Value</Label>
-                      <Input value={formatCurrency(deal.deal_value)} disabled className="bg-muted" />
-                    </div>
-                    <div className="space-y-2">
-                      <Label>Close Date</Label>
-                      <Input 
-                        value={deal.close_date ? format(new Date(deal.close_date), 'MMM d, yyyy') : '—'} 
-                        disabled 
-                        className="bg-muted" 
-                      />
-                    </div>
-                  </div>
-                </TabsContent>
+          <ScrollArea className="flex-1 h-[400px] mt-4">
+            {/* Basic Info Tab */}
+            <TabsContent value="basic" className="space-y-4 pr-4 m-0">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>Vendor</Label>
+                  <Input 
+                    value={vendor} 
+                    onChange={(e) => setVendor(e.target.value)}
+                    placeholder="Vendor name"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Purchaser</Label>
+                  <Input 
+                    value={purchaser}
+                    onChange={(e) => setPurchaser(e.target.value)}
+                    placeholder="Buyer/Purchaser name"
+                  />
+                </div>
+              </div>
 
-                <TabsContent value="deposits" className="space-y-4 pr-4">
-                  {localDeposits.length === 0 ? (
-                    <p className="text-muted-foreground text-center py-8">
-                      No deposits configured for this deal.
-                    </p>
-                  ) : (
-                    <div className="space-y-3">
-                      {localDeposits.map((deposit, index) => (
-                        <Card key={deposit.id}>
-                          <CardContent className="p-4">
-                            <div className="flex items-center justify-between">
-                              <div>
-                                <p className="font-medium">Deposit {index + 1}</p>
-                                <p className="text-sm text-muted-foreground">
-                                  {formatCurrency(deposit.amount)}
-                                  {deposit.due_date && ` — Due: ${format(new Date(deposit.due_date), 'MMM d, yyyy')}`}
-                                </p>
-                                {deposit.held_by && (
-                                  <p className="text-xs text-muted-foreground">Held by: {deposit.held_by}</p>
-                                )}
-                              </div>
-                              <div className="flex items-center gap-2">
-                                <Checkbox
-                                  id={`received-${deposit.id}`}
-                                  checked={deposit.received}
-                                  onCheckedChange={() => toggleDepositReceived(deposit.id)}
-                                />
-                                <Label htmlFor={`received-${deposit.id}`} className="text-sm">
-                                  Received
-                                </Label>
-                              </div>
-                            </div>
-                          </CardContent>
-                        </Card>
-                      ))}
-                    </div>
-                  )}
-                </TabsContent>
+              <div className="space-y-2">
+                <Label>Property Address</Label>
+                <Input 
+                  value={propertyAddress}
+                  onChange={(e) => setPropertyAddress(e.target.value)}
+                />
+              </div>
 
-                <TabsContent value="actions" className="space-y-4 pr-4">
-                  <Card>
-                    <CardHeader>
-                      <CardTitle className="text-base">Generate Options</CardTitle>
-                    </CardHeader>
-                    <CardContent className="space-y-4">
-                      <p className="text-sm text-muted-foreground">
-                        Review the deal information and deposits, then click "Show Preview" to see the summary before generating the PDF.
-                      </p>
-                      <div className="flex items-center gap-2">
-                        <Badge variant="outline">{deal.deal_type}</Badge>
-                        <Badge variant={deal.status === 'Closed' ? 'default' : 'secondary'}>
-                          {deal.status}
-                        </Badge>
-                        {localDeposits.length > 0 && (
-                          <Badge variant="outline">
-                            {localDeposits.filter(d => d.received).length}/{localDeposits.length} deposits received
-                          </Badge>
+              <div className="space-y-2">
+                <Label>Property Description</Label>
+                <Input 
+                  value={propertyDescription}
+                  onChange={(e) => setPropertyDescription(e.target.value)}
+                  placeholder="e.g., 100,000 SF on 2.2 AC"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>Effective Date</Label>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        className={cn(
+                          "w-full justify-start text-left font-normal",
+                          !effectiveDate && "text-muted-foreground"
                         )}
-                      </div>
-                    </CardContent>
-                  </Card>
-                </TabsContent>
-              </ScrollArea>
-            </Tabs>
+                      >
+                        <CalendarIcon className="mr-2 h-4 w-4" />
+                        {effectiveDate ? format(effectiveDate, "yyyy-MM-dd") : "yyyy - mm - dd"}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="start">
+                      <Calendar
+                        mode="single"
+                        selected={effectiveDate}
+                        onSelect={setEffectiveDate}
+                        initialFocus
+                        className="pointer-events-auto"
+                      />
+                    </PopoverContent>
+                  </Popover>
+                </div>
+                <div className="space-y-2">
+                  <Label>Closing Date</Label>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        className={cn(
+                          "w-full justify-start text-left font-normal",
+                          !closingDate && "text-muted-foreground"
+                        )}
+                      >
+                        <CalendarIcon className="mr-2 h-4 w-4" />
+                        {closingDate ? format(closingDate, "yyyy-MM-dd") : "yyyy - mm - dd"}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="start">
+                      <Calendar
+                        mode="single"
+                        selected={closingDate}
+                        onSelect={setClosingDate}
+                        initialFocus
+                        className="pointer-events-auto"
+                      />
+                    </PopoverContent>
+                  </Popover>
+                </div>
+              </div>
 
-            <Separator className="my-4" />
-            
-            <div className="flex justify-end gap-2">
-              <Button variant="outline" onClick={() => onOpenChange(false)}>
-                Cancel
-              </Button>
-              <Button onClick={() => setViewState('preview')}>
-                Show Preview
-              </Button>
-            </div>
-          </>
-        ) : (
-          <>
-            <ScrollArea className="h-[450px]">
-              <div className="space-y-4 pr-4">
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="text-lg">Deal Summary Preview</CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
+              <div className="space-y-2">
+                <Label>Purchase Price</Label>
+                <div className="relative">
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">$</span>
+                  <Input 
+                    value={purchasePrice}
+                    onChange={(e) => setPurchasePrice(e.target.value.replace(/[^0-9.,]/g, ''))}
+                    className="pl-7"
+                    placeholder="0.00"
+                  />
+                </div>
+              </div>
+            </TabsContent>
+
+            {/* Deposits Tab */}
+            <TabsContent value="deposits" className="space-y-4 pr-4 m-0">
+              {deposits.map((deposit, index) => (
+                <Card key={deposit.id}>
+                  <CardContent className="p-4 space-y-4">
+                    <div className="flex justify-between items-center">
+                      <span className="font-medium">
+                        {index === 0 ? 'First Deposit' : `Deposit ${index + 1}`}
+                      </span>
+                      {deposits.length > 1 && (
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => removeDeposit(deposit.id)}
+                          className="text-destructive hover:text-destructive"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      )}
+                    </div>
+
                     <div className="grid grid-cols-2 gap-4">
-                      <div>
-                        <p className="text-sm text-muted-foreground">Address</p>
-                        <p className="font-medium">{deal.address}</p>
+                      <div className="space-y-2">
+                        <Label>Amount</Label>
+                        <div className="relative">
+                          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">$</span>
+                          <Input 
+                            value={deposit.amount || ''}
+                            onChange={(e) => updateDeposit(deposit.id, { 
+                              amount: parseFloat(e.target.value.replace(/[^0-9.]/g, '')) || 0 
+                            })}
+                            className="pl-7"
+                            placeholder="0.00"
+                          />
+                        </div>
                       </div>
-                      <div>
-                        <p className="text-sm text-muted-foreground">Deal Type</p>
-                        <p className="font-medium">{deal.deal_type}</p>
-                      </div>
-                      <div>
-                        <p className="text-sm text-muted-foreground">Status</p>
-                        <Badge variant={deal.status === 'Closed' ? 'default' : 'secondary'}>
-                          {deal.status}
-                        </Badge>
-                      </div>
-                      <div>
-                        <p className="text-sm text-muted-foreground">Deal Value</p>
-                        <p className="font-medium">{formatCurrency(deal.deal_value)}</p>
-                      </div>
-                      <div>
-                        <p className="text-sm text-muted-foreground">Close Date</p>
-                        <p className="font-medium">
-                          {deal.close_date ? format(new Date(deal.close_date), 'MMM d, yyyy') : '—'}
-                        </p>
-                      </div>
-                      <div>
-                        <p className="text-sm text-muted-foreground">City</p>
-                        <p className="font-medium">{deal.city || '—'}</p>
+                      <div className="space-y-2">
+                        <Label>Payable To</Label>
+                        <Input 
+                          value={deposit.payableTo}
+                          onChange={(e) => updateDeposit(deposit.id, { payableTo: e.target.value })}
+                          placeholder="e.g., Seller's Lawyer"
+                        />
                       </div>
                     </div>
 
-                    {localDeposits.length > 0 && (
-                      <>
-                        <Separator />
-                        <div>
-                          <p className="text-sm font-medium mb-2">Deposits</p>
-                          <div className="space-y-2">
-                            {localDeposits.map((deposit, index) => (
-                              <div key={deposit.id} className="flex items-center justify-between text-sm">
-                                <span>Deposit {index + 1}: {formatCurrency(deposit.amount)}</span>
-                                <Badge variant={deposit.received ? 'default' : 'outline'}>
-                                  {deposit.received ? 'Received' : 'Pending'}
-                                </Badge>
-                              </div>
-                            ))}
-                          </div>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label>Due Date</Label>
+                        <Popover>
+                          <PopoverTrigger asChild>
+                            <Button
+                              variant="outline"
+                              className={cn(
+                                "w-full justify-start text-left font-normal",
+                                !deposit.dueDate && "text-muted-foreground"
+                              )}
+                            >
+                              <CalendarIcon className="mr-2 h-4 w-4" />
+                              {deposit.dueDate ? format(deposit.dueDate, "yyyy-MM-dd") : "yyyy - mm - dd"}
+                            </Button>
+                          </PopoverTrigger>
+                          <PopoverContent className="w-auto p-0" align="start">
+                            <Calendar
+                              mode="single"
+                              selected={deposit.dueDate}
+                              onSelect={(date) => updateDeposit(deposit.id, { dueDate: date })}
+                              initialFocus
+                              className="pointer-events-auto"
+                            />
+                          </PopoverContent>
+                        </Popover>
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Due Time</Label>
+                        <div className="flex gap-2">
+                          <Select 
+                            value={deposit.dueHour} 
+                            onValueChange={(v) => updateDeposit(deposit.id, { dueHour: v })}
+                          >
+                            <SelectTrigger className="w-[70px]">
+                              <SelectValue placeholder="Hr" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {hours.map(h => (
+                                <SelectItem key={h} value={h}>{h}</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                          <Select 
+                            value={deposit.dueMinute} 
+                            onValueChange={(v) => updateDeposit(deposit.id, { dueMinute: v })}
+                          >
+                            <SelectTrigger className="w-[70px]">
+                              <SelectValue placeholder=":00" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {minutes.map(m => (
+                                <SelectItem key={m} value={m}>:{m}</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                          <Select 
+                            value={deposit.duePeriod} 
+                            onValueChange={(v) => updateDeposit(deposit.id, { duePeriod: v })}
+                          >
+                            <SelectTrigger className="w-[70px]">
+                              <SelectValue placeholder="PM" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="AM">AM</SelectItem>
+                              <SelectItem value="PM">PM</SelectItem>
+                            </SelectContent>
+                          </Select>
                         </div>
-                      </>
-                    )}
+                      </div>
+                    </div>
                   </CardContent>
                 </Card>
+              ))}
+
+              <Button 
+                variant="outline" 
+                onClick={addDeposit}
+                className="w-full"
+              >
+                <Plus className="h-4 w-4 mr-2" />
+                ADD DEPOSIT
+              </Button>
+
+              <div className="space-y-2 pt-4 border-t">
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Total Deposits:</span>
+                  <span>{formatCurrency(totalDeposits)}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Purchase Price:</span>
+                  <span>{formatCurrency(purchasePriceNum)}</span>
+                </div>
+                <div className="flex justify-between font-medium">
+                  <span>Balance on Closing:</span>
+                  <span className="text-primary">{formatCurrency(balanceOnClosing)}</span>
+                </div>
               </div>
-            </ScrollArea>
+            </TabsContent>
 
-            <Separator className="my-4" />
+            {/* Actions Tab */}
+            <TabsContent value="actions" className="space-y-4 pr-4 m-0">
+              <p className="text-sm text-muted-foreground">
+                Add due dates and actions to track deal milestones.
+              </p>
 
-            <div className="flex justify-between">
-              <Button variant="outline" onClick={() => setViewState('form')}>
-                <ArrowLeft className="w-4 h-4 mr-2" />
-                Back to Edit
+              {actions.map((action, index) => (
+                <Card key={action.id}>
+                  <CardContent className="p-4 space-y-4">
+                    <div className="flex justify-between items-center">
+                      <span className="font-medium">Action {index + 1}</span>
+                      {actions.length > 1 && (
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => removeAction(action.id)}
+                          className="text-destructive hover:text-destructive"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      )}
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label>Due Date</Label>
+                        <Popover>
+                          <PopoverTrigger asChild>
+                            <Button
+                              variant="outline"
+                              className={cn(
+                                "w-full justify-start text-left font-normal",
+                                !action.dueDate && "text-muted-foreground"
+                              )}
+                            >
+                              <CalendarIcon className="mr-2 h-4 w-4" />
+                              {action.dueDate ? format(action.dueDate, "yyyy-MM-dd") : "yyyy - mm - dd"}
+                            </Button>
+                          </PopoverTrigger>
+                          <PopoverContent className="w-auto p-0" align="start">
+                            <Calendar
+                              mode="single"
+                              selected={action.dueDate}
+                              onSelect={(date) => updateAction(action.id, { dueDate: date })}
+                              initialFocus
+                              className="pointer-events-auto"
+                            />
+                          </PopoverContent>
+                        </Popover>
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Due Time</Label>
+                        <div className="flex gap-2">
+                          <Select 
+                            value={action.dueHour} 
+                            onValueChange={(v) => updateAction(action.id, { dueHour: v })}
+                          >
+                            <SelectTrigger className="w-[70px]">
+                              <SelectValue placeholder="Hr" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {hours.map(h => (
+                                <SelectItem key={h} value={h}>{h}</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                          <Select 
+                            value={action.dueMinute} 
+                            onValueChange={(v) => updateAction(action.id, { dueMinute: v })}
+                          >
+                            <SelectTrigger className="w-[70px]">
+                              <SelectValue placeholder=":00" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {minutes.map(m => (
+                                <SelectItem key={m} value={m}>:{m}</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                          <Select 
+                            value={action.duePeriod} 
+                            onValueChange={(v) => updateAction(action.id, { duePeriod: v })}
+                          >
+                            <SelectTrigger className="w-[70px]">
+                              <SelectValue placeholder="PM" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="AM">AM</SelectItem>
+                              <SelectItem value="PM">PM</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label>Date Met</Label>
+                        <Popover>
+                          <PopoverTrigger asChild>
+                            <Button
+                              variant="outline"
+                              className={cn(
+                                "w-full justify-start text-left font-normal",
+                                !action.dateMet && "text-muted-foreground"
+                              )}
+                            >
+                              <CalendarIcon className="mr-2 h-4 w-4" />
+                              {action.dateMet ? format(action.dateMet, "yyyy-MM-dd") : "yyyy - mm - dd"}
+                            </Button>
+                          </PopoverTrigger>
+                          <PopoverContent className="w-auto p-0" align="start">
+                            <Calendar
+                              mode="single"
+                              selected={action.dateMet}
+                              onSelect={(date) => updateAction(action.id, { dateMet: date })}
+                              initialFocus
+                              className="pointer-events-auto"
+                            />
+                          </PopoverContent>
+                        </Popover>
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Acting Party</Label>
+                        <Select 
+                          value={action.actingParty} 
+                          onValueChange={(v) => updateAction(action.id, { actingParty: v })}
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select party" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="Vendor">Vendor</SelectItem>
+                            <SelectItem value="Purchaser">Purchaser</SelectItem>
+                            <SelectItem value="Both">Both</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label>Action Description</Label>
+                      <Textarea 
+                        value={action.description}
+                        onChange={(e) => updateAction(action.id, { description: e.target.value })}
+                        placeholder="e.g., Waiver of Conditions"
+                        className="min-h-[60px]"
+                      />
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+
+              <Button 
+                variant="outline" 
+                onClick={addAction}
+                className="w-full"
+              >
+                <Plus className="h-4 w-4 mr-2" />
+                ADD ACTION
               </Button>
-              <Button onClick={handleGeneratePdf} disabled={generating}>
-                <Download className="w-4 h-4 mr-2" />
-                {generating ? 'Generating...' : 'Generate PDF'}
-              </Button>
-            </div>
-          </>
-        )}
+            </TabsContent>
+          </ScrollArea>
+        </Tabs>
+
+        <div className="flex justify-end gap-2 pt-4 border-t">
+          <Button variant="outline" onClick={() => onOpenChange(false)}>
+            CANCEL
+          </Button>
+          <Button onClick={handleGeneratePdf} disabled={generating}>
+            <Download className="w-4 h-4 mr-2" />
+            {generating ? 'Generating...' : 'GENERATE & DOWNLOAD'}
+          </Button>
+        </div>
       </DialogContent>
     </Dialog>
   );
