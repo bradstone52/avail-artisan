@@ -175,6 +175,17 @@ export default function Dashboard() {
                   variant="outline" 
                   size="sm" 
                   className="w-full justify-start"
+                  asChild
+                >
+                  <a href="/market-listings-map" target="_blank" rel="noopener noreferrer">
+                    <MapPin className="w-4 h-4 mr-2" />
+                    Market Listings Map
+                  </a>
+                </Button>
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  className="w-full justify-start"
                   onClick={() => navigate('/listings')}
                 >
                   <Building2 className="w-4 h-4 mr-2" />

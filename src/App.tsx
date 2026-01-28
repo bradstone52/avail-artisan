@@ -22,6 +22,7 @@ import Recipients from "./pages/Recipients";
 import TrackingRedirect from "./pages/TrackingRedirect";
 import PublicDistributionMap from "./pages/PublicDistributionMap";
 import DistributionMapViewer from "./pages/DistributionMapViewer";
+import MarketListingsMap from "./pages/MarketListingsMap";
 import PdfOpenMap from "./pages/PdfOpenMap";
 import PdfImport from "./pages/PdfImport";
 import AccountSettings from "./pages/AccountSettings";
@@ -73,6 +74,7 @@ const App = () => (
             <Route path="/prospects" element={<Prospects />} />
             <Route path="/settings" element={<Settings />} />
             <Route path="/distribution-map" element={<DistributionMapViewer />} />
+            <Route path="/market-listings-map" element={<MarketListingsMap />} />
             {/* Public distribution map - tokenized access, no auth required */}
             <Route path="/public/distribution-map" element={<PublicDistributionMap />} />
             {/* Backwards compatibility alias for old PDFs that used /dashboard/public/... */}
