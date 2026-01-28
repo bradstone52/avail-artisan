@@ -18,7 +18,7 @@ import {
 } from '@/components/ui/select';
 import { FormattedNumberInput } from '@/components/common/FormattedNumberInput';
 import { useCreateProspect, useUpdateProspect } from '@/hooks/useProspects';
-import type { Prospect, ProspectFormData, ProspectStatus } from '@/types/prospect';
+import type { Prospect, ProspectFormData, ProspectStatus, ProspectType, ProspectSource } from '@/types/prospect';
 
 interface ProspectFormDialogProps {
   open: boolean;
@@ -28,6 +28,12 @@ interface ProspectFormDialogProps {
 
 const prospectStatuses: ProspectStatus[] = [
   'New', 'Contacted', 'Qualified', 'Active', 'On Hold', 'Lost', 'Converted'
+];
+
+const prospectTypes: ProspectType[] = ['Tenant', 'Buyer', 'Listing'];
+
+const prospectSources: ProspectSource[] = [
+  'Past Client', 'Network', 'Sign Call', 'Cold Call', 'Referral'
 ];
 
 export function ProspectFormDialog({ open, onOpenChange, prospect }: ProspectFormDialogProps) {
@@ -47,6 +53,8 @@ export function ProspectFormDialog({ open, onOpenChange, prospect }: ProspectFor
     follow_up_date: '',
     status: 'New',
     notes: '',
+    prospect_type: 'Tenant',
+    source: 'Network',
   });
 
   useEffect(() => {
@@ -63,6 +71,8 @@ export function ProspectFormDialog({ open, onOpenChange, prospect }: ProspectFor
         follow_up_date: prospect.follow_up_date || '',
         status: prospect.status as ProspectStatus,
         notes: prospect.notes || '',
+        prospect_type: (prospect.prospect_type as ProspectType) || 'Tenant',
+        source: (prospect.source as ProspectSource) || 'Network',
       });
     } else {
       setFormData({
@@ -77,6 +87,8 @@ export function ProspectFormDialog({ open, onOpenChange, prospect }: ProspectFor
         follow_up_date: '',
         status: 'New',
         notes: '',
+        prospect_type: 'Tenant',
+        source: 'Network',
       });
     }
   }, [prospect, open]);
@@ -123,6 +135,41 @@ export function ProspectFormDialog({ open, onOpenChange, prospect }: ProspectFor
                 value={formData.company}
                 onChange={(e) => setFormData({ ...formData, company: e.target.value })}
               />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="prospect_type">Type</Label>
+              <Select
+                value={formData.prospect_type}
+                onValueChange={(value) => setFormData({ ...formData, prospect_type: value as ProspectType })}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select type" />
+                </SelectTrigger>
+                <SelectContent>
+                  {prospectTypes.map((type) => (
+                    <SelectItem key={type} value={type}>{type}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="source">Source</Label>
+              <Select
+                value={formData.source}
+                onValueChange={(value) => setFormData({ ...formData, source: value as ProspectSource })}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select source" />
+                </SelectTrigger>
+                <SelectContent>
+                  {prospectSources.map((source) => (
+                    <SelectItem key={source} value={source}>{source}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
           </div>
 

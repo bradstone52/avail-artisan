@@ -1,5 +1,5 @@
-export type ProspectType = 'Tenant' | 'Buyer' | 'Seller' | 'Landlord' | 'Investor' | 'Other';
-export type ProspectSource = 'Direct' | 'Referral' | 'Marketing' | 'Cold Call' | 'Website' | 'Other';
+export type ProspectType = 'Tenant' | 'Buyer' | 'Listing';
+export type ProspectSource = 'Past Client' | 'Network' | 'Sign Call' | 'Cold Call' | 'Referral';
 export type ProspectStatus = 'New' | 'Contacted' | 'Qualified' | 'Active' | 'On Hold' | 'Lost' | 'Converted';
 
 export interface FollowUpDate {
@@ -22,6 +22,8 @@ export interface Prospect {
   follow_up_date?: string | null;
   status: string;
   notes?: string | null;
+  prospect_type?: string | null;
+  source?: string | null;
   user_id: string;
   org_id?: string | null;
   created_at: string;
@@ -40,4 +42,6 @@ export interface ProspectFormData {
   follow_up_date?: string;
   status: ProspectStatus;
   notes?: string;
+  prospect_type?: ProspectType;
+  source?: ProspectSource;
 }
