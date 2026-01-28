@@ -178,11 +178,15 @@ export default function CRETracker() {
                       </div>
                       {'hasDealBreakdown' in section && section.hasDealBreakdown && (
                         <Popover>
-                          <PopoverTrigger asChild onClick={(e) => e.preventDefault()}>
+                          <PopoverTrigger asChild>
                             <Button
                               variant="outline"
                               size="sm"
                               className="w-full gap-2 border-2 border-foreground/20 hover:border-foreground"
+                              onClick={(e) => {
+                                e.preventDefault();
+                                e.stopPropagation();
+                              }}
                             >
                               <BarChart3 className="w-4 h-4" />
                               View Deal Breakdown
