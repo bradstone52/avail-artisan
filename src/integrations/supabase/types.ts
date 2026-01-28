@@ -1955,63 +1955,84 @@ export type Database = {
       prospects: {
         Row: {
           budget: number | null
+          commission: number | null
           company: string | null
           created_at: string
           email: string | null
+          estimated_value: number | null
           follow_up_date: string | null
           id: string
+          loading: string | null
           max_size: number | null
           min_size: number | null
           name: string
           notes: string | null
+          occupancy_date: string | null
           org_id: string | null
           phone: string | null
           prospect_type: string | null
+          referral: string | null
           requirements: string | null
           source: string | null
           status: string
           updated_at: string
+          use_type: string | null
           user_id: string
+          yard_required: boolean | null
         }
         Insert: {
           budget?: number | null
+          commission?: number | null
           company?: string | null
           created_at?: string
           email?: string | null
+          estimated_value?: number | null
           follow_up_date?: string | null
           id?: string
+          loading?: string | null
           max_size?: number | null
           min_size?: number | null
           name: string
           notes?: string | null
+          occupancy_date?: string | null
           org_id?: string | null
           phone?: string | null
           prospect_type?: string | null
+          referral?: string | null
           requirements?: string | null
           source?: string | null
           status?: string
           updated_at?: string
+          use_type?: string | null
           user_id: string
+          yard_required?: boolean | null
         }
         Update: {
           budget?: number | null
+          commission?: number | null
           company?: string | null
           created_at?: string
           email?: string | null
+          estimated_value?: number | null
           follow_up_date?: string | null
           id?: string
+          loading?: string | null
           max_size?: number | null
           min_size?: number | null
           name?: string
           notes?: string | null
+          occupancy_date?: string | null
           org_id?: string | null
           phone?: string | null
           prospect_type?: string | null
+          referral?: string | null
           requirements?: string | null
           source?: string | null
           status?: string
           updated_at?: string
+          use_type?: string | null
           user_id?: string
+          yard_required?: boolean | null
         }
         Relationships: [
           {
