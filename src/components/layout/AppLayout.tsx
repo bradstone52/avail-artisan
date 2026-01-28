@@ -62,15 +62,7 @@ const navigation: NavigationEntry[] = [
   { name: 'Market Listings', href: '/market-listings', icon: Database },
   { name: 'Properties', href: '/properties', icon: Building2 },
   { name: 'Transactions', href: '/transactions', icon: Receipt },
-  { 
-    name: 'CRE Tracker', 
-    icon: Briefcase,
-    items: [
-      { name: 'Deals', href: '/deals', icon: Briefcase },
-      { name: 'Prospects', href: '/prospects', icon: UserSearch },
-      { name: 'BrokerageDB', href: '/contacts', icon: Users },
-    ]
-  },
+  { name: 'CRE Tracker', href: '/cre-tracker', icon: Briefcase },
 ];
 
 const adminNavigation = [
@@ -89,7 +81,6 @@ export function AppLayout({ children }: AppLayoutProps) {
     // Default open groups based on current route
     return {
       'Distribution': ['/listings', '/recipients'].includes(location.pathname),
-      'CRE Tracker': ['/deals', '/prospects', '/brokerages', '/agents'].includes(location.pathname),
     };
   });
 
