@@ -1966,7 +1966,9 @@ export type Database = {
           notes: string | null
           org_id: string | null
           phone: string | null
+          prospect_type: string | null
           requirements: string | null
+          source: string | null
           status: string
           updated_at: string
           user_id: string
@@ -1984,7 +1986,9 @@ export type Database = {
           notes?: string | null
           org_id?: string | null
           phone?: string | null
+          prospect_type?: string | null
           requirements?: string | null
+          source?: string | null
           status?: string
           updated_at?: string
           user_id: string
@@ -2002,7 +2006,9 @@ export type Database = {
           notes?: string | null
           org_id?: string | null
           phone?: string | null
+          prospect_type?: string | null
           requirements?: string | null
+          source?: string | null
           status?: string
           updated_at?: string
           user_id?: string
