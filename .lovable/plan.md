@@ -1,78 +1,56 @@
 
-# Auto-populate Deal Summary Deposits from Deal Sheet Data
+# Fix Deal Summary PDF Generation - Buffer Polyfill Issue
 
-## Overview
-When opening the Deal Summary generator, automatically pre-fill the Deposits tab with any deposits that were previously entered in the Deal Sheet. This creates a seamless workflow where users don't need to re-enter deposit information.
+## Problem Identified
+The console shows **"Buffer is not defined"** errors when trying to generate the Deal Summary PDF. This is because `@react-pdf/renderer` requires the Node.js `Buffer` API, which isn't available in browsers by default.
 
-## Current State
+## Root Cause
+While `vite.config.ts` has the Buffer polyfill configured:
+```typescript
+define: {
+  "global.Buffer": "globalThis.Buffer",
+},
+optimizeDeps: {
+  include: ["buffer"],
+},
+```
 
-**Deal Sheet deposits store:**
-- Amount
-- Held By (who holds the deposit)
-- Due Date (saved to database)
-
-**Deal Summary deposits need:**
-- Amount
-- Payable To (same concept as "Held By")
-- Due Date
-- Due Time (not currently stored in database)
+The actual `buffer` package is never imported and assigned to `globalThis.Buffer` at runtime. The config tells Vite to replace references, but `globalThis.Buffer` is still `undefined`.
 
 ## Solution
+Add the Buffer polyfill import at the top of `src/main.tsx` before the app renders:
 
-Modify `GenerateDealSummaryDialog.tsx` to:
-
-1. Import and use the `useDealDeposits` hook to fetch existing deposits
-2. When the dialog opens, map existing deposits to the local format
-3. If no deposits exist, fall back to creating one empty deposit
-
-## Technical Details
-
-### File: `src/components/deals/GenerateDealSummaryDialog.tsx`
-
-**Add import:**
 ```typescript
-import { useDealDeposits } from '@/hooks/useDealDeposits';
+import { Buffer } from 'buffer';
+globalThis.Buffer = Buffer;
 ```
 
-**Add hook call:**
+This ensures Buffer is available globally before any PDF rendering code executes.
+
+## Technical Implementation
+
+### File: `src/main.tsx`
+Add at the very top (before any other imports):
 ```typescript
-const { deposits: existingDeposits, isLoading: depositsLoading } = useDealDeposits(deal.id);
+// Buffer polyfill for @react-pdf/renderer compatibility
+import { Buffer } from 'buffer';
+globalThis.Buffer = Buffer;
+
+import { createRoot } from "react-dom/client";
+import App from "./App.tsx";
+import "./index.css";
+
+createRoot(document.getElementById("root")!).render(<App />);
 ```
 
-**Update initialization logic (in useEffect):**
-```typescript
-// Map existing deposits from database to local format
-if (existingDeposits && existingDeposits.length > 0) {
-  setDeposits(existingDeposits.map(d => ({
-    id: crypto.randomUUID(),
-    amount: d.amount || 0,
-    amountDisplay: d.amount ? formatNumberWithCommas(d.amount) : '',
-    payableTo: d.held_by || '',
-    dueDate: d.due_date ? new Date(d.due_date) : undefined,
-    dueHour: '',
-    dueMinute: '00',
-    duePeriod: 'PM',
-  })));
-} else {
-  setDeposits([createEmptyDeposit()]);
-}
-```
+## Why This Works
+- The `buffer` package is already a dependency (listed in package.json)
+- By importing and assigning it to `globalThis.Buffer` at the app entry point, it becomes available to all downstream code
+- `@react-pdf/renderer` will then be able to use Buffer for its internal PDF generation operations
 
-## Data Mapping
+## Expected Outcome
+After this fix:
+1. PDF generation will work without "Buffer is not defined" errors
+2. The updated layout (centered title, centered table contents, hardcoded footer) will render correctly
+3. Users can successfully download the Deal Summary PDF
 
-| Deal Sheet Field | Database Column | Deal Summary Field |
-|-----------------|-----------------|-------------------|
-| Amount | `amount` | Amount |
-| Held By | `held_by` | Payable To |
-| — | `due_date` | Due Date |
-| — | (not stored) | Due Time |
-
-The "Due Time" field won't be pre-populated since it's not currently stored in the database. Users can optionally add it if needed.
-
-## User Experience
-
-1. User enters deposits in Deal Sheet (Amount: $300, Held By: "Lawyer")
-2. Deal Sheet saves deposits to `deal_deposits` table
-3. User opens Deal Summary generator
-4. Deposits tab automatically shows: Amount: $300.00, Payable To: "Lawyer"
-5. User can edit or add more deposits as needed
