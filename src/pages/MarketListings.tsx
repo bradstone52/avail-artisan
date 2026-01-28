@@ -336,54 +336,54 @@ export default function MarketListings() {
           </div>
         </div>
 
-        {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-5 gap-4 mb-6">
-          <Card>
-            <CardHeader className="pb-2">
-              <CardDescription>Total Listings</CardDescription>
-              <CardTitle className="text-3xl">{listings.length}</CardTitle>
+        {/* Stats Cards - Compact */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
+          <Card className="py-2">
+            <CardHeader className="py-1.5 px-4">
+              <CardDescription className="text-xs">Total Listings</CardDescription>
+              <CardTitle className="text-2xl">{listings.length}</CardTitle>
             </CardHeader>
           </Card>
-          <Card>
-            <CardHeader className="pb-2">
-              <CardDescription>Distribution Warehouses</CardDescription>
-              <CardTitle className="text-3xl">{distributionCount}</CardTitle>
+          <Card className="py-2">
+            <CardHeader className="py-1.5 px-4">
+              <CardDescription className="text-xs">Distribution Warehouses</CardDescription>
+              <CardTitle className="text-2xl">{distributionCount}</CardTitle>
             </CardHeader>
           </Card>
-          <Card>
-            <CardHeader className="pb-2">
-              <CardDescription>Geocoded</CardDescription>
-              <CardTitle className="text-3xl">
+          <Card className="py-2">
+            <CardHeader className="py-1.5 px-4">
+              <CardDescription className="text-xs">Geocoded</CardDescription>
+              <CardTitle className="text-2xl">
                 {listings.filter(l => l.latitude && l.longitude).length}
               </CardTitle>
             </CardHeader>
           </Card>
-          <Card>
-            <CardHeader className="pb-2">
-              <CardDescription>Link Health</CardDescription>
-              <CardTitle className="text-lg">
+          <Card className="py-2">
+            <CardHeader className="py-1.5 px-4">
+              <CardDescription className="text-xs">Link Health</CardDescription>
+              <CardTitle className="text-base leading-tight">
                 <span className="text-green-600">{linksOk}</span>
-                {linksBroken > 0 && <span className="text-destructive"> / {linksBroken} broken</span>}
-                {linksError > 0 && <span className="text-orange-500"> / {linksError} errors</span>}
-                {linksMissing > 0 && <span className="text-muted-foreground"> / {linksMissing} missing</span>}
+                {linksBroken > 0 && <span className="text-destructive"> / {linksBroken} <span className="text-xs font-bold">BROKEN</span></span>}
+                {linksError > 0 && <span className="text-orange-500"> / {linksError} <span className="text-xs font-bold">ERRORS</span></span>}
+                {linksMissing > 0 && <span className="text-muted-foreground"> / {linksMissing} <span className="text-xs font-bold">MISSING</span></span>}
               </CardTitle>
             </CardHeader>
-            <CardContent className="pt-0 space-y-2">
+            <CardContent className="pt-0 pb-1.5 px-4 space-y-1.5">
               {isValidatingLinks && linkCheckTotal > 0 ? (
                 <span className="text-xs text-muted-foreground">
-                  {linksLeftThisRun} of {linkCheckTotal} left to check...
+                  {linksLeftThisRun} of {linkCheckTotal} left...
                 </span>
               ) : linksUnchecked > 0 ? (
                 <span className="text-xs text-muted-foreground">{linksUnchecked} unchecked</span>
               ) : linksWithUrl.length > 0 ? (
-                <Badge variant="outline" className="text-xs">All checked</Badge>
+                <Badge variant="outline" className="text-[10px] h-5">All checked</Badge>
               ) : null}
               {hasLinkIssues && !isValidatingLinks && (
                 <Button 
                   size="sm" 
                   variant="outline" 
                   onClick={() => setIsFixLinksDialogOpen(true)}
-                  className="w-full h-7 text-xs"
+                  className="w-full h-6 text-[10px]"
                 >
                   <Wrench className="w-3 h-3 mr-1" />
                   Fix Links
