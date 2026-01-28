@@ -12,8 +12,8 @@ import { Calendar as CalendarComponent } from '@/components/ui/calendar';
 
 export default function CRETracker() {
   const { data: deals = [] } = useDeals();
-  const { data: dealDates = [] } = useAllDealImportantDates(120);
-  const upcomingFollowUps = useUpcomingFollowUps(120);
+  const { data: dealDates = [] } = useAllDealImportantDates(30);
+  const upcomingFollowUps = useUpcomingFollowUps(30);
 
   // Calculate deal stats
   const activeDeals = deals.filter(d => d.status === 'Conditional' || d.status === 'Firm');
@@ -141,19 +141,30 @@ export default function CRETracker() {
                 <CalendarComponent
                   mode="single"
                   selected={selectedDate}
-                  onSelect={setSelectedDate}
+                  onSelect={(date) => setSelectedDate(date === selectedDate ? undefined : date)}
                   modifiers={{
                     hasEvent: calendarDates.map(d => d.date),
                   }}
                   modifiersClassNames={{
-                    hasEvent: 'bg-primary/20 font-bold',
+                    hasEvent: 'bg-primary/30 font-bold text-primary-foreground',
                   }}
+                  className="pointer-events-auto"
                 />
               </div>
               <div>
-                <h4 className="font-bold mb-3">
-                  {selectedDate ? format(selectedDate, 'MMMM d, yyyy') : 'Select a date'}
-                </h4>
+                <div className="flex items-center justify-between mb-3">
+                  <h4 className="font-bold">
+                    {selectedDate ? format(selectedDate, 'MMMM d, yyyy') : 'Upcoming (30 days)'}
+                  </h4>
+                  {selectedDate && (
+                    <button
+                      onClick={() => setSelectedDate(undefined)}
+                      className="text-xs text-muted-foreground hover:text-foreground underline"
+                    >
+                      View all
+                    </button>
+                  )}
+                </div>
                 {selectedDate && eventsOnSelectedDate.length === 0 && (
                   <p className="text-sm text-muted-foreground">No events on this date</p>
                 )}
@@ -177,10 +188,9 @@ export default function CRETracker() {
                 </div>
                 {!selectedDate && (
                   <div className="space-y-2 max-h-[300px] overflow-y-auto">
-                    <p className="text-sm text-muted-foreground mb-2">Upcoming events:</p>
                     {calendarDates
                       .filter(d => d.date >= new Date())
-                      .slice(0, 10)
+                      .sort((a, b) => a.date.getTime() - b.date.getTime())
                       .map((event, i) => (
                         <Link
                           key={i}
@@ -202,7 +212,7 @@ export default function CRETracker() {
                           </span>
                         </Link>
                       ))}
-                    {calendarDates.length === 0 && (
+                    {calendarDates.filter(d => d.date >= new Date()).length === 0 && (
                       <p className="text-sm text-muted-foreground text-center py-4">No upcoming dates</p>
                     )}
                   </div>
