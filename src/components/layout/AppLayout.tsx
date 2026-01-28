@@ -68,7 +68,7 @@ const navigation: NavigationEntry[] = [
     items: [
       { name: 'Deals', href: '/deals', icon: Briefcase },
       { name: 'Prospects', href: '/prospects', icon: UserSearch },
-      { name: 'Contacts', href: '/contacts', icon: Users },
+      { name: 'BrokerageDB', href: '/contacts', icon: Users },
     ]
   },
 ];
