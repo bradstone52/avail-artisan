@@ -23,7 +23,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Shield, Users, Loader2, ShieldAlert, Zap, RefreshCw, Mail } from 'lucide-react';
+import { Shield, Users, Loader2, ShieldAlert, Zap, RefreshCw, Mail, KeyRound } from 'lucide-react';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { InviteManagement } from '@/components/admin/InviteManagement';
@@ -45,6 +45,7 @@ export default function AdminUsers() {
   const [users, setUsers] = useState<UserWithRole[]>([]);
   const [loading, setLoading] = useState(true);
   const [updating, setUpdating] = useState<string | null>(null);
+  const [resettingMfa, setResettingMfa] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState('users');
 
   useEffect(() => {
@@ -156,6 +157,48 @@ export default function AdminUsers() {
       toast.error('Failed to update role');
     } finally {
       setUpdating(null);
+    }
+  };
+
+  const handleResetMfa = async (userId: string, email: string) => {
+    if (userId === currentUser?.id) {
+      toast.error("You can't reset your own 2FA from here");
+      return;
+    }
+
+    if (!confirm(`Are you sure you want to reset 2FA for ${email}? They will need to set up a new authenticator.`)) {
+      return;
+    }
+
+    setResettingMfa(userId);
+    try {
+      const { data: sessionData } = await supabase.auth.getSession();
+      const accessToken = sessionData?.session?.access_token;
+
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/reset-user-mfa`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${accessToken}`,
+          },
+          body: JSON.stringify({ email }),
+        }
+      );
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(result.error || 'Failed to reset MFA');
+      }
+
+      toast.success(`2FA reset for ${email}. They will need to set up a new authenticator on next login.`);
+    } catch (error) {
+      console.error('Error resetting MFA:', error);
+      toast.error(error instanceof Error ? error.message : 'Failed to reset MFA');
+    } finally {
+      setResettingMfa(null);
     }
   };
 
@@ -305,27 +348,42 @@ export default function AdminUsers() {
                         {user.id === currentUser?.id ? (
                           <span className="text-xs text-muted-foreground">Cannot edit self</span>
                         ) : (
-                          <Select
-                            value={user.role || 'none'}
-                            onValueChange={(value) =>
-                              handleRoleChange(user.id, value as 'admin' | 'sync_operator' | 'member' | 'none')
-                            }
-                            disabled={updating === user.id}
-                          >
-                            <SelectTrigger className="w-[140px]">
-                              {updating === user.id ? (
+                          <div className="flex items-center gap-2">
+                            <Select
+                              value={user.role || 'none'}
+                              onValueChange={(value) =>
+                                handleRoleChange(user.id, value as 'admin' | 'sync_operator' | 'member' | 'none')
+                              }
+                              disabled={updating === user.id}
+                            >
+                              <SelectTrigger className="w-[140px]">
+                                {updating === user.id ? (
+                                  <Loader2 className="w-4 h-4 animate-spin" />
+                                ) : (
+                                  <SelectValue />
+                                )}
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="admin">Admin</SelectItem>
+                                <SelectItem value="sync_operator">Sync Operator</SelectItem>
+                                <SelectItem value="member">Member</SelectItem>
+                                <SelectItem value="none">No Role</SelectItem>
+                              </SelectContent>
+                            </Select>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => handleResetMfa(user.id, user.email)}
+                              disabled={resettingMfa === user.id}
+                              title="Reset 2FA"
+                            >
+                              {resettingMfa === user.id ? (
                                 <Loader2 className="w-4 h-4 animate-spin" />
                               ) : (
-                                <SelectValue />
+                                <KeyRound className="w-4 h-4" />
                               )}
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="admin">Admin</SelectItem>
-                              <SelectItem value="sync_operator">Sync Operator</SelectItem>
-                              <SelectItem value="member">Member</SelectItem>
-                              <SelectItem value="none">No Role</SelectItem>
-                            </SelectContent>
-                          </Select>
+                            </Button>
+                          </div>
                         )}
                       </TableCell>
                     </TableRow>
