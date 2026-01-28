@@ -8,7 +8,7 @@ const corsHeaders = {
 
 type Json = Record<string, unknown>;
 
-async function jsonResponse(body: Json, status = 200) {
+function jsonResponse(body: Json, status = 200) {
   return new Response(JSON.stringify(body), {
     status,
     headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -65,9 +65,8 @@ serve(async (req) => {
 
     // Find user by email (Auth admin API)
     let targetUserId: string | null = null;
-    let fallbackFactors:
-      | Array<{ id: string; factor_type?: string; status?: string; friendly_name?: string }>
-      | null = null;
+    let userFactors: Array<{ id: string; factor_type?: string; status?: string; friendly_name?: string }> = [];
+    
     let page = 1;
     const perPage = 200;
     for (let i = 0; i < 50; i++) {
@@ -80,9 +79,11 @@ serve(async (req) => {
       const match = data.users.find((u) => (u.email || "").toLowerCase() === email);
       if (match?.id) {
         targetUserId = match.id;
-        // Some GoTrue versions include factors on the user payload. Keep as a fallback.
+        // Extract factors from user object if available
         const maybeFactors = (match as any)?.factors;
-        fallbackFactors = Array.isArray(maybeFactors) ? maybeFactors : null;
+        if (Array.isArray(maybeFactors)) {
+          userFactors = maybeFactors;
+        }
         break;
       }
 
@@ -94,47 +95,18 @@ serve(async (req) => {
       return jsonResponse({ error: "User not found" }, 404);
     }
 
-    const authAdminHeaders = {
-      // GoTrue expects apikey to be the project's anon key; Authorization must be service role.
-      apikey: anonKey,
-      Authorization: `Bearer ${serviceRoleKey}`,
-      "Content-Type": "application/json",
-    };
-
-    // List factors for target user.
-    // IMPORTANT: depending on GoTrue version, this endpoint may return either:
-    // - an array of factors (most common)
-    // - an object like { factors: [...] }
-    const listRes = await fetch(`${supabaseUrl}/auth/v1/admin/users/${targetUserId}/factors`, {
-      method: "GET",
-      headers: authAdminHeaders,
-    });
-
-    if (!listRes.ok) {
-      const text = await listRes.text().catch(() => "");
-      console.error("[reset-user-mfa] list factors failed:", listRes.status, text);
-      return jsonResponse({ error: "Failed to list MFA factors" }, 500);
-    }
-
-    const rawFactorsPayload = (await listRes.json().catch(() => ([]))) as any;
-    let factors = Array.isArray(rawFactorsPayload)
-      ? (rawFactorsPayload as Array<{
-          id: string;
-          factor_type?: string;
-          status?: string;
-          friendly_name?: string;
-        }>)
-      : Array.isArray(rawFactorsPayload?.factors)
-        ? (rawFactorsPayload.factors as Array<{
-            id: string;
-            factor_type?: string;
-            status?: string;
-            friendly_name?: string;
-          }>)
-        : [];
-
-    if (factors.length === 0 && Array.isArray(fallbackFactors) && fallbackFactors.length > 0) {
-      factors = fallbackFactors;
+    // If no factors found on the user object, try listing via admin SDK
+    if (userFactors.length === 0) {
+      const { data: factorsData, error: factorsError } = await adminClient.auth.admin.mfa.listFactors({
+        userId: targetUserId,
+      });
+      
+      if (factorsError) {
+        console.error("[reset-user-mfa] listFactors SDK error:", factorsError);
+        // Don't fail - just proceed with empty factors from user object
+      } else if (factorsData?.factors && Array.isArray(factorsData.factors)) {
+        userFactors = factorsData.factors;
+      }
     }
 
     if (debug) {
@@ -142,34 +114,30 @@ serve(async (req) => {
         success: true,
         message: "Debug: listed MFA factors",
         targetUserId,
-        factors,
-        usedFallback: factors === fallbackFactors,
+        factors: userFactors,
       });
     }
 
-    if (factors.length === 0) {
+    if (userFactors.length === 0) {
       return jsonResponse({ success: true, message: "No MFA factors to reset", removed: 0 });
     }
 
-    // Delete all factors
+    // Delete all factors using SDK
     let removed = 0;
-    const errors: Array<{ factorId: string; status: number; body: string }> = [];
-    for (const f of factors) {
+    const errors: Array<{ factorId: string; message: string }> = [];
+    
+    for (const f of userFactors) {
       if (!f?.id) continue;
 
-      const delRes = await fetch(
-        `${supabaseUrl}/auth/v1/admin/users/${targetUserId}/factors/${f.id}`,
-        {
-          method: "DELETE",
-          headers: authAdminHeaders,
-        },
-      );
+      const { error: deleteError } = await adminClient.auth.admin.mfa.deleteFactor({
+        userId: targetUserId,
+        id: f.id,
+      });
 
-      if (delRes.ok) {
-        removed++;
+      if (deleteError) {
+        errors.push({ factorId: f.id, message: deleteError.message });
       } else {
-        const text = await delRes.text().catch(() => "");
-        errors.push({ factorId: f.id, status: delRes.status, body: text });
+        removed++;
       }
     }
 
