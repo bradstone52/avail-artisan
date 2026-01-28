@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { Button } from '@/components/ui/button';
-import { useDeal, useDeleteDeal } from '@/hooks/useDeals';
+import { useDeal, useDeleteDeal, useUpdateDeal } from '@/hooks/useDeals';
 import { useDealDocuments } from '@/hooks/useDealDocuments';
 import { useDealConditions } from '@/hooks/useDealConditions';
 import { useDealDeposits } from '@/hooks/useDealDeposits';
@@ -14,7 +14,8 @@ import { DealEditDialog } from '@/components/deals/detail/DealEditDialog';
 import { GenerateDealSheetDialog } from '@/components/deals/GenerateDealSheetDialog';
 import { ConfirmDialog } from '@/components/common/ConfirmDialog';
 import { Skeleton } from '@/components/ui/skeleton';
-import { ArrowLeft, FileText, Edit, Trash2, Briefcase } from 'lucide-react';
+import { ArrowLeft, FileText, Edit, Trash2, Briefcase, FileBarChart } from 'lucide-react';
+import { toast } from 'sonner';
 
 export default function DealDetail() {
   const { id } = useParams<{ id: string }>();
@@ -38,6 +39,10 @@ export default function DealDetail() {
     } catch (error) {
       // Error handled by mutation
     }
+  };
+
+  const handleGenerateSummary = () => {
+    toast.info('Deal Summary PDF generation coming soon');
   };
 
   if (isLoading) {
@@ -81,8 +86,12 @@ export default function DealDetail() {
               <ArrowLeft className="w-4 h-4 mr-2" />
               Back
             </Button>
-            <div>
+            <div className="flex items-center gap-3">
               <h1 className="text-xl font-bold">{deal.address}</h1>
+              <Button variant="outline" size="sm" onClick={() => setEditOpen(true)}>
+                <Edit className="w-4 h-4 mr-2" />
+                EDIT
+              </Button>
             </div>
           </div>
           
@@ -94,9 +103,12 @@ export default function DealDetail() {
               <FileText className="w-4 h-4 mr-2" />
               GENERATE DEAL SHEET
             </Button>
-            <Button variant="outline" onClick={() => setEditOpen(true)}>
-              <Edit className="w-4 h-4 mr-2" />
-              EDIT
+            <Button 
+              variant="outline" 
+              onClick={handleGenerateSummary}
+            >
+              <FileBarChart className="w-4 h-4 mr-2" />
+              GENERATE DEAL SUMMARY
             </Button>
             <Button variant="destructive" onClick={() => setDeleteOpen(true)}>
               <Trash2 className="w-4 h-4 mr-2" />

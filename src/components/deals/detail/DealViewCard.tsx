@@ -1,18 +1,30 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { Building2, ExternalLink } from 'lucide-react';
 import { format } from 'date-fns';
 import { Link } from 'react-router-dom';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
 import type { Deal } from '@/types/database';
 
 interface DealViewCardProps {
   deal: Deal;
 }
 
+const DEAL_STATUSES = ['Conditional', 'Firm', 'Closed'];
+
 export function DealViewCard({ deal }: DealViewCardProps) {
+  const queryClient = useQueryClient();
+
   const formatNumber = (num: number | null | undefined) => {
     if (!num) return '—';
     return num.toLocaleString();
@@ -44,6 +56,24 @@ export function DealViewCard({ deal }: DealViewCardProps) {
     },
     enabled: !!deal.listing_id,
   });
+
+  const handleStatusChange = async (newStatus: string) => {
+    try {
+      const { error } = await supabase
+        .from('deals')
+        .update({ status: newStatus })
+        .eq('id', deal.id);
+
+      if (error) throw error;
+
+      queryClient.invalidateQueries({ queryKey: ['deals'] });
+      queryClient.invalidateQueries({ queryKey: ['deals', deal.id] });
+      toast.success(`Status updated to ${newStatus}`);
+    } catch (error) {
+      console.error('Error updating status:', error);
+      toast.error('Failed to update status');
+    }
+  };
 
   return (
     <Card>
@@ -94,11 +124,16 @@ export function DealViewCard({ deal }: DealViewCardProps) {
           
           <div>
             <p className="text-sm text-muted-foreground mb-1">Status</p>
-            <Badge 
-              variant={deal.status === 'Closed' ? 'default' : deal.status === 'Lost' ? 'destructive' : 'secondary'}
-            >
-              {deal.status}
-            </Badge>
+            <Select value={deal.status} onValueChange={handleStatusChange}>
+              <SelectTrigger className="w-[140px] h-8">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent className="bg-background z-50">
+                {DEAL_STATUSES.map(status => (
+                  <SelectItem key={status} value={status}>{status}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
           
           {deal.deal_number && (

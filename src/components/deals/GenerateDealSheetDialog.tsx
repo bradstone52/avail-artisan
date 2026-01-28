@@ -23,7 +23,7 @@ import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
-import { CalendarIcon, Plus, X, FileText, Download, Eye, Check } from 'lucide-react';
+import { CalendarIcon, Plus, X, FileText, Download, ArrowLeft, Check } from 'lucide-react';
 import { useAgents, useCreateAgent } from '@/hooks/useAgents';
 import { useBrokerages, useCreateBrokerage } from '@/hooks/useBrokerages';
 import { useDealConditions } from '@/hooks/useDealConditions';
@@ -57,7 +57,6 @@ interface LocalDeposit {
   isNew?: boolean;
 }
 
-// Removed 'preview' from tabs - preview is shown in Financial tab footer
 const TABS = ['basic', 'agents', 'parties', 'conditions', 'financial'] as const;
 type TabValue = typeof TABS[number];
 
@@ -70,6 +69,9 @@ export function GenerateDealSheetDialog({ open, onOpenChange, deal }: GenerateDe
 
   // Current tab
   const [currentTab, setCurrentTab] = useState<TabValue>('basic');
+  
+  // View state: 'form' or 'preview'
+  const [viewState, setViewState] = useState<'form' | 'preview'>('form');
 
   // Form state - now includes editable deal number
   const [dealNumber, setDealNumber] = useState(deal.deal_number || '');
@@ -101,9 +103,6 @@ export function GenerateDealSheetDialog({ open, onOpenChange, deal }: GenerateDe
   const [brokerageContext, setBrokerageContext] = useState<'listing' | 'selling' | 'seller' | 'buyer'>('listing');
   const [generating, setGenerating] = useState(false);
   const [saving, setSaving] = useState(false);
-  
-  // Preview state
-  const [showPreview, setShowPreview] = useState(false);
 
   // Create stable dependency strings based on IDs to prevent infinite loops
   const conditionIds = existingConditions?.map(c => c.id).join(',') || '';
@@ -218,7 +217,7 @@ export function GenerateDealSheetDialog({ open, onOpenChange, deal }: GenerateDe
   const getAgent = (id: string | null | undefined) => agents?.find(a => a.id === id);
   const getBrokerage = (id: string | null | undefined) => brokerages?.find(b => b.id === id);
 
-  const saveAndGenerate = async () => {
+  const generatePdf = async () => {
     setSaving(true);
     try {
       // Update deal with all the form data
@@ -438,6 +437,14 @@ export function GenerateDealSheetDialog({ open, onOpenChange, deal }: GenerateDe
     day: 'numeric' 
   });
 
+  // Reset view state when dialog closes
+  useEffect(() => {
+    if (!open) {
+      setViewState('form');
+      setCurrentTab('basic');
+    }
+  }, [open]);
+
   return (
     <>
       <Dialog open={open} onOpenChange={onOpenChange}>
@@ -445,595 +452,637 @@ export function GenerateDealSheetDialog({ open, onOpenChange, deal }: GenerateDe
           <DialogHeader className="p-6 pb-4">
             <DialogTitle className="flex items-center gap-2">
               <FileText className="w-5 h-5" />
-              Generate Deal Sheet
+              {viewState === 'form' ? 'Generate Deal Sheet' : 'Preview Deal Sheet'}
             </DialogTitle>
           </DialogHeader>
 
-          <Tabs value={currentTab} onValueChange={(v) => setCurrentTab(v as TabValue)} className="flex-1">
-            <div className="px-6">
-              <TabsList className="w-full grid grid-cols-5">
-                <TabsTrigger value="basic" className="text-xs">Basic</TabsTrigger>
-                <TabsTrigger value="agents" className="text-xs">Agents</TabsTrigger>
-                <TabsTrigger value="parties" className="text-xs">Parties</TabsTrigger>
-                <TabsTrigger value="conditions" className="text-xs">Conditions</TabsTrigger>
-                <TabsTrigger value="financial" className="text-xs">Financial</TabsTrigger>
-              </TabsList>
-            </div>
-
-            <div className="px-6 mt-4 pb-2 max-h-[60vh] overflow-y-auto">
-              {/* Basic Information Tab */}
-              <TabsContent value="basic" className="mt-0 space-y-4">
-                <div className="grid grid-cols-3 gap-4">
-                  <div className="space-y-2">
-                    <Label>Deal Number</Label>
-                    <Input 
-                      value={dealNumber} 
-                      onChange={(e) => setDealNumber(e.target.value)}
-                      placeholder="Enter deal number"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Deal Type</Label>
-                    <Input value={deal.deal_type} disabled className="bg-muted" />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Size</Label>
-                    <Input value={getSizeDisplay()} disabled className="bg-muted" />
-                  </div>
-                </div>
-                <div className="grid grid-cols-3 gap-4">
-                  <div className="space-y-2">
-                    <Label>Address</Label>
-                    <Input value={deal.address} disabled className="bg-muted" />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>City</Label>
-                    <Input value={deal.city || ''} disabled className="bg-muted" />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Date</Label>
-                    <Input value={todayFormatted} disabled className="bg-muted" />
-                  </div>
-                </div>
-                <div className="space-y-2">
-                  <Label>Deal Sheet Notes/Comments</Label>
-                  <Textarea
-                    value={notes}
-                    onChange={(e) => setNotes(e.target.value)}
-                    rows={4}
-                    placeholder="Notes specific to this deal sheet (not saved to deal record)..."
-                  />
-                </div>
-              </TabsContent>
-
-              {/* Agents Tab */}
-              <TabsContent value="agents" className="mt-0 space-y-6">
-                {/* Listing Side */}
-                <div className="space-y-4">
-                  <h4 className="font-medium">Listing Side</h4>
-                  <div className="grid grid-cols-3 gap-4">
-                    <div className="space-y-2">
-                      <Label>Listing Brokerage</Label>
-                      <Select 
-                        value={listingBrokerageId} 
-                        onValueChange={(v) => v === '__add_new__' ? handleOpenAddBrokerage('listing') : setListingBrokerageId(v)}
-                      >
-                        <SelectTrigger className="w-full">
-                          <SelectValue placeholder="Select brokerage" />
-                        </SelectTrigger>
-                        <SelectContent className="bg-background z-50">
-                          {brokerages?.map((b) => (
-                            <SelectItem key={b.id} value={b.id}>{b.name}</SelectItem>
-                          ))}
-                          <SelectItem value="__add_new__">
-                            <span className="flex items-center gap-1 text-primary">
-                              <Plus className="w-3 h-3" /> Add New
-                            </span>
-                          </SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div className="space-y-2">
-                      <Label>Listing Agent 1</Label>
-                      <Select value={listingAgent1Id} onValueChange={setListingAgent1Id} disabled={!listingBrokerageId}>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select agent" />
-                        </SelectTrigger>
-                        <SelectContent className="bg-background z-50">
-                          {listingAgents1.map((a) => (
-                            <SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div className="space-y-2">
-                      <Label>Listing Agent 2</Label>
-                      <Select value={listingAgent2Id} onValueChange={setListingAgent2Id} disabled={!listingBrokerageId}>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select agent" />
-                        </SelectTrigger>
-                        <SelectContent className="bg-background z-50">
-                          {listingAgents2.map((a) => (
-                            <SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  </div>
+          {viewState === 'form' ? (
+            <>
+              <Tabs value={currentTab} onValueChange={(v) => setCurrentTab(v as TabValue)} className="flex-1">
+                <div className="px-6">
+                  <TabsList className="w-full grid grid-cols-5">
+                    <TabsTrigger value="basic" className="text-xs">Basic</TabsTrigger>
+                    <TabsTrigger value="agents" className="text-xs">Agents</TabsTrigger>
+                    <TabsTrigger value="parties" className="text-xs">Parties</TabsTrigger>
+                    <TabsTrigger value="conditions" className="text-xs">Conditions</TabsTrigger>
+                    <TabsTrigger value="financial" className="text-xs">Financial</TabsTrigger>
+                  </TabsList>
                 </div>
 
-                <Separator />
-
-                {/* Selling Side */}
-                <div className="space-y-4">
-                  <h4 className="font-medium">Selling Side</h4>
-                  <div className="grid grid-cols-3 gap-4">
-                    <div className="space-y-2">
-                      <Label>Selling Brokerage</Label>
-                      <Select 
-                        value={sellingBrokerageId} 
-                        onValueChange={(v) => v === '__add_new__' ? handleOpenAddBrokerage('selling') : setSellingBrokerageId(v)}
-                      >
-                        <SelectTrigger className="w-full">
-                          <SelectValue placeholder="Select brokerage" />
-                        </SelectTrigger>
-                        <SelectContent className="bg-background z-50">
-                          {brokerages?.map((b) => (
-                            <SelectItem key={b.id} value={b.id}>{b.name}</SelectItem>
-                          ))}
-                          <SelectItem value="__add_new__">
-                            <span className="flex items-center gap-1 text-primary">
-                              <Plus className="w-3 h-3" /> Add New
-                            </span>
-                          </SelectItem>
-                        </SelectContent>
-                      </Select>
+                <div className="px-6 mt-4 pb-2 max-h-[60vh] overflow-y-auto">
+                  {/* Basic Information Tab */}
+                  <TabsContent value="basic" className="mt-0 space-y-4">
+                    <div className="grid grid-cols-3 gap-4">
+                      <div className="space-y-2">
+                        <Label>Deal Number</Label>
+                        <Input 
+                          value={dealNumber} 
+                          onChange={(e) => setDealNumber(e.target.value)}
+                          placeholder="Enter deal number"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Deal Type</Label>
+                        <Input value={deal.deal_type} disabled className="bg-muted" />
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Size</Label>
+                        <Input value={getSizeDisplay()} disabled className="bg-muted" />
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-3 gap-4">
+                      <div className="space-y-2">
+                        <Label>Address</Label>
+                        <Input value={deal.address} disabled className="bg-muted" />
+                      </div>
+                      <div className="space-y-2">
+                        <Label>City</Label>
+                        <Input value={deal.city || ''} disabled className="bg-muted" />
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Date</Label>
+                        <Input value={todayFormatted} disabled className="bg-muted" />
+                      </div>
                     </div>
                     <div className="space-y-2">
-                      <Label>Selling Agent 1</Label>
-                      <Select value={sellingAgent1Id} onValueChange={setSellingAgent1Id} disabled={!sellingBrokerageId}>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select agent" />
-                        </SelectTrigger>
-                        <SelectContent className="bg-background z-50">
-                          {sellingAgents1.map((a) => (
-                            <SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
+                      <Label>Comments</Label>
+                      <Textarea
+                        value={notes}
+                        onChange={(e) => setNotes(e.target.value)}
+                        rows={4}
+                      />
                     </div>
-                    <div className="space-y-2">
-                      <Label>Selling Agent 2</Label>
-                      <Select value={sellingAgent2Id} onValueChange={setSellingAgent2Id} disabled={!sellingBrokerageId}>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select agent" />
-                        </SelectTrigger>
-                        <SelectContent className="bg-background z-50">
-                          {sellingAgents2.map((a) => (
-                            <SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
+                  </TabsContent>
+
+                  {/* Agents Tab */}
+                  <TabsContent value="agents" className="mt-0 space-y-6">
+                    {/* Listing Side */}
+                    <div className="space-y-4">
+                      <h4 className="font-medium">Listing Side</h4>
+                      <div className="grid grid-cols-3 gap-4">
+                        <div className="space-y-2">
+                          <Label>Listing Brokerage</Label>
+                          <Select 
+                            value={listingBrokerageId} 
+                            onValueChange={(v) => v === '__add_new__' ? handleOpenAddBrokerage('listing') : setListingBrokerageId(v)}
+                          >
+                            <SelectTrigger className="w-full text-left">
+                              <SelectValue placeholder="Select brokerage" />
+                            </SelectTrigger>
+                            <SelectContent className="bg-background z-50 max-w-[250px]">
+                              {brokerages?.map((b) => (
+                                <SelectItem key={b.id} value={b.id} className="truncate">{b.name}</SelectItem>
+                              ))}
+                              <SelectItem value="__add_new__">
+                                <span className="flex items-center gap-1 text-primary">
+                                  <Plus className="w-3 h-3" /> Add New
+                                </span>
+                              </SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div className="space-y-2">
+                          <Label>Listing Agent 1</Label>
+                          <Select value={listingAgent1Id} onValueChange={setListingAgent1Id} disabled={!listingBrokerageId}>
+                            <SelectTrigger className="w-full">
+                              <SelectValue placeholder="Select agent" />
+                            </SelectTrigger>
+                            <SelectContent className="bg-background z-50">
+                              {listingAgents1.map((a) => (
+                                <SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div className="space-y-2">
+                          <Label>Listing Agent 2</Label>
+                          <Select value={listingAgent2Id} onValueChange={setListingAgent2Id} disabled={!listingBrokerageId}>
+                            <SelectTrigger className="w-full">
+                              <SelectValue placeholder="Select agent" />
+                            </SelectTrigger>
+                            <SelectContent className="bg-background z-50">
+                              {listingAgents2.map((a) => (
+                                <SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      </div>
                     </div>
-                  </div>
-                </div>
 
-                <Separator />
+                    <Separator />
 
-                {/* CV Agent */}
-                <div className="space-y-4">
-                  <h4 className="font-medium">Clearview Agent</h4>
-                  <div className="space-y-2">
-                    <Label>CV Agent</Label>
-                    <Select value={cvAgentId} onValueChange={setCvAgentId}>
-                      <SelectTrigger className="w-1/2">
-                        <SelectValue placeholder="Select CV agent" />
-                      </SelectTrigger>
-                      <SelectContent className="bg-background z-50">
-                        {cvAgents.map((a) => (
-                          <SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>
+                    {/* Selling Side */}
+                    <div className="space-y-4">
+                      <h4 className="font-medium">Selling Side</h4>
+                      <div className="grid grid-cols-3 gap-4">
+                        <div className="space-y-2">
+                          <Label>Selling Brokerage</Label>
+                          <Select 
+                            value={sellingBrokerageId} 
+                            onValueChange={(v) => v === '__add_new__' ? handleOpenAddBrokerage('selling') : setSellingBrokerageId(v)}
+                          >
+                            <SelectTrigger className="w-full text-left">
+                              <SelectValue placeholder="Select brokerage" />
+                            </SelectTrigger>
+                            <SelectContent className="bg-background z-50 max-w-[250px]">
+                              {brokerages?.map((b) => (
+                                <SelectItem key={b.id} value={b.id} className="truncate">{b.name}</SelectItem>
+                              ))}
+                              <SelectItem value="__add_new__">
+                                <span className="flex items-center gap-1 text-primary">
+                                  <Plus className="w-3 h-3" /> Add New
+                                </span>
+                              </SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div className="space-y-2">
+                          <Label>Selling Agent 1</Label>
+                          <Select value={sellingAgent1Id} onValueChange={setSellingAgent1Id} disabled={!sellingBrokerageId}>
+                            <SelectTrigger className="w-full">
+                              <SelectValue placeholder="Select agent" />
+                            </SelectTrigger>
+                            <SelectContent className="bg-background z-50">
+                              {sellingAgents1.map((a) => (
+                                <SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div className="space-y-2">
+                          <Label>Selling Agent 2</Label>
+                          <Select value={sellingAgent2Id} onValueChange={setSellingAgent2Id} disabled={!sellingBrokerageId}>
+                            <SelectTrigger className="w-full">
+                              <SelectValue placeholder="Select agent" />
+                            </SelectTrigger>
+                            <SelectContent className="bg-background z-50">
+                              {sellingAgents2.map((a) => (
+                                <SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      </div>
+                    </div>
+
+                    <Separator />
+
+                    {/* CV Agent */}
+                    <div className="space-y-4">
+                      <h4 className="font-medium">Clearview Agent</h4>
+                      <div className="space-y-2">
+                        <Label>CV Agent</Label>
+                        <Select value={cvAgentId} onValueChange={setCvAgentId}>
+                          <SelectTrigger className="w-1/2">
+                            <SelectValue placeholder="Select CV agent" />
+                          </SelectTrigger>
+                          <SelectContent className="bg-background z-50">
+                            {cvAgents.map((a) => (
+                              <SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
+                  </TabsContent>
+
+                  {/* Parties Tab */}
+                  <TabsContent value="parties" className="mt-0 space-y-6">
+                    {/* Seller */}
+                    <div className="space-y-4">
+                      <h4 className="font-medium">Seller Information</h4>
+                      <div className="grid grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                          <Label>Seller Name</Label>
+                          <Input
+                            value={sellerName}
+                            onChange={(e) => setSellerName(e.target.value)}
+                            placeholder="Enter seller name"
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label>Seller Brokerage</Label>
+                          <Select 
+                            value={sellerBrokerageId} 
+                            onValueChange={(v) => v === '__add_new__' ? handleOpenAddBrokerage('seller') : setSellerBrokerageId(v)}
+                          >
+                            <SelectTrigger className="w-full text-left">
+                              <SelectValue placeholder="Select brokerage" />
+                            </SelectTrigger>
+                            <SelectContent className="bg-background z-50 max-w-[250px]">
+                              {brokerages?.map((b) => (
+                                <SelectItem key={b.id} value={b.id} className="truncate">{b.name}</SelectItem>
+                              ))}
+                              <SelectItem value="__add_new__">
+                                <span className="flex items-center gap-1 text-primary">
+                                  <Plus className="w-3 h-3" /> Add New
+                                </span>
+                              </SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      </div>
+                    </div>
+
+                    <Separator />
+
+                    {/* Buyer */}
+                    <div className="space-y-4">
+                      <h4 className="font-medium">Buyer Information</h4>
+                      <div className="grid grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                          <Label>Buyer Name</Label>
+                          <Input
+                            value={buyerName}
+                            onChange={(e) => setBuyerName(e.target.value)}
+                            placeholder="Enter buyer name"
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label>Buyer Brokerage</Label>
+                          <Select 
+                            value={buyerBrokerageId} 
+                            onValueChange={(v) => v === '__add_new__' ? handleOpenAddBrokerage('buyer') : setBuyerBrokerageId(v)}
+                          >
+                            <SelectTrigger className="w-full text-left">
+                              <SelectValue placeholder="Select brokerage" />
+                            </SelectTrigger>
+                            <SelectContent className="bg-background z-50 max-w-[250px]">
+                              {brokerages?.map((b) => (
+                                <SelectItem key={b.id} value={b.id} className="truncate">{b.name}</SelectItem>
+                              ))}
+                              <SelectItem value="__add_new__">
+                                <span className="flex items-center gap-1 text-primary">
+                                  <Plus className="w-3 h-3" /> Add New
+                                </span>
+                              </SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      </div>
+                    </div>
+                  </TabsContent>
+
+                  {/* Conditions Tab */}
+                  <TabsContent value="conditions" className="mt-0 space-y-4">
+                    <div className="flex items-center justify-between">
+                      <Label className="text-base font-medium">Conditions</Label>
+                      <Button variant="outline" size="sm" onClick={handleAddCondition}>
+                        <Plus className="w-4 h-4 mr-1" /> Add Condition
+                      </Button>
+                    </div>
+
+                    {localConditions.length === 0 ? (
+                      <p className="text-sm text-muted-foreground text-center py-6">
+                        No conditions. Click "Add Condition" to add one.
+                      </p>
+                    ) : (
+                      <div className="space-y-3">
+                        {localConditions.map((condition, index) => (
+                          <div key={index} className="flex items-start gap-2 p-3 border rounded-lg bg-muted/50">
+                            <div className="flex-1 space-y-2">
+                              <div className="flex gap-2">
+                                <div className="flex-1">
+                                  <Input
+                                    value={condition.description}
+                                    onChange={(e) => handleConditionChange(index, 'description', e.target.value)}
+                                    placeholder="Condition description"
+                                  />
+                                </div>
+                                <Popover>
+                                  <PopoverTrigger asChild>
+                                    <Button variant="outline" size="sm" className="w-[140px] justify-start text-left font-normal">
+                                      <CalendarIcon className="mr-2 h-4 w-4" />
+                                      {condition.due_date ? format(new Date(condition.due_date), 'PP') : 'Due date'}
+                                    </Button>
+                                  </PopoverTrigger>
+                                  <PopoverContent className="w-auto p-0" align="start">
+                                    <Calendar
+                                      mode="single"
+                                      selected={condition.due_date ? new Date(condition.due_date) : undefined}
+                                      onSelect={(date) => handleConditionChange(index, 'due_date', date ? date.toISOString().split('T')[0] : null)}
+                                      className="pointer-events-auto"
+                                    />
+                                  </PopoverContent>
+                                </Popover>
+                              </div>
+                            </div>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8 text-destructive hover:text-destructive"
+                              onClick={() => handleRemoveCondition(index)}
+                            >
+                              <X className="w-4 h-4" />
+                            </Button>
+                          </div>
                         ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
-              </TabsContent>
+                      </div>
+                    )}
 
-              {/* Parties Tab */}
-              <TabsContent value="parties" className="mt-0 space-y-6">
-                {/* Seller */}
-                <div className="space-y-4">
-                  <h4 className="font-medium">Seller Information</h4>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label>Seller Name</Label>
-                      <Input
-                        value={sellerName}
-                        onChange={(e) => setSellerName(e.target.value)}
-                        placeholder="Enter seller name"
-                      />
+                    <Separator className="my-6" />
+
+                    {/* Deposits in same tab */}
+                    <div className="flex items-center justify-between">
+                      <Label className="text-base font-medium">Deposits</Label>
+                      <Button variant="outline" size="sm" onClick={handleAddDeposit}>
+                        <Plus className="w-4 h-4 mr-1" /> Add Deposit
+                      </Button>
                     </div>
-                    <div className="space-y-2">
-                      <Label>Seller Brokerage</Label>
-                      <Select 
-                        value={sellerBrokerageId} 
-                        onValueChange={(v) => v === '__add_new__' ? handleOpenAddBrokerage('seller') : setSellerBrokerageId(v)}
-                      >
-                        <SelectTrigger className="w-full">
-                          <SelectValue placeholder="Select brokerage" />
-                        </SelectTrigger>
-                        <SelectContent className="bg-background z-50">
-                          {brokerages?.map((b) => (
-                            <SelectItem key={b.id} value={b.id}>{b.name}</SelectItem>
-                          ))}
-                          <SelectItem value="__add_new__">
-                            <span className="flex items-center gap-1 text-primary">
-                              <Plus className="w-3 h-3" /> Add New
-                            </span>
-                          </SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  </div>
-                </div>
 
-                <Separator />
-
-                {/* Buyer */}
-                <div className="space-y-4">
-                  <h4 className="font-medium">Buyer Information</h4>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label>Buyer Name</Label>
-                      <Input
-                        value={buyerName}
-                        onChange={(e) => setBuyerName(e.target.value)}
-                        placeholder="Enter buyer name"
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label>Buyer Brokerage</Label>
-                      <Select 
-                        value={buyerBrokerageId} 
-                        onValueChange={(v) => v === '__add_new__' ? handleOpenAddBrokerage('buyer') : setBuyerBrokerageId(v)}
-                      >
-                        <SelectTrigger className="w-full">
-                          <SelectValue placeholder="Select brokerage" />
-                        </SelectTrigger>
-                        <SelectContent className="bg-background z-50">
-                          {brokerages?.map((b) => (
-                            <SelectItem key={b.id} value={b.id}>{b.name}</SelectItem>
-                          ))}
-                          <SelectItem value="__add_new__">
-                            <span className="flex items-center gap-1 text-primary">
-                              <Plus className="w-3 h-3" /> Add New
-                            </span>
-                          </SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  </div>
-                </div>
-              </TabsContent>
-
-              {/* Conditions Tab */}
-              <TabsContent value="conditions" className="mt-0 space-y-4">
-                <div className="flex items-center justify-between">
-                  <Label className="text-base font-medium">Conditions</Label>
-                  <Button variant="outline" size="sm" onClick={handleAddCondition}>
-                    <Plus className="w-4 h-4 mr-1" /> Add Condition
-                  </Button>
-                </div>
-
-                {localConditions.length === 0 ? (
-                  <p className="text-sm text-muted-foreground text-center py-6">
-                    No conditions. Click "Add Condition" to add one.
-                  </p>
-                ) : (
-                  <div className="space-y-3">
-                    {localConditions.map((condition, index) => (
-                      <div key={index} className="flex items-start gap-2 p-3 border rounded-lg bg-muted/50">
-                        <div className="flex-1 space-y-2">
-                          <div className="flex gap-2">
-                            <div className="flex-1">
-                              <Input
-                                value={condition.description}
-                                onChange={(e) => handleConditionChange(index, 'description', e.target.value)}
-                                placeholder="Condition description"
+                    {localDeposits.length === 0 ? (
+                      <p className="text-sm text-muted-foreground text-center py-6">
+                        No deposits. Click "Add Deposit" to add one.
+                      </p>
+                    ) : (
+                      <div className="space-y-3">
+                        {localDeposits.map((deposit, index) => (
+                          <div key={index} className="flex items-center gap-2 p-3 border rounded-lg bg-muted/50">
+                            <div className="w-[140px]">
+                              <FormattedNumberInput
+                                value={deposit.amount}
+                                onChange={(val) => handleDepositChange(index, 'amount', val)}
+                                placeholder="Amount"
                               />
                             </div>
-                            <Popover>
-                              <PopoverTrigger asChild>
-                                <Button variant="outline" size="sm" className="w-[140px] justify-start text-left font-normal">
-                                  <CalendarIcon className="mr-2 h-4 w-4" />
-                                  {condition.due_date ? format(new Date(condition.due_date), 'PP') : 'Due date'}
-                                </Button>
-                              </PopoverTrigger>
-                              <PopoverContent className="w-auto p-0" align="start">
-                                <Calendar
-                                  mode="single"
-                                  selected={condition.due_date ? new Date(condition.due_date) : undefined}
-                                  onSelect={(date) => handleConditionChange(index, 'due_date', date ? date.toISOString().split('T')[0] : null)}
-                                  className="pointer-events-auto"
-                                />
-                              </PopoverContent>
-                            </Popover>
+                            <div className="flex-1">
+                              <Input
+                                value={deposit.held_by}
+                                onChange={(e) => handleDepositChange(index, 'held_by', e.target.value)}
+                                placeholder="Held by"
+                              />
+                            </div>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8 text-destructive hover:text-destructive"
+                              onClick={() => handleRemoveDeposit(index)}
+                            >
+                              <X className="w-4 h-4" />
+                            </Button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </TabsContent>
+
+                  {/* Financial Tab */}
+                  <TabsContent value="financial" className="mt-0 space-y-4">
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label>Deal Value</Label>
+                        <FormattedNumberInput
+                          value={dealValue}
+                          onChange={setDealValue}
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Commission %</Label>
+                        <Input
+                          type="number"
+                          step="0.1"
+                          value={commissionPercent}
+                          onChange={(e) => setCommissionPercent(parseFloat(e.target.value) || 0)}
+                        />
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-3 gap-4">
+                      <div className="space-y-2">
+                        <Label>Other Brokerage %</Label>
+                        <Input
+                          type="number"
+                          step="0.1"
+                          value={otherBrokeragePercent}
+                          onChange={(e) => setOtherBrokeragePercent(parseFloat(e.target.value) || 0)}
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Clearview %</Label>
+                        <Input
+                          type="number"
+                          step="0.1"
+                          value={clearviewPercent}
+                          onChange={(e) => setClearviewPercent(parseFloat(e.target.value) || 0)}
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label>GST Rate %</Label>
+                        <Input
+                          type="number"
+                          step="0.1"
+                          value={gstRate}
+                          onChange={(e) => setGstRate(parseFloat(e.target.value) || 0)}
+                        />
+                      </div>
+                    </div>
+
+                    <Separator className="my-4" />
+
+                    {/* Commission Summary */}
+                    <div className="space-y-4">
+                      <h4 className="font-medium">Commission Summary</h4>
+                      <div className="grid grid-cols-3 gap-4">
+                        <div className="p-3 bg-background rounded border">
+                          <div className="text-muted-foreground mb-2">Total Commission</div>
+                          <div className="space-y-1">
+                            <div className="flex justify-between">
+                              <span>Commission:</span>
+                              <span className="font-medium">{formatCurrency(totalCommission)}</span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span>GST:</span>
+                              <span className="font-medium">{formatCurrency(totalGST)}</span>
+                            </div>
+                            <Separator className="my-2" />
+                            <div className="flex justify-between font-semibold">
+                              <span>Total:</span>
+                              <span>{formatCurrency(totalWithGST)}</span>
+                            </div>
                           </div>
                         </div>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-8 w-8 text-destructive hover:text-destructive"
-                          onClick={() => handleRemoveCondition(index)}
-                        >
-                          <X className="w-4 h-4" />
-                        </Button>
+                        <div className="p-3 bg-background rounded border">
+                          <div className="text-muted-foreground mb-2">Other Brokerage ({otherBrokeragePercent}%)</div>
+                          <div className="space-y-1">
+                            <div className="flex justify-between">
+                              <span>Commission:</span>
+                              <span className="font-medium">{formatCurrency(otherCommission)}</span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span>GST:</span>
+                              <span className="font-medium">{formatCurrency(otherGST)}</span>
+                            </div>
+                            <Separator className="my-2" />
+                            <div className="flex justify-between font-semibold">
+                              <span>Total:</span>
+                              <span>{formatCurrency(otherCommission + otherGST)}</span>
+                            </div>
+                          </div>
+                        </div>
+                        <div className="p-3 bg-background rounded border">
+                          <div className="text-muted-foreground mb-2">Clearview ({clearviewPercent}%)</div>
+                          <div className="space-y-1">
+                            <div className="flex justify-between">
+                              <span>Commission:</span>
+                              <span className="font-medium">{formatCurrency(cvCommission)}</span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span>GST:</span>
+                              <span className="font-medium">{formatCurrency(cvGST)}</span>
+                            </div>
+                            <Separator className="my-2" />
+                            <div className="flex justify-between font-semibold">
+                              <span>Total:</span>
+                              <span>{formatCurrency(cvCommission + cvGST)}</span>
+                            </div>
+                          </div>
+                        </div>
                       </div>
-                    ))}
+                    </div>
+                  </TabsContent>
+                </div>
+              </Tabs>
+
+              {/* Footer Actions */}
+              <div className="flex justify-end gap-2 p-6 pt-4 border-t">
+                <Button variant="outline" onClick={() => onOpenChange(false)}>
+                  Cancel
+                </Button>
+                <Button onClick={() => setViewState('preview')}>
+                  Show Preview
+                </Button>
+              </div>
+            </>
+          ) : (
+            /* Preview View */
+            <>
+              <div className="px-6 pb-2 max-h-[60vh] overflow-y-auto space-y-4">
+                {/* Deal Summary */}
+                <div className="p-4 bg-muted rounded-lg">
+                  <h5 className="font-medium mb-3 flex items-center gap-2">
+                    <Check className="w-4 h-4 text-green-600" />
+                    Deal Summary
+                  </h5>
+                  <div className="grid grid-cols-2 gap-4 text-sm">
+                    <div><span className="text-muted-foreground">Deal Number:</span> <span className="font-medium">{dealNumber || '—'}</span></div>
+                    <div><span className="text-muted-foreground">Deal Type:</span> <span className="font-medium">{deal.deal_type}</span></div>
+                    <div><span className="text-muted-foreground">Address:</span> <span className="font-medium">{deal.address}</span></div>
+                    <div><span className="text-muted-foreground">Date:</span> <span className="font-medium">{todayFormatted}</span></div>
+                    <div><span className="text-muted-foreground">Size:</span> <span className="font-medium">{getSizeDisplay()}</span></div>
+                    <div><span className="text-muted-foreground">Deal Value:</span> <span className="font-medium">{formatCurrency(dealValue)}</span></div>
+                  </div>
+                </div>
+
+                {/* Agents */}
+                <div className="p-4 bg-muted rounded-lg">
+                  <h5 className="font-medium mb-3">Agents</h5>
+                  <div className="grid grid-cols-2 gap-6 text-sm">
+                    <div>
+                      <div className="font-medium mb-2">Listing Side</div>
+                      <div><span className="text-muted-foreground">Brokerage:</span> {listingBrokerage?.name || '—'}</div>
+                      <div><span className="text-muted-foreground">Agent 1:</span> {listingAgent1?.name || '—'}</div>
+                      <div><span className="text-muted-foreground">Agent 2:</span> {listingAgent2?.name || '—'}</div>
+                    </div>
+                    <div>
+                      <div className="font-medium mb-2">Selling Side</div>
+                      <div><span className="text-muted-foreground">Brokerage:</span> {sellingBrokerage?.name || '—'}</div>
+                      <div><span className="text-muted-foreground">Agent 1:</span> {sellingAgent1?.name || '—'}</div>
+                      <div><span className="text-muted-foreground">Agent 2:</span> {sellingAgent2?.name || '—'}</div>
+                    </div>
+                  </div>
+                  {cvAgent && (
+                    <div className="mt-3 pt-3 border-t text-sm">
+                      <span className="text-muted-foreground">CV Agent:</span> {cvAgent.name}
+                    </div>
+                  )}
+                </div>
+
+                {/* Parties */}
+                <div className="p-4 bg-muted rounded-lg">
+                  <h5 className="font-medium mb-3">Parties</h5>
+                  <div className="grid grid-cols-2 gap-6 text-sm">
+                    <div>
+                      <div className="font-medium mb-2">Seller</div>
+                      <div><span className="text-muted-foreground">Name:</span> {sellerName || '—'}</div>
+                      <div><span className="text-muted-foreground">Brokerage:</span> {sellerBrokerage?.name || '—'}</div>
+                    </div>
+                    <div>
+                      <div className="font-medium mb-2">Buyer</div>
+                      <div><span className="text-muted-foreground">Name:</span> {buyerName || '—'}</div>
+                      <div><span className="text-muted-foreground">Brokerage:</span> {buyerBrokerage?.name || '—'}</div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Conditions */}
+                {localConditions.filter(c => c.description).length > 0 && (
+                  <div className="p-4 bg-muted rounded-lg">
+                    <h5 className="font-medium mb-3">Conditions</h5>
+                    <div className="space-y-2 text-sm">
+                      {localConditions.filter(c => c.description).map((c, i) => (
+                        <div key={i}>
+                          Condition {i + 1} - {c.description} {c.due_date && `— ${format(new Date(c.due_date), 'PPP')}`}
+                        </div>
+                      ))}
+                    </div>
                   </div>
                 )}
 
-                <Separator className="my-6" />
-
-                {/* Deposits in same tab */}
-                <div className="flex items-center justify-between">
-                  <Label className="text-base font-medium">Deposits</Label>
-                  <Button variant="outline" size="sm" onClick={handleAddDeposit}>
-                    <Plus className="w-4 h-4 mr-1" /> Add Deposit
-                  </Button>
-                </div>
-
-                {localDeposits.length === 0 ? (
-                  <p className="text-sm text-muted-foreground text-center py-6">
-                    No deposits. Click "Add Deposit" to add one.
-                  </p>
-                ) : (
-                  <div className="space-y-3">
-                    {localDeposits.map((deposit, index) => (
-                      <div key={index} className="flex items-center gap-2 p-3 border rounded-lg bg-muted/50">
-                        <div className="w-[140px]">
-                          <FormattedNumberInput
-                            value={deposit.amount}
-                            onChange={(val) => handleDepositChange(index, 'amount', val)}
-                            placeholder="Amount"
-                          />
+                {/* Deposits */}
+                {localDeposits.filter(d => d.amount > 0).length > 0 && (
+                  <div className="p-4 bg-muted rounded-lg">
+                    <h5 className="font-medium mb-3">Deposits</h5>
+                    <div className="space-y-2 text-sm">
+                      {localDeposits.filter(d => d.amount > 0).map((d, i) => (
+                        <div key={i}>
+                          {formatCurrency(d.amount)} {d.held_by && `— Held by: ${d.held_by}`}
                         </div>
-                        <div className="flex-1">
-                          <Input
-                            value={deposit.held_by}
-                            onChange={(e) => handleDepositChange(index, 'held_by', e.target.value)}
-                            placeholder="Held by"
-                          />
-                        </div>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-8 w-8 text-destructive hover:text-destructive"
-                          onClick={() => handleRemoveDeposit(index)}
-                        >
-                          <X className="w-4 h-4" />
-                        </Button>
-                      </div>
-                    ))}
+                      ))}
+                    </div>
                   </div>
                 )}
-              </TabsContent>
-
-              {/* Financial Tab */}
-              <TabsContent value="financial" className="mt-0 space-y-4">
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label>Deal Value</Label>
-                    <FormattedNumberInput
-                      value={dealValue}
-                      onChange={setDealValue}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Commission %</Label>
-                    <Input
-                      type="number"
-                      step="0.1"
-                      value={commissionPercent}
-                      onChange={(e) => setCommissionPercent(parseFloat(e.target.value) || 0)}
-                    />
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-3 gap-4">
-                  <div className="space-y-2">
-                    <Label>Other Brokerage %</Label>
-                    <Input
-                      type="number"
-                      step="0.1"
-                      value={otherBrokeragePercent}
-                      onChange={(e) => setOtherBrokeragePercent(parseFloat(e.target.value) || 0)}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Clearview %</Label>
-                    <Input
-                      type="number"
-                      step="0.1"
-                      value={clearviewPercent}
-                      onChange={(e) => setClearviewPercent(parseFloat(e.target.value) || 0)}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>GST Rate %</Label>
-                    <Input
-                      type="number"
-                      step="0.1"
-                      value={gstRate}
-                      onChange={(e) => setGstRate(parseFloat(e.target.value) || 0)}
-                    />
-                  </div>
-                </div>
-
-                <Separator className="my-4" />
 
                 {/* Commission Summary */}
-                <div className="space-y-4">
-                  <h4 className="font-medium">Commission Summary</h4>
-                  <div className="grid grid-cols-3 gap-4">
-                    <div className="p-3 bg-background rounded border">
-                      <div className="text-muted-foreground mb-2">Total Commission</div>
-                      <div className="space-y-1">
-                        <div className="flex justify-between">
-                          <span>Commission:</span>
-                          <span className="font-medium">{formatCurrency(totalCommission)}</span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span>GST:</span>
-                          <span className="font-medium">{formatCurrency(totalGST)}</span>
-                        </div>
-                        <Separator className="my-2" />
-                        <div className="flex justify-between font-semibold">
-                          <span>Total:</span>
-                          <span>{formatCurrency(totalWithGST)}</span>
-                        </div>
-                      </div>
+                <div className="p-4 bg-muted rounded-lg">
+                  <h5 className="font-medium mb-3">Commission Summary</h5>
+                  <div className="grid grid-cols-3 gap-4 text-sm">
+                    <div>
+                      <div className="text-muted-foreground mb-1">Total Commission</div>
+                      <div className="font-medium">{formatCurrency(totalWithGST)}</div>
                     </div>
-                    <div className="p-3 bg-background rounded border">
-                      <div className="text-muted-foreground mb-2">Other Brokerage ({otherBrokeragePercent}%)</div>
-                      <div className="space-y-1">
-                        <div className="flex justify-between">
-                          <span>Commission:</span>
-                          <span className="font-medium">{formatCurrency(otherCommission)}</span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span>GST:</span>
-                          <span className="font-medium">{formatCurrency(otherGST)}</span>
-                        </div>
-                        <Separator className="my-2" />
-                        <div className="flex justify-between font-semibold">
-                          <span>Total:</span>
-                          <span>{formatCurrency(otherCommission + otherGST)}</span>
-                        </div>
-                      </div>
+                    <div>
+                      <div className="text-muted-foreground mb-1">Other Brokerage ({otherBrokeragePercent}%)</div>
+                      <div className="font-medium">{formatCurrency(otherCommission + otherGST)}</div>
                     </div>
-                    <div className="p-3 bg-background rounded border">
-                      <div className="text-muted-foreground mb-2">Clearview ({clearviewPercent}%)</div>
-                      <div className="space-y-1">
-                        <div className="flex justify-between">
-                          <span>Commission:</span>
-                          <span className="font-medium">{formatCurrency(cvCommission)}</span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span>GST:</span>
-                          <span className="font-medium">{formatCurrency(cvGST)}</span>
-                        </div>
-                        <Separator className="my-2" />
-                        <div className="flex justify-between font-semibold">
-                          <span>Total:</span>
-                          <span>{formatCurrency(cvCommission + cvGST)}</span>
-                        </div>
-                      </div>
+                    <div>
+                      <div className="text-muted-foreground mb-1">Clearview ({clearviewPercent}%)</div>
+                      <div className="font-medium">{formatCurrency(cvCommission + cvGST)}</div>
                     </div>
                   </div>
                 </div>
 
-                {/* Preview Section - collapsed by default */}
-                {showPreview && (
-                  <>
-                    <Separator className="my-4" />
-                    <div className="space-y-4">
-                      <h4 className="font-medium flex items-center gap-2">
-                        <Check className="w-4 h-4 text-green-600" />
-                        Preview
-                      </h4>
-                      
-                      {/* Deal Summary */}
-                      <div className="p-4 bg-muted rounded-lg">
-                        <h5 className="font-medium mb-3">Deal Summary</h5>
-                        <div className="grid grid-cols-2 gap-4 text-sm">
-                          <div><span className="text-muted-foreground">Deal Number:</span> <span className="font-medium">{dealNumber || '—'}</span></div>
-                          <div><span className="text-muted-foreground">Deal Type:</span> <span className="font-medium">{deal.deal_type}</span></div>
-                          <div><span className="text-muted-foreground">Address:</span> <span className="font-medium">{deal.address}</span></div>
-                          <div><span className="text-muted-foreground">Date:</span> <span className="font-medium">{todayFormatted}</span></div>
-                        </div>
-                      </div>
-
-                      {/* Agents */}
-                      <div className="p-4 bg-muted rounded-lg">
-                        <h5 className="font-medium mb-3">Agents</h5>
-                        <div className="grid grid-cols-2 gap-6 text-sm">
-                          <div>
-                            <div className="font-medium mb-2">Listing Side</div>
-                            <div><span className="text-muted-foreground">Brokerage:</span> {listingBrokerage?.name || '—'}</div>
-                            <div><span className="text-muted-foreground">Agent 1:</span> {listingAgent1?.name || '—'}</div>
-                            <div><span className="text-muted-foreground">Agent 2:</span> {listingAgent2?.name || '—'}</div>
-                          </div>
-                          <div>
-                            <div className="font-medium mb-2">Selling Side</div>
-                            <div><span className="text-muted-foreground">Brokerage:</span> {sellingBrokerage?.name || '—'}</div>
-                            <div><span className="text-muted-foreground">Agent 1:</span> {sellingAgent1?.name || '—'}</div>
-                            <div><span className="text-muted-foreground">Agent 2:</span> {sellingAgent2?.name || '—'}</div>
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* Conditions */}
-                      {localConditions.length > 0 && (
-                        <div className="p-4 bg-muted rounded-lg">
-                          <h5 className="font-medium mb-3">Conditions</h5>
-                          <div className="space-y-2 text-sm">
-                            {localConditions.filter(c => c.description).map((c, i) => (
-                              <div key={i}>
-                                {i + 1}. {c.description} {c.due_date && `— Due: ${format(new Date(c.due_date), 'PPP')}`}
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-                      )}
-
-                      {/* Deposits */}
-                      {localDeposits.length > 0 && (
-                        <div className="p-4 bg-muted rounded-lg">
-                          <h5 className="font-medium mb-3">Deposits</h5>
-                          <div className="space-y-2 text-sm">
-                            {localDeposits.filter(d => d.amount > 0).map((d, i) => (
-                              <div key={i}>
-                                {formatCurrency(d.amount)} {d.held_by && `— Held by: ${d.held_by}`}
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-                      )}
-
-                      {notes && (
-                        <div className="p-4 bg-muted rounded-lg">
-                          <h5 className="font-medium mb-2">Notes</h5>
-                          <p className="text-sm">{notes}</p>
-                        </div>
-                      )}
-                    </div>
-                  </>
+                {notes && (
+                  <div className="p-4 bg-muted rounded-lg">
+                    <h5 className="font-medium mb-2">Comments</h5>
+                    <p className="text-sm">{notes}</p>
+                  </div>
                 )}
-              </TabsContent>
-            </div>
-          </Tabs>
+              </div>
 
-          {/* Footer Actions */}
-          <div className="flex justify-between gap-2 p-6 pt-4 border-t">
-            <Button 
-              variant="outline" 
-              onClick={() => setShowPreview(!showPreview)}
-              disabled={currentTab !== 'financial'}
-            >
-              <Eye className="w-4 h-4 mr-2" />
-              {showPreview ? 'Hide Preview' : 'Show Preview'}
-            </Button>
-            <div className="flex gap-2">
-              <Button variant="outline" onClick={() => onOpenChange(false)}>
-                Cancel
-              </Button>
-              <Button onClick={saveAndGenerate} disabled={saving || generating}>
-                <Download className="w-4 h-4 mr-2" />
-                {saving ? 'Saving...' : generating ? 'Generating...' : 'Download PDF'}
-              </Button>
-            </div>
-          </div>
+              {/* Footer Actions for Preview */}
+              <div className="flex justify-between gap-2 p-6 pt-4 border-t">
+                <Button variant="outline" onClick={() => setViewState('form')}>
+                  <ArrowLeft className="w-4 h-4 mr-2" />
+                  Back to Edit
+                </Button>
+                <Button onClick={generatePdf} disabled={saving || generating}>
+                  <Download className="w-4 h-4 mr-2" />
+                  {saving ? 'Saving...' : generating ? 'Generating...' : 'Generate PDF'}
+                </Button>
+              </div>
+            </>
+          )}
         </DialogContent>
       </Dialog>
 
