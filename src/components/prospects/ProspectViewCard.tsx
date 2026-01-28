@@ -84,11 +84,6 @@ export function ProspectViewCard({ prospect, onEdit }: ProspectViewCardProps) {
             <p className="text-sm text-muted-foreground mb-1">Occupancy Date</p>
             <p className="font-medium">{formatDate(prospect.occupancy_date)}</p>
           </div>
-          
-          <div>
-            <p className="text-sm text-muted-foreground mb-1">Follow-up Date</p>
-            <p className="font-medium">{formatDate(prospect.follow_up_date)}</p>
-          </div>
         </div>
         
         {/* Financial info */}
