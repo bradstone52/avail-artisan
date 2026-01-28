@@ -106,12 +106,13 @@ export function MasterRecipientTable({
                   className={someFilteredSelected && !allFilteredSelected ? "opacity-50" : ""}
                 />
               </TableHead>
-              <TableHead className="w-[180px]">Company</TableHead>
-              <TableHead className="w-[150px]">Contact Name</TableHead>
-              <TableHead className="w-[200px]">Email</TableHead>
-              <TableHead className="w-[120px]">Default Owner</TableHead>
-              <TableHead className="w-[100px]">Notes</TableHead>
-              <TableHead className="w-[110px]">Created</TableHead>
+              <TableHead className="w-[160px]">Company</TableHead>
+              <TableHead className="w-[130px]">Contact Name</TableHead>
+              <TableHead className="w-[120px]">Position</TableHead>
+              <TableHead className="w-[180px]">Email</TableHead>
+              <TableHead className="w-[130px]">Phone</TableHead>
+              <TableHead className="w-[100px]">Owner</TableHead>
+              <TableHead className="w-[100px]">Created</TableHead>
               <TableHead className="w-[80px]">Actions</TableHead>
             </TableRow>
           </TableHeader>
@@ -127,11 +128,10 @@ export function MasterRecipientTable({
                 </TableCell>
                 <TableCell className="font-medium">{recipient.company_name}</TableCell>
                 <TableCell>{recipient.contact_name}</TableCell>
+                <TableCell className="text-muted-foreground">{recipient.title || "—"}</TableCell>
                 <TableCell className="text-muted-foreground">{recipient.email}</TableCell>
+                <TableCell className="text-muted-foreground">{(recipient as any).phone || "—"}</TableCell>
                 <TableCell>{recipient.default_owner}</TableCell>
-                <TableCell className="text-muted-foreground truncate max-w-[100px]">
-                  {recipient.notes || "—"}
-                </TableCell>
                 <TableCell className="text-sm text-muted-foreground">
                   {format(new Date(recipient.created_at), "MMM d, yyyy")}
                 </TableCell>

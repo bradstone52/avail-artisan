@@ -11,6 +11,7 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogDescription,
   DialogFooter,
 } from "@/components/ui/dialog";
 import {
@@ -36,8 +37,10 @@ import { MasterRecipientTable } from "@/components/recipients/MasterRecipientTab
 import { BatchList } from "@/components/recipients/BatchList";
 import { BatchDetailView } from "@/components/recipients/BatchDetailView";
 import { NewBatchDialog } from "@/components/recipients/NewBatchDialog";
+import { PositionCombobox } from "@/components/recipients/PositionCombobox";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
+import { toast } from "sonner";
 
 const OWNER_OPTIONS = ["Brad", "Doug", "Angel", "Unassigned"] as const;
 
@@ -45,6 +48,7 @@ const emptyForm: RecipientInsert = {
   company_name: "",
   contact_name: "",
   title: null,
+  phone: null,
   email: "",
   notes: null,
   default_owner: "Unassigned",
@@ -119,6 +123,7 @@ export default function Recipients() {
       company_name: recipient.company_name,
       contact_name: recipient.contact_name,
       title: recipient.title,
+      phone: recipient.phone,
       email: recipient.email,
       notes: recipient.notes,
       default_owner: recipient.default_owner || "Unassigned",
@@ -131,8 +136,35 @@ export default function Recipients() {
     setDeleteDialogOpen(true);
   };
 
+  // Phone number formatting
+  const formatPhoneNumber = (value: string): string => {
+    const digits = value.replace(/\D/g, '').slice(0, 10);
+    if (digits.length === 0) return '';
+    if (digits.length <= 3) return `(${digits}`;
+    if (digits.length <= 6) return `(${digits.slice(0, 3)}) ${digits.slice(3)}`;
+    return `(${digits.slice(0, 3)}) ${digits.slice(3, 6)}-${digits.slice(6)}`;
+  };
+
+  const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const formatted = formatPhoneNumber(e.target.value);
+    setForm({ ...form, phone: formatted || null });
+  };
+
+  // Email validation
+  const isValidEmail = (email: string): boolean => {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return emailRegex.test(email);
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Validate email
+    if (!isValidEmail(form.email)) {
+      toast.error('Please enter a valid email address');
+      return;
+    }
+    
     if (editingRecipient) {
       await updateRecipient.mutateAsync({ id: editingRecipient.id, ...form });
     } else {
@@ -282,6 +314,9 @@ export default function Recipients() {
           <DialogContent>
             <DialogHeader>
               <DialogTitle>{editingRecipient ? "Edit Recipient" : "Add Recipient"}</DialogTitle>
+              <DialogDescription>
+                {editingRecipient ? "Update recipient details below." : "Add a new recipient to your distribution list."}
+              </DialogDescription>
             </DialogHeader>
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="space-y-2">
@@ -291,26 +326,52 @@ export default function Recipients() {
                   value={form.company_name}
                   onChange={(e) => setForm({ ...form, company_name: e.target.value })}
                   required
+                  className={form.company_name ? "input-filled" : ""}
                 />
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="contact_name">Contact Name *</Label>
-                <Input
-                  id="contact_name"
-                  value={form.contact_name}
-                  onChange={(e) => setForm({ ...form, contact_name: e.target.value })}
-                  required
-                />
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="contact_name">Contact Name *</Label>
+                  <Input
+                    id="contact_name"
+                    value={form.contact_name}
+                    onChange={(e) => setForm({ ...form, contact_name: e.target.value })}
+                    required
+                    className={form.contact_name ? "input-filled" : ""}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Position</Label>
+                  <PositionCombobox
+                    value={form.title || ""}
+                    onChange={(value) => setForm({ ...form, title: value || null })}
+                  />
+                </div>
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="email">Email *</Label>
-                <Input
-                  id="email"
-                  type="email"
-                  value={form.email}
-                  onChange={(e) => setForm({ ...form, email: e.target.value })}
-                  required
-                />
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="email">Email *</Label>
+                  <Input
+                    id="email"
+                    type="email"
+                    value={form.email}
+                    onChange={(e) => setForm({ ...form, email: e.target.value })}
+                    required
+                    placeholder="e.g., john@company.com"
+                    className={form.email ? "input-filled" : ""}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="phone">Phone Number</Label>
+                  <Input
+                    id="phone"
+                    type="tel"
+                    value={form.phone || ""}
+                    onChange={handlePhoneChange}
+                    placeholder="(###) ###-####"
+                    className={form.phone ? "input-filled" : ""}
+                  />
+                </div>
               </div>
               <div className="space-y-2">
                 <Label htmlFor="default_owner">Default Owner</Label>
@@ -318,7 +379,7 @@ export default function Recipients() {
                   value={form.default_owner || "Unassigned"}
                   onValueChange={(value) => setForm({ ...form, default_owner: value })}
                 >
-                  <SelectTrigger>
+                  <SelectTrigger className={form.default_owner && form.default_owner !== "Unassigned" ? "input-filled" : ""}>
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -337,6 +398,7 @@ export default function Recipients() {
                   value={form.notes || ""}
                   onChange={(e) => setForm({ ...form, notes: e.target.value || null })}
                   rows={3}
+                  className={form.notes ? "input-filled" : ""}
                 />
               </div>
               <DialogFooter>
