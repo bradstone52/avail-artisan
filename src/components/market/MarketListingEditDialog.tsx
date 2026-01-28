@@ -577,17 +577,51 @@ export function MarketListingEditDialog({
   const handleUpdate = async () => {
     if (!listing) return;
 
+    // Validate required fields
+    if (!address.trim()) {
+      toast.error('Address is required');
+      return;
+    }
+    if (city !== 'Calgary' && !submarket.trim()) {
+      toast.error('Submarket is required for non-Calgary listings');
+      return;
+    }
+
+    // Check if address or city changed (triggers re-geocoding)
+    const addressChanged = address.trim() !== listing.address;
+    const cityChanged = city !== listing.city;
+    const needsReGeocode = addressChanged || cityChanged;
+
+    // If address/city changed, clear geocode to trigger re-geocoding
+    const geocodeReset = needsReGeocode && listing.geocode_source !== 'manual'
+      ? {
+          latitude: null,
+          longitude: null,
+          geocoded_at: null,
+          geocode_source: null,
+          submarket: city === 'Calgary' ? 'Pending' : submarket.trim(),
+        }
+      : {};
+
     setIsSaving(true);
     try {
       const { error } = await supabase
         .from('market_listings')
         .update({
-          display_address: displayAddress || null,
+          address: address.trim(),
+          display_address: displayAddress.trim() || address.trim(),
+          city: city || '',
+          submarket: needsReGeocode && city === 'Calgary' ? 'Pending' : submarket.trim(),
+          size_sf: parseInt(sizeSf.replace(/,/g, '')) || 0,
+          warehouse_sf: warehouseSf ? parseInt(warehouseSf.replace(/,/g, '')) : null,
+          office_sf: officeSf ? parseInt(officeSf.replace(/,/g, '')) : null,
           status,
           listing_type: listingType || null,
           asking_rate_psf: askingRate || null,
+          op_costs: opCosts || null,
           sale_price: salePrice || null,
           availability_date: availabilityDate || null,
+          sublease_exp: subleaseExp || null,
           landlord: landlord || null,
           broker_source: brokerSource || null,
           link: link || null,
@@ -596,11 +630,58 @@ export function MarketListingEditDialog({
           clear_height_ft: clearHeight ? parseFloat(clearHeight) : null,
           dock_doors: dockDoors ? parseInt(dockDoors) : null,
           drive_in_doors: driveInDoors ? parseInt(driveInDoors) : null,
+          power_amps: powerAmps || null,
+          voltage: voltage || null,
+          sprinkler: sprinkler || null,
+          cranes: cranes || null,
+          crane_tons: craneTons || null,
+          yard: yard ? 'Yes' : 'No',
+          yard_area: yardArea || null,
+          cross_dock: crossDock ? 'Yes' : 'No',
+          trailer_parking: trailerParking || null,
+          land_acres: landAcres || null,
+          zoning: zoning || null,
+          mua: mua ? 'Yes' : 'No',
+          is_distribution_warehouse: isDistributionWarehouse,
           updated_at: new Date().toISOString(),
+          ...geocodeReset,
         })
         .eq('id', listing.id);
 
       if (error) throw error;
+
+      // Trigger re-geocoding if address/city changed
+      if (needsReGeocode && listing.geocode_source !== 'manual') {
+        const { data: session } = await supabase.auth.getSession();
+        if (session?.session?.access_token) {
+          try {
+            const { error: geocodeError, data: geocodeResult } = await supabase.functions.invoke(
+              'geocode-market-listing',
+              {
+                headers: {
+                  Authorization: `Bearer ${session.session.access_token}`,
+                },
+                body: { listingId: listing.listing_id },
+              }
+            );
+            
+            if (geocodeError) {
+              console.error('[Update Listing] Geocoding error:', geocodeError);
+            } else if (geocodeResult?.geocoded) {
+              console.log('[Update Listing] Re-geocoded successfully');
+              if (geocodeResult.submarket_assigned) {
+                toast.success(`Listing updated — submarket: ${geocodeResult.submarket}`);
+                clearDraft();
+                onSaved();
+                onOpenChange(false);
+                return;
+              }
+            }
+          } catch (geoErr) {
+            console.error('[Update Listing] Geocoding failed:', geoErr);
+          }
+        }
+      }
 
       toast.success('Listing updated');
       clearDraft();
@@ -677,137 +758,134 @@ export function MarketListingEditDialog({
           </DialogHeader>
 
           <div className="grid gap-4 py-4">
-            {/* Core Fields - Show in create mode or as read-only in edit */}
+            {/* Listing ID - Auto-generated and locked (create mode only) */}
             {isCreateMode && (
-              <>
-                {/* Listing ID - Auto-generated and locked */}
-                <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="listingId" className="text-right">
-                    Listing ID
-                  </Label>
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="listingId" className="text-right">
+                  Listing ID
+                </Label>
+                <Input
+                  id="listingId"
+                  value={listingId}
+                  readOnly
+                  disabled
+                  className="col-span-3 bg-muted cursor-not-allowed"
+                />
+              </div>
+            )}
+
+            {/* Address - editable in both modes */}
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="address" className="text-right">
+                Address *
+              </Label>
+              <Input
+                id="address"
+                value={address}
+                onChange={(e) => handleAddressChange(e.target.value)}
+                className={`col-span-3 placeholder-light ${address ? 'input-filled' : ''}`}
+                placeholder="e.g., 123 Industrial Way"
+              />
+            </div>
+
+            {/* Display Address - mirrors Address unless manually edited */}
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="displayAddress" className="text-right">
+                Display Address
+              </Label>
+              <Input
+                id="displayAddress"
+                value={displayAddress}
+                onChange={(e) => handleDisplayAddressChange(e.target.value)}
+                className={`col-span-3 placeholder-light ${displayAddress ? 'input-filled' : ''}`}
+                placeholder="e.g., 123 Industrial Way — Unit 4"
+              />
+            </div>
+
+            {/* City */}
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="city" className="text-right">
+                City
+              </Label>
+              <div className="col-span-3">
+                <Select value={city} onValueChange={setCity}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select city" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {CITY_OPTIONS.map((opt) => (
+                      <SelectItem key={opt.value} value={opt.value}>
+                        {opt.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            {/* Submarket - auto-assigned for Calgary, manual input for others */}
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="submarket" className="text-right">
+                Submarket {city !== 'Calgary' && '*'}
+              </Label>
+              {city === 'Calgary' ? (
+                <div className="col-span-3">
                   <Input
-                    id="listingId"
-                    value={listingId}
+                    id="submarket"
+                    value={submarket || 'Auto-assigned on save'}
                     readOnly
                     disabled
-                    className="col-span-3 bg-muted cursor-not-allowed"
+                    className="bg-muted cursor-not-allowed text-muted-foreground"
                   />
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Submarket will be auto-assigned based on geocoded location
+                  </p>
                 </div>
+              ) : (
+                <Input
+                  id="submarket"
+                  value={submarket}
+                  onChange={(e) => setSubmarket(e.target.value)}
+                  className={`col-span-3 placeholder-light ${submarket ? 'input-filled' : ''}`}
+                  placeholder="e.g., SE Industrial"
+                />
+              )}
+            </div>
 
-                {/* Address */}
-                <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="address" className="text-right">
-                    Address *
-                  </Label>
-                  <Input
-                    id="address"
-                    value={address}
-                    onChange={(e) => handleAddressChange(e.target.value)}
-                    className="col-span-3"
-                    placeholder="e.g., 123 Industrial Way"
-                  />
-                </div>
+            {/* Size */}
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="sizeSf" className="text-right">
+                Size (SF)
+              </Label>
+              <Input
+                id="sizeSf"
+                type="number"
+                value={sizeSf}
+                onChange={(e) => setSizeSf(e.target.value)}
+                className={`col-span-3 placeholder-light ${sizeSf ? 'input-filled' : ''}`}
+                placeholder="e.g., 150000"
+              />
+            </div>
 
-                {/* Display Address - mirrors Address unless manually edited */}
-                <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="displayAddress" className="text-right">
-                    Display Address
-                  </Label>
-                  <Input
-                    id="displayAddress"
-                    value={displayAddress}
-                    onChange={(e) => handleDisplayAddressChange(e.target.value)}
-                    className={`col-span-3 placeholder-light ${displayAddress ? 'input-filled' : ''}`}
-                    placeholder="e.g., 123 Industrial Way — Unit 4"
-                  />
-                </div>
-
-                {/* City */}
-                <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="city" className="text-right">
-                    City
-                  </Label>
-                  <div className="col-span-3">
-                    <Select value={city} onValueChange={setCity}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select city" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {CITY_OPTIONS.map((opt) => (
-                          <SelectItem key={opt.value} value={opt.value}>
-                            {opt.label}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
-
-                {/* Submarket - auto-assigned for Calgary, manual input for others */}
-                <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="submarket" className="text-right">
-                    Submarket {city !== 'Calgary' && '*'}
-                  </Label>
-                  {city === 'Calgary' ? (
-                    <div className="col-span-3">
-                      <Input
-                        id="submarket"
-                        value={submarket || 'Auto-assigned on save'}
-                        readOnly
-                        disabled
-                        className="bg-muted cursor-not-allowed text-muted-foreground"
-                      />
-                      <p className="text-xs text-muted-foreground mt-1">
-                        Submarket will be auto-assigned based on geocoded location
-                      </p>
-                    </div>
-                  ) : (
-                    <Input
-                      id="submarket"
-                      value={submarket}
-                      onChange={(e) => setSubmarket(e.target.value)}
-                      className={`col-span-3 placeholder-light ${submarket ? 'input-filled' : ''}`}
-                      placeholder="e.g., SE Industrial"
-                    />
-                  )}
-                </div>
-
-                {/* Size */}
-                <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="sizeSf" className="text-right">
-                    Size (SF)
-                  </Label>
-                  <Input
-                    id="sizeSf"
-                    type="number"
-                    value={sizeSf}
-                    onChange={(e) => setSizeSf(e.target.value)}
-                    className={`col-span-3 placeholder-light ${sizeSf ? 'input-filled' : ''}`}
-                    placeholder="e.g., 150000"
-                  />
-                </div>
-
-                {/* Warehouse / Office SF */}
-                <div className="grid grid-cols-4 items-center gap-4">
-                  <Label className="text-right">Warehouse SF</Label>
-                  <Input
-                    type="number"
-                    value={warehouseSf}
-                    onChange={(e) => setWarehouseSf(e.target.value)}
-                    className={`col-span-1 placeholder-light ${warehouseSf ? 'input-filled' : ''}`}
-                    placeholder="e.g., 120000"
-                  />
-                  <Label className="text-right">Office SF</Label>
-                  <Input
-                    type="number"
-                    value={officeSf}
-                    onChange={(e) => setOfficeSf(e.target.value)}
-                    className={`col-span-1 placeholder-light ${officeSf ? 'input-filled' : ''}`}
-                    placeholder="e.g., 5000"
-                  />
-                </div>
-              </>
-            )}
+            {/* Warehouse / Office SF */}
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label className="text-right">Warehouse SF</Label>
+              <Input
+                type="number"
+                value={warehouseSf}
+                onChange={(e) => setWarehouseSf(e.target.value)}
+                className={`col-span-1 placeholder-light ${warehouseSf ? 'input-filled' : ''}`}
+                placeholder="e.g., 120000"
+              />
+              <Label className="text-right">Office SF</Label>
+              <Input
+                type="number"
+                value={officeSf}
+                onChange={(e) => setOfficeSf(e.target.value)}
+                className={`col-span-1 placeholder-light ${officeSf ? 'input-filled' : ''}`}
+                placeholder="e.g., 5000"
+              />
+            </div>
 
             {/* Status */}
             <div className="grid grid-cols-4 items-center gap-4">
