@@ -9,9 +9,8 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
-import { StatusBadge } from '@/components/common/StatusBadge';
 import { ConfirmDialog } from '@/components/common/ConfirmDialog';
-import { formatDate, formatNumber, formatCurrency } from '@/lib/format';
+import { formatDate, formatNumber } from '@/lib/format';
 import { useDeleteProspect } from '@/hooks/useProspects';
 import { Eye, Edit, Trash2 } from 'lucide-react';
 import type { Prospect } from '@/types/prospect';
@@ -57,10 +56,9 @@ export function ProspectsTable({ prospects, isLoading, onEdit }: ProspectsTableP
           <TableHeader>
             <TableRow>
               <TableHead>Name</TableHead>
-              <TableHead>Company</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead>Size Range</TableHead>
-              <TableHead>Budget</TableHead>
+              <TableHead>Type</TableHead>
+              <TableHead>Source</TableHead>
+              <TableHead>Required Size</TableHead>
               <TableHead>Follow-up</TableHead>
               <TableHead className="w-[100px]">Actions</TableHead>
             </TableRow>
@@ -69,23 +67,13 @@ export function ProspectsTable({ prospects, isLoading, onEdit }: ProspectsTableP
             {prospects.map((prospect) => (
               <TableRow key={prospect.id}>
                 <TableCell>
-                  <div>
-                    <div className="font-medium">{prospect.name}</div>
-                    {prospect.email && (
-                      <div className="text-sm text-muted-foreground">{prospect.email}</div>
-                    )}
-                  </div>
+                  <div className="font-medium">{prospect.name}</div>
                 </TableCell>
-                <TableCell>{prospect.company || '-'}</TableCell>
+                <TableCell>{prospect.prospect_type || '-'}</TableCell>
+                <TableCell>{prospect.source || '-'}</TableCell>
                 <TableCell>
-                  <StatusBadge status={prospect.status} />
+                  {prospect.max_size ? `${formatNumber(prospect.max_size)} SF` : '-'}
                 </TableCell>
-                <TableCell>
-                  {prospect.min_size || prospect.max_size ? (
-                    `${prospect.min_size ? formatNumber(prospect.min_size) : '0'} - ${prospect.max_size ? formatNumber(prospect.max_size) : '∞'} SF`
-                  ) : '-'}
-                </TableCell>
-                <TableCell>{formatCurrency(prospect.budget)}</TableCell>
                 <TableCell>{formatDate(prospect.follow_up_date)}</TableCell>
                 <TableCell>
                   <div className="flex items-center gap-1">
