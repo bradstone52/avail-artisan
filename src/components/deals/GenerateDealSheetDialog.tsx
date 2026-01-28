@@ -9,7 +9,6 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
@@ -24,7 +23,7 @@ import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
-import { CalendarIcon, Plus, X, FileText, Download, Eye, ChevronRight, ChevronLeft, Check } from 'lucide-react';
+import { CalendarIcon, Plus, X, FileText, Download, Eye, Check } from 'lucide-react';
 import { useAgents, useCreateAgent } from '@/hooks/useAgents';
 import { useBrokerages, useCreateBrokerage } from '@/hooks/useBrokerages';
 import { useDealConditions } from '@/hooks/useDealConditions';
@@ -328,14 +327,39 @@ export function GenerateDealSheetDialog({ open, onOpenChange, deal }: GenerateDe
         />
       ).toBlob();
 
+      // Download the PDF
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `${deal.address.replace(/[^a-zA-Z0-9]/g, '_')}_Dealsheet.pdf`;
+      const fileName = `${deal.address.replace(/[^a-zA-Z0-9]/g, '_')}_Dealsheet.pdf`;
+      a.download = fileName;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
+
+      // Upload to deal documents
+      try {
+        const file = new File([blob], fileName, { type: 'application/pdf' });
+        const filePath = `${deal.id}/${Date.now()}-${fileName}`;
+
+        const { error: uploadError } = await supabase.storage
+          .from('deals')
+          .upload(filePath, file);
+
+        if (!uploadError) {
+          await supabase.from('deal_documents').insert({
+            deal_id: deal.id,
+            name: `Deal Sheet - ${dealNumber || deal.address}`,
+            file_path: filePath,
+            file_size: blob.size,
+            uploaded_by: null,
+          });
+          queryClient.invalidateQueries({ queryKey: ['deal_documents', deal.id] });
+        }
+      } catch (docError) {
+        console.warn('Could not save deal sheet to documents:', docError);
+      }
 
       toast.success('Deal Sheet generated successfully');
       onOpenChange(false);
@@ -381,7 +405,7 @@ export function GenerateDealSheetDialog({ open, onOpenChange, deal }: GenerateDe
   return (
     <>
       <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="max-w-4xl max-h-[90vh] p-0" preventOutsideClose>
+        <DialogContent className="max-w-4xl p-0" preventOutsideClose>
           <DialogHeader className="p-6 pb-4">
             <DialogTitle className="flex items-center gap-2">
               <FileText className="w-5 h-5" />
@@ -401,7 +425,7 @@ export function GenerateDealSheetDialog({ open, onOpenChange, deal }: GenerateDe
               </TabsList>
             </div>
 
-            <ScrollArea className="h-[calc(90vh-220px)] px-6 mt-4">
+            <div className="px-6 mt-4 pb-2 max-h-[60vh] overflow-y-auto">
               {/* Basic Information Tab */}
               <TabsContent value="basic" className="mt-0 space-y-4">
                 <div className="grid grid-cols-3 gap-4">
@@ -649,13 +673,13 @@ export function GenerateDealSheetDialog({ open, onOpenChange, deal }: GenerateDe
                           placeholder="Condition description"
                         />
                       </div>
-                      <div className="w-48 space-y-2">
+                      <div className="w-40 space-y-2 flex-shrink-0">
                         <Label>Due Date</Label>
                         <Popover>
                           <PopoverTrigger asChild>
-                            <Button variant="outline" className={cn("w-full justify-start text-left font-normal", !condition.due_date && "text-muted-foreground")}>
-                              <CalendarIcon className="mr-2 h-4 w-4" />
-                              {condition.due_date ? format(new Date(condition.due_date), 'PPP') : 'Select date'}
+                            <Button variant="outline" className={cn("w-full justify-start text-left font-normal text-xs px-2", !condition.due_date && "text-muted-foreground")}>
+                              <CalendarIcon className="mr-1 h-3 w-3 flex-shrink-0" />
+                              <span className="truncate">{condition.due_date ? format(new Date(condition.due_date), 'MMM d, yyyy') : 'Select'}</span>
                             </Button>
                           </PopoverTrigger>
                           <PopoverContent className="w-auto p-0" align="start">
@@ -668,7 +692,7 @@ export function GenerateDealSheetDialog({ open, onOpenChange, deal }: GenerateDe
                           </PopoverContent>
                         </Popover>
                       </div>
-                      <Button variant="ghost" size="icon" className="mt-8" onClick={() => handleRemoveCondition(index)}>
+                      <Button variant="ghost" size="icon" className="mt-8 flex-shrink-0" onClick={() => handleRemoveCondition(index)}>
                         <X className="w-4 h-4" />
                       </Button>
                     </div>
@@ -899,39 +923,25 @@ export function GenerateDealSheetDialog({ open, onOpenChange, deal }: GenerateDe
                   )}
                 </div>
               </TabsContent>
-            </ScrollArea>
+            </div>
           </Tabs>
 
           {/* Footer Actions */}
-          <div className="flex justify-between gap-2 p-6 pt-4 border-t">
-            <div className="flex gap-2">
-              <Button variant="outline" onClick={goToPrevTab} disabled={!canGoPrev}>
-                <ChevronLeft className="w-4 h-4 mr-1" />
-                Previous
+          <div className="flex justify-end gap-2 p-6 pt-4 border-t">
+            <Button variant="outline" onClick={() => onOpenChange(false)}>
+              Cancel
+            </Button>
+            {currentTab === 'preview' ? (
+              <Button onClick={saveAndGenerate} disabled={saving || generating}>
+                <Download className="w-4 h-4 mr-2" />
+                {saving ? 'Saving...' : generating ? 'Generating...' : 'Download PDF'}
               </Button>
-              {currentTab !== 'preview' && (
-                <Button variant="outline" onClick={goToNextTab} disabled={!canGoNext}>
-                  Next
-                  <ChevronRight className="w-4 h-4 ml-1" />
-                </Button>
-              )}
-            </div>
-            <div className="flex gap-2">
-              <Button variant="outline" onClick={() => onOpenChange(false)}>
-                Cancel
+            ) : (
+              <Button variant="secondary" onClick={() => setCurrentTab('preview')}>
+                <Eye className="w-4 h-4 mr-2" />
+                Preview
               </Button>
-              {currentTab === 'preview' ? (
-                <Button onClick={saveAndGenerate} disabled={saving || generating}>
-                  <Download className="w-4 h-4 mr-2" />
-                  {saving ? 'Saving...' : generating ? 'Generating...' : 'Download PDF'}
-                </Button>
-              ) : (
-                <Button variant="secondary" onClick={() => setCurrentTab('preview')}>
-                  <Eye className="w-4 h-4 mr-2" />
-                  Preview
-                </Button>
-              )}
-            </div>
+            )}
           </div>
         </DialogContent>
       </Dialog>

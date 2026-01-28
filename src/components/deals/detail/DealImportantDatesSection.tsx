@@ -1,6 +1,6 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Calendar, Clock, AlertCircle } from 'lucide-react';
-import { format, isAfter, isBefore, addDays } from 'date-fns';
+import { Calendar, AlertCircle } from 'lucide-react';
+import { format, isBefore } from 'date-fns';
 import type { Deal } from '@/types/database';
 import type { DealCondition } from '@/hooks/useDealConditions';
 import type { DealDeposit } from '@/hooks/useDealDeposits';
@@ -17,13 +17,13 @@ export function DealImportantDatesSection({ deal, conditions, deposits }: DealIm
   // Gather all important dates
   const importantDates: { date: Date; label: string; type: 'condition' | 'deposit' | 'closing'; isPast: boolean }[] = [];
 
-  // Add condition removal dates
+  // Add condition removal dates with new format: "Condition 1: description - date"
   conditions.forEach((c, index) => {
     if (c.due_date && !c.is_satisfied) {
       const date = new Date(c.due_date);
       importantDates.push({
         date,
-        label: `Condition ${index + 1}: ${c.description.slice(0, 50)}${c.description.length > 50 ? '...' : ''}`,
+        label: `Condition ${index + 1}: ${c.description}`,
         type: 'condition',
         isPast: isBefore(date, today),
       });
@@ -57,12 +57,6 @@ export function DealImportantDatesSection({ deal, conditions, deposits }: DealIm
   // Sort by date
   importantDates.sort((a, b) => a.date.getTime() - b.date.getTime());
 
-  // Upcoming dates (next 30 days)
-  const thirtyDaysFromNow = addDays(today, 30);
-  const upcomingDates = importantDates.filter(d => 
-    isAfter(d.date, today) && isBefore(d.date, thirtyDaysFromNow)
-  );
-
   if (importantDates.length === 0) {
     return (
       <Card>
@@ -90,23 +84,6 @@ export function DealImportantDatesSection({ deal, conditions, deposits }: DealIm
         </CardTitle>
       </CardHeader>
       <CardContent>
-        {upcomingDates.length > 0 && (
-          <div className="mb-4 p-3 bg-primary/10 rounded-lg border border-primary/20">
-            <h4 className="font-semibold text-sm flex items-center gap-2 mb-2">
-              <Clock className="w-4 h-4" />
-              Coming Up (Next 30 Days)
-            </h4>
-            <div className="space-y-2">
-              {upcomingDates.map((d, i) => (
-                <div key={i} className="flex items-center justify-between text-sm">
-                  <span>{d.label}</span>
-                  <span className="font-medium">{format(d.date, 'MMM d, yyyy')}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
         <div className="space-y-2">
           {importantDates.map((d, i) => (
             <div 
@@ -115,18 +92,19 @@ export function DealImportantDatesSection({ deal, conditions, deposits }: DealIm
                 d.isPast ? 'bg-destructive/10 text-destructive' : ''
               }`}
             >
-              <div className="flex items-center gap-2">
-                {d.isPast && <AlertCircle className="w-4 h-4" />}
-                <span className={`px-2 py-0.5 rounded text-xs font-medium ${
+              <div className="flex items-center gap-2 flex-1 min-w-0">
+                {d.isPast && <AlertCircle className="w-4 h-4 flex-shrink-0" />}
+                <span className={`px-2 py-0.5 rounded text-xs font-medium flex-shrink-0 ${
                   d.type === 'condition' ? 'bg-blue-100 text-blue-700' :
                   d.type === 'deposit' ? 'bg-green-100 text-green-700' :
                   'bg-purple-100 text-purple-700'
                 }`}>
                   {d.type === 'condition' ? 'Condition' : d.type === 'deposit' ? 'Deposit' : 'Closing'}
                 </span>
-                <span>{d.label}</span>
+                <span className="truncate">{d.label}</span>
+                <span className="text-muted-foreground mx-1 flex-shrink-0">—</span>
+                <span className="font-medium flex-shrink-0">{format(d.date, 'MMM d, yyyy')}</span>
               </div>
-              <span className="font-medium">{format(d.date, 'MMM d, yyyy')}</span>
             </div>
           ))}
         </div>
