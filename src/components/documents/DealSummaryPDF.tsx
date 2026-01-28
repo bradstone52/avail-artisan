@@ -37,27 +37,28 @@ const styles = StyleSheet.create({
   // PAGE: Letter size, 40px padding, extra bottom padding for footer
   page: {
     padding: 40,
-    paddingBottom: 130,
+    paddingBottom: 100,
     fontSize: 10,
     fontFamily: 'Helvetica',
     position: 'relative',
   },
 
-  // HEADER: Logo left, title right
+  // HEADER: Logo and title side by side, centered
   header: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
+    justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 20,
   },
   logo: {
-    width: 180,
-    height: 60,
+    width: 200,
+    height: 50,
     objectFit: 'contain',
   },
   title: {
     fontSize: 18,
     fontWeight: 'bold',
+    marginLeft: 15,
   },
 
   // MAIN TABLE: Two-column layout (35% label, 65% value)
@@ -84,10 +85,12 @@ const styles = StyleSheet.create({
     borderRightColor: '#000',
     borderRightStyle: 'solid',
     fontWeight: 'bold',
+    textAlign: 'center',
   },
   valueCell: {
     width: '65%',
     padding: 6,
+    textAlign: 'center',
   },
 
   // ACTIONS TABLE: Four columns
@@ -121,6 +124,7 @@ const styles = StyleSheet.create({
     borderRightWidth: 1,
     borderRightColor: '#000',
     borderRightStyle: 'solid',
+    textAlign: 'center',
   },
   actionsCell: {
     padding: 6,
@@ -128,10 +132,12 @@ const styles = StyleSheet.create({
     borderRightWidth: 1,
     borderRightColor: '#000',
     borderRightStyle: 'solid',
+    textAlign: 'center',
   },
   actionsCellLast: {
     padding: 6,
     fontSize: 9,
+    textAlign: 'center',
   },
 
   // Column widths for actions table
@@ -140,34 +146,35 @@ const styles = StyleSheet.create({
   actingPartyCol: { width: '20%' },
   actionCol: { width: '40%' },
 
-  // FOOTER: Yellow background, fixed to bottom
+  // FOOTER: Yellow/orange background, fixed to bottom
   contactsSection: {
     position: 'absolute',
     bottom: 0,
     left: 0,
     right: 0,
     backgroundColor: '#fbaf15',
-    paddingTop: 12,
-    paddingBottom: 12,
+    paddingTop: 15,
+    paddingBottom: 15,
     paddingLeft: 40,
     paddingRight: 40,
   },
   contactsTable: {
     flexDirection: 'row',
+    justifyContent: 'space-between',
   },
   contactColumn: {
     flex: 1,
-    paddingRight: 10,
   },
   contactName: {
     fontWeight: 'bold',
     marginBottom: 2,
-    color: '#000000',
+    color: '#ffffff',
+    fontSize: 10,
   },
   contactDetail: {
     fontSize: 9,
     marginBottom: 1,
-    color: '#000000',
+    color: '#ffffff',
   },
 });
 
@@ -334,19 +341,20 @@ export function DealSummaryPDF({
         {/* === FOOTER: Contact Information (fixed to bottom) === */}
         <View style={styles.contactsSection} fixed>
           <View style={styles.contactsTable}>
-            {contacts.length > 0 ? (
-              contacts.slice(0, 3).map((contact, index) => (
-                <View style={styles.contactColumn} key={index}>
-                  <Text style={styles.contactName}>{contact.name}</Text>
-                  {contact.email && <Text style={styles.contactDetail}>{contact.email}</Text>}
-                  {contact.phone && <Text style={styles.contactDetail}>{contact.phone}</Text>}
-                </View>
-              ))
-            ) : (
-              <View style={styles.contactColumn}>
-                <Text style={styles.contactName}>Clearview Commercial Realty Inc.</Text>
-              </View>
-            )}
+            <View style={styles.contactColumn}>
+              <Text style={styles.contactName}>BRAD STONE</Text>
+              <Text style={styles.contactDetail}>brad@cvpartners.ca</Text>
+              <Text style={styles.contactDetail}>(403) 613-2898</Text>
+            </View>
+            <View style={styles.contactColumn}>
+              <Text style={styles.contactName}>DOUG JOHANNSON</Text>
+              <Text style={styles.contactDetail}>doug@cvpartners.ca</Text>
+              <Text style={styles.contactDetail}>(403) 470-8875</Text>
+            </View>
+            <View style={styles.contactColumn}>
+              <Text style={styles.contactName}>ANGEL PILOR</Text>
+              <Text style={styles.contactDetail}>angel@cvpartners.ca</Text>
+            </View>
           </View>
         </View>
       </Page>
