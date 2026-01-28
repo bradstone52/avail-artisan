@@ -1,5 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { createClient } from "npm:@supabase/supabase-js@2";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -65,6 +65,9 @@ serve(async (req) => {
 
     // Find user by email (Auth admin API)
     let targetUserId: string | null = null;
+    let fallbackFactors:
+      | Array<{ id: string; factor_type?: string; status?: string; friendly_name?: string }>
+      | null = null;
     let page = 1;
     const perPage = 200;
     for (let i = 0; i < 50; i++) {
@@ -77,6 +80,9 @@ serve(async (req) => {
       const match = data.users.find((u) => (u.email || "").toLowerCase() === email);
       if (match?.id) {
         targetUserId = match.id;
+        // Some GoTrue versions include factors on the user payload. Keep as a fallback.
+        const maybeFactors = (match as any)?.factors;
+        fallbackFactors = Array.isArray(maybeFactors) ? maybeFactors : null;
         break;
       }
 
@@ -89,12 +95,16 @@ serve(async (req) => {
     }
 
     const authAdminHeaders = {
-      apikey: serviceRoleKey,
+      // GoTrue expects apikey to be the project's anon key; Authorization must be service role.
+      apikey: anonKey,
       Authorization: `Bearer ${serviceRoleKey}`,
       "Content-Type": "application/json",
     };
 
-    // List factors for target user
+    // List factors for target user.
+    // IMPORTANT: depending on GoTrue version, this endpoint may return either:
+    // - an array of factors (most common)
+    // - an object like { factors: [...] }
     const listRes = await fetch(`${supabaseUrl}/auth/v1/admin/users/${targetUserId}/factors`, {
       method: "GET",
       headers: authAdminHeaders,
@@ -106,14 +116,35 @@ serve(async (req) => {
       return jsonResponse({ error: "Failed to list MFA factors" }, 500);
     }
 
-    const factorsPayload = (await listRes.json().catch(() => ({}))) as {
-      factors?: Array<{ id: string; factor_type?: string; status?: string; friendly_name?: string }>;
-    };
+    const rawFactorsPayload = (await listRes.json().catch(() => ([]))) as any;
+    let factors = Array.isArray(rawFactorsPayload)
+      ? (rawFactorsPayload as Array<{
+          id: string;
+          factor_type?: string;
+          status?: string;
+          friendly_name?: string;
+        }>)
+      : Array.isArray(rawFactorsPayload?.factors)
+        ? (rawFactorsPayload.factors as Array<{
+            id: string;
+            factor_type?: string;
+            status?: string;
+            friendly_name?: string;
+          }>)
+        : [];
 
-    const factors = Array.isArray(factorsPayload.factors) ? factorsPayload.factors : [];
+    if (factors.length === 0 && Array.isArray(fallbackFactors) && fallbackFactors.length > 0) {
+      factors = fallbackFactors;
+    }
 
     if (debug) {
-      return jsonResponse({ success: true, message: "Debug: listed MFA factors", targetUserId, factors });
+      return jsonResponse({
+        success: true,
+        message: "Debug: listed MFA factors",
+        targetUserId,
+        factors,
+        usedFallback: factors === fallbackFactors,
+      });
     }
 
     if (factors.length === 0) {
