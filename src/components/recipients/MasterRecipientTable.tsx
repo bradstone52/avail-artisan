@@ -10,7 +10,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Pencil, Trash2, Search } from "lucide-react";
+import { Pencil, Trash2, Search, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
 import { Recipient } from "@/hooks/useRecipients";
 import { format } from "date-fns";
 
@@ -22,6 +22,24 @@ interface MasterRecipientTableProps {
   onDeleteRecipient: (id: string) => void;
 }
 
+type SortField = "company_name" | "scale" | null;
+type SortDirection = "asc" | "desc";
+
+// Helper function to parse scale values for numeric sorting
+function getScaleNumericValue(scale: string | null): number {
+  if (!scale) return -1;
+  
+  const scaleMap: Record<string, number> = {
+    "< 10,000": 1,
+    "10,000 - 20,000": 2,
+    "20,000 - 50,000": 3,
+    "50,000 - 100,000": 4,
+    "> 100,000": 5,
+  };
+  
+  return scaleMap[scale] ?? 0;
+}
+
 export function MasterRecipientTable({
   recipients,
   selectedIds,
@@ -30,18 +48,58 @@ export function MasterRecipientTable({
   onDeleteRecipient,
 }: MasterRecipientTableProps) {
   const [searchQuery, setSearchQuery] = useState("");
+  const [sortField, setSortField] = useState<SortField>(null);
+  const [sortDirection, setSortDirection] = useState<SortDirection>("asc");
 
-  // Filter recipients based on search
+  // Handle sort toggle
+  const handleSort = (field: SortField) => {
+    if (sortField === field) {
+      // Toggle direction or clear sort
+      if (sortDirection === "asc") {
+        setSortDirection("desc");
+      } else {
+        setSortField(null);
+        setSortDirection("asc");
+      }
+    } else {
+      setSortField(field);
+      setSortDirection("asc");
+    }
+  };
+
+  // Filter and sort recipients
   const filteredRecipients = useMemo(() => {
-    if (!searchQuery.trim()) return recipients;
+    let result = recipients;
     
-    const query = searchQuery.toLowerCase();
-    return recipients.filter(r => 
-      r.company_name.toLowerCase().includes(query) ||
-      r.contact_name.toLowerCase().includes(query) ||
-      r.email.toLowerCase().includes(query)
-    );
-  }, [recipients, searchQuery]);
+    // Filter by search
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase();
+      result = result.filter(r => 
+        r.company_name.toLowerCase().includes(query) ||
+        r.contact_name.toLowerCase().includes(query) ||
+        r.email.toLowerCase().includes(query)
+      );
+    }
+    
+    // Sort
+    if (sortField) {
+      result = [...result].sort((a, b) => {
+        let comparison = 0;
+        
+        if (sortField === "company_name") {
+          comparison = a.company_name.localeCompare(b.company_name);
+        } else if (sortField === "scale") {
+          const aVal = getScaleNumericValue(a.scale);
+          const bVal = getScaleNumericValue(b.scale);
+          comparison = aVal - bVal;
+        }
+        
+        return sortDirection === "asc" ? comparison : -comparison;
+      });
+    }
+    
+    return result;
+  }, [recipients, searchQuery, sortField, sortDirection]);
 
   const handleSelectAll = (checked: boolean) => {
     if (checked) {
@@ -64,6 +122,15 @@ export function MasterRecipientTable({
   const allFilteredSelected = filteredRecipients.length > 0 && 
     filteredRecipients.every(r => selectedIds.has(r.id));
   const someFilteredSelected = filteredRecipients.some(r => selectedIds.has(r.id));
+
+  const getSortIcon = (field: SortField) => {
+    if (sortField !== field) {
+      return <ArrowUpDown className="ml-1 h-3 w-3 opacity-50" />;
+    }
+    return sortDirection === "asc" 
+      ? <ArrowUp className="ml-1 h-3 w-3" /> 
+      : <ArrowDown className="ml-1 h-3 w-3" />;
+  };
 
   if (recipients.length === 0) {
     return (
@@ -106,9 +173,30 @@ export function MasterRecipientTable({
                   className={someFilteredSelected && !allFilteredSelected ? "opacity-50" : ""}
                 />
               </TableHead>
-              <TableHead className="w-[160px]">Company</TableHead>
+              <TableHead className="w-[160px]">
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  className="h-auto p-0 font-medium hover:bg-transparent"
+                  onClick={() => handleSort("company_name")}
+                >
+                  Company
+                  {getSortIcon("company_name")}
+                </Button>
+              </TableHead>
               <TableHead className="w-[130px]">Contact Name</TableHead>
               <TableHead className="w-[120px]">Position</TableHead>
+              <TableHead className="w-[100px]">
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  className="h-auto p-0 font-medium hover:bg-transparent"
+                  onClick={() => handleSort("scale")}
+                >
+                  Scale
+                  {getSortIcon("scale")}
+                </Button>
+              </TableHead>
               <TableHead className="w-[180px]">Email</TableHead>
               <TableHead className="w-[130px]">Phone</TableHead>
               <TableHead className="w-[100px]">Owner</TableHead>
@@ -129,8 +217,9 @@ export function MasterRecipientTable({
                 <TableCell className="font-medium">{recipient.company_name}</TableCell>
                 <TableCell>{recipient.contact_name}</TableCell>
                 <TableCell className="text-muted-foreground">{recipient.title || "—"}</TableCell>
+                <TableCell className="text-muted-foreground">{recipient.scale || "—"}</TableCell>
                 <TableCell className="text-muted-foreground">{recipient.email}</TableCell>
-                <TableCell className="text-muted-foreground">{(recipient as any).phone || "—"}</TableCell>
+                <TableCell className="text-muted-foreground">{recipient.phone || "—"}</TableCell>
                 <TableCell>{recipient.default_owner}</TableCell>
                 <TableCell className="text-sm text-muted-foreground">
                   {format(new Date(recipient.created_at), "MMM d, yyyy")}

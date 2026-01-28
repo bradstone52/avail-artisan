@@ -11,6 +11,7 @@ export interface Recipient {
   email: string;
   notes: string | null;
   default_owner: string;
+  scale: string | null;
   created_at: string;
 }
 
@@ -33,6 +34,7 @@ export function useRecipients() {
       return (data || []).map(r => ({
         ...r,
         default_owner: (r as any).default_owner || "Unassigned",
+        scale: (r as any).scale || null,
       })) as Recipient[];
     },
   });
@@ -49,6 +51,7 @@ export function useRecipients() {
           email: recipient.email,
           notes: recipient.notes,
           default_owner: recipient.default_owner || "Unassigned",
+          scale: recipient.scale,
         })
         .select()
         .single();
@@ -77,6 +80,7 @@ export function useRecipients() {
           email: updates.email,
           notes: updates.notes,
           default_owner: updates.default_owner || "Unassigned",
+          scale: updates.scale,
         })
         .eq("id", id)
         .select()
