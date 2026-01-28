@@ -3,7 +3,7 @@ import { AppLayout } from '@/components/layout/AppLayout';
 import { PageHeader } from '@/components/common/PageHeader';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Briefcase, UserSearch, Users, ArrowRight, Calendar, BarChart3 } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useDeals } from '@/hooks/useDeals';
 import { useAllDealImportantDates } from '@/hooks/useAllDealImportantDates';
 import { useUpcomingFollowUps } from '@/hooks/useUpcomingFollowUps';
@@ -14,6 +14,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Button } from '@/components/ui/button';
 
 export default function CRETracker() {
+  const navigate = useNavigate();
   const { data: deals = [] } = useDeals();
   // Fetch 365 days for calendar display, but filter list to 30 days
   const { data: dealDates = [] } = useAllDealImportantDates(365);
@@ -153,8 +154,19 @@ export default function CRETracker() {
         {/* Quick Stats */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           {sections.map((section) => (
-            <Link key={section.title} to={section.href}>
-              <Card className="h-full hover:shadow-[6px_6px_0_hsl(var(--foreground))] transition-shadow cursor-pointer border-2 border-foreground">
+            <Card
+              key={section.title}
+              role="link"
+              tabIndex={0}
+              onClick={() => navigate(section.href)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault();
+                  navigate(section.href);
+                }
+              }}
+              className="h-full hover:shadow-[6px_6px_0_hsl(var(--foreground))] transition-shadow cursor-pointer border-2 border-foreground"
+            >
                 <CardHeader className="pb-2">
                   <div className="flex items-center justify-between">
                     <div className={`p-2 ${section.color} border-2 border-foreground`} style={{ borderRadius: 'var(--radius)' }}>
@@ -184,7 +196,6 @@ export default function CRETracker() {
                               size="sm"
                               className="w-full gap-2 border-2 border-foreground/20 hover:border-foreground"
                               onClick={(e) => {
-                                e.preventDefault();
                                 e.stopPropagation();
                               }}
                             >
@@ -198,7 +209,7 @@ export default function CRETracker() {
                               
                               {/* Conditional */}
                               <div className="space-y-2 pb-3 border-b border-foreground/10">
-                                <p className="font-bold text-sm text-yellow-600">Conditional</p>
+                                <p className="font-bold text-sm">Conditional</p>
                                 <div className="pl-2 space-y-2">
                                   <StatRow label="Sale" stats={dealBreakdown.conditional.sale} />
                                   <StatRow label="Lease" stats={dealBreakdown.conditional.lease} />
@@ -207,7 +218,7 @@ export default function CRETracker() {
                               
                               {/* Firm */}
                               <div className="space-y-2 pb-3 border-b border-foreground/10">
-                                <p className="font-bold text-sm text-orange-600">Firm</p>
+                                <p className="font-bold text-sm">Firm</p>
                                 <div className="pl-2 space-y-2">
                                   <StatRow label="Sale" stats={dealBreakdown.firm.sale} />
                                   <StatRow label="Lease" stats={dealBreakdown.firm.lease} />
@@ -216,7 +227,7 @@ export default function CRETracker() {
                               
                               {/* Closed */}
                               <div className="space-y-2">
-                                <p className="font-bold text-sm text-primary">Closed</p>
+                                <p className="font-bold text-sm">Closed</p>
                                 <div className="pl-2 space-y-2">
                                   <StatRow label="Sale" stats={dealBreakdown.closed.sale} />
                                   <StatRow label="Lease" stats={dealBreakdown.closed.lease} />
@@ -232,7 +243,6 @@ export default function CRETracker() {
                   )}
                 </CardContent>
               </Card>
-            </Link>
           ))}
         </div>
 
