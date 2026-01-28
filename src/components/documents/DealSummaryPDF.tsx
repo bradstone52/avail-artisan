@@ -43,10 +43,10 @@ const styles = StyleSheet.create({
     position: 'relative',
   },
 
-  // HEADER: Logo and title side by side, centered
+  // HEADER: Logo and title side by side, left aligned
   header: {
     flexDirection: 'row',
-    justifyContent: 'center',
+    justifyContent: 'flex-start',
     alignItems: 'center',
     marginBottom: 20,
   },
@@ -58,7 +58,7 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 18,
     fontWeight: 'bold',
-    marginLeft: 15,
+    marginLeft: 10,
   },
 
   // MAIN TABLE: Two-column layout (35% label, 65% value)
@@ -85,12 +85,10 @@ const styles = StyleSheet.create({
     borderRightColor: '#000',
     borderRightStyle: 'solid',
     fontWeight: 'bold',
-    textAlign: 'center',
   },
   valueCell: {
     width: '65%',
     padding: 6,
-    textAlign: 'center',
   },
 
   // ACTIONS TABLE: Four columns
