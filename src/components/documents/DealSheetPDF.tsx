@@ -138,6 +138,7 @@ const styles = StyleSheet.create({
   partyBody: {
     backgroundColor: YELLOW_BG,
     padding: 8,
+    flex: 1,
   },
   partyRow: {
     flexDirection: 'row',
@@ -155,11 +156,11 @@ const styles = StyleSheet.create({
   },
   // Agency section
   agencySection: {
-    borderWidth: 1,
-    borderColor: BLACK,
     marginBottom: 10,
   },
   agencyBody: {
+    borderWidth: 1,
+    borderColor: BLACK,
     flexDirection: 'row',
     backgroundColor: WHITE,
   },
@@ -223,6 +224,7 @@ const styles = StyleSheet.create({
   greenBody: {
     backgroundColor: GREEN_BG,
     padding: 8,
+    flex: 1,
   },
   commissionBlock: {
     marginBottom: 8,
@@ -303,9 +305,9 @@ const styles = StyleSheet.create({
     borderColor: BLACK,
   },
   commentsText: {
-    fontSize: 9,
+    fontSize: 7,
     color: DARK_TEXT,
-    lineHeight: 1.4,
+    lineHeight: 1.3,
   },
   // Conditions in summary
   conditionItem: {
@@ -358,7 +360,7 @@ export function DealSheetPDF({ deal, conditions, deposits, getAgent, getBrokerag
         <View style={styles.header}>
           <Image src={clearviewLogo} style={styles.logo} />
           <View style={styles.headerRight}>
-            <Text style={styles.mainTitle}>sale/lease dealsheet</Text>
+            <Text style={styles.mainTitle}>{deal.deal_type === 'Lease' ? 'lease' : 'sale'} dealsheet</Text>
           <View style={{ flexDirection: 'row' }}>
               <Text style={[styles.dealInfo, { marginRight: 4 }]}>Deal #:</Text>
               <Text style={styles.dealInfoBold}>{deal.deal_number || '_________'}</Text>
@@ -625,16 +627,12 @@ export function DealSheetPDF({ deal, conditions, deposits, getAgent, getBrokerag
         </View>
 
         {/* Comments */}
-        {deal.notes && (
-          <>
-            <View style={styles.commentsHeader}>
-              <Text style={styles.sectionTitle}>Comments</Text>
-            </View>
-            <View style={styles.commentsBody}>
-              <Text style={styles.commentsText}>{deal.notes}</Text>
-            </View>
-          </>
-        )}
+        <View style={styles.commentsHeader}>
+          <Text style={styles.sectionTitle}>Comments</Text>
+        </View>
+        <View style={styles.commentsBody}>
+          <Text style={styles.commentsText}>{deal.notes || '—'}</Text>
+        </View>
       </Page>
     </Document>
   );
