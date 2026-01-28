@@ -48,6 +48,15 @@ export function useProspect(id: string | undefined) {
   });
 }
 
+// Helper to convert empty strings to null for date fields
+function sanitizeProspectData(formData: ProspectFormData) {
+  return {
+    ...formData,
+    follow_up_date: formData.follow_up_date || null,
+    occupancy_date: formData.occupancy_date || null,
+  };
+}
+
 export function useCreateProspect() {
   const queryClient = useQueryClient();
   const { user } = useAuth();
@@ -57,10 +66,12 @@ export function useCreateProspect() {
     mutationFn: async (formData: ProspectFormData) => {
       if (!user?.id || !org?.id) throw new Error('Not authenticated');
 
+      const sanitized = sanitizeProspectData(formData);
+
       const { data, error } = await supabase
         .from('prospects')
         .insert({
-          ...formData,
+          ...sanitized,
           user_id: user.id,
           org_id: org.id,
         })
@@ -86,9 +97,11 @@ export function useUpdateProspect() {
 
   return useMutation({
     mutationFn: async ({ id, ...formData }: ProspectFormData & { id: string }) => {
+      const sanitized = sanitizeProspectData(formData);
+
       const { data, error } = await supabase
         .from('prospects')
-        .update(formData)
+        .update(sanitized)
         .eq('id', id)
         .select()
         .single();
