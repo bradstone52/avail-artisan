@@ -479,14 +479,13 @@ export function DistributionListingsTable({ listings, onListingUpdated }: Distri
               <SortableHeader column="dock_doors" className="text-center min-w-[70px]">Docks</SortableHeader>
               <SortableHeader column="drive_in_doors" className="text-center min-w-[80px]">Drive-In</SortableHeader>
               <TableHead className="h-12 px-4 align-middle text-xs font-bold uppercase tracking-[0.15em] text-background bg-zinc-700 dark:bg-zinc-600 min-w-[100px]">Availability</TableHead>
-              <TableHead className="h-12 px-4 align-middle text-xs font-bold uppercase tracking-[0.15em] text-background bg-zinc-700 dark:bg-zinc-600 min-w-[80px] text-center">Location</TableHead>
-              <TableHead className="sticky right-0 z-30 min-w-[60px] bg-zinc-700 dark:bg-zinc-600 h-12 px-4 align-middle text-xs font-bold uppercase tracking-[0.15em] text-background shadow-[-2px_0_5px_-2px_rgba(0,0,0,0.3)]"></TableHead>
+              <TableHead className="sticky right-0 z-30 min-w-[100px] bg-zinc-700 dark:bg-zinc-600 h-12 px-4 align-middle text-xs font-bold uppercase tracking-[0.15em] text-background shadow-[-2px_0_5px_-2px_rgba(0,0,0,0.3)] text-center">Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {filteredListings.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={9} className="text-center py-12 text-muted-foreground">
+                <TableCell colSpan={8} className="text-center py-12 text-muted-foreground">
                   No listings match your filters
                 </TableCell>
               </TableRow>
@@ -584,105 +583,106 @@ export function DistributionListingsTable({ listings, onListingUpdated }: Distri
                       {formatAvailability(listing.availability_date)}
                     </TableCell>
                     
-                    {/* Location */}
-                    <TableCell className="text-center">
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button 
-                            variant="ghost" 
-                            size="icon" 
-                            className={cn(
-                              "h-8 w-8 relative",
-                              listing.geocode_source === 'manual' && "ring-2 ring-warning ring-offset-1"
-                            )}
-                            onClick={(e) => e.stopPropagation()}
-                          >
-                            {listing.latitude && listing.longitude ? (
-                              <>
-                                <MapPin className={cn(
-                                  "w-4 h-4",
-                                  listing.geocode_source === 'manual' ? "text-warning" : "text-primary"
-                                )} />
-                                {listing.geocode_source === 'manual' && (
-                                  <Hand className="w-2.5 h-2.5 absolute -top-0.5 -right-0.5 text-warning" />
-                                )}
-                              </>
-                            ) : (
-                              <MapPinOff className="w-4 h-4 text-muted-foreground" />
-                            )}
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuItem onClick={(e) => {
-                            e.stopPropagation();
-                            setEditPinListing(listing);
-                          }}>
-                            <Pencil className="w-4 h-4 mr-2" />
-                            Edit pin location
-                          </DropdownMenuItem>
-                          {listing.geocode_source !== 'manual' && (
-                            <DropdownMenuItem
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleAutoGeocode(listing);
-                              }}
-                              disabled={geocodingId === listing.id}
-                            >
-                              <MapPin className="w-4 h-4 mr-2" />
-                              {geocodingId === listing.id ? 'Auto-geocoding…' : 'Auto-geocode now'}
-                            </DropdownMenuItem>
-                          )}
-                          {listing.geocode_source === 'manual' && (
-                            <DropdownMenuItem 
-                              onClick={async (e) => {
-                                e.stopPropagation();
-                                try {
-                                  const { error } = await supabase
-                                    .from('market_listings')
-                                    .update({
-                                      latitude: null,
-                                      longitude: null,
-                                      geocode_source: null,
-                                      geocoded_at: null,
-                                    })
-                                    .eq('id', listing.id);
-                                  
-                                  if (error) throw error;
-                                  toast.success('Pin reset — use Auto-geocode to regenerate');
-                                  onListingUpdated?.();
-                                } catch (err) {
-                                  console.error('Failed to reset pin:', err);
-                                  toast.error('Failed to reset pin location');
-                                }
-                              }}
-                            >
-                              <RotateCcw className="w-4 h-4 mr-2" />
-                              Reset to auto-geocode
-                            </DropdownMenuItem>
-                          )}
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </TableCell>
-                    
-                    {/* Link - Sticky */}
+                    {/* Actions - Sticky (Location + Link) */}
                     <TableCell className={cn(
                       'sticky right-0 z-20 shadow-[-2px_0_5px_-2px_rgba(0,0,0,0.3)] transition-colors',
                       stickyBg,
                       stickyHoverClass
                     )}>
-                      {listing.link && (
-                        <Button 
-                          variant="ghost" 
-                          size="icon" 
-                          className="h-8 w-8" 
-                          asChild
-                          onClick={(e) => e.stopPropagation()}
-                        >
-                          <a href={listing.link} target="_blank" rel="noopener noreferrer">
-                            <ExternalLink className="w-4 h-4" />
-                          </a>
-                        </Button>
-                      )}
+                      <div className="flex items-center justify-center gap-1">
+                        {/* Location */}
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button 
+                              variant="ghost" 
+                              size="icon" 
+                              className={cn(
+                                "h-8 w-8 relative",
+                                listing.geocode_source === 'manual' && "ring-2 ring-warning ring-offset-1"
+                              )}
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              {listing.latitude && listing.longitude ? (
+                                <>
+                                  <MapPin className={cn(
+                                    "w-4 h-4",
+                                    listing.geocode_source === 'manual' ? "text-warning" : "text-primary"
+                                  )} />
+                                  {listing.geocode_source === 'manual' && (
+                                    <Hand className="w-2.5 h-2.5 absolute -top-0.5 -right-0.5 text-warning" />
+                                  )}
+                                </>
+                              ) : (
+                                <MapPinOff className="w-4 h-4 text-muted-foreground" />
+                              )}
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem onClick={(e) => {
+                              e.stopPropagation();
+                              setEditPinListing(listing);
+                            }}>
+                              <Pencil className="w-4 h-4 mr-2" />
+                              Edit pin location
+                            </DropdownMenuItem>
+                            {listing.geocode_source !== 'manual' && (
+                              <DropdownMenuItem
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleAutoGeocode(listing);
+                                }}
+                                disabled={geocodingId === listing.id}
+                              >
+                                <MapPin className="w-4 h-4 mr-2" />
+                                {geocodingId === listing.id ? 'Auto-geocoding…' : 'Auto-geocode now'}
+                              </DropdownMenuItem>
+                            )}
+                            {listing.geocode_source === 'manual' && (
+                              <DropdownMenuItem 
+                                onClick={async (e) => {
+                                  e.stopPropagation();
+                                  try {
+                                    const { error } = await supabase
+                                      .from('market_listings')
+                                      .update({
+                                        latitude: null,
+                                        longitude: null,
+                                        geocode_source: null,
+                                        geocoded_at: null,
+                                      })
+                                      .eq('id', listing.id);
+                                    
+                                    if (error) throw error;
+                                    toast.success('Pin reset — use Auto-geocode to regenerate');
+                                    onListingUpdated?.();
+                                  } catch (err) {
+                                    console.error('Failed to reset pin:', err);
+                                    toast.error('Failed to reset pin location');
+                                  }
+                                }}
+                              >
+                                <RotateCcw className="w-4 h-4 mr-2" />
+                                Reset to auto-geocode
+                              </DropdownMenuItem>
+                            )}
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                        
+                        {/* External Link */}
+                        {listing.link && (
+                          <Button 
+                            variant="ghost" 
+                            size="icon" 
+                            className="h-8 w-8" 
+                            asChild
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            <a href={listing.link} target="_blank" rel="noopener noreferrer">
+                              <ExternalLink className="w-4 h-4" />
+                            </a>
+                          </Button>
+                        )}
+                      </div>
                     </TableCell>
                   </TableRow>
                 );
