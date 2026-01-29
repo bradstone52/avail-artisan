@@ -127,14 +127,21 @@ export function useMarketListings() {
     }
   }, [user, orgId]);
 
+  // Track if initial data has been loaded to prevent refetch on tab focus
+  const [hasInitialData, setHasInitialData] = useState(false);
+
   // Initial fetch and realtime subscription
   useEffect(() => {
     if (!user || !orgId || orgLoading) return;
 
+    // Only fetch if we haven't loaded data yet (prevents refetch on tab focus)
     const init = async () => {
-      setLoading(true);
-      await Promise.all([fetchListings(), fetchSyncLogs()]);
-      setLoading(false);
+      if (!hasInitialData) {
+        setLoading(true);
+        await Promise.all([fetchListings(), fetchSyncLogs()]);
+        setHasInitialData(true);
+        setLoading(false);
+      }
     };
 
     init();
@@ -179,7 +186,7 @@ export function useMarketListings() {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [user, orgId, orgLoading, fetchListings, fetchSyncLogs]);
+  }, [user, orgId, orgLoading, fetchListings, fetchSyncLogs, hasInitialData]);
 
   // Validate brochure links
   const validateLinks = async () => {
