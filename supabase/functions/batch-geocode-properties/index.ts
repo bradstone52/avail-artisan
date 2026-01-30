@@ -100,12 +100,13 @@ serve(async (req) => {
 
     const adminClient = createClient(supabaseUrl, serviceRoleKey);
 
-    // Get properties that need geocoding (no coordinates or non-manual source)
+    // Get properties that need geocoding (no coordinates and not manually pinned)
+    // Note: Need to handle NULL geocode_source (which should be included)
     const { data: properties, error: fetchError } = await adminClient
       .from('properties')
       .select('id, name, address, city, geocode_source')
       .or('latitude.is.null,longitude.is.null')
-      .neq('geocode_source', 'manual');
+      .or('geocode_source.is.null,geocode_source.neq.manual');
 
     if (fetchError) {
       console.error('[Batch Geocode Properties] Fetch error:', fetchError);
