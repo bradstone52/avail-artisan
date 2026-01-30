@@ -11,6 +11,7 @@ import Listings from "./pages/Listings";
 import MarketListings from "./pages/MarketListings";
 import Properties from "./pages/Properties";
 import PropertyDetail from "./pages/PropertyDetail";
+import PropertiesMap from "./pages/PropertiesMap";
 import Transactions from "./pages/Transactions";
 import TransactionDetail from "./pages/TransactionDetail";
 import TransactionForm from "./pages/TransactionForm";
@@ -57,6 +58,7 @@ const App = () => (
             <Route path="/listings" element={<Listings />} />
             <Route path="/market-listings" element={<MarketListings />} />
             <Route path="/properties" element={<Properties />} />
+            <Route path="/properties/map" element={<PropertiesMap />} />
             <Route path="/properties/:id" element={<PropertyDetail />} />
             <Route path="/transactions" element={<Transactions />} />
             <Route path="/transactions/new" element={<TransactionForm />} />

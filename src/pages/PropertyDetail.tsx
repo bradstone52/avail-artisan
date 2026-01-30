@@ -27,9 +27,11 @@ import {
   ClipboardList,
   Link as LinkIcon,
   Archive,
-  Receipt
+  Receipt,
+  Users
 } from 'lucide-react';
 import { format } from 'date-fns';
+import { TenantsSection } from '@/components/properties/TenantsSection';
 
 export default function PropertyDetail() {
   const { id } = useParams<{ id: string }>();
@@ -283,6 +285,10 @@ export default function PropertyDetail() {
               <Building2 className="h-4 w-4" />
               Overview
             </TabsTrigger>
+            <TabsTrigger value="tenants" className="flex items-center gap-2">
+              <Users className="h-4 w-4" />
+              Tenants
+            </TabsTrigger>
             <TabsTrigger value="listings" className="flex items-center gap-2">
               <LinkIcon className="h-4 w-4" />
               Listings
@@ -422,6 +428,14 @@ export default function PropertyDetail() {
                 </Card>
               )}
             </div>
+          </TabsContent>
+
+          {/* Tenants Tab */}
+          <TabsContent value="tenants" className="space-y-4">
+            <TenantsSection 
+              propertyId={property.id} 
+              propertyName={property.name || property.address} 
+            />
           </TabsContent>
 
           {/* Listings Tab */}
