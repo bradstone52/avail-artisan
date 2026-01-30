@@ -463,8 +463,13 @@ export default function PropertiesMap() {
           <div className="flex items-center gap-4 text-sm">
             <div className="flex items-center gap-2">
               <div className="w-3 h-3 rounded-full bg-primary border-2 border-foreground" />
-              <span>{properties.filter(p => p.latitude && p.longitude).length} Properties</span>
+              <span>{properties.filter(p => p.latitude && p.longitude).length} Properties on Map</span>
             </div>
+            {properties.length > 0 && properties.filter(p => !p.latitude || !p.longitude).length > 0 && (
+              <span className="text-muted-foreground">
+                ({properties.filter(p => !p.latitude || !p.longitude).length} need geocoding)
+              </span>
+            )}
             {userLat && userLng && (
               <Badge variant="outline" className="flex items-center gap-1">
                 <MapPin className="h-3 w-3" />
