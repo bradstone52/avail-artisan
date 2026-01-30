@@ -73,6 +73,7 @@ export default function PropertiesMap() {
   const [isReverseGeocoding, setIsReverseGeocoding] = useState(false);
   const [pendingPropertyId, setPendingPropertyId] = useState<string | null>(null);
   const [isGeocoding, setIsGeocoding] = useState(false);
+  const [mapReady, setMapReady] = useState(false);
 
   // Fetch map token
   useEffect(() => {
@@ -158,9 +159,9 @@ export default function PropertiesMap() {
 
         const map = new Map(mapContainerRef.current, {
           center: { lat: defaultLat, lng: defaultLng },
-          zoom: 14, // ~1 mile view
+          zoom: 11,
           mapTypeId: 'hybrid',
-          mapId: 'properties-map',
+          mapId: 'distribution-map', // Use same mapId as working distribution map
           gestureHandling: 'greedy',
           zoomControl: true,
           streetViewControl: false,
@@ -174,6 +175,12 @@ export default function PropertiesMap() {
         map.addListener('click', (e: google.maps.MapMouseEvent) => {
           if (!e.latLng) return;
           handleMapClick(e.latLng.lat(), e.latLng.lng());
+        });
+
+        // Mark map as ready after tiles load
+        google.maps.event.addListenerOnce(map, 'tilesloaded', () => {
+          console.log('[PropertiesMap] Tiles loaded, map ready');
+          setMapReady(true);
         });
       } catch (err) {
         console.error('Failed to initialize map:', err);
@@ -213,27 +220,30 @@ export default function PropertiesMap() {
     }
   };
 
-  // Add property markers
-  useEffect(() => {
-    if (!mapRef.current || !mapToken || propertiesLoading) return;
+  // Add property markers function
+  const addMarkersToMap = useCallback(async () => {
+    if (!mapRef.current || !mapToken) return;
 
-    const addMarkers = async () => {
-      // Clear existing markers
-      markersRef.current.forEach((marker) => {
-        marker.map = null;
-      });
-      markersRef.current.clear();
+    // Clear existing markers
+    markersRef.current.forEach((marker) => {
+      marker.map = null;
+    });
+    markersRef.current.clear();
 
-      const { AdvancedMarkerElement } = await importLibrary('marker') as google.maps.MarkerLibrary;
+    const { AdvancedMarkerElement } = await importLibrary('marker') as google.maps.MarkerLibrary;
 
-      // Filter properties with valid coordinates
-      const mappableProperties = properties.filter(
-        (p) => p.latitude && p.longitude && Number.isFinite(p.latitude) && Number.isFinite(p.longitude)
-      );
+    // Filter properties with valid coordinates
+    const mappableProperties = properties.filter(
+      (p) => p.latitude && p.longitude && Number.isFinite(p.latitude) && Number.isFinite(p.longitude)
+    );
 
+    console.log(`[PropertiesMap] Adding ${mappableProperties.length} markers`);
+
+    // Fit bounds to show all markers
+    if (mappableProperties.length > 0) {
+      const bounds = new google.maps.LatLngBounds();
+      
       mappableProperties.forEach((property) => {
-        // Check if property has tenants (this would require fetching tenant counts)
-        // For now, we'll just use blue markers
         const el = createPropertyMarkerElement(false);
 
         const marker = new AdvancedMarkerElement({
@@ -247,11 +257,20 @@ export default function PropertiesMap() {
         });
 
         markersRef.current.set(property.id, marker);
+        bounds.extend({ lat: property.latitude!, lng: property.longitude! });
       });
-    };
 
-    addMarkers();
-  }, [properties, mapToken, propertiesLoading, createPropertyMarkerElement]);
+      // Fit map to show all markers
+      mapRef.current.fitBounds(bounds, 50);
+    }
+  }, [properties, mapToken, createPropertyMarkerElement]);
+
+  // Re-add markers when properties change or map becomes ready
+  useEffect(() => {
+    if (!mapRef.current || !mapToken || propertiesLoading || !mapReady) return;
+    console.log('[PropertiesMap] Adding markers, mapReady:', mapReady, 'properties:', properties.length);
+    addMarkersToMap();
+  }, [properties, mapToken, propertiesLoading, mapReady, addMarkersToMap]);
 
   // Show property popup
   const showPropertyPopup = (property: PropertyWithLinks, marker: google.maps.marker.AdvancedMarkerElement) => {
