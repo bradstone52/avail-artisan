@@ -1952,6 +1952,50 @@ export type Database = {
           },
         ]
       }
+      property_tenants: {
+        Row: {
+          created_at: string
+          id: string
+          notes: string | null
+          property_id: string
+          size_sf: number | null
+          tenant_name: string
+          tracked_at: string
+          tracked_by: string | null
+          unit_number: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          notes?: string | null
+          property_id: string
+          size_sf?: number | null
+          tenant_name: string
+          tracked_at?: string
+          tracked_by?: string | null
+          unit_number?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          notes?: string | null
+          property_id?: string
+          size_sf?: number | null
+          tenant_name?: string
+          tracked_at?: string
+          tracked_by?: string | null
+          unit_number?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "property_tenants_property_id_fkey"
+            columns: ["property_id"]
+            isOneToOne: false
+            referencedRelation: "properties"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       prospect_follow_up_dates: {
         Row: {
           completed: boolean

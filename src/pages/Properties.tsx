@@ -7,7 +7,7 @@ import { PropertyEditDialog } from '@/components/properties/PropertyEditDialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent } from '@/components/ui/card';
-import { Plus, Search, Building2, MapPin, RefreshCw, FileText, Download, Loader2, Database } from 'lucide-react';
+import { Plus, Search, Building2, MapPin, RefreshCw, FileText, Download, Loader2, Database, Map } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { queueGlobalToast } from '@/hooks/useGlobalToast';
@@ -394,6 +394,13 @@ export default function Properties() {
                 <RefreshCw className="h-4 w-4 mr-2" />
               )}
               Sync Market Listings
+            </Button>
+            <Button 
+              variant="outline"
+              onClick={() => navigate('/properties/map')}
+            >
+              <Map className="h-4 w-4 mr-2" />
+              Map View
             </Button>
             <Button onClick={handleCreate}>
               <Plus className="h-4 w-4 mr-2" />
