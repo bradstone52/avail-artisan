@@ -22,6 +22,7 @@ import {
   Navigation,
   AlertCircle,
   Eye,
+  MapPinned,
 } from 'lucide-react';
 
 // Helper to calculate distance between two points (Haversine formula)
@@ -71,6 +72,7 @@ export default function PropertiesMap() {
   const [reverseGeocodedAddress, setReverseGeocodedAddress] = useState<string>('');
   const [isReverseGeocoding, setIsReverseGeocoding] = useState(false);
   const [pendingPropertyId, setPendingPropertyId] = useState<string | null>(null);
+  const [isGeocoding, setIsGeocoding] = useState(false);
 
   // Fetch map token
   useEffect(() => {
@@ -389,6 +391,35 @@ export default function PropertiesMap() {
     }
   };
 
+  // Batch geocode properties without coordinates
+  const handleGeocodeAll = async () => {
+    const needsGeocoding = properties.filter(p => !p.latitude || !p.longitude).length;
+    if (needsGeocoding === 0) {
+      toast({ title: 'All properties already geocoded' });
+      return;
+    }
+
+    setIsGeocoding(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('batch-geocode-properties');
+      if (error) throw error;
+      
+      toast({
+        title: 'Geocoding complete',
+        description: `${data.geocoded} properties geocoded, ${data.failed} failed`
+      });
+      fetchProperties();
+    } catch (err: any) {
+      toast({
+        title: 'Geocoding failed',
+        description: err.message,
+        variant: 'destructive'
+      });
+    } finally {
+      setIsGeocoding(false);
+    }
+  };
+
   return (
     <AppLayout>
       <div className="h-[calc(100vh-4rem)] flex flex-col">
@@ -405,19 +436,36 @@ export default function PropertiesMap() {
               </p>
             </div>
           </div>
-          <Button
-            variant="outline"
-            onClick={handleCenterOnUser}
-            disabled={geoLoading}
-            className="min-w-[44px] min-h-[44px]"
-          >
-            {geoLoading ? (
-              <Loader2 className="h-5 w-5 animate-spin" />
-            ) : (
-              <Navigation className="h-5 w-5" />
+          <div className="flex items-center gap-2">
+            {properties.filter(p => !p.latitude || !p.longitude).length > 0 && (
+              <Button
+                variant="outline"
+                onClick={handleGeocodeAll}
+                disabled={isGeocoding}
+                className="min-h-[44px]"
+              >
+                {isGeocoding ? (
+                  <Loader2 className="h-5 w-5 animate-spin" />
+                ) : (
+                  <MapPinned className="h-5 w-5" />
+                )}
+                <span className="ml-2 hidden sm:inline">Geocode All</span>
+              </Button>
             )}
-            <span className="ml-2 hidden sm:inline">My Location</span>
-          </Button>
+            <Button
+              variant="outline"
+              onClick={handleCenterOnUser}
+              disabled={geoLoading}
+              className="min-w-[44px] min-h-[44px]"
+            >
+              {geoLoading ? (
+                <Loader2 className="h-5 w-5 animate-spin" />
+              ) : (
+                <Navigation className="h-5 w-5" />
+              )}
+              <span className="ml-2 hidden sm:inline">My Location</span>
+            </Button>
+          </div>
         </div>
 
         {/* GPS Status */}
@@ -465,11 +513,6 @@ export default function PropertiesMap() {
               <div className="w-3 h-3 rounded-full bg-primary border-2 border-foreground" />
               <span>{properties.filter(p => p.latitude && p.longitude).length} Properties on Map</span>
             </div>
-            {properties.length > 0 && properties.filter(p => !p.latitude || !p.longitude).length > 0 && (
-              <span className="text-muted-foreground">
-                ({properties.filter(p => !p.latitude || !p.longitude).length} need geocoding)
-              </span>
-            )}
             {userLat && userLng && (
               <Badge variant="outline" className="flex items-center gap-1">
                 <MapPin className="h-3 w-3" />
