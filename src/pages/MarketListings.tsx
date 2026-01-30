@@ -55,6 +55,7 @@ export default function MarketListings() {
   const [landlordFilter, setLandlordFilter] = useState<string>('all');
   const [docksFilter, setDocksFilter] = useState<string>('all');
   const [driveInFilter, setDriveInFilter] = useState<string>('all');
+  const [staleFilter, setStaleFilter] = useState<string>('all');
 
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
@@ -182,11 +183,20 @@ export default function MarketListings() {
         if (driveInFilter === 'no' && hasDriveIn) return false;
       }
 
+      // Stale (30+ days unverified) filter
+      if (staleFilter !== 'all') {
+        const thirtyDaysAgo = new Date();
+        thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+        const isStale = !listing.last_verified_date || new Date(listing.last_verified_date) < thirtyDaysAgo;
+        if (staleFilter === 'yes' && !isStale) return false;
+        if (staleFilter === 'no' && isStale) return false;
+      }
+
       return true;
     });
-  }, [listings, searchQuery, submarketFilter, statusFilter, sizeFilter, distWarehouseFilter, brokerFilter, listingTypeFilter, landlordFilter, docksFilter, driveInFilter]);
+  }, [listings, searchQuery, submarketFilter, statusFilter, sizeFilter, distWarehouseFilter, brokerFilter, listingTypeFilter, landlordFilter, docksFilter, driveInFilter, staleFilter]);
 
-  const hasActiveFilters = searchQuery || submarketFilter.length > 0 || statusFilter !== 'all' || sizeFilter !== 'all' || distWarehouseFilter !== 'all' || brokerFilter !== 'all' || listingTypeFilter !== 'all' || landlordFilter !== 'all' || docksFilter !== 'all' || driveInFilter !== 'all';
+  const hasActiveFilters = searchQuery || submarketFilter.length > 0 || statusFilter !== 'all' || sizeFilter !== 'all' || distWarehouseFilter !== 'all' || brokerFilter !== 'all' || listingTypeFilter !== 'all' || landlordFilter !== 'all' || docksFilter !== 'all' || driveInFilter !== 'all' || staleFilter !== 'all';
 
   // Sort filtered listings
   const sortedListings = useMemo(() => {
@@ -260,6 +270,7 @@ export default function MarketListings() {
     setLandlordFilter('all');
     setDocksFilter('all');
     setDriveInFilter('all');
+    setStaleFilter('all');
     setCurrentPage(1);
   };
 
@@ -591,6 +602,21 @@ export default function MarketListings() {
                       <SelectItem value="all">All</SelectItem>
                       <SelectItem value="yes">Has Docks</SelectItem>
                       <SelectItem value="no">No Docks</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {/* Stale (30+ days) */}
+                <div>
+                  <Label className="text-xs text-muted-foreground mb-1.5 block">Verified</Label>
+                  <Select value={staleFilter} onValueChange={setStaleFilter}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="All" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All</SelectItem>
+                      <SelectItem value="yes">Stale (30+ days)</SelectItem>
+                      <SelectItem value="no">Recently Verified</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
