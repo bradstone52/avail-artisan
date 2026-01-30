@@ -76,9 +76,11 @@ export default function PropertiesMap() {
   useEffect(() => {
     const fetchToken = async () => {
       try {
-        const { data, error } = await supabase.functions.invoke('get-google-maps-token');
+        const { data, error } = await supabase.functions.invoke('get-google-maps-token', {
+          body: { authenticated: true }
+        });
         if (error) throw error;
-        setMapToken(data.token);
+        setMapToken(data.apiKey);
       } catch (err: any) {
         console.error('Error fetching map token:', err);
         setMapError('Failed to load map');
