@@ -5,6 +5,7 @@ import { useUserRole } from '@/hooks/useUserRole';
 import { useGlobalToast } from '@/hooks/useGlobalToast';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { MobileBottomNav } from './MobileBottomNav';
 import { 
   Building2, 
   LayoutDashboard, 
@@ -98,19 +99,20 @@ export function AppLayout({ children }: AppLayoutProps) {
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Mobile sidebar overlay */}
+      {/* Mobile sidebar overlay - only for tablet, phones use bottom nav */}
       {sidebarOpen && (
         <div 
-          className="fixed inset-0 z-40 bg-foreground/40 backdrop-blur-sm lg:hidden"
+          className="fixed inset-0 z-40 bg-foreground/40 backdrop-blur-sm hidden md:block lg:hidden"
           onClick={() => setSidebarOpen(false)}
         />
       )}
 
-      {/* Sidebar */}
+      {/* Sidebar - hidden on phones, slide-out on tablets, always visible on desktop */}
       <aside
         className={cn(
           "fixed inset-y-0 left-0 z-50 bg-card border-r-3 border-foreground transform transition-all duration-200 ease-in-out lg:translate-x-0 shadow-[4px_0_0_hsl(var(--foreground))]",
-          sidebarOpen ? "translate-x-0" : "-translate-x-full",
+          "hidden md:block", // Hide completely on phones
+          sidebarOpen ? "translate-x-0" : "md:-translate-x-full lg:translate-x-0",
           sidebarCollapsed ? "lg:w-16" : "lg:w-64",
           "w-64"
         )}
@@ -357,8 +359,8 @@ export function AppLayout({ children }: AppLayoutProps) {
         "transition-all duration-200",
         sidebarCollapsed ? "lg:pl-16" : "lg:pl-64"
       )}>
-        {/* Mobile header */}
-        <header className="sticky top-0 z-30 flex items-center gap-4 px-4 py-3 bg-card border-b-3 border-foreground lg:hidden shadow-[0_3px_0_hsl(var(--foreground))]">
+        {/* Tablet header - only shows on tablets (md-lg), phones use bottom nav */}
+        <header className="sticky top-0 z-30 hidden md:flex lg:hidden items-center gap-4 px-4 py-3 bg-card border-b-3 border-foreground shadow-[0_3px_0_hsl(var(--foreground))]">
           <button
             onClick={() => setSidebarOpen(true)}
             className="p-2 -ml-2 border-2 border-foreground hover:bg-muted"
@@ -372,11 +374,23 @@ export function AppLayout({ children }: AppLayoutProps) {
           </div>
         </header>
 
-        {/* Page content */}
-        <main className="min-h-screen">
+        {/* Phone header - minimal, no hamburger since we have bottom nav */}
+        <header className="sticky top-0 z-30 flex md:hidden items-center justify-center gap-2 px-4 py-2 bg-card border-b-2 border-foreground">
+          <Building2 className="w-4 h-4 text-primary" />
+          <span className="font-bold uppercase tracking-tight text-sm">Snapshot Builder</span>
+        </header>
+
+        {/* Page content - add bottom padding on phones for nav bar */}
+        <main className="min-h-screen pb-20 md:pb-0">
           {children}
         </main>
       </div>
+
+      {/* Mobile bottom navigation - phones only */}
+      <MobileBottomNav 
+        isAdmin={isAdmin && !roleLoading} 
+        onSignOut={handleSignOut}
+      />
     </div>
   );
 }
