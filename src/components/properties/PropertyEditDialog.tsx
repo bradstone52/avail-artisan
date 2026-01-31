@@ -22,6 +22,7 @@ import { Building2, FileText, Plus, Trash2, Upload, X, Image, Loader2 } from 'lu
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
+import { CityCombobox } from '@/components/common/CityCombobox';
 
 interface PropertyEditDialogProps {
   property: PropertyWithLinks | null;
@@ -377,11 +378,10 @@ export function PropertyEditDialog({
 
               <div>
                 <Label>City</Label>
-                <Input
-                  value={city}
-                  onChange={(e) => setCity(e.target.value)}
+                <CityCombobox 
+                  value={city} 
+                  onChange={setCity}
                   placeholder="Calgary"
-                  className={city ? 'input-filled' : ''}
                 />
               </div>
 

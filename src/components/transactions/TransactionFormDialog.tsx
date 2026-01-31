@@ -22,6 +22,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { FormattedNumberInput } from '@/components/common/FormattedNumberInput';
+import { CityCombobox } from '@/components/common/CityCombobox';
 import { Loader2 } from 'lucide-react';
 
 const FORM_STORAGE_KEY = 'transaction-form-draft';
@@ -32,13 +34,6 @@ const TRANSACTION_TYPE_OPTIONS = [
   { value: 'Sublease', label: 'Sublease' },
   { value: 'Renewal', label: 'Renewal' },
   { value: 'Unknown/Removed', label: 'Unknown/Removed' },
-];
-
-const CITY_OPTIONS = [
-  { value: 'Calgary', label: 'Calgary' },
-  { value: 'Rocky View County', label: 'Rocky View County' },
-  { value: 'Foothills County', label: 'Foothills County' },
-  { value: 'Wheatland County', label: 'Wheatland County' },
 ];
 
 interface TransactionFormDialogProps {
@@ -63,13 +58,13 @@ export function TransactionFormDialog({
   const [displayAddressManuallyEdited, setDisplayAddressManuallyEdited] = useState(false);
   const [city, setCity] = useState('Calgary');
   const [submarket, setSubmarket] = useState('');
-  const [sizeSf, setSizeSf] = useState('');
+  const [sizeSf, setSizeSf] = useState<number | null>(null);
   const [transactionType, setTransactionType] = useState<'Sale' | 'Lease' | 'Sublease' | 'Renewal' | 'Unknown/Removed'>('Lease');
   const [transactionDate, setTransactionDate] = useState('');
   const [closingDate, setClosingDate] = useState('');
-  const [salePrice, setSalePrice] = useState('');
+  const [salePrice, setSalePrice] = useState<number | null>(null);
   const [leaseRatePsf, setLeaseRatePsf] = useState('');
-  const [leaseTermMonths, setLeaseTermMonths] = useState('');
+  const [leaseTermMonths, setLeaseTermMonths] = useState<number | null>(null);
   const [buyerTenantName, setBuyerTenantName] = useState('');
   const [buyerTenantCompany, setBuyerTenantCompany] = useState('');
   const [sellerLandlordName, setSellerLandlordName] = useState('');
@@ -154,13 +149,13 @@ export function TransactionFormDialog({
     setDisplayAddressManuallyEdited(false);
     setCity('Calgary');
     setSubmarket('');
-    setSizeSf('');
+    setSizeSf(null);
     setTransactionType('Lease');
     setTransactionDate('');
     setClosingDate('');
-    setSalePrice('');
+    setSalePrice(null);
     setLeaseRatePsf('');
-    setLeaseTermMonths('');
+    setLeaseTermMonths(null);
     setBuyerTenantName('');
     setBuyerTenantCompany('');
     setSellerLandlordName('');
@@ -253,13 +248,13 @@ export function TransactionFormDialog({
         display_address: displayAddress.trim() || address.trim(),
         city: city || undefined,
         submarket: submarket || undefined,
-        size_sf: sizeSf ? parseInt(sizeSf.replace(/,/g, '')) : undefined,
+        size_sf: sizeSf ?? undefined,
         transaction_type: transactionType,
         transaction_date: transactionDate || undefined,
         closing_date: closingDate || undefined,
-        sale_price: salePrice ? parseFloat(salePrice.replace(/,/g, '')) : undefined,
+        sale_price: salePrice ?? undefined,
         lease_rate_psf: leaseRatePsf ? parseFloat(leaseRatePsf) : undefined,
-        lease_term_months: leaseTermMonths ? parseInt(leaseTermMonths) : undefined,
+        lease_term_months: leaseTermMonths ?? undefined,
         buyer_tenant_name: buyerTenantName || undefined,
         buyer_tenant_company: buyerTenantCompany || undefined,
         seller_landlord_name: sellerLandlordName || undefined,
@@ -315,7 +310,7 @@ export function TransactionFormDialog({
     setDisplayAddress(matchedProperty.address);
     setCity(matchedProperty.city || city);
     setSubmarket(matchedProperty.submarket || submarket);
-    setSizeSf(matchedProperty.size_sf?.toString() || sizeSf);
+    setSizeSf(matchedProperty.size_sf ?? sizeSf);
     setSellerLandlordCompany(matchedProperty.landlord || sellerLandlordCompany);
     
     setShowDuplicateWarning(false);
@@ -381,18 +376,7 @@ export function TransactionFormDialog({
             <div className="grid grid-cols-4 items-center gap-4">
               <Label className="text-right">City</Label>
               <div className="col-span-3">
-                <Select value={city} onValueChange={setCity}>
-                  <SelectTrigger className={city ? 'input-filled' : ''}>
-                    <SelectValue placeholder="Select city" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {CITY_OPTIONS.map((opt) => (
-                      <SelectItem key={opt.value} value={opt.value}>
-                        {opt.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <CityCombobox value={city} onChange={setCity} />
               </div>
             </div>
 
@@ -428,14 +412,13 @@ export function TransactionFormDialog({
               <Label htmlFor="sizeSf" className="text-right">
                 Size (SF)
               </Label>
-              <Input
-                id="sizeSf"
-                type="number"
-                value={sizeSf}
-                onChange={(e) => setSizeSf(e.target.value)}
-                className={`col-span-3 placeholder-light ${sizeSf ? 'input-filled' : ''}`}
-                placeholder="e.g., 50000"
-              />
+              <div className="col-span-3">
+                <FormattedNumberInput
+                  value={sizeSf}
+                  onChange={setSizeSf}
+                  placeholder="e.g., 50,000"
+                />
+              </div>
             </div>
 
             {/* Transaction Details Section */}
@@ -469,13 +452,14 @@ export function TransactionFormDialog({
             {transactionType === 'Sale' ? (
               <div className="grid grid-cols-4 items-center gap-4">
                 <Label className="text-right">Sale Price ($)</Label>
-                <Input
-                  type="number"
-                  value={salePrice}
-                  onChange={(e) => setSalePrice(e.target.value)}
-                  className={`col-span-3 placeholder-light ${salePrice ? 'input-filled' : ''}`}
-                  placeholder="e.g., 5000000"
-                />
+                <div className="col-span-3">
+                  <FormattedNumberInput
+                    value={salePrice}
+                    onChange={setSalePrice}
+                    prefix="$"
+                    placeholder="e.g., 5,000,000"
+                  />
+                </div>
               </div>
             ) : (
               <>
@@ -490,13 +474,13 @@ export function TransactionFormDialog({
                     placeholder="e.g., 12.50"
                   />
                   <Label className="text-right">Term (months)</Label>
-                  <Input
-                    type="number"
-                    value={leaseTermMonths}
-                    onChange={(e) => setLeaseTermMonths(e.target.value)}
-                    className={`col-span-1 placeholder-light ${leaseTermMonths ? 'input-filled' : ''}`}
-                    placeholder="e.g., 60"
-                  />
+                  <div className="col-span-1">
+                    <FormattedNumberInput
+                      value={leaseTermMonths}
+                      onChange={setLeaseTermMonths}
+                      placeholder="e.g., 60"
+                    />
+                  </div>
                 </div>
               </>
             )}
