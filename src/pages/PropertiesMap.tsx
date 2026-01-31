@@ -426,11 +426,20 @@ export default function PropertiesMap() {
     return false;
   };
 
-  // Center on user location
+  // Center on user location with 1 mile radius view
   const handleCenterOnUser = () => {
     if (userLat && userLng && mapRef.current) {
-      mapRef.current.panTo({ lat: userLat, lng: userLng });
-      mapRef.current.setZoom(15);
+      // 1 mile = 1609.34 meters
+      const oneMileInDegrees = 1609.34 / 111320; // Approx degrees latitude per meter
+      const latAdjust = oneMileInDegrees;
+      const lngAdjust = oneMileInDegrees / Math.cos((userLat * Math.PI) / 180);
+      
+      const bounds = new google.maps.LatLngBounds(
+        { lat: userLat - latAdjust, lng: userLng - lngAdjust },
+        { lat: userLat + latAdjust, lng: userLng + lngAdjust }
+      );
+      
+      mapRef.current.fitBounds(bounds);
     } else {
       getCurrentPosition();
     }
