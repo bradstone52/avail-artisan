@@ -42,7 +42,7 @@ export function LogTransactionDialog({
   const [isSaving, setIsSaving] = useState(false);
 
   // Form state
-  const [transactionType, setTransactionType] = useState<'Sale' | 'Lease' | 'Sublease' | 'Unknown/Removed'>('Lease');
+  const [transactionType, setTransactionType] = useState<'Sale' | 'Lease' | 'Sublease' | 'Renewal' | 'Unknown/Removed'>('Lease');
   const [transactionDate, setTransactionDate] = useState('');
   const [closingDate, setClosingDate] = useState('');
   const [listingRemovalDate, setListingRemovalDate] = useState('');
@@ -220,7 +220,7 @@ export function LogTransactionDialog({
                 <Label>Transaction Type *</Label>
                 <Select
                   value={transactionType}
-                  onValueChange={(v) => setTransactionType(v as 'Sale' | 'Lease' | 'Sublease' | 'Unknown/Removed')}
+                  onValueChange={(v) => setTransactionType(v as 'Sale' | 'Lease' | 'Sublease' | 'Renewal' | 'Unknown/Removed')}
                 >
                   <SelectTrigger className={cn('h-9', transactionType && 'input-filled')}>
                     <SelectValue />
@@ -229,6 +229,7 @@ export function LogTransactionDialog({
                     <SelectItem value="Sale">Sale</SelectItem>
                     <SelectItem value="Lease">Lease</SelectItem>
                     <SelectItem value="Sublease">Sublease</SelectItem>
+                    <SelectItem value="Renewal">Renewal</SelectItem>
                     <SelectItem value="Unknown/Removed">Unknown/Removed</SelectItem>
                   </SelectContent>
                 </Select>
