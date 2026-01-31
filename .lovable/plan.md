@@ -1,143 +1,71 @@
 
-# Tenants Page with Expiries Tab
+# Duplicate Address Prevention with Confirmation Warning
 
 ## Overview
-Convert the standalone Tenant Expiries page into a comprehensive "Tenants" hub with two tabs:
-1. **All Tenants** - Master list of all tenants across all properties
-2. **Expiries** - The existing lease expiry tracking functionality
+When a user ignores address suggestions and submits a transaction with an address that already exists in the database, the system will show a warning confirmation dialog. This gives users a chance to reconsider while still allowing legitimate duplicates (e.g., different units at the same address).
 
-Also fix the mobile map cutoff issue where the bottom info card is hidden behind the mobile bottom navigation.
+## User Flow
+1. User types an address, ignores suggestions (or no suggestions appear)
+2. User clicks "Create Transaction"
+3. System checks for existing records with similar addresses
+4. If match found: **Warning dialog appears** showing the existing property details
+5. User can choose:
+   - **"Use Existing"** - Auto-fill from the matched property
+   - **"Create Anyway"** - Proceed with the new entry (for legitimate cases)
+   - **"Cancel"** - Return to form to edit
 
----
-
-## Features
-
-### Tab 1: All Tenants
-- Master table showing all tenants from `property_tenants` across all properties
-- Columns: Tenant Name, Property, Unit, Size (SF), Lease Expiry, Tracked Date
-- Search by tenant name or property
-- Click row to navigate to property detail page
-- Summary stats: Total tenants, Total SF tracked
-
-### Tab 2: Expiries
-- Existing expiry tracking content (stats cards, filters, table)
-- Combines manual tenants and transaction-derived expiries
-- Color-coded urgency indicators (Red: 6 months, Yellow: 6-9 months, Green: 9-12 months)
-
----
-
-## Mobile Map Fix
-The Properties Map bottom info card is currently hidden behind the mobile bottom navigation bar. This needs to be fixed by adding bottom padding on mobile devices.
-
----
-
-## Technical Details
-
-### New Files
-| File | Purpose |
-|------|---------|
-| `src/pages/Tenants.tsx` | Main Tenants hub page with tabs |
-| `src/hooks/useAllTenants.ts` | Fetch all tenants with property joins |
-| `src/components/tenants/AllTenantsTable.tsx` | Table component for All Tenants tab |
-
-### Modified Files
-| File | Change |
-|------|--------|
-| `src/App.tsx` | Change route from `/tenant-expiries` to `/tenants` |
-| `src/components/layout/AppLayout.tsx` | Add "Tenants" to sidebar navigation |
-| `src/components/layout/MobileBottomNav.tsx` | Update link from "Tenant Expiries" to "Tenants" |
-| `src/pages/PropertiesMap.tsx` | Fix bottom card positioning for mobile nav bar |
-| `src/pages/TenantExpiries.tsx` | Convert to component for embedding in Tenants page |
-
-### Page Structure
+## Warning Dialog Design
 ```text
-/tenants
-  |
-  +-- Tabs
-  |     |-- All Tenants (default)
-  |     +-- Expiries
-  |
-  +-- All Tenants Tab
-  |     |-- Stats Cards (Total Tenants, Total SF)
-  |     |-- Search Input
-  |     +-- AllTenantsTable
-  |
-  +-- Expiries Tab
-        |-- Stats Cards (Total, Within 6 Months, Expired)
-        |-- Filters (Timeframe, Source)
-        +-- TenantExpiriesTable
++-------------------------------------------+
+|  ⚠️ Similar Property Found                |
++-------------------------------------------+
+|  An existing property matches this        |
+|  address:                                 |
+|                                           |
+|  📍 123 Main Street NW                    |
+|     Calgary | 50,000 SF                   |
+|                                           |
+|  Do you want to link this transaction     |
+|  to the existing property, or create      |
+|  a new entry?                             |
++-------------------------------------------+
+| [Cancel] [Create Anyway] [Use Existing]   |
++-------------------------------------------+
 ```
 
-### Data Model (useAllTenants)
-```typescript
-interface TenantWithProperty {
-  id: string;
-  tenantName: string;
-  propertyId: string;
-  propertyName: string | null;
-  propertyAddress: string | null;
-  propertyCity: string | null;
-  unitNumber: string | null;
-  sizeSf: number | null;
-  leaseExpiry: string | null;
-  trackedAt: string;
-}
-```
+## Technical Implementation
 
-### Mobile Map Fix
-```typescript
-// PropertiesMap.tsx - Bottom Info Card
-// Current: bottom-0
-// Fixed: bottom-20 md:bottom-0 (accounts for 80px mobile nav)
+### 1. Create Duplicate Check Hook
+**New file:** `src/hooks/useDuplicateAddressCheck.ts`
 
-<div className="absolute bottom-20 md:bottom-0 left-0 right-0 z-10 p-3 safe-area-bottom">
-  ...
-</div>
+- Function to search properties, market_listings, and transactions tables
+- Normalize addresses for comparison (lowercase, trim whitespace)
+- Return matching records if found
 
-// Also update floating action button positioning
-// Current: bottom-24
-// Fixed: bottom-44 md:bottom-24 (moves up to stay above info card on mobile)
-```
+### 2. Create Warning Dialog Component
+**New file:** `src/components/transactions/DuplicateAddressWarning.tsx`
 
----
+- Uses existing `AlertDialog` pattern from `ConfirmDialog`
+- Displays matched property details (address, city, size)
+- Three action buttons: Cancel, Create Anyway, Use Existing
 
-## Navigation Updates
+### 3. Update TransactionForm Submit Logic
+**File:** `src/pages/TransactionForm.tsx`
 
-### Sidebar (AppLayout.tsx)
-Add "Tenants" as a top-level navigation item with the Users icon, positioned after Properties:
-```typescript
-const navigation = [
-  { name: 'Dashboard', ... },
-  { name: 'Distribution', ... },
-  { name: 'Market Listings', ... },
-  { name: 'Properties', ... },
-  { name: 'Tenants', href: '/tenants', icon: Users },  // NEW
-  { name: 'Transactions', ... },
-  ...
-];
-```
+- Before saving, call duplicate check
+- If match found, show warning dialog instead of saving immediately
+- Handle user's choice (proceed, cancel, or use existing)
 
-### Mobile Bottom Nav (MobileBottomNav.tsx)
-Update the "More" menu:
-```typescript
-const moreNav = [
-  { name: 'Distribution Listings', ... },
-  { name: 'Recipients', ... },
-  { name: 'CRE Tracker', ... },
-  { name: 'Tenants', href: '/tenants', icon: Users },  // Changed from "Tenant Expiries"
-  { name: 'Settings', ... },
-];
-```
+### 4. Integrate with AddressCombobox (from previous plan)
+The combobox will still show suggestions as user types, but this provides a **second layer of protection** at submit time for users who ignore or miss the suggestions.
 
----
+## Files to Create/Modify
+1. **Create:** `src/hooks/useDuplicateAddressCheck.ts` - Address matching logic
+2. **Create:** `src/components/transactions/DuplicateAddressWarning.tsx` - Warning dialog
+3. **Modify:** `src/pages/TransactionForm.tsx` - Add pre-submit validation
 
-## User Experience
-
-### Desktop/Tablet
-- "Tenants" appears in the left sidebar navigation
-- Click opens the Tenants page with tabs
-
-### Mobile
-- "Tenants" appears in the "More" menu
-- Bottom navigation is properly cleared by the Properties Map info card
-- Floating action buttons remain accessible above the info card
+## Edge Cases
+- **Exact match vs fuzzy match**: Use normalized string comparison (lowercase, trimmed)
+- **Same address, different unit**: User clicks "Create Anyway" for legitimate duplicates
+- **Edit mode**: Skip duplicate check when editing existing transaction (or exclude current record from check)
+- **Case sensitivity**: "123 MAIN ST" matches "123 Main St"
