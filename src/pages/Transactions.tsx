@@ -2,6 +2,7 @@ import { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTransactions } from '@/hooks/useTransactions';
 import { AppLayout } from '@/components/layout/AppLayout';
+import { TransactionFormDialog } from '@/components/transactions/TransactionFormDialog';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -77,6 +78,7 @@ export default function Transactions() {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [showNewDialog, setShowNewDialog] = useState(false);
 
   const filteredTransactions = useMemo(() => {
     return transactions.filter((t) => {
@@ -159,7 +161,7 @@ export default function Transactions() {
               Track completed sales and lease transactions
             </p>
           </div>
-          <Button size="sm" className="w-full sm:w-auto" onClick={() => navigate('/transactions/new')}>
+          <Button size="sm" className="w-full sm:w-auto" onClick={() => setShowNewDialog(true)}>
             <Plus className="h-4 w-4 mr-2" />
             New Transaction
           </Button>
@@ -360,6 +362,13 @@ export default function Transactions() {
             </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>
+
+        {/* New Transaction Dialog */}
+        <TransactionFormDialog
+          open={showNewDialog}
+          onOpenChange={setShowNewDialog}
+          onSaved={(transactionId) => navigate(`/transactions/${transactionId}`)}
+        />
       </div>
     </AppLayout>
   );
