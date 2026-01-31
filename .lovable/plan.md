@@ -1,181 +1,143 @@
 
 
-# Known Tenants Feature with Live Map
+# Tenant Expiries Tracking Page
 
 ## Overview
-Add a tenant tracking system to the Properties section with a live map interface optimized for iPad field use. Users can see their current location, view nearby properties as pins, tap to add tenants to existing properties, or tap the map to create new properties and log tenants.
+Create a dedicated page to track tenant lease expiries across all properties, combining data from two sources:
+1. **Manual tenants** - from the `property_tenants` table with explicit `lease_expiry` dates
+2. **Transaction-derived tenants** - from `transactions` where type is "Lease", calculating expiry from `closing_date + lease_term_months`
 
 ---
 
-## Database Changes
+## Features
 
-### New Table: `property_tenants`
-| Column | Type | Description |
-|--------|------|-------------|
-| id | uuid | Primary key |
-| property_id | uuid (FK) | Reference to properties table |
-| tenant_name | text | Name of the tenant/company |
-| unit_number | text | Optional unit identifier |
-| size_sf | integer | Space occupied (null if unknown) |
-| notes | text | Additional notes |
-| tracked_at | timestamp | When the tenant was logged |
-| tracked_by | uuid | User who logged the tenant |
-| created_at | timestamp | Record creation time |
+### 1. Unified Expiry Dashboard
+- **Combined View**: Single table showing all tenants from both sources
+- **Source Indicator**: Badge showing whether data comes from "Manual" entry or "Transaction"
+- **Property Context**: Each row shows tenant name, property address, unit (if applicable), size, commencement date, and expiry date
+- **Status Indicators**: Color-coded badges for expiry urgency:
+  - **Red (Urgent)**: Expired or within 6 months
+  - **Yellow (Warning)**: 6 to 9 months
+  - **Green (Upcoming)**: 9 months to 1 year
+  - No indicator for expiries beyond 1 year
+- **Quick Navigation**: Click to go to the property detail page
 
-RLS policies will ensure users can only manage tenants for properties in their organization.
+### 2. Filtering and Search
+- Search by tenant name or property address
+- Filter by expiry timeframe:
+  - All
+  - Expired
+  - Within 6 months
+  - Within 9 months
+  - Within 1 year
+- Filter by data source (Manual / Transaction / All)
+- Sort by expiry date (ascending by default)
 
----
-
-## Feature Components
-
-### 1. Live Map Page (`/properties/map`)
-A dedicated full-screen map page optimized for iPad field use:
-- **User Location Tracking**: Blue pulsing dot showing current GPS position
-- **Property Pins**: Existing properties displayed as markers (different color for properties with/without tenants)
-- **One-Mile Radius View**: Default zoom level showing ~1 mile around user
-- **Click-to-Add**: Tap anywhere on the map to add a new property at that location
-- **Quick Actions**: Tap existing property pins to view/add tenants
-
-### 2. Tenants Tab on Property Detail
-- New "Tenants" tab on PropertyDetail page
-- Display list of known tenants with name, unit, size, and tracking date
-- Add/Edit/Delete functionality via dialog
-- Quick stats showing tenant count and occupied space
-
-### 3. Add Tenant Dialog
-Fields:
-- Tenant name (required)
-- Unit number (optional)
-- Size SF (optional, with formatted number input)
-- Notes (optional)
-
-Auto-populated:
-- `tracked_at` timestamp
-- `tracked_by` user ID
-
-### 4. New Property from Map Location
-When user taps an empty area on the map:
-1. Reverse geocode the tapped coordinates using Google Geocoding API
-2. Open PropertyEditDialog with pre-filled address (editable by user if geocoding is incorrect)
-3. After property creation, immediately open Add Tenant dialog
+### 3. Summary Statistics
+- Total tenants with expiry dates
+- Number expiring within 6 months
+- Number already expired
 
 ---
 
-## User Experience Flows
+## Data Sources
 
-### Flow 1: Track Tenant at Existing Property
-```text
-User opens /properties/map
-        |
-        v
-Map shows user location + nearby properties
-        |
-        v
-User taps property pin
-        |
-        v
-Popup shows property info + "Add Tenant" button
-        |
-        v
-Add Tenant dialog opens
-        |
-        v
-User enters tenant info and saves
-        |
-        v
-Toast: "Tenant added to [Property Name]"
-```
+### Manual Tenants (property_tenants)
+| Field | Usage |
+|-------|-------|
+| `tenant_name` | Tenant Name |
+| `lease_expiry` | Expiry Date |
+| `unit_number` | Unit |
+| `size_sf` | Size |
+| `property_id` | Link to property |
 
-### Flow 2: Add New Property + Tenant
-```text
-User taps empty area on map
-        |
-        v
-Loading spinner while reverse geocoding
-        |
-        v
-Property dialog opens with pre-filled address
-(User can edit address if geocoding is wrong)
-        |
-        v
-User adjusts/confirms details and saves
-        |
-        v
-Property created, Add Tenant dialog opens
-        |
-        v
-User enters tenant info and saves
-```
+### Transaction-Derived (transactions)
+| Field | Usage |
+|-------|-------|
+| `buyer_tenant_name` | Tenant Name |
+| `closing_date` | Commencement Date |
+| `closing_date + lease_term_months` | Calculated Expiry Date |
+| `size_sf` | Size |
+| `property_id` | Link to property |
 
-### Flow 3: View Property from Map
-```text
-User taps property pin
-        |
-        v
-Popup shows: Property name, address, tenant count
-        |
-        v
-User can tap "View Details" to go to PropertyDetail
-or "Add Tenant" to quickly add a tenant
-```
+Only transactions where:
+- `transaction_type = 'Lease'`
+- `closing_date` is not null
+- `lease_term_months` is not null
 
 ---
 
-## Technical Implementation
+## Technical Details
 
-### Files to Create
+### New Files
 | File | Purpose |
 |------|---------|
-| `src/pages/PropertiesMap.tsx` | Live map page with location tracking |
-| `src/components/properties/TenantsSection.tsx` | Tenant list for PropertyDetail |
-| `src/components/properties/AddTenantDialog.tsx` | Add/Edit tenant dialog |
-| `src/hooks/usePropertyTenants.ts` | CRUD operations for tenants |
-| `src/hooks/useGeolocation.ts` | GPS location access hook |
+| `src/pages/TenantExpiries.tsx` | Main page with filters, stats, and table |
+| `src/hooks/useTenantExpiries.ts` | Fetch and combine data from both sources |
+| `src/components/tenants/TenantExpiriesTable.tsx` | Table component for displaying expiries |
 
-### Files to Modify
-| File | Changes |
-|------|---------|
-| `src/pages/PropertyDetail.tsx` | Add Tenants tab |
-| `src/pages/Properties.tsx` | Add "Open Map" button in header |
-| `src/App.tsx` | Add route for `/properties/map` |
+### Modified Files
+| File | Change |
+|------|--------|
+| `src/App.tsx` | Add route `/tenant-expiries` |
+| `src/components/layout/MobileBottomNav.tsx` | Add link in "More" menu near CRE Tracker |
 
-### Map Implementation Details
-- Reuse Google Maps setup from `DistributionMapView`
-- Use `navigator.geolocation.watchPosition()` for continuous location updates
-- Different marker colors: Blue (properties), Yellow (selected), Green (has tenants)
-- User location shown as pulsing blue dot
-- Info windows on property markers with quick actions
-- Click handler on map for creating new properties
+### Expiry Status Logic
+```typescript
+const getExpiryStatus = (expiryDate: string) => {
+  const today = new Date();
+  const expiry = new Date(expiryDate);
+  const monthsUntil = differenceInMonths(expiry, today);
+  
+  if (monthsUntil < 0) return 'expired';      // Past due - Red
+  if (monthsUntil <= 6) return 'urgent';      // Within 6 months - Red
+  if (monthsUntil <= 9) return 'warning';     // 6-9 months - Yellow
+  if (monthsUntil <= 12) return 'upcoming';   // 9-12 months - Green
+  return 'future';                            // Beyond 1 year - No indicator
+};
+```
 
-### Reverse Geocoding for New Properties
-When user taps the map:
-1. Get tapped coordinates from click event
-2. Call Google Geocoding API with `latlng` parameter
-3. Extract formatted address components
-4. Pre-fill PropertyEditDialog form
-5. User can manually edit the address if the system populated incorrectly
-6. On save, store coordinates from the original tap location
+### Unified Data Model
+```typescript
+interface TenantExpiry {
+  id: string;
+  tenantName: string;
+  propertyId: string | null;
+  propertyName: string | null;
+  propertyAddress: string | null;
+  propertyCity: string | null;
+  unitNumber: string | null;
+  sizeSf: number | null;
+  commencementDate: string | null;
+  expiryDate: string;
+  source: 'manual' | 'transaction';
+  transactionId?: string;
+}
+```
 
-### Mobile/iPad Considerations
-- Large touch targets (minimum 44px)
-- Full-screen map with minimal UI chrome
-- Bottom sheet for property info (easier thumb reach)
-- Clear GPS acquisition feedback (spinner + status text)
-- Handle location permission denial gracefully
-- Support both high and low GPS accuracy modes
+### Hook Logic (useTenantExpiries)
+```typescript
+// 1. Fetch manual tenants with property join
+const manualTenants = await supabase
+  .from('property_tenants')
+  .select('*, properties(name, address, city)')
+  .not('lease_expiry', 'is', null);
 
----
+// 2. Fetch lease transactions with term data
+const leaseTransactions = await supabase
+  .from('transactions')
+  .select('*, properties(name, address, city)')
+  .eq('transaction_type', 'Lease')
+  .not('closing_date', 'is', null)
+  .not('lease_term_months', 'is', null);
 
-## Security
-- RLS policies on `property_tenants` table matching existing property access patterns
-- Tenant data scoped to organization via property ownership
-- GPS data only used for display and matching, never stored on server
-- Geocoding requests go through existing `get-google-maps-token` edge function
+// 3. Transform and combine into unified format
+// Calculate expiry: addMonths(closing_date, lease_term_months)
+```
 
 ---
 
 ## Navigation
-- Add "Map View" button to Properties page header
-- Add link in main navigation under Properties section
-- Deep link support: `/properties/map?lat=XX&lng=YY` to open at specific location
+- Add "Tenant Expiries" link in the "More" menu on mobile (near CRE Tracker)
+- Accessible via direct URL `/tenant-expiries`
 
