@@ -79,14 +79,23 @@ export default function PropertiesMap() {
   useEffect(() => {
     const fetchToken = async () => {
       try {
+        console.log('[PropertiesMap] Fetching map token...');
         const { data, error } = await supabase.functions.invoke('get-google-maps-token', {
           body: { authenticated: true }
         });
-        if (error) throw error;
+        if (error) {
+          console.error('[PropertiesMap] Token fetch error:', error);
+          throw error;
+        }
+        if (!data?.apiKey) {
+          console.error('[PropertiesMap] No API key in response:', data);
+          throw new Error('No API key returned');
+        }
+        console.log('[PropertiesMap] Token fetched successfully');
         setMapToken(data.apiKey);
       } catch (err: any) {
-        console.error('Error fetching map token:', err);
-        setMapError('Failed to load map');
+        console.error('[PropertiesMap] Error fetching map token:', err);
+        setMapError(err.message || 'Failed to load map. Please try refreshing.');
       }
     };
     fetchToken();
@@ -477,7 +486,16 @@ export default function PropertiesMap() {
             <div className="absolute inset-0 flex items-center justify-center bg-muted">
               <div className="text-center p-6">
                 <AlertCircle className="h-12 w-12 mx-auto text-destructive mb-3" />
-                <p className="text-lg font-semibold">{mapError}</p>
+                <p className="text-lg font-semibold mb-2">{mapError}</p>
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    setMapError(null);
+                    window.location.reload();
+                  }}
+                >
+                  Try Again
+                </Button>
               </div>
             </div>
           ) : !mapToken ? (
