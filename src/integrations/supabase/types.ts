@@ -2333,6 +2333,7 @@ export type Database = {
           created_at: string
           created_by: string | null
           display_address: string | null
+          est_op_costs_psf: number | null
           id: string
           lease_rate_psf: number | null
           lease_term_months: number | null
@@ -2342,6 +2343,8 @@ export type Database = {
           listing_removal_date: string | null
           market_listing_id: string | null
           market_listing_snapshot: Json | null
+          months_gross_fixturing: number | null
+          months_net_free_rent: number | null
           notes: string | null
           org_id: string | null
           property_id: string | null
@@ -2352,9 +2355,11 @@ export type Database = {
           selling_broker_name: string | null
           size_sf: number
           submarket: string
+          ti_allowance_psf: number | null
           transaction_date: string | null
           transaction_type: string
           updated_at: string
+          year1_lease_rate_psf: number | null
         }
         Insert: {
           address: string
@@ -2367,6 +2372,7 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           display_address?: string | null
+          est_op_costs_psf?: number | null
           id?: string
           lease_rate_psf?: number | null
           lease_term_months?: number | null
@@ -2376,6 +2382,8 @@ export type Database = {
           listing_removal_date?: string | null
           market_listing_id?: string | null
           market_listing_snapshot?: Json | null
+          months_gross_fixturing?: number | null
+          months_net_free_rent?: number | null
           notes?: string | null
           org_id?: string | null
           property_id?: string | null
@@ -2386,9 +2394,11 @@ export type Database = {
           selling_broker_name?: string | null
           size_sf?: number
           submarket?: string
+          ti_allowance_psf?: number | null
           transaction_date?: string | null
           transaction_type: string
           updated_at?: string
+          year1_lease_rate_psf?: number | null
         }
         Update: {
           address?: string
@@ -2401,6 +2411,7 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           display_address?: string | null
+          est_op_costs_psf?: number | null
           id?: string
           lease_rate_psf?: number | null
           lease_term_months?: number | null
@@ -2410,6 +2421,8 @@ export type Database = {
           listing_removal_date?: string | null
           market_listing_id?: string | null
           market_listing_snapshot?: Json | null
+          months_gross_fixturing?: number | null
+          months_net_free_rent?: number | null
           notes?: string | null
           org_id?: string | null
           property_id?: string | null
@@ -2420,9 +2433,11 @@ export type Database = {
           selling_broker_name?: string | null
           size_sf?: number
           submarket?: string
+          ti_allowance_psf?: number | null
           transaction_date?: string | null
           transaction_type?: string
           updated_at?: string
+          year1_lease_rate_psf?: number | null
         }
         Relationships: [
           {

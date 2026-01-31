@@ -65,6 +65,11 @@ export function TransactionFormDialog({
   const [salePrice, setSalePrice] = useState<number | null>(null);
   const [leaseRatePsf, setLeaseRatePsf] = useState('');
   const [leaseTermMonths, setLeaseTermMonths] = useState<number | null>(null);
+  const [year1LeaseRatePsf, setYear1LeaseRatePsf] = useState('');
+  const [monthsNetFreeRent, setMonthsNetFreeRent] = useState<number | null>(null);
+  const [monthsGrossFixturing, setMonthsGrossFixturing] = useState<number | null>(null);
+  const [tiAllowancePsf, setTiAllowancePsf] = useState('');
+  const [estOpCostsPsf, setEstOpCostsPsf] = useState('');
   const [buyerTenantName, setBuyerTenantName] = useState('');
   const [buyerTenantCompany, setBuyerTenantCompany] = useState('');
   const [sellerLandlordName, setSellerLandlordName] = useState('');
@@ -91,6 +96,11 @@ export function TransactionFormDialog({
     salePrice,
     leaseRatePsf,
     leaseTermMonths,
+    year1LeaseRatePsf,
+    monthsNetFreeRent,
+    monthsGrossFixturing,
+    tiAllowancePsf,
+    estOpCostsPsf,
     buyerTenantName,
     buyerTenantCompany,
     sellerLandlordName,
@@ -103,7 +113,8 @@ export function TransactionFormDialog({
   }), [
     address, displayAddress, displayAddressManuallyEdited, city, submarket, sizeSf,
     transactionType, transactionDate, closingDate, salePrice, leaseRatePsf,
-    leaseTermMonths, buyerTenantName, buyerTenantCompany, sellerLandlordName,
+    leaseTermMonths, year1LeaseRatePsf, monthsNetFreeRent, monthsGrossFixturing,
+    tiAllowancePsf, estOpCostsPsf, buyerTenantName, buyerTenantCompany, sellerLandlordName,
     sellerLandlordCompany, listingBrokerName, listingBrokerCompany, sellingBrokerName,
     sellingBrokerCompany, notes,
   ]);
@@ -122,6 +133,11 @@ export function TransactionFormDialog({
     setSalePrice(state.salePrice);
     setLeaseRatePsf(state.leaseRatePsf);
     setLeaseTermMonths(state.leaseTermMonths);
+    setYear1LeaseRatePsf(state.year1LeaseRatePsf || '');
+    setMonthsNetFreeRent(state.monthsNetFreeRent ?? null);
+    setMonthsGrossFixturing(state.monthsGrossFixturing ?? null);
+    setTiAllowancePsf(state.tiAllowancePsf || '');
+    setEstOpCostsPsf(state.estOpCostsPsf || '');
     setBuyerTenantName(state.buyerTenantName);
     setBuyerTenantCompany(state.buyerTenantCompany);
     setSellerLandlordName(state.sellerLandlordName);
@@ -156,6 +172,11 @@ export function TransactionFormDialog({
     setSalePrice(null);
     setLeaseRatePsf('');
     setLeaseTermMonths(null);
+    setYear1LeaseRatePsf('');
+    setMonthsNetFreeRent(null);
+    setMonthsGrossFixturing(null);
+    setTiAllowancePsf('');
+    setEstOpCostsPsf('');
     setBuyerTenantName('');
     setBuyerTenantCompany('');
     setSellerLandlordName('');
@@ -255,6 +276,11 @@ export function TransactionFormDialog({
         sale_price: salePrice ?? undefined,
         lease_rate_psf: leaseRatePsf ? parseFloat(leaseRatePsf) : undefined,
         lease_term_months: leaseTermMonths ?? undefined,
+        year1_lease_rate_psf: year1LeaseRatePsf ? parseFloat(year1LeaseRatePsf) : undefined,
+        months_net_free_rent: monthsNetFreeRent ?? undefined,
+        months_gross_fixturing: monthsGrossFixturing ?? undefined,
+        ti_allowance_psf: tiAllowancePsf ? parseFloat(tiAllowancePsf) : undefined,
+        est_op_costs_psf: estOpCostsPsf ? parseFloat(estOpCostsPsf) : undefined,
         buyer_tenant_name: buyerTenantName || undefined,
         buyer_tenant_company: buyerTenantCompany || undefined,
         seller_landlord_name: sellerLandlordName || undefined,
@@ -463,16 +489,30 @@ export function TransactionFormDialog({
               </div>
             ) : (
               <>
+                {/* Year 1 and Avg Lease Rate */}
                 <div className="grid grid-cols-4 items-center gap-4">
-                  <Label className="text-right">Lease Rate ($/SF)</Label>
+                  <Label className="text-right">Year 1 Lease Rate ($/SF)</Label>
+                  <Input
+                    type="number"
+                    step="0.01"
+                    value={year1LeaseRatePsf}
+                    onChange={(e) => setYear1LeaseRatePsf(e.target.value)}
+                    className={`col-span-1 placeholder-light ${year1LeaseRatePsf ? 'input-filled' : ''}`}
+                    placeholder="e.g., 12.50"
+                  />
+                  <Label className="text-right">Avg. Lease Rate ($/SF)</Label>
                   <Input
                     type="number"
                     step="0.01"
                     value={leaseRatePsf}
                     onChange={(e) => setLeaseRatePsf(e.target.value)}
                     className={`col-span-1 placeholder-light ${leaseRatePsf ? 'input-filled' : ''}`}
-                    placeholder="e.g., 12.50"
+                    placeholder="e.g., 13.00"
                   />
+                </div>
+
+                {/* Lease Term and Est. Op Costs */}
+                <div className="grid grid-cols-4 items-center gap-4">
                   <Label className="text-right">Term (months)</Label>
                   <div className="col-span-1">
                     <FormattedNumberInput
@@ -481,6 +521,48 @@ export function TransactionFormDialog({
                       placeholder="e.g., 60"
                     />
                   </div>
+                  <Label className="text-right">Est. Op. Costs ($/SF)</Label>
+                  <Input
+                    type="number"
+                    step="0.01"
+                    value={estOpCostsPsf}
+                    onChange={(e) => setEstOpCostsPsf(e.target.value)}
+                    className={`col-span-1 placeholder-light ${estOpCostsPsf ? 'input-filled' : ''}`}
+                    placeholder="e.g., 6.50"
+                  />
+                </div>
+
+                {/* Free Rent/Fixturing */}
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label className="text-right"># Months Net Free Rent</Label>
+                  <div className="col-span-1">
+                    <FormattedNumberInput
+                      value={monthsNetFreeRent}
+                      onChange={setMonthsNetFreeRent}
+                      placeholder="e.g., 3"
+                    />
+                  </div>
+                  <Label className="text-right"># Months Gross Fixturing</Label>
+                  <div className="col-span-1">
+                    <FormattedNumberInput
+                      value={monthsGrossFixturing}
+                      onChange={setMonthsGrossFixturing}
+                      placeholder="e.g., 2"
+                    />
+                  </div>
+                </div>
+
+                {/* TI Allowance */}
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label className="text-right">TI Allowance ($/SF)</Label>
+                  <Input
+                    type="number"
+                    step="0.01"
+                    value={tiAllowancePsf}
+                    onChange={(e) => setTiAllowancePsf(e.target.value)}
+                    className={`col-span-1 placeholder-light ${tiAllowancePsf ? 'input-filled' : ''}`}
+                    placeholder="e.g., 5.00"
+                  />
                 </div>
               </>
             )}
