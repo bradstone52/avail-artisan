@@ -288,6 +288,12 @@ export function TransactionFormDialog({
       return;
     }
 
+    // Submarket required for non-Calgary cities
+    if (city !== 'Calgary' && !submarket.trim()) {
+      toast.error('Submarket is required for non-Calgary listings');
+      return;
+    }
+
     // Check for duplicate addresses
     setIsSaving(true);
     const match = await checkDuplicateAddress(address);
@@ -371,10 +377,10 @@ export function TransactionFormDialog({
               />
             </div>
 
-            {/* City & Submarket */}
+            {/* City */}
             <div className="grid grid-cols-4 items-center gap-4">
               <Label className="text-right">City</Label>
-              <div className="col-span-1">
+              <div className="col-span-3">
                 <Select value={city} onValueChange={setCity}>
                   <SelectTrigger className={city ? 'input-filled' : ''}>
                     <SelectValue placeholder="Select city" />
@@ -388,13 +394,33 @@ export function TransactionFormDialog({
                   </SelectContent>
                 </Select>
               </div>
-              <Label className="text-right">Submarket</Label>
-              <Input
-                value={submarket}
-                onChange={(e) => setSubmarket(e.target.value)}
-                className={`col-span-1 placeholder-light ${submarket ? 'input-filled' : ''}`}
-                placeholder="e.g., SE Industrial"
-              />
+            </div>
+
+            {/* Submarket - auto-assigned for Calgary, manual for others */}
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label className="text-right">
+                Submarket {city !== 'Calgary' && '*'}
+              </Label>
+              {city === 'Calgary' ? (
+                <div className="col-span-3">
+                  <Input
+                    value={submarket || 'Auto-assigned on save'}
+                    readOnly
+                    disabled
+                    className="bg-muted cursor-not-allowed text-muted-foreground"
+                  />
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Submarket will be auto-assigned based on geocoded location
+                  </p>
+                </div>
+              ) : (
+                <Input
+                  value={submarket}
+                  onChange={(e) => setSubmarket(e.target.value)}
+                  className={`col-span-3 placeholder-light ${submarket ? 'input-filled' : ''}`}
+                  placeholder="e.g., SE Industrial"
+                />
+              )}
             </div>
 
             {/* Size */}
