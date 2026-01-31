@@ -272,7 +272,7 @@ export default function PropertiesMap() {
     addMarkersToMap();
   }, [properties, mapToken, propertiesLoading, mapReady, addMarkersToMap]);
 
-  // Show property popup
+  // Show property popup - Mobile optimized with larger touch targets
   const showPropertyPopup = (property: PropertyWithLinks, marker: google.maps.marker.AdvancedMarkerElement) => {
     if (infoWindowRef.current) {
       infoWindowRef.current.close();
@@ -280,33 +280,58 @@ export default function PropertiesMap() {
 
     const infoWindow = new google.maps.InfoWindow({
       content: `
-        <div style="font-family: Inter, sans-serif; padding: 16px; max-width: 300px;">
-          <div style="font-weight: 900; font-size: 16px; color: #111; margin-bottom: 6px;">
+        <div style="font-family: Inter, sans-serif; padding: 20px; min-width: 280px; max-width: 320px;">
+          <div style="font-weight: 900; font-size: 18px; color: #111; margin-bottom: 8px; line-height: 1.2;">
             ${property.name || property.address}
           </div>
-          <div style="font-size: 13px; color: #555; margin-bottom: 12px;">
+          <div style="font-size: 14px; color: #555; margin-bottom: 16px;">
             ${property.city || ''} ${property.submarket ? '· ' + property.submarket : ''}
           </div>
-          <div style="display: flex; gap: 8px;">
+          <div style="display: flex; gap: 10px;">
             <button id="view-property-${property.id}" style="
-              padding: 8px 12px;
+              flex: 1;
+              padding: 14px 16px;
               background: #f3f4f6;
-              border: 2px solid #111;
-              border-radius: 6px;
-              font-weight: 600;
-              font-size: 13px;
+              border: 3px solid #111;
+              border-radius: 8px;
+              font-weight: 700;
+              font-size: 15px;
               cursor: pointer;
-            ">View Details</button>
+              min-height: 52px;
+              display: flex;
+              align-items: center;
+              justify-content: center;
+              gap: 8px;
+            ">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                <circle cx="11" cy="11" r="8"/>
+                <path d="m21 21-4.35-4.35"/>
+              </svg>
+              Details
+            </button>
             <button id="add-tenant-${property.id}" style="
-              padding: 8px 12px;
+              flex: 1;
+              padding: 14px 16px;
               background: hsl(217 91% 53%);
               color: white;
-              border: 2px solid #111;
-              border-radius: 6px;
-              font-weight: 600;
-              font-size: 13px;
+              border: 3px solid #111;
+              border-radius: 8px;
+              font-weight: 700;
+              font-size: 15px;
               cursor: pointer;
-            ">Add Tenant</button>
+              min-height: 52px;
+              display: flex;
+              align-items: center;
+              justify-content: center;
+              gap: 8px;
+            ">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/>
+                <circle cx="9" cy="7" r="4"/>
+                <path d="M19 8v6M22 11h-6"/>
+              </svg>
+              Tenant
+            </button>
           </div>
         </div>
       `,
@@ -381,6 +406,7 @@ export default function PropertiesMap() {
     tenant_name: string;
     unit_number?: string | null;
     size_sf?: number | null;
+    lease_expiry?: string | null;
     notes?: string | null;
   }) => {
     if (!selectedProperty) return false;
@@ -439,67 +465,16 @@ export default function PropertiesMap() {
     }
   };
 
+  const needsGeocoding = properties.filter(p => !p.latitude || !p.longitude).length;
+
   return (
     <AppLayout>
-      <div className="h-[calc(100vh-4rem)] flex flex-col">
-        {/* Header */}
-        <div className="flex items-center justify-between p-4 border-b bg-background">
-          <div className="flex items-center gap-3">
-            <Button variant="ghost" size="icon" onClick={() => navigate('/properties')}>
-              <ArrowLeft className="h-5 w-5" />
-            </Button>
-            <div>
-              <h1 className="text-xl font-bold">Properties Map</h1>
-              <p className="text-sm text-muted-foreground">
-                Tap properties or map to track tenants
-              </p>
-            </div>
-          </div>
-          <div className="flex items-center gap-2">
-            {properties.filter(p => !p.latitude || !p.longitude).length > 0 && (
-              <Button
-                variant="outline"
-                onClick={handleGeocodeAll}
-                disabled={isGeocoding}
-                className="min-h-[44px]"
-              >
-                {isGeocoding ? (
-                  <Loader2 className="h-5 w-5 animate-spin" />
-                ) : (
-                  <MapPinned className="h-5 w-5" />
-                )}
-                <span className="ml-2 hidden sm:inline">Geocode All</span>
-              </Button>
-            )}
-            <Button
-              variant="outline"
-              onClick={handleCenterOnUser}
-              disabled={geoLoading}
-              className="min-w-[44px] min-h-[44px]"
-            >
-              {geoLoading ? (
-                <Loader2 className="h-5 w-5 animate-spin" />
-              ) : (
-                <Navigation className="h-5 w-5" />
-              )}
-              <span className="ml-2 hidden sm:inline">My Location</span>
-            </Button>
-          </div>
-        </div>
-
-        {/* GPS Status */}
-        {(geoError || permissionDenied) && (
-          <div className="px-4 py-2 bg-destructive/10 border-b flex items-center gap-2 text-sm text-destructive">
-            <AlertCircle className="h-4 w-4" />
-            {geoError}
-          </div>
-        )}
-
-        {/* Map Container */}
+      <div className="h-[calc(100vh-4rem)] flex flex-col relative">
+        {/* Map Container - Full bleed */}
         <div className="flex-1 relative">
           {mapError ? (
             <div className="absolute inset-0 flex items-center justify-center bg-muted">
-              <div className="text-center">
+              <div className="text-center p-6">
                 <AlertCircle className="h-12 w-12 mx-auto text-destructive mb-3" />
                 <p className="text-lg font-semibold">{mapError}</p>
               </div>
@@ -515,33 +490,102 @@ export default function PropertiesMap() {
           {/* Loading geocode overlay */}
           {isReverseGeocoding && (
             <div className="absolute inset-0 bg-background/50 flex items-center justify-center z-10">
-              <Card className="p-6">
+              <Card className="p-6 mx-4">
                 <div className="flex items-center gap-3">
                   <Loader2 className="h-5 w-5 animate-spin" />
-                  <span>Getting address...</span>
+                  <span className="text-base font-medium">Getting address...</span>
                 </div>
               </Card>
             </div>
           )}
-        </div>
 
-        {/* Bottom Stats Bar */}
-        <div className="p-3 border-t bg-background flex items-center justify-between">
-          <div className="flex items-center gap-4 text-sm">
+          {/* Floating Top Bar - Mobile optimized */}
+          <div className="absolute top-0 left-0 right-0 z-10 p-3 safe-area-top">
             <div className="flex items-center gap-2">
-              <div className="w-3 h-3 rounded-full bg-primary border-2 border-foreground" />
-              <span>{properties.filter(p => p.latitude && p.longitude).length} Properties on Map</span>
+              <Button
+                variant="default"
+                size="icon"
+                onClick={() => navigate('/properties')}
+                className="h-12 w-12 rounded-full shadow-lg border-2 border-foreground bg-card text-foreground hover:bg-muted"
+              >
+                <ArrowLeft className="h-6 w-6" />
+              </Button>
+              
+              <div className="flex-1" />
+              
+              {needsGeocoding > 0 && (
+                <Button
+                  variant="default"
+                  size="icon"
+                  onClick={handleGeocodeAll}
+                  disabled={isGeocoding}
+                  className="h-12 w-12 rounded-full shadow-lg border-2 border-foreground bg-card text-foreground hover:bg-muted"
+                  title="Geocode all properties"
+                >
+                  {isGeocoding ? (
+                    <Loader2 className="h-6 w-6 animate-spin" />
+                  ) : (
+                    <MapPinned className="h-6 w-6" />
+                  )}
+                </Button>
+              )}
             </div>
-            {userLat && userLng && (
-              <Badge variant="outline" className="flex items-center gap-1">
-                <MapPin className="h-3 w-3" />
-                GPS Active
-              </Badge>
-            )}
           </div>
-          <p className="text-xs text-muted-foreground">
-            Tap map to add new property
-          </p>
+
+          {/* GPS Error Banner */}
+          {(geoError || permissionDenied) && (
+            <div className="absolute top-20 left-3 right-3 z-10">
+              <div className="px-4 py-3 bg-destructive/90 rounded-xl flex items-center gap-2 text-sm text-white shadow-lg">
+                <AlertCircle className="h-5 w-5 flex-shrink-0" />
+                <span className="font-medium">{geoError}</span>
+              </div>
+            </div>
+          )}
+
+          {/* Floating Action Buttons - Bottom Right */}
+          <div className="absolute bottom-24 right-3 z-10 flex flex-col gap-3">
+            <Button
+              variant="default"
+              size="icon"
+              onClick={handleCenterOnUser}
+              disabled={geoLoading}
+              className="h-14 w-14 rounded-full shadow-lg border-2 border-foreground bg-card text-foreground hover:bg-muted"
+              title="Center on my location"
+            >
+              {geoLoading ? (
+                <Loader2 className="h-7 w-7 animate-spin" />
+              ) : (
+                <Navigation className="h-7 w-7" />
+              )}
+            </Button>
+          </div>
+
+          {/* Bottom Info Card */}
+          <div className="absolute bottom-0 left-0 right-0 z-10 p-3 safe-area-bottom">
+            <Card className="shadow-lg border-2 border-foreground">
+              <CardContent className="p-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-4">
+                    <div className="flex items-center gap-2">
+                      <div className="w-4 h-4 rounded-full bg-primary border-2 border-foreground" />
+                      <span className="text-sm font-semibold">
+                        {properties.filter(p => p.latitude && p.longitude).length} Properties
+                      </span>
+                    </div>
+                    {userLat && userLng && (
+                      <Badge variant="secondary" className="flex items-center gap-1 text-xs">
+                        <MapPin className="h-3 w-3" />
+                        GPS
+                      </Badge>
+                    )}
+                  </div>
+                  <p className="text-sm text-muted-foreground font-medium">
+                    Tap map to add
+                  </p>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
         </div>
       </div>
 
