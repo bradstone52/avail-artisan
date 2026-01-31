@@ -317,16 +317,18 @@ export default function MarketListings() {
     <AppLayout>
       <div className="p-6 lg:p-8 max-w-7xl mx-auto">
         {/* Header */}
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
+        <div className="flex flex-col gap-4 mb-6">
           <div>
             <h1 className="text-2xl font-display font-bold">Market Listings</h1>
             <p className="text-muted-foreground mt-1">
               {listings.length} total listings • {distributionCount} distribution warehouses
             </p>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             <Button 
               variant="outline"
+              size="sm"
+              className="flex-1 sm:flex-none"
               onClick={validateLinks}
               disabled={isValidatingLinks || linksWithUrl.length === 0}
             >
@@ -335,12 +337,14 @@ export default function MarketListings() {
             </Button>
             <Button 
               variant="outline"
+              size="sm"
+              className="flex-1 sm:flex-none"
               onClick={refreshListings}
             >
               <RefreshCw className="w-4 h-4 mr-2" />
               Refresh
             </Button>
-            <Button onClick={() => setIsCreateDialogOpen(true)}>
+            <Button size="sm" className="flex-1 sm:flex-none" onClick={() => setIsCreateDialogOpen(true)}>
               <Plus className="w-4 h-4 mr-2" />
               Add Listing
             </Button>

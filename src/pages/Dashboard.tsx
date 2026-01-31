@@ -44,19 +44,19 @@ export default function Dashboard() {
     <AppLayout>
       <div className="p-6 lg:p-8 max-w-7xl mx-auto">
         {/* Header */}
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
+        <div className="flex flex-col gap-4 mb-8">
           <div>
             <h1 className="text-2xl font-display font-bold">Dashboard</h1>
             <p className="text-muted-foreground mt-1">
               Manage your distribution market intelligence
             </p>
           </div>
-          <div className="flex items-center gap-3">
-            <Button variant="outline" onClick={() => navigate('/market-listings')}>
+          <div className="flex flex-wrap items-center gap-2">
+            <Button variant="outline" size="sm" className="flex-1 sm:flex-none" onClick={() => navigate('/market-listings')}>
               <Database className="w-4 h-4 mr-2" />
               Market Listings
             </Button>
-            <Button onClick={() => navigate('/issue-builder')}>
+            <Button size="sm" className="flex-1 sm:flex-none" onClick={() => navigate('/issue-builder')}>
               <FilePlus className="w-4 h-4 mr-2" />
               Create Issue
             </Button>
