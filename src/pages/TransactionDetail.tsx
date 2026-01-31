@@ -151,7 +151,7 @@ export default function TransactionDetail() {
 
   return (
     <AppLayout>
-      <div className="space-y-6 max-w-5xl mx-auto">
+      <div className="space-y-6 max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
         {/* Header */}
         <div className="flex items-start justify-between">
           <div className="space-y-1">
