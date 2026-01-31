@@ -426,12 +426,12 @@ export default function PropertiesMap() {
     return false;
   };
 
-  // Center on user location with 1 mile radius view
-  // Zoom level 14 shows approximately 2 miles across, which gives ~1 mile radius
+  // Center on user location with ~1km radius view
+  // Zoom level 16 shows approximately 1.5km across, giving ~750m-1km radius
   const handleCenterOnUser = () => {
     if (userLat && userLng && mapRef.current) {
       mapRef.current.setCenter({ lat: userLat, lng: userLng });
-      mapRef.current.setZoom(14);
+      mapRef.current.setZoom(16);
     } else {
       getCurrentPosition();
     }
