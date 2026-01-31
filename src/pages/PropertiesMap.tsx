@@ -427,19 +427,11 @@ export default function PropertiesMap() {
   };
 
   // Center on user location with 1 mile radius view
+  // Zoom level 14 shows approximately 2 miles across, which gives ~1 mile radius
   const handleCenterOnUser = () => {
     if (userLat && userLng && mapRef.current) {
-      // 1 mile = 1609.34 meters
-      const oneMileInDegrees = 1609.34 / 111320; // Approx degrees latitude per meter
-      const latAdjust = oneMileInDegrees;
-      const lngAdjust = oneMileInDegrees / Math.cos((userLat * Math.PI) / 180);
-      
-      const bounds = new google.maps.LatLngBounds(
-        { lat: userLat - latAdjust, lng: userLng - lngAdjust },
-        { lat: userLat + latAdjust, lng: userLng + lngAdjust }
-      );
-      
-      mapRef.current.fitBounds(bounds);
+      mapRef.current.setCenter({ lat: userLat, lng: userLng });
+      mapRef.current.setZoom(14);
     } else {
       getCurrentPosition();
     }
