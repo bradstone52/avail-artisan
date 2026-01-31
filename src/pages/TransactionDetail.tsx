@@ -249,7 +249,12 @@ export default function TransactionDetail() {
               ) : (
                 <>
                   <DetailRow
-                    label="Lease Rate"
+                    label="Year 1 Lease Rate ($/SF)"
+                    value={transaction.year1_lease_rate_psf ? `$${transaction.year1_lease_rate_psf}/SF` : null}
+                  />
+                  <Separator />
+                  <DetailRow
+                    label="Avg. Lease Rate ($/SF)"
                     value={transaction.lease_rate_psf ? `$${transaction.lease_rate_psf}/SF` : null}
                   />
                   <Separator />
@@ -261,6 +266,56 @@ export default function TransactionDetail() {
                         : null
                     }
                   />
+                  <Separator />
+                  <DetailRow
+                    label="Est. Op. Costs ($/SF)"
+                    value={transaction.est_op_costs_psf ? `$${transaction.est_op_costs_psf}/SF` : null}
+                  />
+                  <Separator />
+                  <DetailRow
+                    label="# Months Net Free Rent"
+                    value={transaction.months_net_free_rent}
+                  />
+                  <Separator />
+                  <DetailRow
+                    label="# Months Gross Fixturing"
+                    value={transaction.months_gross_fixturing}
+                  />
+                  <Separator />
+                  <DetailRow
+                    label="TI Allowance ($/SF)"
+                    value={transaction.ti_allowance_psf ? `$${transaction.ti_allowance_psf}/SF` : null}
+                  />
+                  <Separator />
+                  {(() => {
+                    // Calculate Est. Total Deal Expense
+                    const sizeSf = listing?.size_sf ?? transaction.size_sf ?? 0;
+                    const year1Rate = transaction.year1_lease_rate_psf ?? 0;
+                    const estOpCosts = transaction.est_op_costs_psf ?? 0;
+                    const monthsNetFree = transaction.months_net_free_rent ?? 0;
+                    const monthsGross = transaction.months_gross_fixturing ?? 0;
+                    const tiPsf = transaction.ti_allowance_psf ?? 0;
+                    
+                    // TI Allowance = $/SF * Size (SF)
+                    const tiAllowance = tiPsf * sizeSf;
+                    
+                    // Gross Free Fixturing = (((Year 1 Lease Rate + Est. Op Cost) * Size (SF)) / 12) * # months
+                    const grossFreeFixturing = (((year1Rate + estOpCosts) * sizeSf) / 12) * monthsGross;
+                    
+                    // Net Free Rent = ((Year 1 Lease Rate * Size (SF)) / 12) * # months net free rent
+                    const netFreeRent = ((year1Rate * sizeSf) / 12) * monthsNetFree;
+                    
+                    const totalDealExpense = tiAllowance + grossFreeFixturing + netFreeRent;
+                    
+                    const hasAnyValue = tiPsf > 0 || monthsGross > 0 || monthsNetFree > 0;
+                    
+                    return hasAnyValue ? (
+                      <DetailRow 
+                        label="Est. Total Deal Expense" 
+                        value={<span className="font-semibold text-primary">{formatCurrency(totalDealExpense)}</span>} 
+                      />
+                    ) : null;
+                  })()}
                 </>
               )}
               <Separator />

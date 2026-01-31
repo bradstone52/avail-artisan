@@ -65,6 +65,11 @@ export interface Transaction {
   sale_price: number | null;
   lease_rate_psf: number | null;
   lease_term_months: number | null;
+  year1_lease_rate_psf: number | null;
+  months_net_free_rent: number | null;
+  months_gross_fixturing: number | null;
+  ti_allowance_psf: number | null;
+  est_op_costs_psf: number | null;
   buyer_tenant_name: string | null;
   buyer_tenant_company: string | null;
   seller_landlord_name: string | null;
@@ -101,6 +106,11 @@ export interface TransactionInput {
   sale_price?: number | null;
   lease_rate_psf?: number | null;
   lease_term_months?: number | null;
+  year1_lease_rate_psf?: number | null;
+  months_net_free_rent?: number | null;
+  months_gross_fixturing?: number | null;
+  ti_allowance_psf?: number | null;
+  est_op_costs_psf?: number | null;
   buyer_tenant_name?: string | null;
   buyer_tenant_company?: string | null;
   seller_landlord_name?: string | null;
