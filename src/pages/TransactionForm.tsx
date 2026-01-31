@@ -2,6 +2,8 @@ import { useState, useEffect } from 'react';
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { useTransactions, TransactionInput } from '@/hooks/useTransactions';
 import { useMarketListings } from '@/hooks/useMarketListings';
+import { checkDuplicateAddress, MatchedProperty } from '@/hooks/useDuplicateAddressCheck';
+import { DuplicateAddressWarning } from '@/components/transactions/DuplicateAddressWarning';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -29,6 +31,8 @@ export default function TransactionForm() {
 
   const [isLoading, setIsLoading] = useState(isEdit);
   const [isSaving, setIsSaving] = useState(false);
+  const [showDuplicateWarning, setShowDuplicateWarning] = useState(false);
+  const [matchedProperty, setMatchedProperty] = useState<MatchedProperty | null>(null);
   const [formData, setFormData] = useState<TransactionInput>({
     address: '',
     transaction_type: 'Lease',
@@ -100,8 +104,25 @@ export default function TransactionForm() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setIsSaving(true);
+    
+    // Skip duplicate check in edit mode
+    if (!isEdit && formData.address) {
+      setIsSaving(true);
+      const match = await checkDuplicateAddress(formData.address);
+      setIsSaving(false);
+      
+      if (match) {
+        setMatchedProperty(match);
+        setShowDuplicateWarning(true);
+        return;
+      }
+    }
 
+    await saveTransaction();
+  };
+
+  const saveTransaction = async () => {
+    setIsSaving(true);
     try {
       if (isEdit && id) {
         await updateTransaction(id, formData);
@@ -115,6 +136,28 @@ export default function TransactionForm() {
     } finally {
       setIsSaving(false);
     }
+  };
+
+  const handleUseExisting = () => {
+    if (!matchedProperty) return;
+    
+    setFormData((prev) => ({
+      ...prev,
+      address: matchedProperty.address,
+      city: matchedProperty.city || prev.city,
+      submarket: matchedProperty.submarket || prev.submarket,
+      size_sf: matchedProperty.size_sf || prev.size_sf,
+      seller_landlord_company: matchedProperty.landlord || prev.seller_landlord_company,
+    }));
+    
+    setShowDuplicateWarning(false);
+    setMatchedProperty(null);
+  };
+
+  const handleCreateAnyway = () => {
+    setShowDuplicateWarning(false);
+    setMatchedProperty(null);
+    saveTransaction();
   };
 
   if (isLoading) {
@@ -440,6 +483,13 @@ export default function TransactionForm() {
           </Card>
         </div>
       </form>
+      <DuplicateAddressWarning
+        open={showDuplicateWarning}
+        onOpenChange={setShowDuplicateWarning}
+        matchedProperty={matchedProperty}
+        onUseExisting={handleUseExisting}
+        onCreateAnyway={handleCreateAnyway}
+      />
     </AppLayout>
   );
 }
