@@ -10,7 +10,11 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Loader2 } from 'lucide-react';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Calendar } from '@/components/ui/calendar';
+import { CalendarIcon, Loader2 } from 'lucide-react';
+import { format, parseISO } from 'date-fns';
+import { cn } from '@/lib/utils';
 import { PropertyTenant } from '@/hooks/usePropertyTenants';
 
 interface AddTenantDialogProps {
@@ -20,6 +24,7 @@ interface AddTenantDialogProps {
     tenant_name: string;
     unit_number?: string | null;
     size_sf?: number | null;
+    lease_expiry?: string | null;
     notes?: string | null;
   }) => Promise<boolean>;
   tenant?: PropertyTenant | null;
@@ -49,6 +54,7 @@ export function AddTenantDialog({
   const [tenantName, setTenantName] = useState('');
   const [unitNumber, setUnitNumber] = useState('');
   const [sizeSf, setSizeSf] = useState('');
+  const [leaseExpiry, setLeaseExpiry] = useState<Date | undefined>(undefined);
   const [notes, setNotes] = useState('');
 
   // Populate form when editing
@@ -57,11 +63,13 @@ export function AddTenantDialog({
       setTenantName(tenant.tenant_name);
       setUnitNumber(tenant.unit_number || '');
       setSizeSf(tenant.size_sf?.toString() || '');
+      setLeaseExpiry(tenant.lease_expiry ? parseISO(tenant.lease_expiry) : undefined);
       setNotes(tenant.notes || '');
     } else {
       setTenantName('');
       setUnitNumber('');
       setSizeSf('');
+      setLeaseExpiry(undefined);
       setNotes('');
     }
   }, [tenant, open]);
@@ -75,6 +83,7 @@ export function AddTenantDialog({
         tenant_name: tenantName.trim(),
         unit_number: unitNumber.trim() || null,
         size_sf: sizeSf ? parseInt(parseFormattedNumber(sizeSf)) : null,
+        lease_expiry: leaseExpiry ? format(leaseExpiry, 'yyyy-MM-dd') : null,
         notes: notes.trim() || null,
       });
 
@@ -136,6 +145,32 @@ export function AddTenantDialog({
             <p className="text-xs text-muted-foreground mt-1">
               Leave blank if unknown
             </p>
+          </div>
+
+          <div>
+            <Label>Lease Expiry Date</Label>
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button
+                  variant="outline"
+                  className={cn(
+                    'w-full justify-start text-left font-normal mt-1',
+                    !leaseExpiry && 'text-muted-foreground'
+                  )}
+                >
+                  <CalendarIcon className="mr-2 h-4 w-4" />
+                  {leaseExpiry ? format(leaseExpiry, 'MMM d, yyyy') : 'Select date'}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0" align="start">
+                <Calendar
+                  mode="single"
+                  selected={leaseExpiry}
+                  onSelect={setLeaseExpiry}
+                  initialFocus
+                />
+              </PopoverContent>
+            </Popover>
           </div>
 
           <div>

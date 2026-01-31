@@ -43,6 +43,7 @@ export function TenantsSection({ propertyId, propertyName }: TenantsSectionProps
     tenant_name: string;
     unit_number?: string | null;
     size_sf?: number | null;
+    lease_expiry?: string | null;
     notes?: string | null;
   }) => {
     if (editingTenant) {
@@ -142,6 +143,9 @@ export function TenantsSection({ propertyId, propertyName }: TenantsSectionProps
                       <div className="flex flex-wrap gap-x-4 gap-y-1 text-sm text-muted-foreground">
                         {tenant.size_sf && (
                           <span>{tenant.size_sf.toLocaleString()} SF</span>
+                        )}
+                        {tenant.lease_expiry && (
+                          <span>Lease exp. {format(new Date(tenant.lease_expiry), 'MMM yyyy')}</span>
                         )}
                         <span>
                           Tracked {format(new Date(tenant.tracked_at), 'MMM d, yyyy')}

@@ -9,6 +9,7 @@ export interface PropertyTenant {
   tenant_name: string;
   unit_number: string | null;
   size_sf: number | null;
+  lease_expiry: string | null;
   notes: string | null;
   tracked_at: string;
   tracked_by: string | null;
@@ -20,6 +21,7 @@ export interface CreateTenantData {
   tenant_name: string;
   unit_number?: string | null;
   size_sf?: number | null;
+  lease_expiry?: string | null;
   notes?: string | null;
 }
 
@@ -27,6 +29,7 @@ export interface UpdateTenantData {
   tenant_name?: string;
   unit_number?: string | null;
   size_sf?: number | null;
+  lease_expiry?: string | null;
   notes?: string | null;
 }
 
@@ -80,6 +83,7 @@ export function usePropertyTenants(propertyId?: string) {
           tenant_name: data.tenant_name,
           unit_number: data.unit_number || null,
           size_sf: data.size_sf || null,
+          lease_expiry: data.lease_expiry || null,
           notes: data.notes || null,
           tracked_by: user.id,
         })
@@ -110,6 +114,7 @@ export function usePropertyTenants(propertyId?: string) {
           tenant_name: data.tenant_name,
           unit_number: data.unit_number,
           size_sf: data.size_sf,
+          lease_expiry: data.lease_expiry,
           notes: data.notes,
         })
         .eq('id', tenantId)
