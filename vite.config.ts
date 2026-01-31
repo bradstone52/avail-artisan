@@ -53,6 +53,16 @@ export default defineConfig(({ mode }) => ({
         globPatterns: ["**/*.{js,css,html,ico,png,svg,woff,woff2}"],
         runtimeCaching: [
           {
+            // Never cache Supabase API calls - always go to network
+            urlPattern: /^https:\/\/.*\.supabase\.co\/.*/i,
+            handler: "NetworkOnly",
+          },
+          {
+            // Never cache Google Maps API calls
+            urlPattern: /^https:\/\/maps\.googleapis\.com\/.*/i,
+            handler: "NetworkOnly",
+          },
+          {
             urlPattern: /^https:\/\/fonts\.googleapis\.com\/.*/i,
             handler: "CacheFirst",
             options: {
