@@ -4,7 +4,6 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
-  DialogFooter,
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -12,7 +11,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
-import { CalendarIcon, Loader2 } from 'lucide-react';
+import { CalendarIcon, Loader2, Building2 } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { PropertyTenant } from '@/hooks/usePropertyTenants';
@@ -97,69 +96,81 @@ export function AddTenantDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md">
-        <DialogHeader>
-          <DialogTitle>
+      <DialogContent className="max-w-md sm:max-w-lg max-h-[90vh] overflow-y-auto">
+        <DialogHeader className="pb-4 border-b">
+          <DialogTitle className="flex items-center gap-3 text-xl">
+            <div className="p-2 bg-primary/10 rounded-lg">
+              <Building2 className="h-5 w-5 text-primary" />
+            </div>
             {tenant ? 'Edit Tenant' : 'Add Tenant'}
           </DialogTitle>
           {propertyName && (
-            <p className="text-sm text-muted-foreground mt-1">
+            <p className="text-sm text-muted-foreground mt-2 pl-12">
               at {propertyName}
             </p>
           )}
         </DialogHeader>
 
-        <div className="space-y-4 py-4">
+        <div className="space-y-5 py-5">
+          {/* Tenant Name - Primary field, larger */}
           <div>
-            <Label htmlFor="tenant-name">Tenant Name *</Label>
+            <Label htmlFor="tenant-name" className="text-base font-semibold">
+              Tenant Name *
+            </Label>
             <Input
               id="tenant-name"
               value={tenantName}
               onChange={(e) => setTenantName(e.target.value)}
               placeholder="e.g., ABC Logistics Inc."
-              className="mt-1"
+              className="mt-2 h-12 text-base"
               autoFocus
             />
           </div>
 
-          <div>
-            <Label htmlFor="unit-number">Unit Number</Label>
-            <Input
-              id="unit-number"
-              value={unitNumber}
-              onChange={(e) => setUnitNumber(e.target.value)}
-              placeholder="e.g., Unit 101, Bay 3"
-              className="mt-1"
-            />
+          {/* Two column layout for unit and size on larger screens */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <Label htmlFor="unit-number" className="text-base font-semibold">
+                Unit Number
+              </Label>
+              <Input
+                id="unit-number"
+                value={unitNumber}
+                onChange={(e) => setUnitNumber(e.target.value)}
+                placeholder="e.g., Unit 101"
+                className="mt-2 h-12 text-base"
+              />
+            </div>
+
+            <div>
+              <Label htmlFor="size-sf" className="text-base font-semibold">
+                Size (SF)
+              </Label>
+              <Input
+                id="size-sf"
+                value={formatNumberWithCommas(sizeSf)}
+                onChange={(e) => setSizeSf(parseFormattedNumber(e.target.value))}
+                placeholder="e.g., 25,000"
+                className="mt-2 h-12 text-base"
+                inputMode="numeric"
+              />
+            </div>
           </div>
 
+          {/* Lease Expiry */}
           <div>
-            <Label htmlFor="size-sf">Size (SF)</Label>
-            <Input
-              id="size-sf"
-              value={formatNumberWithCommas(sizeSf)}
-              onChange={(e) => setSizeSf(parseFormattedNumber(e.target.value))}
-              placeholder="e.g., 25,000"
-              className="mt-1"
-            />
-            <p className="text-xs text-muted-foreground mt-1">
-              Leave blank if unknown
-            </p>
-          </div>
-
-          <div>
-            <Label>Lease Expiry Date</Label>
+            <Label className="text-base font-semibold">Lease Expiry Date</Label>
             <Popover>
               <PopoverTrigger asChild>
                 <Button
                   variant="outline"
                   className={cn(
-                    'w-full justify-start text-left font-normal mt-1',
+                    'w-full justify-start text-left font-normal mt-2 h-12 text-base',
                     !leaseExpiry && 'text-muted-foreground'
                   )}
                 >
-                  <CalendarIcon className="mr-2 h-4 w-4" />
-                  {leaseExpiry ? format(leaseExpiry, 'MMM d, yyyy') : 'Select date'}
+                  <CalendarIcon className="mr-3 h-5 w-5" />
+                  {leaseExpiry ? format(leaseExpiry, 'MMMM d, yyyy') : 'Select date (optional)'}
                 </Button>
               </PopoverTrigger>
               <PopoverContent className="w-auto p-0" align="start">
@@ -173,35 +184,41 @@ export function AddTenantDialog({
             </Popover>
           </div>
 
+          {/* Notes */}
           <div>
-            <Label htmlFor="notes">Notes</Label>
+            <Label htmlFor="notes" className="text-base font-semibold">
+              Notes
+            </Label>
             <Textarea
               id="notes"
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
               placeholder="Any additional information..."
-              className="mt-1"
+              className="mt-2 text-base min-h-[80px]"
               rows={3}
             />
           </div>
         </div>
 
-        <DialogFooter>
+        {/* Sticky footer with larger buttons */}
+        <div className="flex flex-col-reverse sm:flex-row gap-3 pt-4 border-t">
           <Button
             variant="outline"
             onClick={() => onOpenChange(false)}
             disabled={saving}
+            className="h-12 text-base font-semibold flex-1 sm:flex-none"
           >
             Cancel
           </Button>
           <Button
             onClick={handleSave}
             disabled={!tenantName.trim() || saving}
+            className="h-12 text-base font-semibold flex-1"
           >
-            {saving && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+            {saving && <Loader2 className="h-5 w-5 mr-2 animate-spin" />}
             {tenant ? 'Save Changes' : 'Add Tenant'}
           </Button>
-        </DialogFooter>
+        </div>
       </DialogContent>
     </Dialog>
   );
