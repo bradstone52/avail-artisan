@@ -33,7 +33,7 @@ import Prospects from "./pages/Prospects";
 import ProspectDetail from "./pages/ProspectDetail";
 import Settings from "./pages/Settings";
 import CRETracker from "./pages/CRETracker";
-import TenantExpiries from "./pages/TenantExpiries";
+import Tenants from "./pages/Tenants";
 import Install from "./pages/Install";
 import NotFound from "./pages/NotFound";
 
@@ -79,7 +79,7 @@ const App = () => (
             <Route path="/pdf-import" element={<PdfImport />} />
             <Route path="/account" element={<AccountSettings />} />
             <Route path="/cre-tracker" element={<CRETracker />} />
-            <Route path="/tenant-expiries" element={<TenantExpiries />} />
+            <Route path="/tenants" element={<Tenants />} />
             <Route path="/deals" element={<Deals />} />
             <Route path="/deals/:id" element={<DealDetail />} />
             <Route path="/prospects" element={<Prospects />} />

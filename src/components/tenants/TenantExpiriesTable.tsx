@@ -14,6 +14,7 @@ import { cn } from '@/lib/utils';
 
 interface TenantExpiriesTableProps {
   expiries: TenantExpiry[];
+  searchQuery?: string;
 }
 
 const statusStyles: Record<ExpiryStatus, string> = {
@@ -32,7 +33,18 @@ const statusLabels: Record<ExpiryStatus, string> = {
   future: '',
 };
 
-export function TenantExpiriesTable({ expiries }: TenantExpiriesTableProps) {
+export function TenantExpiriesTable({ expiries, searchQuery = '' }: TenantExpiriesTableProps) {
+  const filteredExpiries = expiries.filter((expiry) => {
+    if (!searchQuery) return true;
+    const query = searchQuery.toLowerCase();
+    return (
+      expiry.tenantName.toLowerCase().includes(query) ||
+      expiry.propertyAddress?.toLowerCase().includes(query) ||
+      expiry.propertyName?.toLowerCase().includes(query) ||
+      expiry.propertyCity?.toLowerCase().includes(query)
+    );
+  });
+
   const formatNumber = (num: number | null) => {
     if (num === null) return '—';
     return num.toLocaleString();
@@ -53,14 +65,14 @@ export function TenantExpiriesTable({ expiries }: TenantExpiriesTableProps) {
         </TableRow>
       </TableHeader>
       <TableBody>
-        {expiries.length === 0 ? (
+        {filteredExpiries.length === 0 ? (
           <TableRow>
             <TableCell colSpan={8} className="text-center text-muted-foreground py-8">
-              No tenant expiries found
+              {searchQuery ? 'No tenants match your search' : 'No tenant expiries found'}
             </TableCell>
           </TableRow>
         ) : (
-          expiries.map((expiry) => {
+          filteredExpiries.map((expiry) => {
             const status = getExpiryStatus(expiry.expiryDate);
             const showStatusBadge = status !== 'future';
             

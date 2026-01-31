@@ -543,8 +543,8 @@ export default function PropertiesMap() {
             </div>
           )}
 
-          {/* Floating Action Buttons - Bottom Right */}
-          <div className="absolute bottom-24 right-3 z-10 flex flex-col gap-3">
+          {/* Floating Action Buttons - Bottom Right - adjusted for mobile nav */}
+          <div className="absolute bottom-44 md:bottom-24 right-3 z-10 flex flex-col gap-3">
             <Button
               variant="default"
               size="icon"
@@ -561,8 +561,8 @@ export default function PropertiesMap() {
             </Button>
           </div>
 
-          {/* Bottom Info Card */}
-          <div className="absolute bottom-0 left-0 right-0 z-10 p-3 safe-area-bottom">
+          {/* Bottom Info Card - adjusted for mobile nav */}
+          <div className="absolute bottom-20 md:bottom-0 left-0 right-0 z-10 p-3 safe-area-bottom">
             <Card className="shadow-lg border-2 border-foreground">
               <CardContent className="p-4">
                 <div className="flex items-center justify-between">
