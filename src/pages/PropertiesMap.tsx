@@ -4,6 +4,7 @@ import { AppLayout } from '@/components/layout/AppLayout';
 import { useProperties, PropertyWithLinks } from '@/hooks/useProperties';
 import { useGeolocation } from '@/hooks/useGeolocation';
 import { usePropertyTenants } from '@/hooks/usePropertyTenants';
+import { useAuth } from '@/contexts/AuthContext';
 import { PropertyEditDialog } from '@/components/properties/PropertyEditDialog';
 import { AddTenantDialog } from '@/components/properties/AddTenantDialog';
 import { Button } from '@/components/ui/button';
@@ -44,6 +45,7 @@ export default function PropertiesMap() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { toast } = useToast();
+  const { session, loading: authLoading } = useAuth();
   const { properties, loading: propertiesLoading, createProperty, fetchProperties } = useProperties();
   const { createTenant } = usePropertyTenants();
   const {
@@ -75,11 +77,23 @@ export default function PropertiesMap() {
   const [isGeocoding, setIsGeocoding] = useState(false);
   const [mapReady, setMapReady] = useState(false);
 
-  // Fetch map token
+  // Fetch map token - wait for auth session to be ready (critical for PWA)
   useEffect(() => {
+    // Don't fetch until auth has finished loading and we have a session
+    if (authLoading) {
+      console.log('[PropertiesMap] Waiting for auth to load...');
+      return;
+    }
+    
+    if (!session) {
+      console.log('[PropertiesMap] No session available');
+      setMapError('Please sign in to view the map');
+      return;
+    }
+
     const fetchToken = async () => {
       try {
-        console.log('[PropertiesMap] Fetching map token...');
+        console.log('[PropertiesMap] Fetching map token with session...');
         const { data, error } = await supabase.functions.invoke('get-google-maps-token', {
           body: { authenticated: true }
         });
@@ -99,7 +113,7 @@ export default function PropertiesMap() {
       }
     };
     fetchToken();
-  }, []);
+  }, [authLoading, session]);
 
   // Create property marker element
   const createPropertyMarkerElement = useCallback((hasTenants: boolean) => {
