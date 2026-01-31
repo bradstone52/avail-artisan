@@ -303,30 +303,31 @@ export default function PropertiesMap() {
 
     const infoWindow = new google.maps.InfoWindow({
       content: `
-        <div style="font-family: Inter, sans-serif; padding: 20px; min-width: 280px; max-width: 320px;">
-          <div style="font-weight: 900; font-size: 18px; color: #111; margin-bottom: 8px; line-height: 1.2;">
+        <div style="font-family: Inter, sans-serif; padding: 16px; width: 260px; box-sizing: border-box;">
+          <div style="font-weight: 900; font-size: 16px; color: #111; margin-bottom: 6px; line-height: 1.2;">
             ${property.name || property.address}
           </div>
-          <div style="font-size: 14px; color: #555; margin-bottom: 16px;">
+          <div style="font-size: 13px; color: #555; margin-bottom: 14px;">
             ${property.city || ''} ${property.submarket ? '· ' + property.submarket : ''}
           </div>
-          <div style="display: flex; gap: 10px;">
+          <div style="display: flex; gap: 8px;">
             <button id="view-property-${property.id}" style="
               flex: 1;
-              padding: 14px 16px;
+              padding: 12px 8px;
               background: #f3f4f6;
-              border: 3px solid #111;
+              border: 2px solid #111;
               border-radius: 8px;
               font-weight: 700;
-              font-size: 15px;
+              font-size: 13px;
               cursor: pointer;
-              min-height: 52px;
+              min-height: 44px;
               display: flex;
               align-items: center;
               justify-content: center;
-              gap: 8px;
+              gap: 6px;
+              box-sizing: border-box;
             ">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
                 <circle cx="11" cy="11" r="8"/>
                 <path d="m21 21-4.35-4.35"/>
               </svg>
@@ -334,21 +335,22 @@ export default function PropertiesMap() {
             </button>
             <button id="add-tenant-${property.id}" style="
               flex: 1;
-              padding: 14px 16px;
+              padding: 12px 8px;
               background: hsl(217 91% 53%);
               color: white;
-              border: 3px solid #111;
+              border: 2px solid #111;
               border-radius: 8px;
               font-weight: 700;
-              font-size: 15px;
+              font-size: 13px;
               cursor: pointer;
-              min-height: 52px;
+              min-height: 44px;
               display: flex;
               align-items: center;
               justify-content: center;
-              gap: 8px;
+              gap: 6px;
+              box-sizing: border-box;
             ">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
                 <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/>
                 <circle cx="9" cy="7" r="4"/>
                 <path d="M19 8v6M22 11h-6"/>
