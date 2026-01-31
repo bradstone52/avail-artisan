@@ -1,69 +1,33 @@
 
-
-# Tenant Expiries Tracking Page
+# Tenants Page with Expiries Tab
 
 ## Overview
-Create a dedicated page to track tenant lease expiries across all properties, combining data from two sources:
-1. **Manual tenants** - from the `property_tenants` table with explicit `lease_expiry` dates
-2. **Transaction-derived tenants** - from `transactions` where type is "Lease", calculating expiry from `closing_date + lease_term_months`
+Convert the standalone Tenant Expiries page into a comprehensive "Tenants" hub with two tabs:
+1. **All Tenants** - Master list of all tenants across all properties
+2. **Expiries** - The existing lease expiry tracking functionality
+
+Also fix the mobile map cutoff issue where the bottom info card is hidden behind the mobile bottom navigation.
 
 ---
 
 ## Features
 
-### 1. Unified Expiry Dashboard
-- **Combined View**: Single table showing all tenants from both sources
-- **Source Indicator**: Badge showing whether data comes from "Manual" entry or "Transaction"
-- **Property Context**: Each row shows tenant name, property address, unit (if applicable), size, commencement date, and expiry date
-- **Status Indicators**: Color-coded badges for expiry urgency:
-  - **Red (Urgent)**: Expired or within 6 months
-  - **Yellow (Warning)**: 6 to 9 months
-  - **Green (Upcoming)**: 9 months to 1 year
-  - No indicator for expiries beyond 1 year
-- **Quick Navigation**: Click to go to the property detail page
+### Tab 1: All Tenants
+- Master table showing all tenants from `property_tenants` across all properties
+- Columns: Tenant Name, Property, Unit, Size (SF), Lease Expiry, Tracked Date
+- Search by tenant name or property
+- Click row to navigate to property detail page
+- Summary stats: Total tenants, Total SF tracked
 
-### 2. Filtering and Search
-- Search by tenant name or property address
-- Filter by expiry timeframe:
-  - All
-  - Expired
-  - Within 6 months
-  - Within 9 months
-  - Within 1 year
-- Filter by data source (Manual / Transaction / All)
-- Sort by expiry date (ascending by default)
-
-### 3. Summary Statistics
-- Total tenants with expiry dates
-- Number expiring within 6 months
-- Number already expired
+### Tab 2: Expiries
+- Existing expiry tracking content (stats cards, filters, table)
+- Combines manual tenants and transaction-derived expiries
+- Color-coded urgency indicators (Red: 6 months, Yellow: 6-9 months, Green: 9-12 months)
 
 ---
 
-## Data Sources
-
-### Manual Tenants (property_tenants)
-| Field | Usage |
-|-------|-------|
-| `tenant_name` | Tenant Name |
-| `lease_expiry` | Expiry Date |
-| `unit_number` | Unit |
-| `size_sf` | Size |
-| `property_id` | Link to property |
-
-### Transaction-Derived (transactions)
-| Field | Usage |
-|-------|-------|
-| `buyer_tenant_name` | Tenant Name |
-| `closing_date` | Commencement Date |
-| `closing_date + lease_term_months` | Calculated Expiry Date |
-| `size_sf` | Size |
-| `property_id` | Link to property |
-
-Only transactions where:
-- `transaction_type = 'Lease'`
-- `closing_date` is not null
-- `lease_term_months` is not null
+## Mobile Map Fix
+The Properties Map bottom info card is currently hidden behind the mobile bottom navigation bar. This needs to be fixed by adding bottom padding on mobile devices.
 
 ---
 
@@ -72,72 +36,108 @@ Only transactions where:
 ### New Files
 | File | Purpose |
 |------|---------|
-| `src/pages/TenantExpiries.tsx` | Main page with filters, stats, and table |
-| `src/hooks/useTenantExpiries.ts` | Fetch and combine data from both sources |
-| `src/components/tenants/TenantExpiriesTable.tsx` | Table component for displaying expiries |
+| `src/pages/Tenants.tsx` | Main Tenants hub page with tabs |
+| `src/hooks/useAllTenants.ts` | Fetch all tenants with property joins |
+| `src/components/tenants/AllTenantsTable.tsx` | Table component for All Tenants tab |
 
 ### Modified Files
 | File | Change |
 |------|--------|
-| `src/App.tsx` | Add route `/tenant-expiries` |
-| `src/components/layout/MobileBottomNav.tsx` | Add link in "More" menu near CRE Tracker |
+| `src/App.tsx` | Change route from `/tenant-expiries` to `/tenants` |
+| `src/components/layout/AppLayout.tsx` | Add "Tenants" to sidebar navigation |
+| `src/components/layout/MobileBottomNav.tsx` | Update link from "Tenant Expiries" to "Tenants" |
+| `src/pages/PropertiesMap.tsx` | Fix bottom card positioning for mobile nav bar |
+| `src/pages/TenantExpiries.tsx` | Convert to component for embedding in Tenants page |
 
-### Expiry Status Logic
-```typescript
-const getExpiryStatus = (expiryDate: string) => {
-  const today = new Date();
-  const expiry = new Date(expiryDate);
-  const monthsUntil = differenceInMonths(expiry, today);
-  
-  if (monthsUntil < 0) return 'expired';      // Past due - Red
-  if (monthsUntil <= 6) return 'urgent';      // Within 6 months - Red
-  if (monthsUntil <= 9) return 'warning';     // 6-9 months - Yellow
-  if (monthsUntil <= 12) return 'upcoming';   // 9-12 months - Green
-  return 'future';                            // Beyond 1 year - No indicator
-};
+### Page Structure
+```text
+/tenants
+  |
+  +-- Tabs
+  |     |-- All Tenants (default)
+  |     +-- Expiries
+  |
+  +-- All Tenants Tab
+  |     |-- Stats Cards (Total Tenants, Total SF)
+  |     |-- Search Input
+  |     +-- AllTenantsTable
+  |
+  +-- Expiries Tab
+        |-- Stats Cards (Total, Within 6 Months, Expired)
+        |-- Filters (Timeframe, Source)
+        +-- TenantExpiriesTable
 ```
 
-### Unified Data Model
+### Data Model (useAllTenants)
 ```typescript
-interface TenantExpiry {
+interface TenantWithProperty {
   id: string;
   tenantName: string;
-  propertyId: string | null;
+  propertyId: string;
   propertyName: string | null;
   propertyAddress: string | null;
   propertyCity: string | null;
   unitNumber: string | null;
   sizeSf: number | null;
-  commencementDate: string | null;
-  expiryDate: string;
-  source: 'manual' | 'transaction';
-  transactionId?: string;
+  leaseExpiry: string | null;
+  trackedAt: string;
 }
 ```
 
-### Hook Logic (useTenantExpiries)
+### Mobile Map Fix
 ```typescript
-// 1. Fetch manual tenants with property join
-const manualTenants = await supabase
-  .from('property_tenants')
-  .select('*, properties(name, address, city)')
-  .not('lease_expiry', 'is', null);
+// PropertiesMap.tsx - Bottom Info Card
+// Current: bottom-0
+// Fixed: bottom-20 md:bottom-0 (accounts for 80px mobile nav)
 
-// 2. Fetch lease transactions with term data
-const leaseTransactions = await supabase
-  .from('transactions')
-  .select('*, properties(name, address, city)')
-  .eq('transaction_type', 'Lease')
-  .not('closing_date', 'is', null)
-  .not('lease_term_months', 'is', null);
+<div className="absolute bottom-20 md:bottom-0 left-0 right-0 z-10 p-3 safe-area-bottom">
+  ...
+</div>
 
-// 3. Transform and combine into unified format
-// Calculate expiry: addMonths(closing_date, lease_term_months)
+// Also update floating action button positioning
+// Current: bottom-24
+// Fixed: bottom-44 md:bottom-24 (moves up to stay above info card on mobile)
 ```
 
 ---
 
-## Navigation
-- Add "Tenant Expiries" link in the "More" menu on mobile (near CRE Tracker)
-- Accessible via direct URL `/tenant-expiries`
+## Navigation Updates
 
+### Sidebar (AppLayout.tsx)
+Add "Tenants" as a top-level navigation item with the Users icon, positioned after Properties:
+```typescript
+const navigation = [
+  { name: 'Dashboard', ... },
+  { name: 'Distribution', ... },
+  { name: 'Market Listings', ... },
+  { name: 'Properties', ... },
+  { name: 'Tenants', href: '/tenants', icon: Users },  // NEW
+  { name: 'Transactions', ... },
+  ...
+];
+```
+
+### Mobile Bottom Nav (MobileBottomNav.tsx)
+Update the "More" menu:
+```typescript
+const moreNav = [
+  { name: 'Distribution Listings', ... },
+  { name: 'Recipients', ... },
+  { name: 'CRE Tracker', ... },
+  { name: 'Tenants', href: '/tenants', icon: Users },  // Changed from "Tenant Expiries"
+  { name: 'Settings', ... },
+];
+```
+
+---
+
+## User Experience
+
+### Desktop/Tablet
+- "Tenants" appears in the left sidebar navigation
+- Click opens the Tenants page with tabs
+
+### Mobile
+- "Tenants" appears in the "More" menu
+- Bottom navigation is properly cleared by the Properties Map info card
+- Floating action buttons remain accessible above the info card
