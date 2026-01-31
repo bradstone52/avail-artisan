@@ -42,8 +42,8 @@ function formatCurrency(value: number | null): string {
   }).format(value);
 }
 
-function formatSF(sf: number | null): string {
-  if (sf === null || sf === 0) return '—';
+function formatSF(sf: number | null | undefined): string {
+  if (sf === null || sf === undefined || sf === 0) return '—';
   return sf.toLocaleString() + ' SF';
 }
 
