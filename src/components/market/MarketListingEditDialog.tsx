@@ -34,6 +34,7 @@ import {
 import { Loader2, Trash2 } from 'lucide-react';
 import { BrokerageCombobox } from './BrokerageCombobox';
 import { LandlordCombobox } from './LandlordCombobox';
+import { CityCombobox } from '@/components/common/CityCombobox';
 import { useOrg } from '@/hooks/useOrg';
 import { useAuth } from '@/contexts/AuthContext';
 
@@ -74,13 +75,6 @@ const LISTING_TYPE_OPTIONS = [
   { value: 'Sale', label: 'Sale' },
   { value: 'Sublease', label: 'Sublease' },
   { value: 'Sale/Lease', label: 'Sale/Lease' },
-];
-
-const CITY_OPTIONS = [
-  { value: 'Calgary', label: 'Calgary' },
-  { value: 'Rocky View County', label: 'Rocky View County' },
-  { value: 'Foothills County', label: 'Foothills County' },
-  { value: 'Wheatland County', label: 'Wheatland County' },
 ];
 
 interface MarketListingEditDialogProps {
@@ -808,18 +802,7 @@ export function MarketListingEditDialog({
                 City
               </Label>
               <div className="col-span-3">
-                <Select value={city} onValueChange={setCity}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select city" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {CITY_OPTIONS.map((opt) => (
-                      <SelectItem key={opt.value} value={opt.value}>
-                        {opt.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <CityCombobox value={city} onChange={setCity} />
               </div>
             </div>
 
