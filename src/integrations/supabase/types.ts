@@ -1956,6 +1956,7 @@ export type Database = {
         Row: {
           created_at: string
           id: string
+          lease_expiry: string | null
           notes: string | null
           property_id: string
           size_sf: number | null
@@ -1967,6 +1968,7 @@ export type Database = {
         Insert: {
           created_at?: string
           id?: string
+          lease_expiry?: string | null
           notes?: string | null
           property_id: string
           size_sf?: number | null
@@ -1978,6 +1980,7 @@ export type Database = {
         Update: {
           created_at?: string
           id?: string
+          lease_expiry?: string | null
           notes?: string | null
           property_id?: string
           size_sf?: number | null
