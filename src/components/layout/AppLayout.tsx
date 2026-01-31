@@ -361,7 +361,7 @@ export function AppLayout({ children }: AppLayoutProps) {
         sidebarCollapsed ? "lg:pl-16" : "lg:pl-64"
       )}>
         {/* Tablet header - only shows on tablets (md-lg), phones use bottom nav */}
-        <header className="sticky top-0 z-30 hidden md:flex lg:hidden items-center gap-4 px-4 py-3 bg-card border-b-3 border-foreground shadow-[0_3px_0_hsl(var(--foreground))]">
+        <header className="sticky top-0 z-30 hidden md:flex lg:hidden items-center gap-4 px-4 py-3 pt-[max(0.75rem,env(safe-area-inset-top))] bg-card border-b-3 border-foreground shadow-[0_3px_0_hsl(var(--foreground))]">
           <button
             onClick={() => setSidebarOpen(true)}
             className="p-2 -ml-2 border-2 border-foreground hover:bg-muted"
@@ -376,7 +376,7 @@ export function AppLayout({ children }: AppLayoutProps) {
         </header>
 
         {/* Phone header - minimal, no hamburger since we have bottom nav */}
-        <header className="sticky top-0 z-30 flex md:hidden items-center justify-center gap-2 px-4 py-2 bg-card border-b-2 border-foreground">
+        <header className="sticky top-0 z-30 flex md:hidden items-center justify-center gap-2 px-4 py-2 pt-[max(0.5rem,env(safe-area-inset-top))] bg-card border-b-2 border-foreground">
           <Building2 className="w-4 h-4 text-primary" />
           <span className="font-bold uppercase tracking-tight text-sm">Snapshot Builder</span>
         </header>
