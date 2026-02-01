@@ -70,14 +70,15 @@ export function useTenantExpiries() {
 
       // Transform transaction-derived tenants
       const transactionExpiries: TenantExpiry[] = (leaseTransactions || [])
-        .filter((tx) => tx.buyer_tenant_name && tx.closing_date && tx.lease_term_months)
+        .filter((tx) => (tx.buyer_tenant_name || tx.buyer_tenant_company) && tx.closing_date && tx.lease_term_months)
         .map((tx) => {
           const commencementDate = new Date(tx.closing_date!);
           const expiryDate = addMonths(commencementDate, tx.lease_term_months!);
+          const tenantName = tx.buyer_tenant_name || tx.buyer_tenant_company;
           
           return {
             id: `tx-${tx.id}`,
-            tenantName: tx.buyer_tenant_name!,
+            tenantName: tenantName!,
             propertyId: tx.property_id,
             propertyName: tx.properties?.name || null,
             propertyAddress: tx.properties?.address || tx.address || null,
