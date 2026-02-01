@@ -253,9 +253,9 @@ export default function TransactionForm() {
                 <Input
                   id="size_sf"
                   type="number"
-                  value={formData.size_sf || ''}
+                  value={formData.size_sf ?? ''}
                   onChange={(e) => handleChange('size_sf', e.target.value ? parseInt(e.target.value) : null)}
-                  className={formData.size_sf ? 'input-filled' : ''}
+                  className={formData.size_sf != null ? 'input-filled' : ''}
                 />
               </div>
             </CardContent>
@@ -293,9 +293,9 @@ export default function TransactionForm() {
                   <Input
                     id="sale_price"
                     type="number"
-                    value={formData.sale_price || ''}
+                    value={formData.sale_price ?? ''}
                     onChange={(e) => handleChange('sale_price', e.target.value ? parseFloat(e.target.value) : null)}
-                    className={formData.sale_price ? 'input-filled' : ''}
+                    className={formData.sale_price != null ? 'input-filled' : ''}
                   />
                 </div>
               ) : (
@@ -306,9 +306,9 @@ export default function TransactionForm() {
                       id="lease_rate_psf"
                       type="number"
                       step="0.01"
-                      value={formData.lease_rate_psf || ''}
+                      value={formData.lease_rate_psf ?? ''}
                       onChange={(e) => handleChange('lease_rate_psf', e.target.value ? parseFloat(e.target.value) : null)}
-                      className={formData.lease_rate_psf ? 'input-filled' : ''}
+                      className={formData.lease_rate_psf != null ? 'input-filled' : ''}
                     />
                   </div>
                   <div className="space-y-2">
@@ -316,9 +316,9 @@ export default function TransactionForm() {
                     <Input
                       id="lease_term_months"
                       type="number"
-                      value={formData.lease_term_months || ''}
+                      value={formData.lease_term_months ?? ''}
                       onChange={(e) => handleChange('lease_term_months', e.target.value ? parseInt(e.target.value) : null)}
-                      className={formData.lease_term_months ? 'input-filled' : ''}
+                      className={formData.lease_term_months != null ? 'input-filled' : ''}
                     />
                   </div>
                 </>
@@ -473,9 +473,9 @@ export default function TransactionForm() {
                     id="commission_percent"
                     type="number"
                     step="0.01"
-                    value={formData.commission_percent || ''}
+                    value={formData.commission_percent ?? ''}
                     onChange={(e) => handleChange('commission_percent', e.target.value ? parseFloat(e.target.value) : null)}
-                    className={formData.commission_percent ? 'input-filled' : ''}
+                    className={formData.commission_percent != null ? 'input-filled' : ''}
                   />
                 </div>
                 <div className="space-y-2">
@@ -483,9 +483,9 @@ export default function TransactionForm() {
                   <Input
                     id="commission_amount"
                     type="number"
-                    value={formData.commission_amount || ''}
+                    value={formData.commission_amount ?? ''}
                     onChange={(e) => handleChange('commission_amount', e.target.value ? parseFloat(e.target.value) : null)}
-                    className={formData.commission_amount ? 'input-filled' : ''}
+                    className={formData.commission_amount != null ? 'input-filled' : ''}
                   />
                 </div>
               </div>
