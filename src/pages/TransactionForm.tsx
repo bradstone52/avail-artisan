@@ -214,6 +214,7 @@ export default function TransactionForm() {
                   id="address"
                   value={formData.address}
                   onChange={(e) => handleChange('address', e.target.value)}
+                  className={formData.address ? 'input-filled' : ''}
                   required
                 />
               </div>
@@ -223,6 +224,7 @@ export default function TransactionForm() {
                   id="display_address"
                   value={formData.display_address || ''}
                   onChange={(e) => handleChange('display_address', e.target.value)}
+                  className={formData.display_address ? 'input-filled' : ''}
                   placeholder="e.g., 123 Main St — Unit A"
                 />
               </div>
@@ -233,6 +235,7 @@ export default function TransactionForm() {
                     id="city"
                     value={formData.city || ''}
                     onChange={(e) => handleChange('city', e.target.value)}
+                    className={formData.city ? 'input-filled' : ''}
                   />
                 </div>
                 <div className="space-y-2">
@@ -241,6 +244,7 @@ export default function TransactionForm() {
                     id="submarket"
                     value={formData.submarket || ''}
                     onChange={(e) => handleChange('submarket', e.target.value)}
+                    className={formData.submarket ? 'input-filled' : ''}
                   />
                 </div>
               </div>
@@ -251,6 +255,7 @@ export default function TransactionForm() {
                   type="number"
                   value={formData.size_sf || ''}
                   onChange={(e) => handleChange('size_sf', e.target.value ? parseInt(e.target.value) : null)}
+                  className={formData.size_sf ? 'input-filled' : ''}
                 />
               </div>
             </CardContent>
@@ -290,6 +295,7 @@ export default function TransactionForm() {
                     type="number"
                     value={formData.sale_price || ''}
                     onChange={(e) => handleChange('sale_price', e.target.value ? parseFloat(e.target.value) : null)}
+                    className={formData.sale_price ? 'input-filled' : ''}
                   />
                 </div>
               ) : (
@@ -302,6 +308,7 @@ export default function TransactionForm() {
                       step="0.01"
                       value={formData.lease_rate_psf || ''}
                       onChange={(e) => handleChange('lease_rate_psf', e.target.value ? parseFloat(e.target.value) : null)}
+                      className={formData.lease_rate_psf ? 'input-filled' : ''}
                     />
                   </div>
                   <div className="space-y-2">
@@ -311,6 +318,7 @@ export default function TransactionForm() {
                       type="number"
                       value={formData.lease_term_months || ''}
                       onChange={(e) => handleChange('lease_term_months', e.target.value ? parseInt(e.target.value) : null)}
+                      className={formData.lease_term_months ? 'input-filled' : ''}
                     />
                   </div>
                 </>
@@ -324,6 +332,7 @@ export default function TransactionForm() {
                     type="date"
                     value={formData.transaction_date || ''}
                     onChange={(e) => handleChange('transaction_date', e.target.value || null)}
+                    className={`min-w-0 ${formData.transaction_date ? 'input-filled' : ''}`}
                   />
                 </div>
                 <div className="space-y-2">
@@ -333,6 +342,7 @@ export default function TransactionForm() {
                     type="date"
                     value={formData.closing_date || ''}
                     onChange={(e) => handleChange('closing_date', e.target.value || null)}
+                    className={`min-w-0 ${formData.closing_date ? 'input-filled' : ''}`}
                   />
                 </div>
               </div>
@@ -353,6 +363,7 @@ export default function TransactionForm() {
                   id="buyer_tenant_name"
                   value={formData.buyer_tenant_name || ''}
                   onChange={(e) => handleChange('buyer_tenant_name', e.target.value || null)}
+                  className={formData.buyer_tenant_name ? 'input-filled' : ''}
                 />
               </div>
               <div className="space-y-2">
@@ -361,6 +372,7 @@ export default function TransactionForm() {
                   id="buyer_tenant_company"
                   value={formData.buyer_tenant_company || ''}
                   onChange={(e) => handleChange('buyer_tenant_company', e.target.value || null)}
+                  className={formData.buyer_tenant_company ? 'input-filled' : ''}
                 />
               </div>
             </CardContent>
@@ -380,6 +392,7 @@ export default function TransactionForm() {
                   id="seller_landlord_name"
                   value={formData.seller_landlord_name || ''}
                   onChange={(e) => handleChange('seller_landlord_name', e.target.value || null)}
+                  className={formData.seller_landlord_name ? 'input-filled' : ''}
                 />
               </div>
               <div className="space-y-2">
@@ -388,6 +401,7 @@ export default function TransactionForm() {
                   id="seller_landlord_company"
                   value={formData.seller_landlord_company || ''}
                   onChange={(e) => handleChange('seller_landlord_company', e.target.value || null)}
+                  className={formData.seller_landlord_company ? 'input-filled' : ''}
                 />
               </div>
             </CardContent>
@@ -405,6 +419,7 @@ export default function TransactionForm() {
                   id="listing_broker_name"
                   value={formData.listing_broker_name || ''}
                   onChange={(e) => handleChange('listing_broker_name', e.target.value || null)}
+                  className={formData.listing_broker_name ? 'input-filled' : ''}
                 />
               </div>
               <div className="space-y-2">
@@ -413,6 +428,7 @@ export default function TransactionForm() {
                   id="listing_broker_company"
                   value={formData.listing_broker_company || ''}
                   onChange={(e) => handleChange('listing_broker_company', e.target.value || null)}
+                  className={formData.listing_broker_company ? 'input-filled' : ''}
                 />
               </div>
             </CardContent>
@@ -429,6 +445,7 @@ export default function TransactionForm() {
                   id="selling_broker_name"
                   value={formData.selling_broker_name || ''}
                   onChange={(e) => handleChange('selling_broker_name', e.target.value || null)}
+                  className={formData.selling_broker_name ? 'input-filled' : ''}
                 />
               </div>
               <div className="space-y-2">
@@ -437,6 +454,7 @@ export default function TransactionForm() {
                   id="selling_broker_company"
                   value={formData.selling_broker_company || ''}
                   onChange={(e) => handleChange('selling_broker_company', e.target.value || null)}
+                  className={formData.selling_broker_company ? 'input-filled' : ''}
                 />
               </div>
             </CardContent>
@@ -457,6 +475,7 @@ export default function TransactionForm() {
                     step="0.01"
                     value={formData.commission_percent || ''}
                     onChange={(e) => handleChange('commission_percent', e.target.value ? parseFloat(e.target.value) : null)}
+                    className={formData.commission_percent ? 'input-filled' : ''}
                   />
                 </div>
                 <div className="space-y-2">
@@ -466,6 +485,7 @@ export default function TransactionForm() {
                     type="number"
                     value={formData.commission_amount || ''}
                     onChange={(e) => handleChange('commission_amount', e.target.value ? parseFloat(e.target.value) : null)}
+                    className={formData.commission_amount ? 'input-filled' : ''}
                   />
                 </div>
               </div>
@@ -477,6 +497,7 @@ export default function TransactionForm() {
                   onChange={(e) => handleChange('notes', e.target.value || null)}
                   rows={4}
                   placeholder="Additional transaction notes..."
+                  className={formData.notes ? 'input-filled' : ''}
                 />
               </div>
             </CardContent>

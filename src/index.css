@@ -384,6 +384,22 @@
     background-color: hsl(217 50% 20%) !important;
   }
 
+  /* Date input styling - ensure calendar icon is visible */
+  input[type="date"] {
+    min-width: 0;
+    padding-right: 0.5rem;
+  }
+  
+  input[type="date"]::-webkit-calendar-picker-indicator {
+    cursor: pointer;
+    opacity: 0.6;
+    margin-left: 0.25rem;
+  }
+  
+  input[type="date"]::-webkit-calendar-picker-indicator:hover {
+    opacity: 1;
+  }
+
   /* Light placeholder text */
   .placeholder-light::placeholder {
     color: hsl(var(--muted-foreground) / 0.5);
