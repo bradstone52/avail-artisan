@@ -137,36 +137,53 @@ Deno.serve(async (req) => {
       return null;
     };
 
-    // Extract just the street number for a more flexible search
-    // Calgary addresses are formatted like "10 SMED LN SE"
+    // Calgary addresses commonly look like: "4639 72 Ave SE" / "4639 72 AV SE" / "4639 72 ST NW"
+    // We need a *specific* search to avoid matching the wrong quadrant (SE vs NW).
     const addressParts = address
       .replace(/,.*$/, '') // Remove everything after comma
       .replace(/\s+(Calgary|AB|Alberta).*$/i, '') // Remove city/province
       .trim()
       .toUpperCase()
       .split(/\s+/);
-    
-    // Get street number (first part) and a few keywords from street name
+
     const streetNumber = addressParts[0];
-    
-    // Extract quadrant from address (NE, NW, SE, SW) - critical for Calgary addresses
-    const quadrants = ['NE', 'NW', 'SE', 'SW'];
-    const addressQuadrant = addressParts.find(part => quadrants.includes(part)) || null;
-    
-    // Get the street name without common suffixes/types for flexible matching
-    const streetNameParts = addressParts.slice(1).filter(part => 
-      !['ST', 'STREET', 'AVE', 'AVENUE', 'DR', 'DRIVE', 'RD', 'ROAD', 'BLVD', 'BOULEVARD', 
-       'LN', 'LANE', 'PL', 'PLACE', 'CT', 'COURT', 'WAY', 'CRES', 'CRESCENT', 'TR', 'TRAIL',
-       'NE', 'NW', 'SE', 'SW', 'N', 'S', 'E', 'W'].includes(part)
-    );
-    
-    // Use just the street number and main street name for search
-    const searchAddress = streetNameParts.length > 0 
-      ? `${streetNumber} ${streetNameParts[0]}` 
-      : streetNumber;
+
+    const QUADRANTS = ['NE', 'NW', 'SE', 'SW'];
+    const STREET_TYPES = ['ST', 'STREET', 'AVE', 'AV', 'AVENUE', 'DR', 'DRIVE', 'RD', 'ROAD', 'BLVD', 'BOULEVARD',
+      'LN', 'LANE', 'PL', 'PLACE', 'CT', 'COURT', 'WAY', 'CRES', 'CRESCENT', 'TR', 'TRAIL'];
+
+    const addressQuadrant = addressParts.find((p) => QUADRANTS.includes(p)) || null;
+    const streetTypeRaw = addressParts.find((p) => STREET_TYPES.includes(p)) || null;
+    const streetTypeAbbrev = streetTypeRaw
+      ? (streetTypeRaw === 'AVENUE' ? 'AV' : streetTypeRaw === 'AVE' ? 'AV' : streetTypeRaw)
+      : null;
+
+    // Many Calgary streets include a number (e.g., "72") right after the street number.
+    // Grab the first numeric token after the street number.
+    const streetNameNumber = addressParts.slice(1).find((p) => /^\d+$/.test(p)) || null;
+
+    // Build search patterns from most-specific to least-specific.
+    const searchPatterns: string[] = [];
+    if (streetNumber && streetNameNumber && streetTypeAbbrev && addressQuadrant) {
+      // Example: "4639 72 AV SE" (most specific)
+      searchPatterns.push(`${streetNumber} ${streetNameNumber} ${streetTypeAbbrev} ${addressQuadrant}`);
+    }
+    if (streetNumber && streetNameNumber && addressQuadrant) {
+      // Example: "4639 72 SE" (fallback)
+      searchPatterns.push(`${streetNumber} ${streetNameNumber} ${addressQuadrant}`);
+    }
+    if (streetNumber && streetNameNumber) {
+      // Example: "4639 72" (last resort, can be ambiguous)
+      searchPatterns.push(`${streetNumber} ${streetNameNumber}`);
+    }
+    if (streetNumber) {
+      searchPatterns.push(streetNumber);
+    }
+
+    const searchAddress = searchPatterns[0];
 
     console.log(`Fetching city data for address: "${address}"`);
-    console.log(`Search pattern: "${searchAddress}", quadrant: "${addressQuadrant}"`);
+    console.log(`Search patterns: ${JSON.stringify(searchPatterns)}, quadrant: "${addressQuadrant}"`);
 
     // Build proper SoQL query - properly encode the search value to prevent injection
     const buildSoqlUrl = (baseUrl: string, field: string, searchValue: string, extraParams: string = '') => {
@@ -183,40 +200,45 @@ Deno.serve(async (req) => {
       return `${baseUrl}?${params.toString()}`;
     };
 
-    // Fetch assessment data
+    // Fetch assessment data (try multiple patterns, most-specific first)
     let assessmentData: any = null;
     try {
-      const assessmentUrl = buildSoqlUrl(ASSESSMENT_API, 'address', searchAddress, '$limit=10');
-      console.log('Assessment URL:', assessmentUrl);
-      const assessmentResp = await fetch(assessmentUrl);
-      if (assessmentResp.ok) {
-        const data = await assessmentResp.json();
-        console.log(`Assessment API returned ${data?.length || 0} results`);
-        if (data && data.length > 0) {
-          // Find the best match - must match street number AND quadrant
-          const candidates = data.filter((d: any) => d.address?.startsWith(streetNumber + ' '));
-          
-          if (addressQuadrant) {
-            // If we have a quadrant, find exact quadrant match
-            const quadrantMatch = candidates.find((d: any) => 
-              d.address?.toUpperCase().includes(` ${addressQuadrant}`)
-            );
-            if (quadrantMatch) {
-              assessmentData = quadrantMatch;
-              console.log('Selected assessment data (quadrant match):', assessmentData?.address);
-            } else {
-              // No quadrant match - don't use wrong quadrant data
-              console.log('No matching quadrant found in results. Available:', 
-                candidates.map((d: any) => d.address).join(', '));
-            }
-          } else {
-            // No quadrant in search address, use first match
-            assessmentData = candidates[0] || data[0];
-            console.log('Selected assessment data (no quadrant filter):', assessmentData?.address);
-          }
+      for (const pattern of searchPatterns.slice(0, 3)) {
+        const assessmentUrl = buildSoqlUrl(ASSESSMENT_API, 'address', pattern, '$limit=10');
+        console.log('Assessment URL:', assessmentUrl);
+        const assessmentResp = await fetch(assessmentUrl);
+        if (!assessmentResp.ok) {
+          console.log('Assessment API error:', assessmentResp.status, await assessmentResp.text());
+          continue;
         }
-      } else {
-        console.log('Assessment API error:', assessmentResp.status, await assessmentResp.text());
+
+        const data = await assessmentResp.json();
+        console.log(`Assessment API returned ${data?.length || 0} results for pattern "${pattern}"`);
+        if (!data || data.length === 0) continue;
+
+        // Filter to just this street number
+        const candidates = data.filter((d: any) => d.address?.toUpperCase().startsWith(`${streetNumber} `));
+        const upperQuadrant = addressQuadrant?.toUpperCase() || null;
+
+        // If we have a quadrant, require it. (Prevents NW/SE mix-ups.)
+        const quadrantCandidates = upperQuadrant
+          ? candidates.filter((d: any) => d.address?.toUpperCase().includes(` ${upperQuadrant}`))
+          : candidates;
+
+        if (!quadrantCandidates.length) {
+          // Try next pattern
+          continue;
+        }
+
+        // Prefer exact street-type match if we have one.
+        const upperType = streetTypeAbbrev?.toUpperCase() || null;
+        const typeMatch = upperType
+          ? quadrantCandidates.find((d: any) => d.address?.toUpperCase().includes(` ${upperType} `))
+          : null;
+
+        assessmentData = typeMatch || quadrantCandidates[0] || data[0];
+        console.log('Selected assessment data:', assessmentData?.address);
+        break;
       }
     } catch (err) {
       console.error('Error fetching assessment data:', err);
@@ -276,6 +298,19 @@ Deno.serve(async (req) => {
         permits_count: permits.length
       }
     };
+
+    // If we didn't find a valid assessment match, clear previously-derived fields to avoid persisting stale/wrong data.
+    if (!assessmentData) {
+      updateData.roll_number = null;
+      updateData.assessed_value = null;
+      updateData.property_tax_annual = null;
+      updateData.tax_class = null;
+      updateData.legal_description = null;
+      updateData.land_use_designation = null;
+      updateData.community_name = null;
+      updateData.year_built = null;
+      updateData.land_acres = null;
+    }
 
     // Map assessment data to property fields (includes land use from same dataset)
     if (assessmentData) {
