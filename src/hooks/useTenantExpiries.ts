@@ -48,6 +48,8 @@ export function useTenantExpiries() {
         .from('transactions')
         .select('*, properties(name, address, city)')
         .eq('transaction_type', 'Lease')
+        // In our workflow, the tenant name is stored in buyer_tenant_company
+        .not('buyer_tenant_company', 'is', null)
         .not('closing_date', 'is', null)
         .not('lease_term_months', 'is', null);
 
@@ -70,11 +72,12 @@ export function useTenantExpiries() {
 
       // Transform transaction-derived tenants
       const transactionExpiries: TenantExpiry[] = (leaseTransactions || [])
-        .filter((tx) => (tx.buyer_tenant_name || tx.buyer_tenant_company) && tx.closing_date && tx.lease_term_months)
+        .filter((tx) => (tx.buyer_tenant_company || tx.buyer_tenant_name) && tx.closing_date && tx.lease_term_months)
         .map((tx) => {
           const commencementDate = new Date(tx.closing_date!);
           const expiryDate = addMonths(commencementDate, tx.lease_term_months!);
-          const tenantName = tx.buyer_tenant_name || tx.buyer_tenant_company;
+          // Prefer company, since that's where we store the tenant name
+          const tenantName = tx.buyer_tenant_company || tx.buyer_tenant_name;
           
           return {
             id: `tx-${tx.id}`,
