@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -19,7 +20,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { Plus, MoreVertical, Pencil, Trash2, Users, Building2 } from 'lucide-react';
+import { Plus, MoreVertical, Pencil, Trash2, Users, Building2, FileText, ExternalLink } from 'lucide-react';
 import { format } from 'date-fns';
 import { usePropertyTenants, PropertyTenant } from '@/hooks/usePropertyTenants';
 import { AddTenantDialog } from './AddTenantDialog';
@@ -30,6 +31,7 @@ interface TenantsSectionProps {
 }
 
 export function TenantsSection({ propertyId, propertyName }: TenantsSectionProps) {
+  const navigate = useNavigate();
   const { tenants, loading, fetchTenants, createTenant, updateTenant, deleteTenant } = usePropertyTenants(propertyId);
   const [addDialogOpen, setAddDialogOpen] = useState(false);
   const [editingTenant, setEditingTenant] = useState<PropertyTenant | null>(null);
@@ -127,59 +129,84 @@ export function TenantsSection({ propertyId, propertyName }: TenantsSectionProps
             </div>
           ) : (
             <div className="space-y-3">
-              {tenants.map((tenant, index) => (
-                <div key={tenant.id}>
-                  {index > 0 && <Separator className="my-3" />}
-                  <div className="flex items-start justify-between gap-4">
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 mb-1">
-                        <p className="font-semibold truncate">{tenant.tenant_name}</p>
-                        {tenant.unit_number && (
-                          <Badge variant="secondary" className="text-xs">
-                            {tenant.unit_number}
-                          </Badge>
+              {tenants.map((tenant, index) => {
+                const isFromTransaction = tenant.source === 'transaction';
+                return (
+                  <div key={tenant.id}>
+                    {index > 0 && <Separator className="my-3" />}
+                    <div className="flex items-start justify-between gap-4">
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 mb-1 flex-wrap">
+                          <p className="font-semibold truncate">{tenant.tenant_name}</p>
+                          {tenant.unit_number && (
+                            <Badge variant="secondary" className="text-xs">
+                              {tenant.unit_number}
+                            </Badge>
+                          )}
+                          {isFromTransaction ? (
+                            <Badge variant="outline" className="text-xs gap-1">
+                              <FileText className="h-3 w-3" />
+                              Transaction
+                            </Badge>
+                          ) : (
+                            <Badge variant="outline" className="text-xs gap-1">
+                              <Users className="h-3 w-3" />
+                              Manual
+                            </Badge>
+                          )}
+                        </div>
+                        <div className="flex flex-wrap gap-x-4 gap-y-1 text-sm text-muted-foreground">
+                          {tenant.size_sf && (
+                            <span>{tenant.size_sf.toLocaleString()} SF</span>
+                          )}
+                          {tenant.lease_expiry && (
+                            <span>Lease exp. {format(new Date(tenant.lease_expiry), 'MMM yyyy')}</span>
+                          )}
+                          <span>
+                            Tracked {format(new Date(tenant.tracked_at), 'MMM d, yyyy')}
+                          </span>
+                        </div>
+                        {tenant.notes && (
+                          <p className="text-sm text-muted-foreground mt-2 italic">
+                            {tenant.notes}
+                          </p>
                         )}
                       </div>
-                      <div className="flex flex-wrap gap-x-4 gap-y-1 text-sm text-muted-foreground">
-                        {tenant.size_sf && (
-                          <span>{tenant.size_sf.toLocaleString()} SF</span>
-                        )}
-                        {tenant.lease_expiry && (
-                          <span>Lease exp. {format(new Date(tenant.lease_expiry), 'MMM yyyy')}</span>
-                        )}
-                        <span>
-                          Tracked {format(new Date(tenant.tracked_at), 'MMM d, yyyy')}
-                        </span>
-                      </div>
-                      {tenant.notes && (
-                        <p className="text-sm text-muted-foreground mt-2 italic">
-                          {tenant.notes}
-                        </p>
+                      {isFromTransaction ? (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => navigate(`/transactions/${tenant.transactionId}`)}
+                        >
+                          <ExternalLink className="h-4 w-4 mr-1" />
+                          View
+                        </Button>
+                      ) : (
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="icon" className="h-8 w-8">
+                              <MoreVertical className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem onClick={() => setEditingTenant(tenant)}>
+                              <Pencil className="h-4 w-4 mr-2" />
+                              Edit
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              onClick={() => setDeletingTenant(tenant)}
+                              className="text-destructive"
+                            >
+                              <Trash2 className="h-4 w-4 mr-2" />
+                              Delete
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
                       )}
                     </div>
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="icon" className="h-8 w-8">
-                          <MoreVertical className="h-4 w-4" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuItem onClick={() => setEditingTenant(tenant)}>
-                          <Pencil className="h-4 w-4 mr-2" />
-                          Edit
-                        </DropdownMenuItem>
-                        <DropdownMenuItem
-                          onClick={() => setDeletingTenant(tenant)}
-                          className="text-destructive"
-                        >
-                          <Trash2 className="h-4 w-4 mr-2" />
-                          Delete
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </CardContent>
