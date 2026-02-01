@@ -60,6 +60,8 @@ export const FormattedNumberInput = forwardRef<HTMLInputElement, FormattedNumber
       setDisplayValue(formatNumberInput(value));
     }, [value]);
 
+    const hasValue = value != null;
+
     return (
       <div className="relative">
         {prefix && (
@@ -74,7 +76,7 @@ export const FormattedNumberInput = forwardRef<HTMLInputElement, FormattedNumber
           onChange={handleChange}
           onBlur={handleBlur}
           placeholder={placeholder}
-          className={`${prefix ? 'pl-7' : ''} ${suffix ? 'pr-12' : ''} ${className || ''}`}
+          className={`${prefix ? 'pl-7' : ''} ${suffix ? 'pr-12' : ''} ${hasValue ? 'input-filled' : ''} ${className || ''}`}
           disabled={disabled}
         />
         {suffix && (
