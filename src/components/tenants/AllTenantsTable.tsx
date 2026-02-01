@@ -10,7 +10,7 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { Building2, Calendar } from 'lucide-react';
+import { Building2, Calendar, FileText, User } from 'lucide-react';
 
 interface AllTenantsTableProps {
   tenants: TenantWithProperty[];
@@ -36,6 +36,14 @@ export function AllTenantsTable({ tenants, searchQuery }: AllTenantsTableProps) 
     return num.toLocaleString();
   };
 
+  const handleRowClick = (tenant: TenantWithProperty) => {
+    if (tenant.source === 'transaction' && tenant.transactionId) {
+      navigate(`/transactions/${tenant.transactionId}`);
+    } else if (tenant.propertyId) {
+      navigate(`/properties/${tenant.propertyId}`);
+    }
+  };
+
   return (
     <div className="border-2 border-foreground shadow-[4px_4px_0_hsl(var(--foreground))]" style={{ borderRadius: 'var(--radius)' }}>
       <Table>
@@ -46,7 +54,7 @@ export function AllTenantsTable({ tenants, searchQuery }: AllTenantsTableProps) 
             <TableHead className="font-black uppercase text-xs tracking-wider">Unit</TableHead>
             <TableHead className="font-black uppercase text-xs tracking-wider text-right">Size (SF)</TableHead>
             <TableHead className="font-black uppercase text-xs tracking-wider">Lease Expiry</TableHead>
-            <TableHead className="font-black uppercase text-xs tracking-wider hidden md:table-cell">Tracked</TableHead>
+            <TableHead className="font-black uppercase text-xs tracking-wider hidden md:table-cell">Source</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -61,7 +69,7 @@ export function AllTenantsTable({ tenants, searchQuery }: AllTenantsTableProps) 
               <TableRow
                 key={tenant.id}
                 className="cursor-pointer hover:bg-muted/50 transition-colors"
-                onClick={() => navigate(`/properties/${tenant.propertyId}`)}
+                onClick={() => handleRowClick(tenant)}
               >
                 <TableCell className="font-bold">{tenant.tenantName}</TableCell>
                 <TableCell>
@@ -99,8 +107,18 @@ export function AllTenantsTable({ tenants, searchQuery }: AllTenantsTableProps) 
                     <span className="text-muted-foreground">-</span>
                   )}
                 </TableCell>
-                <TableCell className="hidden md:table-cell text-sm text-muted-foreground">
-                  {format(new Date(tenant.trackedAt), 'MMM d, yyyy')}
+                <TableCell className="hidden md:table-cell">
+                  {tenant.source === 'transaction' ? (
+                    <Badge variant="secondary" className="gap-1">
+                      <FileText className="h-3 w-3" />
+                      Transaction
+                    </Badge>
+                  ) : (
+                    <Badge variant="outline" className="gap-1">
+                      <User className="h-3 w-3" />
+                      Manual
+                    </Badge>
+                  )}
                 </TableCell>
               </TableRow>
             ))
