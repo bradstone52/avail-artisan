@@ -155,15 +155,26 @@ export default function TransactionDetail() {
         {/* Header */}
         <div className="flex items-start justify-between">
           <div className="space-y-1">
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => navigate('/transactions')}
-              className="mb-2 -ml-2"
-            >
-              <ArrowLeft className="h-4 w-4 mr-2" />
-              Back to Transactions
-            </Button>
+            <div className="flex items-center gap-2 mb-2 -ml-2">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => navigate('/transactions')}
+              >
+                <ArrowLeft className="h-4 w-4 mr-2" />
+                Back to Transactions
+              </Button>
+              {transaction.property_id && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => navigate(`/properties/${transaction.property_id}`)}
+                >
+                  <Building2 className="h-4 w-4 mr-2" />
+                  View Property
+                </Button>
+              )}
+            </div>
             <div className="flex items-center gap-3">
               <h1 className="text-2xl font-bold">
                 {transaction.display_address || transaction.address}
