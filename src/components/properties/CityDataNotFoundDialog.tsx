@@ -30,7 +30,6 @@ export function CityDataNotFoundDialog({
   onOpenChange,
   address,
   city,
-  propertyId,
   onRetryWithAddress,
 }: CityDataNotFoundDialogProps) {
   const [loading, setLoading] = useState(false);
@@ -50,72 +49,21 @@ export function CityDataNotFoundDialog({
     setNearbyAddresses([]);
 
     try {
-      // Get Google Maps API token
-      const { data: tokenData, error: tokenError } = await supabase.functions.invoke('get-google-maps-token', {
-        body: { authenticated: true }
+      const { data, error } = await supabase.functions.invoke('suggest-nearby-addresses', {
+        body: { address, city, maxSuggestions: 4 },
       });
 
-      if (tokenError || !tokenData?.token) {
-        throw new Error('Failed to get maps token');
-      }
+      if (error) throw error;
 
-      // First, geocode the original address to get coordinates
-      const geocodeUrl = `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(`${address}, ${city}, AB, Canada`)}&key=${tokenData.token}`;
-      const geocodeResp = await fetch(geocodeUrl);
-      const geocodeData = await geocodeResp.json();
-
-      if (geocodeData.status !== 'OK' || !geocodeData.results?.length) {
-        setError('Could not locate this address on the map');
-        return;
-      }
-
-      const location = geocodeData.results[0].geometry.location;
-      
-      // Use reverse geocoding with nearby radius to find alternative addresses
-      // Try slight offsets in different directions to find nearby properties
-      const offsets = [
-        { lat: 0.0002, lng: 0 },      // ~20m north
-        { lat: -0.0002, lng: 0 },     // ~20m south
-        { lat: 0, lng: 0.0003 },      // ~20m east
-        { lat: 0, lng: -0.0003 },     // ~20m west
-        { lat: 0.0004, lng: 0 },      // ~40m north
-        { lat: -0.0004, lng: 0 },     // ~40m south
-      ];
-
-      const suggestions: NearbyAddress[] = [];
-      const seenAddresses = new Set<string>();
-      seenAddresses.add(address.toLowerCase().replace(/\s+/g, ' ').trim());
-
-      for (const offset of offsets) {
-        if (suggestions.length >= 4) break;
-
-        const reverseUrl = `https://maps.googleapis.com/maps/api/geocode/json?latlng=${location.lat + offset.lat},${location.lng + offset.lng}&key=${tokenData.token}&result_type=street_address`;
-        const reverseResp = await fetch(reverseUrl);
-        const reverseData = await reverseResp.json();
-
-        if (reverseData.status === 'OK' && reverseData.results?.length) {
-          for (const result of reverseData.results) {
-            // Extract street address from formatted address
-            const parts = result.formatted_address.split(',');
-            const streetAddress = parts[0]?.trim();
-            
-            if (streetAddress && !seenAddresses.has(streetAddress.toLowerCase().replace(/\s+/g, ' ').trim())) {
-              seenAddresses.add(streetAddress.toLowerCase().replace(/\s+/g, ' ').trim());
-              suggestions.push({
-                address: streetAddress,
-                formattedAddress: result.formatted_address
-              });
-              
-              if (suggestions.length >= 4) break;
-            }
-          }
-        }
-      }
-
+      const suggestions: NearbyAddress[] = Array.isArray(data?.suggestions) ? data.suggestions : [];
       setNearbyAddresses(suggestions);
-      
-      if (suggestions.length === 0) {
-        setError('No nearby addresses found. The property may use a different address format in City records.');
+
+      if (!suggestions.length) {
+        setError(
+          data?.reason === 'geocode_not_found'
+            ? 'Could not locate this address on the map'
+            : 'No nearby addresses found. The property may use a different address format in City records.'
+        );
       }
     } catch (err: any) {
       console.error('Error fetching nearby addresses:', err);
