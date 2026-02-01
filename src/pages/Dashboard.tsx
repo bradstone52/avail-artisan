@@ -164,49 +164,63 @@ export default function Dashboard() {
           {/* Right Column - Quick Actions */}
           <div className="space-y-6">
             {/* Quick Actions */}
-            <div className="bg-card border border-border rounded-xl p-5">
-              <h3 className="font-display font-semibold mb-3">Quick Actions</h3>
-              <div className="space-y-2">
-                <Button 
-                  variant="outline" 
-                  size="sm" 
-                  className="w-full justify-start"
+            <div 
+              className="bg-card border-2 border-foreground p-5"
+              style={{ 
+                borderRadius: "var(--radius)",
+                boxShadow: "4px 4px 0 hsl(var(--foreground))"
+              }}
+            >
+              <h3 className="font-display font-bold uppercase tracking-wider text-sm mb-4">Quick Actions</h3>
+              <div className="space-y-3">
+                <button 
                   onClick={() => navigate('/market-listings')}
+                  className="w-full flex items-center gap-3 p-3 bg-primary text-primary-foreground border-2 border-foreground font-bold text-sm uppercase tracking-wide hover:translate-x-[-2px] hover:translate-y-[-2px] hover:shadow-[4px_4px_0_hsl(var(--foreground))] transition-all"
+                  style={{ 
+                    borderRadius: "var(--radius)",
+                    boxShadow: "2px 2px 0 hsl(var(--foreground))"
+                  }}
                 >
-                  <Database className="w-4 h-4 mr-2" />
-                  Manage Market Listings
-                </Button>
-                <Button 
-                  variant="outline" 
-                  size="sm" 
-                  className="w-full justify-start"
-                  asChild
+                  <Database className="w-5 h-5" />
+                  Market Listings
+                </button>
+                <a 
+                  href="/market-listings-map" 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="w-full flex items-center gap-3 p-3 bg-secondary text-secondary-foreground border-2 border-foreground font-bold text-sm uppercase tracking-wide hover:translate-x-[-2px] hover:translate-y-[-2px] hover:shadow-[4px_4px_0_hsl(var(--foreground))] transition-all"
+                  style={{ 
+                    borderRadius: "var(--radius)",
+                    boxShadow: "2px 2px 0 hsl(var(--foreground))"
+                  }}
                 >
-                  <a href="/market-listings-map" target="_blank" rel="noopener noreferrer">
-                    <MapPin className="w-4 h-4 mr-2" />
-                    Market Listings Map
-                  </a>
-                </Button>
-                <Button 
-                  variant="outline" 
-                  size="sm" 
-                  className="w-full justify-start"
+                  <MapPin className="w-5 h-5" />
+                  Listings Map
+                </a>
+                <button 
                   onClick={() => navigate('/listings')}
+                  className="w-full flex items-center gap-3 p-3 bg-success text-success-foreground border-2 border-foreground font-bold text-sm uppercase tracking-wide hover:translate-x-[-2px] hover:translate-y-[-2px] hover:shadow-[4px_4px_0_hsl(var(--foreground))] transition-all"
+                  style={{ 
+                    borderRadius: "var(--radius)",
+                    boxShadow: "2px 2px 0 hsl(var(--foreground))"
+                  }}
                 >
-                  <Building2 className="w-4 h-4 mr-2" />
-                  Distribution Listings
-                </Button>
-                <Button 
-                  variant="outline" 
-                  size="sm" 
-                  className="w-full justify-start"
-                  asChild
+                  <Building2 className="w-5 h-5" />
+                  Distribution List
+                </button>
+                <a 
+                  href="/distribution-map" 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="w-full flex items-center gap-3 p-3 bg-pink text-pink-foreground border-2 border-foreground font-bold text-sm uppercase tracking-wide hover:translate-x-[-2px] hover:translate-y-[-2px] hover:shadow-[4px_4px_0_hsl(var(--foreground))] transition-all"
+                  style={{ 
+                    borderRadius: "var(--radius)",
+                    boxShadow: "2px 2px 0 hsl(var(--foreground))"
+                  }}
                 >
-                  <a href="/distribution-map" target="_blank" rel="noopener noreferrer">
-                    <MapPin className="w-4 h-4 mr-2" />
-                    Open Distribution Map
-                  </a>
-                </Button>
+                  <MapPin className="w-5 h-5" />
+                  Distribution Map
+                </a>
               </div>
             </div>
 
