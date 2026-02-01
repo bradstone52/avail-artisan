@@ -13,11 +13,19 @@ import {
   Sparkles,
   Trash2,
   MapPin,
-  Database
+  Database,
+  ChevronDown
 } from 'lucide-react';
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from '@/components/ui/collapsible';
+import { useState } from 'react';
 import { toast } from 'sonner';
 
 export default function Dashboard() {
+  const [issuesOpen, setIssuesOpen] = useState(false);
   const navigate = useNavigate();
   const { listings, loading: listingsLoading } = useMarketListings();
   const { orgName } = useOrg();
@@ -125,35 +133,40 @@ export default function Dashboard() {
               />
             </div>
 
-            {/* Past Issues */}
-            <div>
-              <h2 className="text-lg font-display font-semibold mb-4">Recent Issues</h2>
-              {issuesLoading ? (
-                <div className="text-center py-8 text-muted-foreground">Loading...</div>
-              ) : issues.length === 0 ? (
-                <div className="text-center py-12 bg-muted/30 rounded-xl border border-dashed border-border">
-                  <FilePlus className="w-10 h-10 text-muted-foreground mx-auto mb-3" />
-                  <p className="text-muted-foreground">No issues created yet</p>
-                  <Button 
-                    variant="link" 
-                    onClick={() => navigate('/issue-builder')}
-                    className="mt-2"
-                  >
-                    Create your first issue
-                  </Button>
-                </div>
-              ) : (
-                <div className="grid gap-4">
-                  {issues.slice(0, 5).map(issue => (
-                    <IssueCard 
-                      key={issue.id} 
-                      issue={issue}
-                      onRefresh={refreshIssues}
-                    />
-                  ))}
-                </div>
-              )}
-            </div>
+            {/* Past Issues - Collapsible */}
+            <Collapsible open={issuesOpen} onOpenChange={setIssuesOpen}>
+              <CollapsibleTrigger className="flex items-center justify-between w-full group">
+                <h2 className="text-lg font-display font-semibold">Recent Issues ({issues.length})</h2>
+                <ChevronDown className={`w-5 h-5 text-muted-foreground transition-transform ${issuesOpen ? 'rotate-180' : ''}`} />
+              </CollapsibleTrigger>
+              <CollapsibleContent className="mt-4">
+                {issuesLoading ? (
+                  <div className="text-center py-8 text-muted-foreground">Loading...</div>
+                ) : issues.length === 0 ? (
+                  <div className="text-center py-12 bg-muted/30 rounded-xl border border-dashed border-border">
+                    <FilePlus className="w-10 h-10 text-muted-foreground mx-auto mb-3" />
+                    <p className="text-muted-foreground">No issues created yet</p>
+                    <Button 
+                      variant="link" 
+                      onClick={() => navigate('/issue-builder')}
+                      className="mt-2"
+                    >
+                      Create your first issue
+                    </Button>
+                  </div>
+                ) : (
+                  <div className="grid gap-4">
+                    {issues.slice(0, 5).map(issue => (
+                      <IssueCard 
+                        key={issue.id} 
+                        issue={issue}
+                        onRefresh={refreshIssues}
+                      />
+                    ))}
+                  </div>
+                )}
+              </CollapsibleContent>
+            </Collapsible>
           </div>
 
           {/* Right Column - Quick Actions */}
