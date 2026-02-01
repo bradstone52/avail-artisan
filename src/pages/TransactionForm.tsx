@@ -274,7 +274,7 @@ export default function TransactionForm() {
                   value={formData.transaction_type}
                   onValueChange={(v) => handleChange('transaction_type', v as 'Sale' | 'Lease' | 'Sublease' | 'Renewal' | 'Unknown/Removed')}
                 >
-                  <SelectTrigger>
+                  <SelectTrigger className={formData.transaction_type ? 'input-filled' : ''}>
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
