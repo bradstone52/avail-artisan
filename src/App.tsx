@@ -4,6 +4,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
+import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
 import Dashboard from "./pages/Dashboard";
@@ -54,44 +55,45 @@ const App = () => (
         <Sonner />
         <BrowserRouter>
           <Routes>
-            <Route path="/" element={<Index />} />
+            {/* Public routes - no authentication required */}
             <Route path="/auth" element={<Auth />} />
             <Route path="/install" element={<Install />} />
-            <Route path="/dashboard" element={<Dashboard />} />
-            <Route path="/listings" element={<Listings />} />
-            <Route path="/market-listings" element={<MarketListings />} />
-            <Route path="/properties" element={<Properties />} />
-            <Route path="/properties/map" element={<PropertiesMap />} />
-            <Route path="/properties/:id" element={<PropertyDetail />} />
-            <Route path="/transactions" element={<Transactions />} />
-            <Route path="/transactions/new" element={<TransactionForm />} />
-            <Route path="/transactions/:id" element={<TransactionDetail />} />
-            <Route path="/transactions/:id/edit" element={<TransactionForm />} />
-            <Route path="/issue-builder" element={<IssueBuilder />} />
             <Route path="/share/:token" element={<SharePage />} />
             <Route path="/r/:trackingToken" element={<TrackingRedirect />} />
-            {/* PDF helper route: opens the interactive map in a new tab */}
-            <Route path="/pdf/open-map" element={<PdfOpenMap />} />
-            <Route path="/admin/users" element={<AdminUsers />} />
+            <Route path="/public/distribution-map" element={<PublicDistributionMap />} />
+            <Route path="/dashboard/public/distribution-map" element={<PublicDistributionMap />} />
             <Route path="/join-team" element={<JoinTeam />} />
             <Route path="/join" element={<JoinTeam />} />
-            <Route path="/recipients" element={<Recipients />} />
-            <Route path="/pdf-import" element={<PdfImport />} />
-            <Route path="/account" element={<AccountSettings />} />
-            <Route path="/cre-tracker" element={<CRETracker />} />
-            <Route path="/tenants" element={<Tenants />} />
-            <Route path="/deals" element={<Deals />} />
-            <Route path="/deals/:id" element={<DealDetail />} />
-            <Route path="/prospects" element={<Prospects />} />
-            <Route path="/prospects/:id" element={<ProspectDetail />} />
-            <Route path="/contacts" element={<Settings />} />
-            <Route path="/distribution-map" element={<DistributionMapViewer />} />
-            <Route path="/market-listings-map" element={<MarketListingsMap />} />
-            {/* Public distribution map - tokenized access, no auth required */}
-            <Route path="/public/distribution-map" element={<PublicDistributionMap />} />
-            {/* Backwards compatibility alias for old PDFs that used /dashboard/public/... */}
-            <Route path="/dashboard/public/distribution-map" element={<PublicDistributionMap />} />
-            {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+            
+            {/* Protected routes - authentication required */}
+            <Route path="/" element={<ProtectedRoute><Index /></ProtectedRoute>} />
+            <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+            <Route path="/listings" element={<ProtectedRoute><Listings /></ProtectedRoute>} />
+            <Route path="/market-listings" element={<ProtectedRoute><MarketListings /></ProtectedRoute>} />
+            <Route path="/properties" element={<ProtectedRoute><Properties /></ProtectedRoute>} />
+            <Route path="/properties/map" element={<ProtectedRoute><PropertiesMap /></ProtectedRoute>} />
+            <Route path="/properties/:id" element={<ProtectedRoute><PropertyDetail /></ProtectedRoute>} />
+            <Route path="/transactions" element={<ProtectedRoute><Transactions /></ProtectedRoute>} />
+            <Route path="/transactions/new" element={<ProtectedRoute><TransactionForm /></ProtectedRoute>} />
+            <Route path="/transactions/:id" element={<ProtectedRoute><TransactionDetail /></ProtectedRoute>} />
+            <Route path="/transactions/:id/edit" element={<ProtectedRoute><TransactionForm /></ProtectedRoute>} />
+            <Route path="/issue-builder" element={<ProtectedRoute><IssueBuilder /></ProtectedRoute>} />
+            <Route path="/pdf/open-map" element={<ProtectedRoute><PdfOpenMap /></ProtectedRoute>} />
+            <Route path="/admin/users" element={<ProtectedRoute><AdminUsers /></ProtectedRoute>} />
+            <Route path="/recipients" element={<ProtectedRoute><Recipients /></ProtectedRoute>} />
+            <Route path="/pdf-import" element={<ProtectedRoute><PdfImport /></ProtectedRoute>} />
+            <Route path="/account" element={<ProtectedRoute><AccountSettings /></ProtectedRoute>} />
+            <Route path="/cre-tracker" element={<ProtectedRoute><CRETracker /></ProtectedRoute>} />
+            <Route path="/tenants" element={<ProtectedRoute><Tenants /></ProtectedRoute>} />
+            <Route path="/deals" element={<ProtectedRoute><Deals /></ProtectedRoute>} />
+            <Route path="/deals/:id" element={<ProtectedRoute><DealDetail /></ProtectedRoute>} />
+            <Route path="/prospects" element={<ProtectedRoute><Prospects /></ProtectedRoute>} />
+            <Route path="/prospects/:id" element={<ProtectedRoute><ProspectDetail /></ProtectedRoute>} />
+            <Route path="/contacts" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
+            <Route path="/distribution-map" element={<ProtectedRoute><DistributionMapViewer /></ProtectedRoute>} />
+            <Route path="/market-listings-map" element={<ProtectedRoute><MarketListingsMap /></ProtectedRoute>} />
+            
+            {/* Catch-all route */}
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>
