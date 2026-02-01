@@ -1,4 +1,5 @@
 import { useState, useCallback } from 'react';
+import { addMonths } from 'date-fns';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
@@ -14,6 +15,8 @@ export interface PropertyTenant {
   tracked_at: string;
   tracked_by: string | null;
   created_at: string;
+  source?: 'manual' | 'transaction';
+  transactionId?: string;
 }
 
 export interface CreateTenantData {
@@ -45,14 +48,60 @@ export function usePropertyTenants(propertyId?: string) {
 
     setLoading(true);
     try {
-      const { data, error } = await supabase
+      // Fetch manual tenants from property_tenants
+      const { data: manualTenants, error: manualError } = await supabase
         .from('property_tenants')
         .select('*')
         .eq('property_id', targetId)
         .order('tracked_at', { ascending: false });
 
-      if (error) throw error;
-      setTenants(data || []);
+      if (manualError) throw manualError;
+
+      // Fetch transaction-derived tenants (leases linked to this property)
+      const { data: transactions, error: txError } = await supabase
+        .from('transactions')
+        .select('*')
+        .eq('property_id', targetId)
+        .eq('transaction_type', 'Lease')
+        .not('buyer_tenant_company', 'is', null);
+
+      if (txError) throw txError;
+
+      // Transform manual tenants
+      const manual: PropertyTenant[] = (manualTenants || []).map((t) => ({
+        ...t,
+        source: 'manual' as const,
+      }));
+
+      // Transform transaction tenants
+      const fromTransactions: PropertyTenant[] = (transactions || []).map((tx) => {
+        let leaseExpiry: string | null = null;
+        if (tx.closing_date && tx.lease_term_months) {
+          const expiry = addMonths(new Date(tx.closing_date), tx.lease_term_months);
+          leaseExpiry = expiry.toISOString().split('T')[0];
+        }
+
+        return {
+          id: `tx-${tx.id}`,
+          property_id: targetId,
+          tenant_name: tx.buyer_tenant_company || tx.buyer_tenant_name || 'Unknown',
+          unit_number: null,
+          size_sf: tx.size_sf,
+          lease_expiry: leaseExpiry,
+          notes: tx.notes,
+          tracked_at: tx.created_at,
+          tracked_by: tx.created_by,
+          created_at: tx.created_at,
+          source: 'transaction' as const,
+          transactionId: tx.id,
+        };
+      });
+
+      // Combine and sort by tracked_at
+      const combined = [...manual, ...fromTransactions];
+      combined.sort((a, b) => new Date(b.tracked_at).getTime() - new Date(a.tracked_at).getTime());
+
+      setTenants(combined);
     } catch (error: any) {
       console.error('Error fetching tenants:', error);
       toast({
