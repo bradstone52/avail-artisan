@@ -332,33 +332,33 @@ export default function PropertyDetail() {
 
         {/* Main Content Tabs */}
         <Tabs defaultValue="overview" className="space-y-4">
-          <TabsList className="w-full max-w-full overflow-x-auto flex-wrap sm:flex-nowrap">
-            <TabsTrigger value="overview" className="flex items-center gap-2">
-              <Building2 className="h-4 w-4" />
+          <TabsList className="h-auto flex-wrap justify-start">
+            <TabsTrigger value="overview" className="flex items-center gap-1.5 text-xs px-2 py-1.5">
+              <Building2 className="h-3.5 w-3.5" />
               Overview
             </TabsTrigger>
-            <TabsTrigger value="tenants" className="flex items-center gap-2">
-              <Users className="h-4 w-4" />
+            <TabsTrigger value="tenants" className="flex items-center gap-1.5 text-xs px-2 py-1.5">
+              <Users className="h-3.5 w-3.5" />
               Tenants ({tenants.length})
             </TabsTrigger>
-            <TabsTrigger value="listings" className="flex items-center gap-2">
-              <LinkIcon className="h-4 w-4" />
+            <TabsTrigger value="listings" className="flex items-center gap-1.5 text-xs px-2 py-1.5">
+              <LinkIcon className="h-3.5 w-3.5" />
               Listings
             </TabsTrigger>
-            <TabsTrigger value="brochures" className="flex items-center gap-2">
-              <Archive className="h-4 w-4" />
+            <TabsTrigger value="brochures" className="flex items-center gap-1.5 text-xs px-2 py-1.5">
+              <Archive className="h-3.5 w-3.5" />
               Brochures
             </TabsTrigger>
-            <TabsTrigger value="city-data" className="flex items-center gap-2">
-              <ClipboardList className="h-4 w-4" />
+            <TabsTrigger value="city-data" className="flex items-center gap-1.5 text-xs px-2 py-1.5">
+              <ClipboardList className="h-3.5 w-3.5" />
               City Data
             </TabsTrigger>
-            <TabsTrigger value="transactions" className="flex items-center gap-2">
-              <Receipt className="h-4 w-4" />
+            <TabsTrigger value="transactions" className="flex items-center gap-1.5 text-xs px-2 py-1.5">
+              <Receipt className="h-3.5 w-3.5" />
               Transactions ({transactions.length})
             </TabsTrigger>
-            <TabsTrigger value="photos" className="flex items-center gap-2">
-              <Image className="h-4 w-4" />
+            <TabsTrigger value="photos" className="flex items-center gap-1.5 text-xs px-2 py-1.5">
+              <Image className="h-3.5 w-3.5" />
               Photos
             </TabsTrigger>
           </TabsList>
