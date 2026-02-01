@@ -248,11 +248,15 @@ export function useTransactions() {
         }
       }
 
+      // If transaction_date is blank but closing_date is populated, default to closing_date
+      const transactionDate = input.transaction_date || input.closing_date || null;
+
       // Create the transaction with snapshot and property link
       const { data, error } = await supabase
         .from('transactions')
         .insert({
           ...input,
+          transaction_date: transactionDate,
           property_id: propertyId,
           market_listing_snapshot: listingSnapshot,
           org_id: orgId,
@@ -296,9 +300,26 @@ export function useTransactions() {
 
   const updateTransaction = async (id: string, input: Partial<TransactionInput>): Promise<boolean> => {
     try {
+      // If transaction_date is being cleared but closing_date exists, default to closing_date
+      let updateData = { ...input };
+      if (input.transaction_date === null && input.closing_date) {
+        updateData.transaction_date = input.closing_date;
+      } else if (input.transaction_date === undefined && input.closing_date !== undefined) {
+        // If only closing_date is being updated, check if we need to set transaction_date
+        const { data: existing } = await supabase
+          .from('transactions')
+          .select('transaction_date')
+          .eq('id', id)
+          .single();
+        
+        if (existing && !existing.transaction_date && input.closing_date) {
+          updateData.transaction_date = input.closing_date;
+        }
+      }
+
       const { error } = await supabase
         .from('transactions')
-        .update(input)
+        .update(updateData)
         .eq('id', id);
 
       if (error) throw error;
