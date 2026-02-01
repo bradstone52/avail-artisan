@@ -5,12 +5,11 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-interface FindBrochureRequest {
-  listingId: string;
-  address: string;
-  city?: string;
-  broker?: string;
-  existingUrl?: string;
+// UUID validation regex
+const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+function isValidUUID(str: string): boolean {
+  return typeof str === 'string' && UUID_REGEX.test(str);
 }
 
 // Map broker names to their domain patterns
@@ -44,12 +43,6 @@ function urlMatchesBroker(url: string, brokerDomains: string[]): boolean {
   return brokerDomains.some(domain => urlLower.includes(domain));
 }
 
-interface PerplexityResult {
-  url: string;
-  title?: string;
-  snippet?: string;
-}
-
 interface BrochureCandidate {
   url: string;
   score: number;
@@ -70,14 +63,53 @@ Deno.serve(async (req) => {
       });
     }
 
-    const { listingId, address, city, broker, existingUrl }: FindBrochureRequest = await req.json();
-
-    if (!listingId || !address) {
-      return new Response(JSON.stringify({ error: "Missing required fields" }), {
+    // Parse and validate input
+    let body: { listingId?: unknown; address?: unknown; city?: unknown; broker?: unknown; existingUrl?: unknown };
+    try {
+      body = await req.json();
+    } catch {
+      return new Response(JSON.stringify({ error: "Invalid JSON body" }), {
         status: 400,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
+
+    const { listingId, address, city, broker, existingUrl } = body;
+
+    // Validate listingId - must be UUID
+    if (!listingId || typeof listingId !== 'string') {
+      return new Response(JSON.stringify({ error: "listingId is required and must be a string" }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    if (!isValidUUID(listingId)) {
+      return new Response(JSON.stringify({ error: "listingId must be a valid UUID" }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // Validate address
+    if (!address || typeof address !== 'string') {
+      return new Response(JSON.stringify({ error: "address is required and must be a string" }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    if (address.length > 500) {
+      return new Response(JSON.stringify({ error: "address exceeds maximum length (500 characters)" }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // Validate optional fields
+    const cityStr = typeof city === 'string' ? city.slice(0, 100) : '';
+    const brokerStr = typeof broker === 'string' ? broker.slice(0, 100) : '';
+    const existingUrlStr = typeof existingUrl === 'string' ? existingUrl.slice(0, 2000) : '';
 
     const perplexityApiKey = Deno.env.get("PERPLEXITY_API_KEY");
     const firecrawlApiKey = Deno.env.get("FIRECRAWL_API_KEY");
@@ -101,17 +133,17 @@ Deno.serve(async (req) => {
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
     // Get broker domains for filtering
-    const brokerDomains = getBrokerDomains(broker);
+    const brokerDomains = getBrokerDomains(brokerStr);
     const hasBrokerFilter = brokerDomains.length > 0;
     
-    console.log(`[find-brochure] Broker: ${broker || "unknown"}, domains: ${brokerDomains.join(", ") || "none"}`);
+    console.log(`[find-brochure] Broker: ${brokerStr || "unknown"}, domains: ${brokerDomains.join(", ") || "none"}`);
 
     // =====================================================
     // STEP 1: Use Perplexity to find listing pages
     // =====================================================
     // If we have a broker, target their site specifically
     const siteFilter = brokerDomains.length > 0 ? `site:${brokerDomains[0]}` : "";
-    const searchQuery = `${address} ${city || ""} industrial property listing brochure ${siteFilter}`.trim();
+    const searchQuery = `${address} ${cityStr} industrial property listing brochure ${siteFilter}`.trim();
     console.log(`[find-brochure] Step 1: Perplexity search for: ${searchQuery}`);
 
     const perplexityResponse = await fetch("https://api.perplexity.ai/chat/completions", {
@@ -129,7 +161,7 @@ Deno.serve(async (req) => {
           },
           {
             role: "user",
-            content: `Find the property listing page or PDF brochure for: ${address}, ${city || "Calgary"}, industrial/warehouse property. Return the most relevant broker listing page URLs.`
+            content: `Find the property listing page or PDF brochure for: ${address}, ${cityStr || "Calgary"}, industrial/warehouse property. Return the most relevant broker listing page URLs.`
           }
         ],
       }),
