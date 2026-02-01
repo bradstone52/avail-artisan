@@ -212,7 +212,7 @@ export default function Dashboard() {
                   href="/distribution-map" 
                   target="_blank" 
                   rel="noopener noreferrer"
-                  className="w-full flex items-center gap-3 p-3 bg-warning text-warning-foreground border-2 border-foreground font-bold text-sm uppercase tracking-wide hover:translate-x-[-2px] hover:translate-y-[-2px] hover:shadow-[4px_4px_0_hsl(var(--foreground))] transition-all"
+                  className="w-full flex items-center gap-3 p-3 bg-secondary text-secondary-foreground border-2 border-foreground font-bold text-sm uppercase tracking-wide hover:translate-x-[-2px] hover:translate-y-[-2px] hover:shadow-[4px_4px_0_hsl(var(--foreground))] transition-all"
                   style={{ 
                     borderRadius: "var(--radius)",
                     boxShadow: "2px 2px 0 hsl(var(--foreground))"
