@@ -5,10 +5,11 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-interface FetchCityDataRequest {
-  propertyId: string;
-  address: string;
-  city: string;
+// UUID validation regex
+const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+function isValidUUID(str: string): boolean {
+  return typeof str === 'string' && UUID_REGEX.test(str);
 }
 
 // City of Calgary Open Data API endpoints
@@ -34,17 +35,67 @@ Deno.serve(async (req) => {
       });
     }
 
-    const { propertyId, address, city } = await req.json() as FetchCityDataRequest;
+    // Parse and validate input
+    let body: { propertyId?: unknown; address?: unknown; city?: unknown };
+    try {
+      body = await req.json();
+    } catch {
+      return new Response(JSON.stringify({ error: 'Invalid JSON body' }), {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
+    }
 
-    if (!propertyId || !address) {
-      return new Response(JSON.stringify({ error: 'Property ID and address are required' }), {
+    const { propertyId, address, city } = body;
+
+    // Validate propertyId
+    if (!propertyId || typeof propertyId !== 'string') {
+      return new Response(JSON.stringify({ error: 'Property ID is required and must be a string' }), {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
+    }
+
+    if (!isValidUUID(propertyId)) {
+      return new Response(JSON.stringify({ error: 'Property ID must be a valid UUID' }), {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
+    }
+
+    // Validate address
+    if (!address || typeof address !== 'string') {
+      return new Response(JSON.stringify({ error: 'Address is required and must be a string' }), {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
+    }
+
+    if (address.length > 500) {
+      return new Response(JSON.stringify({ error: 'Address exceeds maximum length (500 characters)' }), {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
+    }
+
+    // Validate city (optional but must be string if provided)
+    if (city !== undefined && city !== null && typeof city !== 'string') {
+      return new Response(JSON.stringify({ error: 'City must be a string' }), {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
+    }
+
+    const cityStr = typeof city === 'string' ? city : '';
+    if (cityStr.length > 100) {
+      return new Response(JSON.stringify({ error: 'City exceeds maximum length (100 characters)' }), {
         status: 400,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       });
     }
 
     // Only fetch for Calgary properties
-    const isCalgary = city?.toLowerCase().includes('calgary');
+    const isCalgary = cityStr.toLowerCase().includes('calgary');
     if (!isCalgary) {
       return new Response(JSON.stringify({ 
         success: true, 
@@ -112,9 +163,11 @@ Deno.serve(async (req) => {
     console.log(`Fetching city data for address: "${address}"`);
     console.log(`Search pattern: "${searchAddress}"`);
 
-    // Build proper SoQL query
+    // Build proper SoQL query - properly encode the search value to prevent injection
     const buildSoqlUrl = (baseUrl: string, field: string, searchValue: string, extraParams: string = '') => {
-      const whereClause = `${field} like '%${searchValue}%'`;
+      // Escape special characters in the search value
+      const escapedValue = searchValue.replace(/'/g, "''").replace(/\\/g, '\\\\');
+      const whereClause = `${field} like '%${escapedValue}%'`;
       const params = new URLSearchParams();
       params.set('$where', whereClause);
       params.set('$limit', '50');
@@ -172,8 +225,8 @@ Deno.serve(async (req) => {
     const rollNumber = assessmentData?.roll_number || assessmentData?.rollnumber;
     if (rollNumber) {
       try {
-        // Query by roll number for exact match
-        const parcelUrl = `${PARCEL_API}?roll_number=${rollNumber}&$limit=1&$order=roll_year DESC`;
+        // Query by roll number for exact match - use parameterized query
+        const parcelUrl = `${PARCEL_API}?roll_number=${encodeURIComponent(rollNumber)}&$limit=1&$order=roll_year DESC`;
         console.log('Parcel URL:', parcelUrl);
         const parcelResp = await fetch(parcelUrl);
         if (parcelResp.ok) {

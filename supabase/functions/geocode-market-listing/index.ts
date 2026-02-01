@@ -6,6 +6,13 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+// UUID validation regex
+const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+function isValidUUID(str: string): boolean {
+  return typeof str === 'string' && UUID_REGEX.test(str);
+}
+
 // ArcGIS FeatureServer layers (same as Google Sheet code.gs)
 const COMMUNITY_LAYERS = [
   'https://services.arcgis.com/xYjDUN35YwdCEcMm/ArcGIS/rest/services/Calgary_Communities_Boundary/FeatureServer/0',
@@ -291,11 +298,30 @@ serve(async (req) => {
       });
     }
 
-    const body = await req.json();
+    // Parse and validate input
+    let body: { listingId?: unknown };
+    try {
+      body = await req.json();
+    } catch {
+      return new Response(JSON.stringify({ error: 'Invalid JSON body' }), { 
+        status: 400, 
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+      });
+    }
+
     const { listingId } = body;
     
-    if (!listingId) {
-      return new Response(JSON.stringify({ error: 'listingId is required' }), { 
+    // Validate listingId is present and is a non-empty string
+    if (!listingId || typeof listingId !== 'string' || listingId.trim().length === 0) {
+      return new Response(JSON.stringify({ error: 'listingId is required and must be a non-empty string' }), { 
+        status: 400, 
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+      });
+    }
+
+    // Validate string length (prevent DoS with huge inputs)
+    if (listingId.length > 200) {
+      return new Response(JSON.stringify({ error: 'listingId exceeds maximum length' }), { 
         status: 400, 
         headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
       });
