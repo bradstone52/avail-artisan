@@ -332,7 +332,7 @@ export default function PropertyDetail() {
 
         {/* Main Content Tabs */}
         <Tabs defaultValue="overview" className="space-y-4">
-          <TabsList>
+          <TabsList className="w-full max-w-full overflow-x-auto flex-wrap sm:flex-nowrap">
             <TabsTrigger value="overview" className="flex items-center gap-2">
               <Building2 className="h-4 w-4" />
               Overview
