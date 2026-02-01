@@ -148,6 +148,11 @@ Deno.serve(async (req) => {
     
     // Get street number (first part) and a few keywords from street name
     const streetNumber = addressParts[0];
+    
+    // Extract quadrant from address (NE, NW, SE, SW) - critical for Calgary addresses
+    const quadrants = ['NE', 'NW', 'SE', 'SW'];
+    const addressQuadrant = addressParts.find(part => quadrants.includes(part)) || null;
+    
     // Get the street name without common suffixes/types for flexible matching
     const streetNameParts = addressParts.slice(1).filter(part => 
       !['ST', 'STREET', 'AVE', 'AVENUE', 'DR', 'DRIVE', 'RD', 'ROAD', 'BLVD', 'BOULEVARD', 
@@ -161,7 +166,7 @@ Deno.serve(async (req) => {
       : streetNumber;
 
     console.log(`Fetching city data for address: "${address}"`);
-    console.log(`Search pattern: "${searchAddress}"`);
+    console.log(`Search pattern: "${searchAddress}", quadrant: "${addressQuadrant}"`);
 
     // Build proper SoQL query - properly encode the search value to prevent injection
     const buildSoqlUrl = (baseUrl: string, field: string, searchValue: string, extraParams: string = '') => {
@@ -188,9 +193,27 @@ Deno.serve(async (req) => {
         const data = await assessmentResp.json();
         console.log(`Assessment API returned ${data?.length || 0} results`);
         if (data && data.length > 0) {
-          // Find the best match - prefer exact street number match
-          assessmentData = data.find((d: any) => d.address?.startsWith(streetNumber + ' ')) || data[0];
-          console.log('Selected assessment data:', assessmentData?.address);
+          // Find the best match - must match street number AND quadrant
+          const candidates = data.filter((d: any) => d.address?.startsWith(streetNumber + ' '));
+          
+          if (addressQuadrant) {
+            // If we have a quadrant, find exact quadrant match
+            const quadrantMatch = candidates.find((d: any) => 
+              d.address?.toUpperCase().includes(` ${addressQuadrant}`)
+            );
+            if (quadrantMatch) {
+              assessmentData = quadrantMatch;
+              console.log('Selected assessment data (quadrant match):', assessmentData?.address);
+            } else {
+              // No quadrant match - don't use wrong quadrant data
+              console.log('No matching quadrant found in results. Available:', 
+                candidates.map((d: any) => d.address).join(', '));
+            }
+          } else {
+            // No quadrant in search address, use first match
+            assessmentData = candidates[0] || data[0];
+            console.log('Selected assessment data (no quadrant filter):', assessmentData?.address);
+          }
         }
       } else {
         console.log('Assessment API error:', assessmentResp.status, await assessmentResp.text());
