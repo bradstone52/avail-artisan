@@ -29,10 +29,13 @@ import {
   Link as LinkIcon,
   Archive,
   Receipt,
-  Users
+  Users,
+  Pencil
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { TenantsSection } from '@/components/properties/TenantsSection';
+import { PropertyEditDialog } from '@/components/properties/PropertyEditDialog';
+import { PropertyWithLinks } from '@/hooks/useProperties';
 
 export default function PropertyDetail() {
   const { id } = useParams<{ id: string }>();
@@ -45,6 +48,7 @@ export default function PropertyDetail() {
   const [fetchingCityData, setFetchingCityData] = useState(false);
   const [downloadingBrochure, setDownloadingBrochure] = useState<string | null>(null);
   const [downloadingAllBrochures, setDownloadingAllBrochures] = useState(false);
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
 
   // Fetch tenants when property id changes
   useEffect(() => {
@@ -52,6 +56,41 @@ export default function PropertyDetail() {
       fetchTenants(id);
     }
   }, [id, fetchTenants]);
+
+  // Handle property save
+  const handleSaveProperty = async (updates: Partial<PropertyWithLinks>) => {
+    if (!property) return;
+    
+    try {
+      // Extract only the fields that can be directly updated
+      const {
+        photos: _photos,
+        linked_listings: _linked,
+        active_listing_count: _count,
+        transactions: _txns,
+        city_data_raw,
+        ...updateFields
+      } = updates;
+
+      const { error } = await supabase
+        .from('properties')
+        .update(updateFields)
+        .eq('id', property.id);
+
+      if (error) throw error;
+
+      toast({ title: 'Property updated successfully' });
+      setEditDialogOpen(false);
+      refetch();
+    } catch (error: any) {
+      console.error('Error updating property:', error);
+      toast({
+        title: 'Error updating property',
+        description: error.message,
+        variant: 'destructive'
+      });
+    }
+  };
 
   // Fetch City of Calgary data
   const handleFetchCityData = async () => {
@@ -224,6 +263,10 @@ export default function PropertyDetail() {
             </div>
           </div>
           <div className="flex gap-2">
+            <Button variant="outline" onClick={() => setEditDialogOpen(true)}>
+              <Pencil className="h-4 w-4 mr-2" />
+              Edit
+            </Button>
             <Button variant="outline" onClick={() => refetch()}>
               <RefreshCw className="h-4 w-4 mr-2" />
               Refresh
@@ -788,6 +831,15 @@ export default function PropertyDetail() {
             </Card>
           </TabsContent>
         </Tabs>
+
+        {/* Edit Dialog */}
+        <PropertyEditDialog
+          property={property}
+          open={editDialogOpen}
+          onOpenChange={setEditDialogOpen}
+          onSave={handleSaveProperty}
+          mode="edit"
+        />
       </div>
     </AppLayout>
   );
