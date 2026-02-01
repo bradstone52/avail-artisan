@@ -135,8 +135,22 @@ export default function Dashboard() {
 
             {/* Past Issues - Collapsible */}
             <Collapsible open={issuesOpen} onOpenChange={setIssuesOpen}>
-              <CollapsibleTrigger className="flex items-center justify-between w-full group">
-                <h2 className="text-lg font-display font-semibold">Recent Issues ({issues.length})</h2>
+              <CollapsibleTrigger 
+                className="w-full bg-card border-2 border-foreground p-4 flex items-center justify-between hover:translate-x-[-2px] hover:translate-y-[-2px] hover:shadow-[6px_6px_0_hsl(var(--foreground))] transition-all"
+                style={{ 
+                  borderRadius: "var(--radius)",
+                  boxShadow: "4px 4px 0 hsl(var(--foreground))"
+                }}
+              >
+                <div className="flex items-center gap-3">
+                  <div className="p-2 bg-muted rounded-lg">
+                    <FileSpreadsheet className="w-5 h-5" />
+                  </div>
+                  <div className="text-left">
+                    <h2 className="text-sm font-bold uppercase tracking-wider">Recent Issues</h2>
+                    <p className="text-xs text-muted-foreground">{issues.length} market snapshots</p>
+                  </div>
+                </div>
                 <ChevronDown className={`w-5 h-5 text-muted-foreground transition-transform ${issuesOpen ? 'rotate-180' : ''}`} />
               </CollapsibleTrigger>
               <CollapsibleContent className="mt-4">
