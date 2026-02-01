@@ -35,6 +35,7 @@ import {
 import { format } from 'date-fns';
 import { TenantsSection } from '@/components/properties/TenantsSection';
 import { PropertyEditDialog } from '@/components/properties/PropertyEditDialog';
+import { CityDataNotFoundDialog } from '@/components/properties/CityDataNotFoundDialog';
 import { PropertyWithLinks } from '@/hooks/useProperties';
 
 export default function PropertyDetail() {
@@ -49,6 +50,7 @@ export default function PropertyDetail() {
   const [downloadingBrochure, setDownloadingBrochure] = useState<string | null>(null);
   const [downloadingAllBrochures, setDownloadingAllBrochures] = useState(false);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [cityDataNotFoundOpen, setCityDataNotFoundOpen] = useState(false);
 
   // Fetch tenants when property id changes
   useEffect(() => {
@@ -93,19 +95,40 @@ export default function PropertyDetail() {
   };
 
   // Fetch City of Calgary data
-  const handleFetchCityData = async () => {
+  const handleFetchCityData = async (overrideAddress?: string) => {
     if (!property) return;
+    
+    const addressToUse = overrideAddress || property.address;
     
     setFetchingCityData(true);
     try {
       const { data, error } = await supabase.functions.invoke('fetch-city-data', {
-        body: { propertyId: property.id, address: property.address, city: property.city }
+        body: { propertyId: property.id, address: addressToUse, city: property.city }
       });
 
       if (error) throw error;
 
-      toast({ title: 'City data fetched successfully' });
-      refetch();
+      // Check if assessment was found
+      if (data?.assessmentFound === false && data?.permitsFound === 0) {
+        toast({
+          title: 'No city records found',
+          description: 'The address was not found in Calgary\'s database.',
+          variant: 'destructive'
+        });
+        setCityDataNotFoundOpen(true);
+      } else if (data?.assessmentFound === false) {
+        toast({
+          title: 'Partial data found',
+          description: `Found ${data.permitsFound} permit(s), but no assessment record.`,
+        });
+        refetch();
+      } else {
+        toast({ 
+          title: 'City data fetched successfully',
+          description: `Found assessment data and ${data?.permitsFound || 0} permit(s).`
+        });
+        refetch();
+      }
     } catch (error: any) {
       console.error('Error fetching city data:', error);
       toast({
@@ -115,6 +138,34 @@ export default function PropertyDetail() {
       });
     } finally {
       setFetchingCityData(false);
+    }
+  };
+
+  // Handle retry with suggested address
+  const handleRetryWithAddress = async (newAddress: string) => {
+    // Update the property's address first, then fetch city data
+    if (!property) return;
+    
+    try {
+      const { error } = await supabase
+        .from('properties')
+        .update({ address: newAddress })
+        .eq('id', property.id);
+
+      if (error) throw error;
+
+      toast({ title: 'Address updated', description: `Trying "${newAddress}"...` });
+      
+      // Now fetch city data with the new address
+      await handleFetchCityData(newAddress);
+      refetch();
+    } catch (error: any) {
+      console.error('Error updating address:', error);
+      toast({
+        title: 'Error updating address',
+        description: error.message,
+        variant: 'destructive'
+      });
     }
   };
 
@@ -657,7 +708,7 @@ export default function PropertyDetail() {
                 </p>
               </div>
               <Button 
-                onClick={handleFetchCityData} 
+                onClick={() => handleFetchCityData()}
                 disabled={fetchingCityData}
               >
                 {fetchingCityData ? (
@@ -839,6 +890,16 @@ export default function PropertyDetail() {
           onOpenChange={setEditDialogOpen}
           onSave={handleSaveProperty}
           mode="edit"
+        />
+
+        {/* City Data Not Found Dialog */}
+        <CityDataNotFoundDialog
+          open={cityDataNotFoundOpen}
+          onOpenChange={setCityDataNotFoundOpen}
+          address={property.address}
+          city={property.city}
+          propertyId={property.id}
+          onRetryWithAddress={handleRetryWithAddress}
         />
       </div>
     </AppLayout>
