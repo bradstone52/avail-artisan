@@ -29,12 +29,12 @@ export function useAllTenants() {
 
       if (manualError) throw manualError;
 
-      // Fetch lease transactions with tenant names
+      // Fetch lease transactions with tenant identifiers (name OR company)
       const { data: leaseTransactions, error: transactionError } = await supabase
         .from('transactions')
         .select('*, properties(name, address, city)')
         .eq('transaction_type', 'Lease')
-        .not('buyer_tenant_name', 'is', null)
+        .or('buyer_tenant_name.not.is.null,buyer_tenant_company.not.is.null')
         .order('created_at', { ascending: false });
 
       if (transactionError) throw transactionError;
@@ -56,7 +56,7 @@ export function useAllTenants() {
 
       // Transform transaction-derived tenants
       const transactionEntries: TenantWithProperty[] = (leaseTransactions || [])
-        .filter((tx) => tx.buyer_tenant_name)
+        .filter((tx) => tx.buyer_tenant_name || tx.buyer_tenant_company)
         .map((tx) => {
           // Calculate lease expiry if we have closing_date and lease_term_months
           let leaseExpiry: string | null = null;
@@ -66,9 +66,11 @@ export function useAllTenants() {
             leaseExpiry = expiryDate.toISOString().split('T')[0];
           }
 
+          const tenantName = tx.buyer_tenant_name || tx.buyer_tenant_company;
+
           return {
             id: `tx-${tx.id}`,
-            tenantName: tx.buyer_tenant_name!,
+            tenantName: tenantName!,
             propertyId: tx.property_id,
             propertyName: tx.properties?.name || null,
             propertyAddress: tx.properties?.address || tx.address || null,
