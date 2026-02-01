@@ -252,12 +252,17 @@ Deno.serve(async (req) => {
       const permitsResp = await fetch(permitsUrl);
       if (permitsResp.ok) {
         const data = await permitsResp.json();
-        // Filter to only permits that match our street number
-        const filtered = (data || []).filter((p: any) => 
-          p.originaladdress?.toUpperCase().startsWith(streetNumber + ' ')
-        );
+        // Filter to only permits that match our street number AND quadrant
+        const upperQuadrant = addressQuadrant?.toUpperCase() || null;
+        const filtered = (data || []).filter((p: any) => {
+          const addr = p.originaladdress?.toUpperCase() || '';
+          const startsWithStreetNum = addr.startsWith(streetNumber + ' ');
+          // If we have a quadrant, require it to match (prevents NW/SE mix-ups)
+          const quadrantMatches = upperQuadrant ? addr.includes(` ${upperQuadrant}`) : true;
+          return startsWithStreetNum && quadrantMatches;
+        });
         permits.push(...filtered);
-        console.log(`Permits API returned ${data?.length || 0} results, filtered to ${permits.length}`);
+        console.log(`Permits API returned ${data?.length || 0} results, filtered to ${permits.length} (quadrant: ${upperQuadrant || 'none'})`);
       } else {
         console.log('Permits API error:', permitsResp.status, await permitsResp.text());
       }
