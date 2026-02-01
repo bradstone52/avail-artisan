@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { usePropertyDetail, PropertyBrochure, PropertyPermit, PropertyTransaction } from '@/hooks/useProperties';
+import { usePropertyTenants } from '@/hooks/usePropertyTenants';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -38,11 +39,19 @@ export default function PropertyDetail() {
   const navigate = useNavigate();
   const { toast } = useToast();
   const { property, brochures, permits, transactions, loading, refetch } = usePropertyDetail(id);
+  const { tenants, fetchTenants } = usePropertyTenants(id);
   const { rate: millRate, year: millRateYear } = useMillRate();
   
   const [fetchingCityData, setFetchingCityData] = useState(false);
   const [downloadingBrochure, setDownloadingBrochure] = useState<string | null>(null);
   const [downloadingAllBrochures, setDownloadingAllBrochures] = useState(false);
+
+  // Fetch tenants when property id changes
+  useEffect(() => {
+    if (id) {
+      fetchTenants(id);
+    }
+  }, [id, fetchTenants]);
 
   // Fetch City of Calgary data
   const handleFetchCityData = async () => {
@@ -287,7 +296,7 @@ export default function PropertyDetail() {
             </TabsTrigger>
             <TabsTrigger value="tenants" className="flex items-center gap-2">
               <Users className="h-4 w-4" />
-              Tenants
+              Tenants ({tenants.length})
             </TabsTrigger>
             <TabsTrigger value="listings" className="flex items-center gap-2">
               <LinkIcon className="h-4 w-4" />
