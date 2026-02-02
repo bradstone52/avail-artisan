@@ -430,11 +430,18 @@ Deno.serve(async (req) => {
         })();
 
       // Land use and community data (field names vary)
-      updateData.land_use_designation = firstNonEmpty(
+      const landUseDesignation = firstNonEmpty(
         assessmentData.land_use_designation,
         assessmentData.landuse,
         assessmentData.land_use
       );
+      updateData.land_use_designation = landUseDesignation;
+      
+      // Also mirror land_use_designation to zoning field for Property Details display
+      if (landUseDesignation) {
+        updateData.zoning = landUseDesignation;
+      }
+
       const communityName = firstNonEmpty(
         assessmentData.community_name,
         assessmentData.comm_name,
