@@ -842,17 +842,16 @@ export default function PropertyDetail() {
                 <Button
                   variant="outline"
                   onClick={() => {
-                    let url: string;
                     if (property.latitude && property.longitude) {
-                      // City of Calgary My Property uses lng,lat order for coordinates
-                      // Use find parameter with coordinates to locate the exact parcel
-                      url = `https://maps.calgary.ca/myproperty/?find=${property.longitude},${property.latitude}`;
+                      // Calgary My Property uses lng,lat order for coordinates
+                      const url = `https://maps.calgary.ca/myproperty/?find=${property.longitude},${property.latitude}`;
+                      window.open(url, '_blank', 'noopener,noreferrer');
                     } else {
                       // Fallback: open My Property with address search
-                      const searchAddress = encodeURIComponent(property.city_lookup_address || property.address);
-                      url = `https://maps.calgary.ca/myproperty/?find=${searchAddress}`;
+                      const searchAddress = property.city_lookup_address || property.address;
+                      const url = `https://maps.calgary.ca/myproperty/?find=${encodeURIComponent(searchAddress)}`;
+                      window.open(url, '_blank', 'noopener,noreferrer');
                     }
-                    window.open(url, '_blank');
                   }}
                 >
                   <ExternalLink className="h-4 w-4 mr-2" />
