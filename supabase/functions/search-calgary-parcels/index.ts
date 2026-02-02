@@ -20,7 +20,7 @@ serve(async (req) => {
   }
 
   try {
-    const { latitude, longitude, radiusMeters = 200 } = await req.json();
+    const { latitude, longitude, radiusMeters = 500 } = await req.json();
 
     if (typeof latitude !== "number" || typeof longitude !== "number") {
       return new Response(
