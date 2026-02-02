@@ -171,28 +171,51 @@ Deno.serve(async (req) => {
     const addressQuadrant = addressParts.find((p: string) => QUADRANTS.includes(p)) || null;
     const streetTypeRaw = addressParts.find((p: string) => STREET_TYPES.includes(p)) || null;
     const streetTypeAbbrev = streetTypeRaw
-      ? (streetTypeRaw === 'AVENUE' ? 'AV' : streetTypeRaw === 'AVE' ? 'AV' : streetTypeRaw)
+      ? (streetTypeRaw === 'AVENUE' ? 'AV' : streetTypeRaw === 'AVE' ? 'AV' : streetTypeRaw === 'LANE' ? 'LN' : streetTypeRaw)
       : null;
 
     // Many Calgary streets include a number (e.g., "72") right after the street number.
     // Grab the first numeric token after the street number.
     const streetNameNumber = addressParts.slice(1).find((p: string) => /^\d+$/.test(p)) || null;
 
+    // For named streets (like "SMED LN SE"), grab the street name word
+    // It's typically the token after the street number that isn't a quadrant, street type, or number
+    const streetNameWord = !streetNameNumber 
+      ? addressParts.slice(1).find((p: string) => 
+          !QUADRANTS.includes(p) && 
+          !STREET_TYPES.includes(p) && 
+          !/^\d+$/.test(p) &&
+          p.length > 0
+        ) || null
+      : null;
+
     // Build search patterns from most-specific to least-specific.
     const searchPatterns: string[] = [];
+    
+    // Handle numbered streets (e.g., "4639 72 AV SE")
     if (streetNumber && streetNameNumber && streetTypeAbbrev && addressQuadrant) {
-      // Example: "4639 72 AV SE" (most specific)
       searchPatterns.push(`${streetNumber} ${streetNameNumber} ${streetTypeAbbrev} ${addressQuadrant}`);
     }
     if (streetNumber && streetNameNumber && addressQuadrant) {
-      // Example: "4639 72 SE" (fallback)
       searchPatterns.push(`${streetNumber} ${streetNameNumber} ${addressQuadrant}`);
     }
     if (streetNumber && streetNameNumber) {
-      // Example: "4639 72" (last resort, can be ambiguous)
       searchPatterns.push(`${streetNumber} ${streetNameNumber}`);
     }
-    if (streetNumber) {
+    
+    // Handle named streets (e.g., "10 SMED LN SE")
+    if (streetNumber && streetNameWord && streetTypeAbbrev && addressQuadrant) {
+      searchPatterns.push(`${streetNumber} ${streetNameWord} ${streetTypeAbbrev} ${addressQuadrant}`);
+    }
+    if (streetNumber && streetNameWord && addressQuadrant) {
+      searchPatterns.push(`${streetNumber} ${streetNameWord} ${addressQuadrant}`);
+    }
+    if (streetNumber && streetNameWord) {
+      searchPatterns.push(`${streetNumber} ${streetNameWord}`);
+    }
+    
+    // Last resort: just the street number (very broad)
+    if (streetNumber && searchPatterns.length === 0) {
       searchPatterns.push(streetNumber);
     }
 
