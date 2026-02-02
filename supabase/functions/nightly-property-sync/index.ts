@@ -33,6 +33,49 @@ Deno.serve(async (req) => {
   try {
     const syncId = crypto.randomUUID();
     
+    // 0. Sync mill rate from Alberta Regional Dashboard
+    console.log('Checking for updated mill rate...');
+    try {
+      const millRateResponse = await fetch(
+        'https://regionaldashboard.alberta.ca/export/opendata/Non-residential%20Mill%20Rate/jsons'
+      );
+      
+      if (millRateResponse.ok) {
+        const millRateData = await millRateResponse.json();
+        
+        // Filter for Calgary and find the most recent year
+        const calgaryRates = (millRateData || [])
+          .filter((item: any) => 
+            item.Region?.toLowerCase() === 'calgary' && 
+            item.CalculatedValue && 
+            item.Period
+          )
+          .sort((a: any, b: any) => parseInt(b.Period) - parseInt(a.Period));
+        
+        if (calgaryRates.length > 0) {
+          const latestRate = calgaryRates[0];
+          const newMillRate = parseFloat(latestRate.CalculatedValue) / 1000; // Convert from per-$1000 to decimal
+          const newMillRateYear = String(latestRate.Period);
+          
+          console.log(`Latest Calgary mill rate: ${newMillRate} (${newMillRateYear})`);
+          
+          // Update workspace_settings if different
+          await supabase
+            .from('workspace_settings')
+            .upsert({ key: 'mill_rate', value: newMillRate } as any, { onConflict: 'key' });
+          
+          await supabase
+            .from('workspace_settings')
+            .upsert({ key: 'mill_rate_year', value: newMillRateYear } as any, { onConflict: 'key' });
+          
+          console.log(`Mill rate updated to ${(newMillRate * 100).toFixed(4)}% (${newMillRateYear})`);
+        }
+      }
+    } catch (millRateError) {
+      console.error('Error fetching mill rate (non-fatal):', millRateError);
+      // Continue with sync even if mill rate fetch fails
+    }
+    
     // 1. Sync any new market listings to properties (fast operation)
     console.log('Starting market listings -> properties sync...');
     
