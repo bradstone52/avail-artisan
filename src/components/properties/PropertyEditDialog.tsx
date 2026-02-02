@@ -88,6 +88,7 @@ export function PropertyEditDialog({
   const [address, setAddress] = useState('');
   const [displayAddress, setDisplayAddress] = useState('');
   const [displayAddressManuallyEdited, setDisplayAddressManuallyEdited] = useState(false);
+  const [cityLookupAddress, setCityLookupAddress] = useState('');
   const [city, setCity] = useState('');
   const [submarket, setSubmarket] = useState('');
   const [propertyType, setPropertyType] = useState('');
@@ -199,6 +200,7 @@ export function PropertyEditDialog({
       setAddress(property.address || '');
       setDisplayAddress(property.display_address || property.address || '');
       setDisplayAddressManuallyEdited(!!property.display_address && property.display_address !== property.address);
+      setCityLookupAddress(property.city_lookup_address || '');
       setCity(property.city || '');
       setSubmarket(property.submarket || '');
       setPropertyType(property.property_type || '');
@@ -235,6 +237,7 @@ export function PropertyEditDialog({
       setAddress('');
       setDisplayAddress('');
       setDisplayAddressManuallyEdited(false);
+      setCityLookupAddress('');
       setCity('Calgary');
       setSubmarket('');
       setPropertyType('');
@@ -265,6 +268,7 @@ export function PropertyEditDialog({
         name: name.trim() || address.trim(),
         address: address.trim(),
         display_address: displayAddress.trim() || null,
+        city_lookup_address: cityLookupAddress.trim() || null,
         city: city.trim(),
         submarket: submarket.trim(),
         property_type: propertyType || null,
@@ -373,6 +377,19 @@ export function PropertyEditDialog({
                 />
                 <p className="text-xs text-muted-foreground mt-1">
                   Leave blank to use address
+                </p>
+              </div>
+
+              <div className="col-span-2">
+                <Label>City Lookup Address</Label>
+                <Input
+                  value={cityLookupAddress}
+                  onChange={(e) => setCityLookupAddress(e.target.value)}
+                  placeholder="Override for City of Calgary lookups"
+                  className={cityLookupAddress ? 'input-filled' : ''}
+                />
+                <p className="text-xs text-muted-foreground mt-1">
+                  Optional. Use if city database uses different format (e.g., 5353 72 AV SE)
                 </p>
               </div>
 
