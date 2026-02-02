@@ -1,71 +1,70 @@
 
-# Duplicate Address Prevention with Confirmation Warning
+# City Data Address Picker Map
 
 ## Overview
-When a user ignores address suggestions and submits a transaction with an address that already exists in the database, the system will show a warning confirmation dialog. This gives users a chance to reconsider while still allowing legitimate duplicates (e.g., different units at the same address).
+Replace the current "nearby address suggestions" approach with an interactive map that shows **actual Calgary parcel addresses** near the property location. Users can visually select the correct parcel, and the system will use that official City address for the data fetch.
 
-## User Flow
-1. User types an address, ignores suggestions (or no suggestions appear)
-2. User clicks "Create Transaction"
-3. System checks for existing records with similar addresses
-4. If match found: **Warning dialog appears** showing the existing property details
-5. User can choose:
-   - **"Use Existing"** - Auto-fill from the matched property
-   - **"Create Anyway"** - Proceed with the new entry (for legitimate cases)
-   - **"Cancel"** - Return to form to edit
+## Why This Works Better
+The current approach uses Google reverse geocoding, which often returns addresses in a different format than Calgary's official database. By querying Calgary's Parcel Address dataset directly, we show the exact addresses that exist in the City's records - eliminating format mismatches.
 
-## Warning Dialog Design
+## Implementation Steps
+
+### 1. Create New Edge Function: `search-calgary-parcels`
+Query Calgary's Parcel Address API using geo-spatial search:
+- Accept lat/lng coordinates and search radius
+- Use Socrata SODA API `within_circle()` function to find nearby parcels
+- Return parcel addresses with their coordinates
+- Endpoint: `https://data.calgary.ca/resource/s8b3-j88p.json`
+
+### 2. Create New Component: `CityParcelPickerDialog`
+An interactive map dialog that:
+- Geocodes the property address to get starting coordinates
+- Fetches nearby parcels from Calgary's database
+- Displays parcels as clickable markers on a Google Map
+- Shows the current property location as a distinct marker
+- Allows user to click a parcel marker to select it
+- On selection, updates the property address and re-triggers city data fetch
+
+### 3. Update `CityDataNotFoundDialog`
+- Add a "Search on Map" button that opens the new parcel picker
+- Keep the existing "nearby suggestions" as a fallback option
+- Show clearer messaging about why the address wasn't found
+
+### 4. Update `PropertyDetail.tsx`
+- Wire up the new dialog to handle parcel selection
+- When user selects a parcel, update property address and refetch city data
+
+## Technical Details
+
+### Calgary Parcel API Query
 ```text
-+-------------------------------------------+
-|  ⚠️ Similar Property Found                |
-+-------------------------------------------+
-|  An existing property matches this        |
-|  address:                                 |
-|                                           |
-|  📍 123 Main Street NW                    |
-|     Calgary | 50,000 SF                   |
-|                                           |
-|  Do you want to link this transaction     |
-|  to the existing property, or create      |
-|  a new entry?                             |
-+-------------------------------------------+
-| [Cancel] [Create Anyway] [Use Existing]   |
-+-------------------------------------------+
+GET https://data.calgary.ca/resource/s8b3-j88p.json
+  ?$where=within_circle(the_geom, {lat}, {lng}, {radius_meters})
+  &$limit=50
 ```
 
-## Technical Implementation
+### UI Flow
+```text
+1. User clicks "Fetch City Data"
+2. Address not found in assessment database
+3. Dialog appears with two options:
+   - "Search on Map" -> Opens parcel picker map
+   - "Suggested Addresses" -> Shows current nearby suggestions
+4. User clicks parcel on map
+5. System updates property address
+6. System re-fetches city data with new address
+```
 
-### 1. Create Duplicate Check Hook
-**New file:** `src/hooks/useDuplicateAddressCheck.ts`
+### Map Interaction
+- Current property location: Blue marker
+- Calgary parcels: Orange/amber markers
+- Selected parcel: Green marker with info popup
+- Click parcel -> Shows address, click "Use This Address" to confirm
 
-- Function to search properties, market_listings, and transactions tables
-- Normalize addresses for comparison (lowercase, trim whitespace)
-- Return matching records if found
+## Files to Create
+- `supabase/functions/search-calgary-parcels/index.ts`
+- `src/components/properties/CityParcelPickerDialog.tsx`
 
-### 2. Create Warning Dialog Component
-**New file:** `src/components/transactions/DuplicateAddressWarning.tsx`
-
-- Uses existing `AlertDialog` pattern from `ConfirmDialog`
-- Displays matched property details (address, city, size)
-- Three action buttons: Cancel, Create Anyway, Use Existing
-
-### 3. Update TransactionForm Submit Logic
-**File:** `src/pages/TransactionForm.tsx`
-
-- Before saving, call duplicate check
-- If match found, show warning dialog instead of saving immediately
-- Handle user's choice (proceed, cancel, or use existing)
-
-### 4. Integrate with AddressCombobox (from previous plan)
-The combobox will still show suggestions as user types, but this provides a **second layer of protection** at submit time for users who ignore or miss the suggestions.
-
-## Files to Create/Modify
-1. **Create:** `src/hooks/useDuplicateAddressCheck.ts` - Address matching logic
-2. **Create:** `src/components/transactions/DuplicateAddressWarning.tsx` - Warning dialog
-3. **Modify:** `src/pages/TransactionForm.tsx` - Add pre-submit validation
-
-## Edge Cases
-- **Exact match vs fuzzy match**: Use normalized string comparison (lowercase, trimmed)
-- **Same address, different unit**: User clicks "Create Anyway" for legitimate duplicates
-- **Edit mode**: Skip duplicate check when editing existing transaction (or exclude current record from check)
-- **Case sensitivity**: "123 MAIN ST" matches "123 Main St"
+## Files to Modify
+- `src/components/properties/CityDataNotFoundDialog.tsx`
+- `src/pages/PropertyDetail.tsx`
