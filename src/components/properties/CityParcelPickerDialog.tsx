@@ -8,7 +8,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { Loader2, MapPin, Check, AlertTriangle } from 'lucide-react';
+import { Loader2, MapPin, Check, AlertTriangle, ExternalLink } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 
 interface CityParcelPickerDialogProps {
@@ -29,37 +29,6 @@ interface Parcel {
   community_name?: string;
 }
 
-// Track if Google Maps script is loaded
-let googleMapsPromise: Promise<void> | null = null;
-
-function loadGoogleMaps(apiKey: string): Promise<void> {
-  if (googleMapsPromise) return googleMapsPromise;
-  
-  if (window.google?.maps?.Map) {
-    return Promise.resolve();
-  }
-
-  googleMapsPromise = new Promise((resolve, reject) => {
-    const script = document.createElement('script');
-    script.src = `https://maps.googleapis.com/maps/api/maps3d/bootstrap.js?key=${apiKey}&libraries=maps,marker&callback=initMap&v=alpha`;
-    script.async = true;
-    script.defer = true;
-    
-    (window as any).initMap = () => {
-      resolve();
-    };
-    
-    script.onerror = () => {
-      googleMapsPromise = null;
-      reject(new Error('Failed to load Google Maps'));
-    };
-    
-    document.head.appendChild(script);
-  });
-
-  return googleMapsPromise;
-}
-
 export function CityParcelPickerDialog({
   open,
   onOpenChange,
@@ -72,6 +41,7 @@ export function CityParcelPickerDialog({
   const mapRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<google.maps.Map | null>(null);
   const markersRef = useRef<google.maps.marker.AdvancedMarkerElement[]>([]);
+  const circlesRef = useRef<google.maps.Circle[]>([]);
   const propertyMarkerRef = useRef<google.maps.marker.AdvancedMarkerElement | null>(null);
   
   const [loading, setLoading] = useState(false);
@@ -141,7 +111,7 @@ export function CityParcelPickerDialog({
     
     try {
       const { data, error } = await supabase.functions.invoke('search-calgary-parcels', {
-        body: { latitude: lat, longitude: lng, radiusMeters: 200 },
+        body: { latitude: lat, longitude: lng, radiusMeters: 500 },
       });
 
       if (error) throw error;
@@ -174,6 +144,19 @@ export function CityParcelPickerDialog({
     init();
   }, [open, apiKey, geocodeAddress, fetchParcels]);
 
+  // Open My Property map in new tab
+  const openMyPropertyMap = () => {
+    if (!center) return;
+    const url = `https://maps.calgary.ca/myproperty/?find=${center.lat},${center.lng}`;
+    window.open(url, '_blank', 'noopener,noreferrer');
+  };
+
+  // Extract street number from address
+  const getStreetNumber = (addr: string): string => {
+    const match = addr.match(/^(\d+[A-Za-z]?)/);
+    return match ? match[1] : addr.split(' ')[0];
+  };
+
   // Initialize Google Maps
   useEffect(() => {
     if (!open || !center || !mapRef.current || !apiKey) return;
@@ -193,60 +176,89 @@ export function CityParcelPickerDialog({
           });
         }
 
-        // Create map
+        // Create map with satellite/hybrid view
         const map = new google.maps.Map(mapRef.current!, {
           center,
           zoom: 18,
           mapId: 'parcel-picker-map',
+          mapTypeId: 'hybrid',
           disableDefaultUI: false,
           zoomControl: true,
           streetViewControl: false,
-          mapTypeControl: false,
+          mapTypeControl: true,
           fullscreenControl: false,
         });
 
         mapInstanceRef.current = map;
 
-        // Clear existing markers
+        // Clear existing markers and circles
         markersRef.current.forEach(m => m.map = null);
         markersRef.current = [];
+        circlesRef.current.forEach(c => c.setMap(null));
+        circlesRef.current = [];
         if (propertyMarkerRef.current) {
           propertyMarkerRef.current.map = null;
         }
 
-        // Add property location marker (blue)
-        const propertyPin = new google.maps.marker.PinElement({
-          background: '#3b82f6',
-          borderColor: '#1d4ed8',
-          glyphColor: '#ffffff',
-          scale: 1.2,
-        });
+        // Add property location marker (blue pin with label)
+        const propertyLabelDiv = document.createElement('div');
+        propertyLabelDiv.innerHTML = `
+          <div style="
+            background: #3b82f6;
+            color: white;
+            padding: 8px 12px;
+            border-radius: 8px;
+            font-weight: bold;
+            font-size: 12px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+            border: 3px solid white;
+            text-align: center;
+            white-space: nowrap;
+          ">
+            📍 Current Location
+          </div>
+        `;
 
         const propertyMarker = new google.maps.marker.AdvancedMarkerElement({
           map,
           position: center,
           title: 'Current Property Location',
-          content: propertyPin.element,
+          content: propertyLabelDiv,
           zIndex: 1000,
         });
         propertyMarkerRef.current = propertyMarker;
 
-        // Add parcel markers (orange/amber)
+        // Add parcel markers with labels and circles
         parcels.forEach((parcel) => {
           const isSelected = selectedParcel?.address === parcel.address;
+          const streetNumber = getStreetNumber(parcel.address);
           
-          const pin = new google.maps.marker.PinElement({
-            background: isSelected ? '#22c55e' : '#f59e0b',
-            borderColor: isSelected ? '#16a34a' : '#d97706',
-            glyphColor: '#ffffff',
-            scale: isSelected ? 1.1 : 0.9,
-          });
+          // Create custom label marker
+          const labelDiv = document.createElement('div');
+          labelDiv.innerHTML = `
+            <div style="
+              background: ${isSelected ? '#22c55e' : '#f59e0b'};
+              color: white;
+              padding: 6px 10px;
+              border-radius: 6px;
+              font-weight: bold;
+              font-size: 14px;
+              box-shadow: 0 2px 8px rgba(0,0,0,0.4);
+              border: 2px solid white;
+              cursor: pointer;
+              transition: transform 0.2s;
+              white-space: nowrap;
+            ">
+              ${streetNumber}
+            </div>
+          `;
 
           const marker = new google.maps.marker.AdvancedMarkerElement({
             map,
             position: { lat: parcel.latitude, lng: parcel.longitude },
             title: parcel.address,
-            content: pin.element,
+            content: labelDiv,
+            zIndex: isSelected ? 999 : 100,
           });
 
           marker.addListener('click', () => {
@@ -254,6 +266,25 @@ export function CityParcelPickerDialog({
           });
 
           markersRef.current.push(marker);
+
+          // Add semi-transparent circle around parcel
+          const circle = new google.maps.Circle({
+            map,
+            center: { lat: parcel.latitude, lng: parcel.longitude },
+            radius: 30, // ~30m radius for typical lot
+            fillColor: isSelected ? '#22c55e' : '#f59e0b',
+            fillOpacity: 0.15,
+            strokeColor: isSelected ? '#22c55e' : '#f59e0b',
+            strokeOpacity: 0.4,
+            strokeWeight: 2,
+            clickable: true,
+          });
+
+          circle.addListener('click', () => {
+            setSelectedParcel(parcel);
+          });
+
+          circlesRef.current.push(circle);
         });
       } catch (err) {
         console.error('Error initializing map:', err);
@@ -266,6 +297,8 @@ export function CityParcelPickerDialog({
     return () => {
       markersRef.current.forEach(m => m.map = null);
       markersRef.current = [];
+      circlesRef.current.forEach(c => c.setMap(null));
+      circlesRef.current = [];
       if (propertyMarkerRef.current) {
         propertyMarkerRef.current.map = null;
       }
@@ -295,11 +328,28 @@ export function CityParcelPickerDialog({
             Select Calgary Parcel
           </DialogTitle>
           <DialogDescription>
-            Click on an orange marker to select the correct parcel address. The blue marker shows the current property location.
+            Click on an orange label to select the correct parcel. Use satellite view to identify buildings.
           </DialogDescription>
         </DialogHeader>
 
         <div className="flex-1 min-h-0 space-y-4">
+          {/* Action Bar */}
+          <div className="flex items-center justify-between">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={openMyPropertyMap}
+              disabled={!center}
+              className="gap-2"
+            >
+              <ExternalLink className="h-4 w-4" />
+              Open in My Property
+            </Button>
+            <span className="text-xs text-muted-foreground">
+              View official parcel boundaries on Calgary's map
+            </span>
+          </div>
+
           {/* Map Container */}
           <div className="relative h-[400px] rounded-lg overflow-hidden border bg-muted">
             {(loading || geocoding) && (
@@ -331,7 +381,7 @@ export function CityParcelPickerDialog({
             </div>
             <div className="flex items-center gap-1.5">
               <div className="w-3 h-3 rounded-full bg-amber-500" />
-              <span>Calgary Parcels</span>
+              <span>Calgary Parcels ({parcels.length})</span>
             </div>
             <div className="flex items-center gap-1.5">
               <div className="w-3 h-3 rounded-full bg-green-500" />
@@ -367,7 +417,7 @@ export function CityParcelPickerDialog({
           {parcels.length > 0 && (
             <div className="max-h-[150px] overflow-y-auto space-y-1">
               <p className="text-xs text-muted-foreground mb-2">
-                {parcels.length} parcel{parcels.length !== 1 ? 's' : ''} found nearby:
+                {parcels.length} parcel{parcels.length !== 1 ? 's' : ''} found within 500m:
               </p>
               {parcels.map((parcel, idx) => (
                 <button
