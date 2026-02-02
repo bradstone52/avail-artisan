@@ -55,9 +55,8 @@ export default function PropertyDetail() {
   const [cityDataNotFoundOpen, setCityDataNotFoundOpen] = useState(false);
   const [parcelPickerOpen, setParcelPickerOpen] = useState(false);
   const [uploadingBrochure, setUploadingBrochure] = useState(false);
-  const [openingMyProperty, setOpeningMyProperty] = useState(false);
 
-  // Open My Property map with coordinates (geocodes if needed)
+  // Open My Property map with coordinates (same as CityParcelPickerDialog)
   const handleOpenMyProperty = async () => {
     if (!property) return;
     
@@ -66,7 +65,6 @@ export default function PropertyDetail() {
     
     // If no coordinates, geocode the address first
     if (!lng || !lat) {
-      setOpeningMyProperty(true);
       try {
         const { data, error } = await supabase.functions.invoke('get-google-maps-token', {
           body: { authenticated: true },
@@ -89,10 +87,9 @@ export default function PropertyDetail() {
         } else {
           toast({
             title: 'Could not locate address',
-            description: 'Unable to geocode the property address. Try using the Fetch City Data button instead.',
+            description: 'Unable to geocode the property address.',
             variant: 'destructive'
           });
-          setOpeningMyProperty(false);
           return;
         }
       } catch (err) {
@@ -102,13 +99,11 @@ export default function PropertyDetail() {
           description: 'Failed to geocode address for map lookup.',
           variant: 'destructive'
         });
-        setOpeningMyProperty(false);
         return;
       }
-      setOpeningMyProperty(false);
     }
     
-    // Calgary My Property uses lng,lat order for coordinates
+    // Same URL format as CityParcelPickerDialog
     const url = `https://maps.calgary.ca/myproperty/?find=${lng},${lat}`;
     window.open(url, '_blank', 'noopener,noreferrer');
   };
@@ -899,13 +894,8 @@ export default function PropertyDetail() {
                 <Button
                   variant="outline"
                   onClick={handleOpenMyProperty}
-                  disabled={openingMyProperty}
                 >
-                  {openingMyProperty ? (
-                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  ) : (
-                    <ExternalLink className="h-4 w-4 mr-2" />
-                  )}
+                  <ExternalLink className="h-4 w-4 mr-2" />
                   View on My Property
                 </Button>
                 <Button 
