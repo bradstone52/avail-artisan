@@ -243,7 +243,7 @@ export default function PropertiesMap() {
     }
   };
 
-  // Add property markers function
+  // Add property markers function - with offset for overlapping coordinates
   const addMarkersToMap = useCallback(async () => {
     if (!mapRef.current || !mapToken) return;
 
@@ -262,25 +262,52 @@ export default function PropertiesMap() {
 
     console.log(`[PropertiesMap] Adding ${mappableProperties.length} markers`);
 
+    // Group by coordinates to detect overlaps
+    const coordGroups = new Map<string, PropertyWithLinks[]>();
+    mappableProperties.forEach((property) => {
+      const key = `${property.latitude!.toFixed(6)},${property.longitude!.toFixed(6)}`;
+      if (!coordGroups.has(key)) {
+        coordGroups.set(key, []);
+      }
+      coordGroups.get(key)!.push(property);
+    });
+
     // Fit bounds to show all markers
     if (mappableProperties.length > 0) {
       const bounds = new google.maps.LatLngBounds();
       
-      mappableProperties.forEach((property) => {
-        const el = createPropertyMarkerElement(false);
+      // Process each coordinate group
+      coordGroups.forEach((propertiesAtLocation) => {
+        const count = propertiesAtLocation.length;
+        
+        propertiesAtLocation.forEach((property, index) => {
+          const el = createPropertyMarkerElement(false);
+          
+          // Calculate offset for overlapping markers (spread in a circle)
+          let lat = property.latitude!;
+          let lng = property.longitude!;
+          
+          if (count > 1) {
+            // Offset by ~30 meters in a circular pattern
+            const offsetDistance = 0.0003; // ~30m in degrees
+            const angle = (2 * Math.PI * index) / count;
+            lat += offsetDistance * Math.cos(angle);
+            lng += offsetDistance * Math.sin(angle);
+          }
 
-        const marker = new AdvancedMarkerElement({
-          map: mapRef.current!,
-          position: { lat: property.latitude!, lng: property.longitude! },
-          content: el,
+          const marker = new AdvancedMarkerElement({
+            map: mapRef.current!,
+            position: { lat, lng },
+            content: el,
+          });
+
+          marker.addListener('click', () => {
+            showPropertyPopup(property, marker);
+          });
+
+          markersRef.current.set(property.id, marker);
+          bounds.extend({ lat: property.latitude!, lng: property.longitude! });
         });
-
-        marker.addListener('click', () => {
-          showPropertyPopup(property, marker);
-        });
-
-        markersRef.current.set(property.id, marker);
-        bounds.extend({ lat: property.latitude!, lng: property.longitude! });
       });
 
       // Fit map to show all markers
