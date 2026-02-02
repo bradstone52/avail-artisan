@@ -158,7 +158,7 @@ export function CityParcelPickerDialog({
     return match ? match[1] : addr.split(' ')[0];
   };
 
-  // Initialize Google Maps
+  // Initialize Google Maps (only when center/parcels change, NOT on selection)
   useEffect(() => {
     if (!open || !center || !mapRef.current || !apiKey) return;
 
@@ -231,14 +231,15 @@ export function CityParcelPickerDialog({
 
         // Add parcel markers with labels and circles
         parcels.forEach((parcel) => {
-          const isSelected = selectedParcel?.address === parcel.address;
           const streetNumber = getStreetNumber(parcel.address);
           
           // Create custom label marker
           const labelDiv = document.createElement('div');
+          labelDiv.className = 'parcel-marker';
+          labelDiv.dataset.address = parcel.address;
           labelDiv.innerHTML = `
             <div style="
-              background: ${isSelected ? '#22c55e' : '#f59e0b'};
+              background: #f59e0b;
               color: white;
               padding: 6px 10px;
               border-radius: 6px;
@@ -259,7 +260,7 @@ export function CityParcelPickerDialog({
             position: { lat: parcel.latitude, lng: parcel.longitude },
             title: parcel.address,
             content: labelDiv,
-            zIndex: isSelected ? 999 : 100,
+            zIndex: 100,
           });
 
           marker.addListener('click', () => {
@@ -273,9 +274,9 @@ export function CityParcelPickerDialog({
             map,
             center: { lat: parcel.latitude, lng: parcel.longitude },
             radius: 30, // ~30m radius for typical lot
-            fillColor: isSelected ? '#22c55e' : '#f59e0b',
+            fillColor: '#f59e0b',
             fillOpacity: 0.15,
-            strokeColor: isSelected ? '#22c55e' : '#f59e0b',
+            strokeColor: '#f59e0b',
             strokeOpacity: 0.4,
             strokeWeight: 2,
             clickable: true,
@@ -304,7 +305,40 @@ export function CityParcelPickerDialog({
         propertyMarkerRef.current.map = null;
       }
     };
-  }, [open, center, parcels, selectedParcel, apiKey]);
+  }, [open, center, parcels, apiKey]);
+
+  // Update marker/circle styles when selection changes (without re-initializing map)
+  useEffect(() => {
+    if (!mapInstanceRef.current || parcels.length === 0) return;
+
+    // Update marker styles
+    markersRef.current.forEach((marker, idx) => {
+      const parcel = parcels[idx];
+      if (!parcel) return;
+      
+      const isSelected = selectedParcel?.address === parcel.address;
+      const labelDiv = marker.content as HTMLElement;
+      if (labelDiv) {
+        const innerDiv = labelDiv.querySelector('div');
+        if (innerDiv) {
+          innerDiv.style.background = isSelected ? '#22c55e' : '#f59e0b';
+        }
+      }
+      marker.zIndex = isSelected ? 999 : 100;
+    });
+
+    // Update circle styles
+    circlesRef.current.forEach((circle, idx) => {
+      const parcel = parcels[idx];
+      if (!parcel) return;
+      
+      const isSelected = selectedParcel?.address === parcel.address;
+      circle.setOptions({
+        fillColor: isSelected ? '#22c55e' : '#f59e0b',
+        strokeColor: isSelected ? '#22c55e' : '#f59e0b',
+      });
+    });
+  }, [selectedParcel, parcels]);
 
   const handleConfirm = () => {
     if (selectedParcel) {
