@@ -137,6 +137,30 @@ export default function PropertyDetail() {
 
       if (error) throw error;
 
+       // Auto-populate submarket on save for Calgary properties (same behavior as Market Listings)
+       // We run this when saving if the address/city was updated OR if submarket is empty.
+       const nextCity = String((updateFields as any).city ?? property.city ?? '');
+       const nextAddress = String((updateFields as any).address ?? property.address ?? '');
+       const nextSubmarket = (updateFields as any).submarket ?? property.submarket;
+       const shouldAutoGeocode =
+         nextCity.toLowerCase().includes('calgary') &&
+         !!nextAddress &&
+         (!!(updateFields as any).address || !!(updateFields as any).city || !nextSubmarket);
+
+       if (shouldAutoGeocode) {
+         // Fire and forget, but refetch once it completes so UI updates
+         supabase.functions
+           .invoke('geocode-property', {
+             body: {
+               propertyId: property.id,
+               address: nextAddress,
+               city: nextCity,
+             },
+           })
+           .then(() => refetch())
+           .catch((err) => console.error('Error geocoding property:', err));
+       }
+
       toast({ title: 'Property updated successfully' });
       setEditDialogOpen(false);
       refetch();
@@ -207,6 +231,20 @@ export default function PropertyDetail() {
       if (error) throw error;
 
       toast({ title: 'Address updated', description: `Trying "${newAddress}"...` });
+
+      // Also auto-assign submarket when we change the address
+      if ((property.city || '').toLowerCase().includes('calgary')) {
+        supabase.functions
+          .invoke('geocode-property', {
+            body: {
+              propertyId: property.id,
+              address: newAddress,
+              city: property.city,
+            },
+          })
+          .then(() => refetch())
+          .catch((err) => console.error('Error geocoding property:', err));
+      }
       
       // Now fetch city data with the new address
       await handleFetchCityData(newAddress);
