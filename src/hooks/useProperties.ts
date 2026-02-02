@@ -201,12 +201,19 @@ export function useProperties() {
           })
           .filter(Boolean);
 
-        // Find auto-matches by address (case-insensitive, trimmed)
+        // Find auto-matches by address OR display_address (case-insensitive, trimmed)
+        // This allows the main address to be used for City of Calgary lookups
+        // while display_address maintains the market listing link
         const normalizedPropertyAddress = property.address?.toLowerCase().trim();
+        const normalizedDisplayAddress = property.display_address?.toLowerCase().trim();
         const autoMatches = (allMarketListings || [])
           .filter(ml => {
             const normalizedListingAddress = ml.address?.toLowerCase().trim();
-            return normalizedPropertyAddress && normalizedListingAddress === normalizedPropertyAddress;
+            // Match on either the main address OR the display address
+            return normalizedListingAddress && (
+              (normalizedPropertyAddress && normalizedListingAddress === normalizedPropertyAddress) ||
+              (normalizedDisplayAddress && normalizedListingAddress === normalizedDisplayAddress)
+            );
           })
           .filter(ml => !manualLinks.some(link => link?.id === ml.id))
           .map(ml => ({
