@@ -108,19 +108,15 @@ export default function PropertyDetail() {
 
       if (error) throw error;
 
-      // Check if assessment was found
-      if (data?.assessmentFound === false && data?.permitsFound === 0) {
+      // If we can't find an assessment match, treat the address as “not found” for city records
+      // and offer nearby address suggestions.
+      if (data?.assessmentFound === false) {
         toast({
           title: 'No city records found',
-          description: 'The address was not found in Calgary\'s database.',
+          description: 'This address was not found in the city assessment database. Try a nearby address format.',
           variant: 'destructive'
         });
         setCityDataNotFoundOpen(true);
-      } else if (data?.assessmentFound === false) {
-        toast({
-          title: 'Partial data found',
-          description: `Found ${data.permitsFound} permit(s), but no assessment record.`,
-        });
         refetch();
       } else {
         toast({ 

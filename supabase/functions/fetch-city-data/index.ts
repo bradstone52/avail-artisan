@@ -245,29 +245,36 @@ Deno.serve(async (req) => {
     }
 
     // Fetch building permits
+    // IMPORTANT: Only fetch/attach permits when we have an assessment match.
+    // Otherwise we risk showing permits for an address format that the assessment dataset
+    // can’t resolve (and we want to prompt the user to try a nearby/alternate address).
     const permits: any[] = [];
-    try {
-      const permitsUrl = buildSoqlUrl(PERMITS_API, 'originaladdress', searchAddress, '$order=issueddate DESC');
-      console.log('Permits URL:', permitsUrl);
-      const permitsResp = await fetch(permitsUrl);
-      if (permitsResp.ok) {
-        const data = await permitsResp.json();
-        // Filter to only permits that match our street number AND quadrant
-        const upperQuadrant = addressQuadrant?.toUpperCase() || null;
-        const filtered = (data || []).filter((p: any) => {
-          const addr = p.originaladdress?.toUpperCase() || '';
-          const startsWithStreetNum = addr.startsWith(streetNumber + ' ');
-          // If we have a quadrant, require it to match (prevents NW/SE mix-ups)
-          const quadrantMatches = upperQuadrant ? addr.includes(` ${upperQuadrant}`) : true;
-          return startsWithStreetNum && quadrantMatches;
-        });
-        permits.push(...filtered);
-        console.log(`Permits API returned ${data?.length || 0} results, filtered to ${permits.length} (quadrant: ${upperQuadrant || 'none'})`);
-      } else {
-        console.log('Permits API error:', permitsResp.status, await permitsResp.text());
+    if (assessmentData) {
+      try {
+        const permitsUrl = buildSoqlUrl(PERMITS_API, 'originaladdress', searchAddress, '$order=issueddate DESC');
+        console.log('Permits URL:', permitsUrl);
+        const permitsResp = await fetch(permitsUrl);
+        if (permitsResp.ok) {
+          const data = await permitsResp.json();
+          // Filter to only permits that match our street number AND quadrant
+          const upperQuadrant = addressQuadrant?.toUpperCase() || null;
+          const filtered = (data || []).filter((p: any) => {
+            const addr = p.originaladdress?.toUpperCase() || '';
+            const startsWithStreetNum = addr.startsWith(streetNumber + ' ');
+            // If we have a quadrant, require it to match (prevents NW/SE mix-ups)
+            const quadrantMatches = upperQuadrant ? addr.includes(` ${upperQuadrant}`) : true;
+            return startsWithStreetNum && quadrantMatches;
+          });
+          permits.push(...filtered);
+          console.log(`Permits API returned ${data?.length || 0} results, filtered to ${permits.length} (quadrant: ${upperQuadrant || 'none'})`);
+        } else {
+          console.log('Permits API error:', permitsResp.status, await permitsResp.text());
+        }
+      } catch (err) {
+        console.error('Error fetching permits:', err);
       }
-    } catch (err) {
-      console.error('Error fetching permits:', err);
+    } else {
+      console.log('Skipping permits fetch because no assessment match was found.');
     }
 
     // Fetch parcel data for legal description (if we have a roll number)
@@ -455,8 +462,8 @@ Deno.serve(async (req) => {
 
     return new Response(JSON.stringify({ 
       success: true,
-      assessmentFound: !!assessmentData,
-      permitsFound: permits.length
+        assessmentFound: !!assessmentData,
+        permitsFound: assessmentData ? permits.length : 0
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' }
     });
