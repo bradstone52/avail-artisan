@@ -56,9 +56,15 @@ export default function TransactionForm() {
           transaction_type: data.transaction_type,
           transaction_date: data.transaction_date,
           closing_date: data.closing_date,
+          listing_removal_date: data.listing_removal_date,
           sale_price: data.sale_price,
           lease_rate_psf: data.lease_rate_psf,
           lease_term_months: data.lease_term_months,
+          year1_lease_rate_psf: data.year1_lease_rate_psf,
+          months_net_free_rent: data.months_net_free_rent,
+          months_gross_fixturing: data.months_gross_fixturing,
+          ti_allowance_psf: data.ti_allowance_psf,
+          est_op_costs_psf: data.est_op_costs_psf,
           buyer_tenant_name: data.buyer_tenant_name,
           buyer_tenant_company: data.buyer_tenant_company,
           seller_landlord_name: data.seller_landlord_name,
@@ -298,54 +304,128 @@ export default function TransactionForm() {
                     className={formData.sale_price != null ? 'input-filled' : ''}
                   />
                 </div>
+              ) : formData.transaction_type === 'Unknown/Removed' ? (
+                <div className="space-y-2">
+                  <Label htmlFor="listing_removal_date">Listing Removal Date</Label>
+                  <Input
+                    id="listing_removal_date"
+                    type="date"
+                    value={formData.listing_removal_date || ''}
+                    onChange={(e) => handleChange('listing_removal_date', e.target.value || null)}
+                    className={`min-w-0 ${formData.listing_removal_date ? 'input-filled' : ''}`}
+                  />
+                </div>
               ) : (
                 <>
-                  <div className="space-y-2">
-                    <Label htmlFor="lease_rate_psf">Lease Rate ($/SF)</Label>
-                    <Input
-                      id="lease_rate_psf"
-                      type="number"
-                      step="0.01"
-                      value={formData.lease_rate_psf ?? ''}
-                      onChange={(e) => handleChange('lease_rate_psf', e.target.value ? parseFloat(e.target.value) : null)}
-                      className={formData.lease_rate_psf != null ? 'input-filled' : ''}
-                    />
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="year1_lease_rate_psf">Year 1 Lease Rate ($/SF)</Label>
+                      <Input
+                        id="year1_lease_rate_psf"
+                        type="number"
+                        step="0.01"
+                        value={formData.year1_lease_rate_psf ?? ''}
+                        onChange={(e) => handleChange('year1_lease_rate_psf', e.target.value ? parseFloat(e.target.value) : null)}
+                        className={formData.year1_lease_rate_psf != null ? 'input-filled' : ''}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="lease_rate_psf">Avg. Lease Rate ($/SF)</Label>
+                      <Input
+                        id="lease_rate_psf"
+                        type="number"
+                        step="0.01"
+                        value={formData.lease_rate_psf ?? ''}
+                        onChange={(e) => handleChange('lease_rate_psf', e.target.value ? parseFloat(e.target.value) : null)}
+                        className={formData.lease_rate_psf != null ? 'input-filled' : ''}
+                      />
+                    </div>
                   </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="lease_term_months">Lease Term (months)</Label>
-                    <Input
-                      id="lease_term_months"
-                      type="number"
-                      value={formData.lease_term_months ?? ''}
-                      onChange={(e) => handleChange('lease_term_months', e.target.value ? parseInt(e.target.value) : null)}
-                      className={formData.lease_term_months != null ? 'input-filled' : ''}
-                    />
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="lease_term_months">Lease Term (months)</Label>
+                      <Input
+                        id="lease_term_months"
+                        type="number"
+                        value={formData.lease_term_months ?? ''}
+                        onChange={(e) => handleChange('lease_term_months', e.target.value ? parseInt(e.target.value) : null)}
+                        className={formData.lease_term_months != null ? 'input-filled' : ''}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="est_op_costs_psf">Est. Op. Costs ($/SF)</Label>
+                      <Input
+                        id="est_op_costs_psf"
+                        type="number"
+                        step="0.01"
+                        value={formData.est_op_costs_psf ?? ''}
+                        onChange={(e) => handleChange('est_op_costs_psf', e.target.value ? parseFloat(e.target.value) : null)}
+                        className={formData.est_op_costs_psf != null ? 'input-filled' : ''}
+                      />
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-3 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="months_net_free_rent"># Mo. Net Free Rent</Label>
+                      <Input
+                        id="months_net_free_rent"
+                        type="number"
+                        step="0.5"
+                        value={formData.months_net_free_rent ?? ''}
+                        onChange={(e) => handleChange('months_net_free_rent', e.target.value ? parseFloat(e.target.value) : null)}
+                        className={formData.months_net_free_rent != null ? 'input-filled' : ''}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="months_gross_fixturing"># Mo. Gross Fixturing</Label>
+                      <Input
+                        id="months_gross_fixturing"
+                        type="number"
+                        step="0.5"
+                        value={formData.months_gross_fixturing ?? ''}
+                        onChange={(e) => handleChange('months_gross_fixturing', e.target.value ? parseFloat(e.target.value) : null)}
+                        className={formData.months_gross_fixturing != null ? 'input-filled' : ''}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="ti_allowance_psf">TI Allowance ($/SF)</Label>
+                      <Input
+                        id="ti_allowance_psf"
+                        type="number"
+                        step="0.01"
+                        value={formData.ti_allowance_psf ?? ''}
+                        onChange={(e) => handleChange('ti_allowance_psf', e.target.value ? parseFloat(e.target.value) : null)}
+                        className={formData.ti_allowance_psf != null ? 'input-filled' : ''}
+                      />
+                    </div>
                   </div>
                 </>
               )}
 
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="transaction_date">Transaction Date</Label>
-                  <Input
-                    id="transaction_date"
-                    type="date"
-                    value={formData.transaction_date || ''}
-                    onChange={(e) => handleChange('transaction_date', e.target.value || null)}
-                    className={`min-w-0 ${formData.transaction_date ? 'input-filled' : ''}`}
-                  />
+              {formData.transaction_type !== 'Unknown/Removed' && (
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="transaction_date">Transaction Date</Label>
+                    <Input
+                      id="transaction_date"
+                      type="date"
+                      value={formData.transaction_date || ''}
+                      onChange={(e) => handleChange('transaction_date', e.target.value || null)}
+                      className={`min-w-0 ${formData.transaction_date ? 'input-filled' : ''}`}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="closing_date">Closing Date</Label>
+                    <Input
+                      id="closing_date"
+                      type="date"
+                      value={formData.closing_date || ''}
+                      onChange={(e) => handleChange('closing_date', e.target.value || null)}
+                      className={`min-w-0 ${formData.closing_date ? 'input-filled' : ''}`}
+                    />
+                  </div>
                 </div>
-                <div className="space-y-2">
-                  <Label htmlFor="closing_date">Closing Date</Label>
-                  <Input
-                    id="closing_date"
-                    type="date"
-                    value={formData.closing_date || ''}
-                    onChange={(e) => handleChange('closing_date', e.target.value || null)}
-                    className={`min-w-0 ${formData.closing_date ? 'input-filled' : ''}`}
-                  />
-                </div>
-              </div>
+              )}
             </CardContent>
           </Card>
 
