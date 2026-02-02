@@ -36,6 +36,7 @@ import { format } from 'date-fns';
 import { TenantsSection } from '@/components/properties/TenantsSection';
 import { PropertyEditDialog } from '@/components/properties/PropertyEditDialog';
 import { CityDataNotFoundDialog } from '@/components/properties/CityDataNotFoundDialog';
+import { CityParcelPickerDialog } from '@/components/properties/CityParcelPickerDialog';
 import { PropertyWithLinks } from '@/hooks/useProperties';
 
 export default function PropertyDetail() {
@@ -51,6 +52,7 @@ export default function PropertyDetail() {
   const [downloadingAllBrochures, setDownloadingAllBrochures] = useState(false);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [cityDataNotFoundOpen, setCityDataNotFoundOpen] = useState(false);
+  const [parcelPickerOpen, setParcelPickerOpen] = useState(false);
 
   // Fetch tenants when property id changes
   useEffect(() => {
@@ -895,7 +897,21 @@ export default function PropertyDetail() {
           address={property.address}
           city={property.city}
           propertyId={property.id}
+          latitude={property.latitude}
+          longitude={property.longitude}
           onRetryWithAddress={handleRetryWithAddress}
+          onOpenParcelPicker={() => setParcelPickerOpen(true)}
+        />
+
+        {/* City Parcel Picker Dialog */}
+        <CityParcelPickerDialog
+          open={parcelPickerOpen}
+          onOpenChange={setParcelPickerOpen}
+          address={property.address}
+          city={property.city}
+          latitude={property.latitude}
+          longitude={property.longitude}
+          onSelectParcel={handleRetryWithAddress}
         />
       </div>
     </AppLayout>

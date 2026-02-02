@@ -32,3 +32,6 @@ verify_jwt = false
 
 [functions.fetch-market-listings]
 verify_jwt = false
+
+[functions.search-calgary-parcels]
+verify_jwt = false
