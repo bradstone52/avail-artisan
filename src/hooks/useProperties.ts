@@ -288,6 +288,22 @@ export function useProperties() {
 
       if (error) throw error;
 
+      // For Calgary properties, auto-assign submarket via geocoding (fire and forget)
+      if (data && property.city?.toLowerCase().includes('calgary')) {
+        supabase.functions.invoke('geocode-property', {
+          body: { 
+            propertyId: data.id, 
+            address: property.address, 
+            city: property.city 
+          }
+        }).then(() => {
+          // Refetch to get updated submarket
+          fetchProperties();
+        }).catch(err => {
+          console.error('Error geocoding property:', err);
+        });
+      }
+
       toast({ title: 'Property created successfully' });
       await fetchProperties();
       return data as Property;
@@ -310,6 +326,23 @@ export function useProperties() {
         .eq('id', id);
 
       if (error) throw error;
+
+      // For Calgary properties, auto-assign submarket via geocoding if address changed
+      // (fire and forget to not block the UI)
+      if (updates.address && updates.city?.toLowerCase().includes('calgary')) {
+        supabase.functions.invoke('geocode-property', {
+          body: { 
+            propertyId: id, 
+            address: updates.address, 
+            city: updates.city 
+          }
+        }).then(() => {
+          // Refetch to get updated submarket
+          fetchProperties();
+        }).catch(err => {
+          console.error('Error geocoding property:', err);
+        });
+      }
 
       toast({ title: 'Property updated successfully' });
       await fetchProperties();
