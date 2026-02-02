@@ -1640,6 +1640,7 @@ export type Database = {
           city: string
           city_data_fetched_at: string | null
           city_data_raw: Json | null
+          city_lookup_address: string | null
           clear_height_ft: number | null
           community_name: string | null
           created_at: string
@@ -1678,6 +1679,7 @@ export type Database = {
           city?: string
           city_data_fetched_at?: string | null
           city_data_raw?: Json | null
+          city_lookup_address?: string | null
           clear_height_ft?: number | null
           community_name?: string | null
           created_at?: string
@@ -1716,6 +1718,7 @@ export type Database = {
           city?: string
           city_data_fetched_at?: string | null
           city_data_raw?: Json | null
+          city_lookup_address?: string | null
           clear_height_ft?: number | null
           community_name?: string | null
           created_at?: string

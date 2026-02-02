@@ -7,6 +7,7 @@ export interface Property {
   name: string;
   address: string;
   display_address: string | null;
+  city_lookup_address: string | null;
   city: string;
   submarket: string;
   property_type: string | null;
@@ -263,6 +264,7 @@ export function useProperties() {
           name: property.name || '',
           address: property.address!,
           display_address: property.display_address,
+          city_lookup_address: property.city_lookup_address,
           city: property.city || '',
           submarket: property.submarket || '',
           property_type: property.property_type,

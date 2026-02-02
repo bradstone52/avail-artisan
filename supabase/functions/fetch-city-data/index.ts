@@ -110,6 +110,22 @@ Deno.serve(async (req) => {
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
+    // Fetch property to check for city_lookup_address override
+    const { data: propertyData, error: propertyError } = await supabase
+      .from('properties')
+      .select('city_lookup_address')
+      .eq('id', propertyId)
+      .single();
+
+    if (propertyError) {
+      console.error('Error fetching property:', propertyError);
+      // Continue with the provided address if we can't fetch the property
+    }
+
+    // Use city_lookup_address if provided, otherwise fall back to the main address
+    const lookupAddress = propertyData?.city_lookup_address?.trim() || address;
+    console.log(`Using lookup address: "${lookupAddress}" (city_lookup_address: ${propertyData?.city_lookup_address ? 'set' : 'not set'})`);
+
     const parseNumber = (value: unknown): number | null => {
       if (value === null || value === undefined) return null;
       if (typeof value === 'number') return Number.isFinite(value) ? value : null;
@@ -139,7 +155,7 @@ Deno.serve(async (req) => {
 
     // Calgary addresses commonly look like: "4639 72 Ave SE" / "4639 72 AV SE" / "4639 72 ST NW"
     // We need a *specific* search to avoid matching the wrong quadrant (SE vs NW).
-    const addressParts = address
+    const addressParts = lookupAddress
       .replace(/,.*$/, '') // Remove everything after comma
       .replace(/\s+(Calgary|AB|Alberta).*$/i, '') // Remove city/province
       .trim()
@@ -152,15 +168,15 @@ Deno.serve(async (req) => {
     const STREET_TYPES = ['ST', 'STREET', 'AVE', 'AV', 'AVENUE', 'DR', 'DRIVE', 'RD', 'ROAD', 'BLVD', 'BOULEVARD',
       'LN', 'LANE', 'PL', 'PLACE', 'CT', 'COURT', 'WAY', 'CRES', 'CRESCENT', 'TR', 'TRAIL'];
 
-    const addressQuadrant = addressParts.find((p) => QUADRANTS.includes(p)) || null;
-    const streetTypeRaw = addressParts.find((p) => STREET_TYPES.includes(p)) || null;
+    const addressQuadrant = addressParts.find((p: string) => QUADRANTS.includes(p)) || null;
+    const streetTypeRaw = addressParts.find((p: string) => STREET_TYPES.includes(p)) || null;
     const streetTypeAbbrev = streetTypeRaw
       ? (streetTypeRaw === 'AVENUE' ? 'AV' : streetTypeRaw === 'AVE' ? 'AV' : streetTypeRaw)
       : null;
 
     // Many Calgary streets include a number (e.g., "72") right after the street number.
     // Grab the first numeric token after the street number.
-    const streetNameNumber = addressParts.slice(1).find((p) => /^\d+$/.test(p)) || null;
+    const streetNameNumber = addressParts.slice(1).find((p: string) => /^\d+$/.test(p)) || null;
 
     // Build search patterns from most-specific to least-specific.
     const searchPatterns: string[] = [];
@@ -182,7 +198,7 @@ Deno.serve(async (req) => {
 
     const searchAddress = searchPatterns[0];
 
-    console.log(`Fetching city data for address: "${address}"`);
+    console.log(`Fetching city data for lookup address: "${lookupAddress}" (original: "${address}")`);
     console.log(`Search patterns: ${JSON.stringify(searchPatterns)}, quadrant: "${addressQuadrant}"`);
 
     // Build proper SoQL query - properly encode the search value to prevent injection
