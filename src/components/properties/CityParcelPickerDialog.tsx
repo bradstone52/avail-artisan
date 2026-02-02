@@ -145,9 +145,10 @@ export function CityParcelPickerDialog({
   }, [open, apiKey, geocodeAddress, fetchParcels]);
 
   // Open My Property map in new tab
+  // Calgary My Property uses lng,lat order for coordinates
   const openMyPropertyMap = () => {
     if (!center) return;
-    const url = `https://maps.calgary.ca/myproperty/?find=${center.lat},${center.lng}`;
+    const url = `https://maps.calgary.ca/myproperty/?find=${center.lng},${center.lat}`;
     window.open(url, '_blank', 'noopener,noreferrer');
   };
 
