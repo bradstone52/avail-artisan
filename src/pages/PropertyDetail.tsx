@@ -30,7 +30,8 @@ import {
   Archive,
   Receipt,
   Users,
-  Pencil
+  Pencil,
+  Upload
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { TenantsSection } from '@/components/properties/TenantsSection';
@@ -53,6 +54,7 @@ export default function PropertyDetail() {
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [cityDataNotFoundOpen, setCityDataNotFoundOpen] = useState(false);
   const [parcelPickerOpen, setParcelPickerOpen] = useState(false);
+  const [uploadingBrochure, setUploadingBrochure] = useState(false);
 
   // Fetch tenants when property id changes
   useEffect(() => {
@@ -262,6 +264,91 @@ export default function PropertyDetail() {
       title: 'Bulk save complete',
       description: `Saved ${saved} brochure${saved !== 1 ? 's' : ''}${failed > 0 ? `, ${failed} failed` : ''}`
     });
+  };
+
+  // Manual upload brochure
+  const handleUploadBrochure = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file || !property) return;
+
+    // Validate file type
+    if (!file.type.includes('pdf')) {
+      toast({
+        title: 'Invalid file type',
+        description: 'Please upload a PDF file',
+        variant: 'destructive'
+      });
+      return;
+    }
+
+    // Check file size (15MB limit)
+    if (file.size > 15 * 1024 * 1024) {
+      toast({
+        title: 'File too large',
+        description: 'Maximum file size is 15MB',
+        variant: 'destructive'
+      });
+      return;
+    }
+
+    setUploadingBrochure(true);
+    try {
+      // Generate filename based on property address
+      const sanitizedAddress = (property.display_address || property.address)
+        .replace(/[^a-zA-Z0-9\s-]/g, '')
+        .replace(/\s+/g, '-')
+        .substring(0, 50);
+      const date = new Date().toISOString().split('T')[0];
+      
+      // Find next version number
+      const existingVersions = brochures
+        .filter(b => b.storage_path.includes(sanitizedAddress))
+        .map(b => {
+          const match = b.storage_path.match(/-v(\d+)\.pdf$/);
+          return match ? parseInt(match[1], 10) : 0;
+        });
+      const nextVersion = existingVersions.length > 0 ? Math.max(...existingVersions) + 1 : 1;
+      
+      const filename = `${property.id}/${sanitizedAddress}-${date}-v${nextVersion}.pdf`;
+
+      // Upload to storage
+      const { error: uploadError } = await supabase.storage
+        .from('property-brochures')
+        .upload(filename, file, {
+          contentType: 'application/pdf',
+          upsert: false
+        });
+
+      if (uploadError) throw uploadError;
+
+      // Create database record
+      const { error: dbError } = await supabase
+        .from('property_brochures')
+        .insert({
+          property_id: property.id,
+          original_url: 'manual-upload',
+          storage_path: filename,
+          file_size: file.size,
+          download_method: 'manual',
+          notes: `Manually uploaded: ${file.name}`
+        });
+
+      if (dbError) throw dbError;
+
+      toast({ title: 'Brochure uploaded successfully' });
+      refetch();
+    } catch (error: any) {
+      console.error('Error uploading brochure:', error);
+      toast({
+        title: 'Upload failed',
+        description: error.message,
+        variant: 'destructive'
+      });
+    } finally {
+      setUploadingBrochure(false);
+      // Reset input
+      event.target.value = '';
+    }
   };
 
   const formatCurrency = (value: number | null) => {
@@ -637,11 +724,36 @@ export default function PropertyDetail() {
           {/* Brochures Tab */}
           <TabsContent value="brochures" className="space-y-4">
             <Card>
-              <CardHeader>
-                <CardTitle>Brochure Archive</CardTitle>
-                <CardDescription>
-                  Historical brochures downloaded from listings over time
-                </CardDescription>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <div>
+                  <CardTitle>Brochure Archive</CardTitle>
+                  <CardDescription>
+                    Historical brochures downloaded from listings over time
+                  </CardDescription>
+                </div>
+                <div>
+                  <input
+                    type="file"
+                    id="brochure-upload"
+                    accept=".pdf,application/pdf"
+                    className="hidden"
+                    onChange={handleUploadBrochure}
+                    disabled={uploadingBrochure}
+                  />
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => document.getElementById('brochure-upload')?.click()}
+                    disabled={uploadingBrochure}
+                  >
+                    {uploadingBrochure ? (
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    ) : (
+                      <Upload className="h-4 w-4 mr-2" />
+                    )}
+                    Upload PDF
+                  </Button>
+                </div>
               </CardHeader>
               <CardContent>
                 {brochures.length > 0 ? (
@@ -670,6 +782,11 @@ export default function PropertyDetail() {
                               {brochure.download_method === 'direct' && (
                                 <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400">
                                   Direct
+                                </span>
+                              )}
+                              {brochure.download_method === 'manual' && (
+                                <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400">
+                                  Manual Upload
                                 </span>
                               )}
                             </div>

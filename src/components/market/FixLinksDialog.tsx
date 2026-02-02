@@ -19,11 +19,11 @@ interface FixLinksDialogProps {
 }
 
 type ListingWithIssue = MarketListing & {
-  issue: 'missing' | 'broken' | 'error';
+  issue: 'missing' | 'broken' | 'error' | 'restricted';
 };
 
 export function FixLinksDialog({ open, onOpenChange, listings, onListingUpdated }: FixLinksDialogProps) {
-  const [activeTab, setActiveTab] = useState<'missing' | 'broken' | 'error'>('broken');
+  const [activeTab, setActiveTab] = useState<'missing' | 'broken' | 'error' | 'restricted'>('broken');
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editingLink, setEditingLink] = useState('');
   const [savingId, setSavingId] = useState<string | null>(null);
@@ -36,6 +36,11 @@ export function FixLinksDialog({ open, onOpenChange, listings, onListingUpdated 
 
   const errorListings = useMemo(() => 
     listings.filter(l => l.link && l.link !== '' && l.link_status === 'error'),
+    [listings]
+  );
+
+  const restrictedListings = useMemo(() => 
+    listings.filter(l => l.link && l.link !== '' && l.link_status === 'restricted'),
     [listings]
   );
 
@@ -208,10 +213,10 @@ export function FixLinksDialog({ open, onOpenChange, listings, onListingUpdated 
               {listing.display_address || listing.address}
             </span>
             <Badge 
-              variant={listing.issue === 'broken' ? 'destructive' : listing.issue === 'error' ? 'outline' : 'secondary'} 
-              className={`text-xs shrink-0 ${listing.issue === 'error' ? 'border-orange-500 text-orange-500' : ''}`}
+              variant={listing.issue === 'broken' ? 'destructive' : listing.issue === 'error' ? 'outline' : listing.issue === 'restricted' ? 'outline' : 'secondary'} 
+              className={`text-xs shrink-0 ${listing.issue === 'error' ? 'border-orange-500 text-orange-500' : ''} ${listing.issue === 'restricted' ? 'border-amber-500 text-amber-500' : ''}`}
             >
-              {listing.issue === 'broken' ? 'Broken' : listing.issue === 'error' ? 'Error' : 'Missing'}
+              {listing.issue === 'broken' ? 'Broken' : listing.issue === 'error' ? 'Error' : listing.issue === 'restricted' ? 'Restricted' : 'Missing'}
             </Badge>
           </div>
           <div className="text-xs text-muted-foreground mb-2">
@@ -291,14 +296,17 @@ export function FixLinksDialog({ open, onOpenChange, listings, onListingUpdated 
             Fix Broken & Missing Links
           </DialogTitle>
           <DialogDescription>
-            {brokenListings.length} broken, {errorListings.length} errors, {missingListings.length} missing
+            {brokenListings.length} broken, {restrictedListings.length} restricted, {errorListings.length} errors, {missingListings.length} missing
           </DialogDescription>
         </DialogHeader>
 
-        <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as 'missing' | 'broken' | 'error')} className="w-full">
-          <TabsList className="grid w-full grid-cols-3">
+        <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as 'missing' | 'broken' | 'error' | 'restricted')} className="w-full">
+          <TabsList className="grid w-full grid-cols-4">
             <TabsTrigger value="broken" className="text-sm">
               Broken ({brokenListings.length})
+            </TabsTrigger>
+            <TabsTrigger value="restricted" className="text-sm">
+              Restricted ({restrictedListings.length})
             </TabsTrigger>
             <TabsTrigger value="error" className="text-sm">
               Errors ({errorListings.length})
@@ -318,6 +326,25 @@ export function FixLinksDialog({ open, onOpenChange, listings, onListingUpdated 
                 ) : (
                   brokenListings.map((l) => 
                     renderListingRow({ ...l, issue: 'broken' as const })
+                  )
+                )}
+              </div>
+            </ScrollArea>
+          </TabsContent>
+
+          <TabsContent value="restricted" className="mt-4">
+            <ScrollArea className="h-[50vh] pr-4">
+              <div className="space-y-2">
+                <p className="text-xs text-muted-foreground mb-3 px-1">
+                  These brochures require manual download. Visit the link in your browser, download the PDF, then upload it on the property page.
+                </p>
+                {restrictedListings.length === 0 ? (
+                  <div className="text-center py-8 text-muted-foreground">
+                    No restricted links found
+                  </div>
+                ) : (
+                  restrictedListings.map((l) => 
+                    renderListingRow({ ...l, issue: 'restricted' as const })
                   )
                 )}
               </div>
