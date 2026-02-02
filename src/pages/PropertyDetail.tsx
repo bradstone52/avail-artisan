@@ -839,19 +839,24 @@ export default function PropertyDetail() {
                 </p>
               </div>
               <div className="flex gap-2">
-                {property.latitude && property.longitude && (
-                  <Button
-                    variant="outline"
-                    onClick={() => {
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    let url: string;
+                    if (property.latitude && property.longitude) {
                       // City of Calgary My Property uses lng,lat order for coordinates
-                      const url = `https://myproperty.calgary.ca/?center=${property.longitude},${property.latitude}&zoom=18`;
-                      window.open(url, '_blank');
-                    }}
-                  >
-                    <ExternalLink className="h-4 w-4 mr-2" />
-                    View on My Property
-                  </Button>
-                )}
+                      url = `https://myproperty.calgary.ca/?center=${property.longitude},${property.latitude}&zoom=18`;
+                    } else {
+                      // Fallback: open My Property with address search
+                      const searchAddress = encodeURIComponent(property.city_lookup_address || property.address);
+                      url = `https://myproperty.calgary.ca/?find=${searchAddress}`;
+                    }
+                    window.open(url, '_blank');
+                  }}
+                >
+                  <ExternalLink className="h-4 w-4 mr-2" />
+                  View on My Property
+                </Button>
                 <Button 
                   onClick={() => handleFetchCityData()}
                   disabled={fetchingCityData}
