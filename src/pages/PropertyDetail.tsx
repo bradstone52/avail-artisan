@@ -38,6 +38,7 @@ import { TenantsSection } from '@/components/properties/TenantsSection';
 import { PropertyEditDialog } from '@/components/properties/PropertyEditDialog';
 import { CityDataNotFoundDialog } from '@/components/properties/CityDataNotFoundDialog';
 import { CityParcelPickerDialog } from '@/components/properties/CityParcelPickerDialog';
+import { EditPropertyPinDialog } from '@/components/properties/EditPropertyPinDialog';
 import { PropertyWithLinks } from '@/hooks/useProperties';
 
 export default function PropertyDetail() {
@@ -54,6 +55,7 @@ export default function PropertyDetail() {
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [cityDataNotFoundOpen, setCityDataNotFoundOpen] = useState(false);
   const [parcelPickerOpen, setParcelPickerOpen] = useState(false);
+  const [pinDialogOpen, setPinDialogOpen] = useState(false);
   const [uploadingBrochure, setUploadingBrochure] = useState(false);
 
   // Open My Property map with coordinates (same as CityParcelPickerDialog)
@@ -505,6 +507,14 @@ export default function PropertyDetail() {
             </div>
           </div>
           <div className="flex gap-2">
+            <Button 
+              variant="outline" 
+              onClick={() => setPinDialogOpen(true)}
+              className={property.geocode_source === 'manual' ? 'border-orange-500' : ''}
+            >
+              <MapPin className="h-4 w-4 mr-2" />
+              Edit Pin
+            </Button>
             <Button variant="outline" onClick={() => setEditDialogOpen(true)}>
               <Pencil className="h-4 w-4 mr-2" />
               Edit
@@ -1144,6 +1154,14 @@ export default function PropertyDetail() {
           latitude={property.latitude}
           longitude={property.longitude}
           onSelectParcel={handleRetryWithAddress}
+        />
+
+        {/* Edit Pin Location Dialog */}
+        <EditPropertyPinDialog
+          property={property}
+          open={pinDialogOpen}
+          onOpenChange={setPinDialogOpen}
+          onSave={refetch}
         />
       </div>
     </AppLayout>
