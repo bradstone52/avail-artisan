@@ -7,7 +7,7 @@ import { PropertyEditDialog } from '@/components/properties/PropertyEditDialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent } from '@/components/ui/card';
-import { Plus, Search, Building2, MapPin, RefreshCw, FileText, Download, Loader2, Database, Map } from 'lucide-react';
+import { Plus, Search, Building2, MapPin, RefreshCw, FileText, Download, Loader2, Database, Map, AlertTriangle } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { queueGlobalToast } from '@/hooks/useGlobalToast';
@@ -28,8 +28,9 @@ export default function Properties() {
   const [isImporting, setIsImporting] = useState(false);
   const [isSavingAllBrochures, setIsSavingAllBrochures] = useState(false);
   const [isFetchingCityData, setIsFetchingCityData] = useState(false);
-  const [syncProgress, setSyncProgress] = useState<{ current: number; total: number } | null>(null);
+  const [syncProgress, setSyncProgress] = useState<{ current: number; total: number; matched?: number; unmatched?: number } | null>(null);
   const [currentSyncId, setCurrentSyncId] = useState<string | null>(null);
+  const [needsReviewFilter, setNeedsReviewFilter] = useState(false);
   
   // State
   const [searchQuery, setSearchQuery] = useState('');
@@ -51,11 +52,11 @@ export default function Properties() {
         .maybeSingle();
       
       if (data?.value) {
-        const progress = data.value as { current: number; total: number; status: string; syncId: string };
+        const progress = data.value as { current: number; total: number; status: string; syncId: string; matched?: number; unmatched?: number };
         if (progress.status === 'running') {
           setIsFetchingCityData(true);
           setCurrentSyncId(progress.syncId);
-          setSyncProgress({ current: progress.current, total: progress.total });
+          setSyncProgress({ current: progress.current, total: progress.total, matched: progress.matched, unmatched: progress.unmatched });
         }
       }
     };
@@ -75,19 +76,42 @@ export default function Properties() {
         .maybeSingle();
       
       if (data?.value) {
-        const progress = data.value as { current: number; total: number; status: string; syncId: string };
+        const progress = data.value as { 
+          current: number; 
+          total: number; 
+          status: string; 
+          syncId: string;
+          matched?: number;
+          unmatched?: number;
+          unmatchedAddresses?: { id: string; address: string }[];
+        };
         
         // Only process updates for the sync we're tracking
         if (progress.syncId !== currentSyncId) return;
         
-        setSyncProgress({ current: progress.current, total: progress.total });
+        setSyncProgress({ 
+          current: progress.current, 
+          total: progress.total,
+          matched: progress.matched,
+          unmatched: progress.unmatched
+        });
         
         if (progress.status === 'complete') {
           fetchProperties();
-          queueGlobalToast({
-            title: 'City data sync complete',
-            description: `Fetched ${progress.total} properties`
-          });
+          const matchedCount = progress.matched || 0;
+          const unmatchedCount = progress.unmatched || 0;
+          
+          if (unmatchedCount > 0) {
+            queueGlobalToast({
+              title: 'City data sync complete',
+              description: `${matchedCount} of ${progress.total} properties matched. ${unmatchedCount} need manual review.`
+            });
+          } else {
+            queueGlobalToast({
+              title: 'City data sync complete',
+              description: `All ${matchedCount} properties matched successfully`
+            });
+          }
           setIsFetchingCityData(false);
           setSyncProgress(null);
           setCurrentSyncId(null);
@@ -155,9 +179,19 @@ export default function Properties() {
         return false;
       }
 
+      // Needs review filter - Calgary properties with city_data_fetched_at but no roll_number
+      if (needsReviewFilter) {
+        const isCalgary = property.city?.toLowerCase().includes('calgary');
+        const hasCityDataFetched = !!(property as any).city_data_fetched_at;
+        const noRollNumber = !(property as any).roll_number;
+        if (!(isCalgary && hasCityDataFetched && noRollNumber)) {
+          return false;
+        }
+      }
+
       return true;
     });
-  }, [properties, searchQuery, cityFilter, propertyTypeFilter, hasListingFilter]);
+  }, [properties, searchQuery, cityFilter, propertyTypeFilter, hasListingFilter, needsReviewFilter]);
 
   // Pagination
   const totalPages = Math.ceil(filteredProperties.length / ITEMS_PER_PAGE);
@@ -211,6 +245,7 @@ export default function Properties() {
     setCityFilter('all');
     setPropertyTypeFilter('all');
     setHasListingFilter('all');
+    setNeedsReviewFilter(false);
     setCurrentPage(1);
   };
 
@@ -513,6 +548,16 @@ export default function Properties() {
                   <SelectItem value="none">No Active Listings</SelectItem>
                 </SelectContent>
               </Select>
+
+              <Button 
+                variant={needsReviewFilter ? "default" : "outline"}
+                size="sm"
+                onClick={() => setNeedsReviewFilter(!needsReviewFilter)}
+                className={needsReviewFilter ? "bg-amber-600 hover:bg-amber-700" : ""}
+              >
+                <AlertTriangle className="h-4 w-4 mr-2" />
+                Needs Review
+              </Button>
 
               <Button variant="ghost" onClick={clearFilters} size="sm">
                 Clear Filters

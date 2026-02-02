@@ -160,9 +160,20 @@ async function processBatch(
   supabase: any,
   supabaseUrl: string,
   supabaseServiceKey: string,
-  params: { batchStart: number; batchSize: number; syncId: string; totalProperties: number }
+  params: { 
+    batchStart: number; 
+    batchSize: number; 
+    syncId: string; 
+    totalProperties: number;
+    matched?: number;
+    unmatched?: number;
+    unmatchedAddresses?: { id: string; address: string }[];
+  }
 ) {
   const { batchStart, batchSize, syncId, totalProperties } = params;
+  let matched = params.matched || 0;
+  let unmatched = params.unmatched || 0;
+  let unmatchedAddresses = params.unmatchedAddresses || [];
   
   console.log(`Processing batch: start=${batchStart}, size=${batchSize}, total=${totalProperties}`);
 
@@ -193,14 +204,29 @@ async function processBatch(
           })
         });
 
-        // Consume response body to avoid resource leaks
-        await response.text();
+        // Parse the response to check match status
+        const responseText = await response.text();
+        let responseData: { assessmentFound?: boolean; matchStatus?: string } = {};
+        try {
+          responseData = JSON.parse(responseText);
+        } catch {
+          // Ignore parse errors
+        }
 
         if (response.ok) {
           fetched++;
+          // Track matched vs unmatched based on response
+          if (responseData.matchStatus === 'found' || responseData.assessmentFound) {
+            matched++;
+          } else {
+            unmatched++;
+            unmatchedAddresses.push({ id: property.id, address: property.address });
+          }
         } else {
           console.error(`Failed to fetch city data for ${property.address}`);
           failed++;
+          unmatched++;
+          unmatchedAddresses.push({ id: property.id, address: property.address });
         }
         
         // Update progress
@@ -209,7 +235,15 @@ async function processBatch(
           .from('workspace_settings')
           .upsert({
             key: 'city_data_sync_progress',
-            value: { syncId, current: currentProgress, total: totalProperties, status: 'running', updatedAt: new Date().toISOString() }
+            value: { 
+              syncId, 
+              current: currentProgress, 
+              total: totalProperties, 
+              status: 'running', 
+              matched,
+              unmatched,
+              updatedAt: new Date().toISOString() 
+            }
           } as any, { onConflict: 'key' });
         
         // Small delay to avoid rate limiting
@@ -217,16 +251,18 @@ async function processBatch(
       } catch (err) {
         console.error(`Error fetching city data for ${property.id}:`, err);
         failed++;
+        unmatched++;
+        unmatchedAddresses.push({ id: property.id, address: property.address });
       }
     }
 
-    console.log(`Batch complete: ${fetched} fetched, ${failed} failed`);
+    console.log(`Batch complete: ${fetched} fetched, ${failed} failed, ${matched} matched, ${unmatched} unmatched`);
 
     // Check if there are more properties to process
     const nextBatchStart = batchStart + batchSize;
     
     if (nextBatchStart < totalProperties) {
-      // Trigger next batch (fire and forget)
+      // Trigger next batch (fire and forget) - pass along match tracking
       const nextBatchPromise = fetch(`${supabaseUrl}/functions/v1/nightly-property-sync`, {
         method: 'POST',
         headers: {
@@ -237,7 +273,10 @@ async function processBatch(
           batchStart: nextBatchStart,
           batchSize,
           syncId,
-          totalProperties
+          totalProperties,
+          matched,
+          unmatched,
+          unmatchedAddresses: unmatchedAddresses.slice(-50) // Keep last 50 for display
         })
       });
 
@@ -245,19 +284,28 @@ async function processBatch(
       
       console.log(`Triggered next batch starting at ${nextBatchStart}`);
     } else {
-      // All done - mark as complete
+      // All done - mark as complete with final counts
       await supabase
         .from('workspace_settings')
         .upsert({
           key: 'city_data_sync_progress',
-          value: { syncId, current: totalProperties, total: totalProperties, status: 'complete', updatedAt: new Date().toISOString() }
+          value: { 
+            syncId, 
+            current: totalProperties, 
+            total: totalProperties, 
+            status: 'complete',
+            matched,
+            unmatched,
+            unmatchedAddresses: unmatchedAddresses.slice(-50),
+            updatedAt: new Date().toISOString() 
+          }
         } as any, { onConflict: 'key' });
       
-      console.log('City data sync complete!');
+      console.log(`City data sync complete! Matched: ${matched}, Unmatched: ${unmatched}`);
     }
 
     return new Response(
-      JSON.stringify({ success: true, batchStart, fetched, failed }),
+      JSON.stringify({ success: true, batchStart, fetched, failed, matched, unmatched }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
 
@@ -269,7 +317,16 @@ async function processBatch(
       .from('workspace_settings')
       .upsert({
         key: 'city_data_sync_progress',
-        value: { syncId, current: batchStart, total: totalProperties, status: 'failed', error: error.message, updatedAt: new Date().toISOString() }
+        value: { 
+          syncId, 
+          current: batchStart, 
+          total: totalProperties, 
+          status: 'failed', 
+          error: error.message,
+          matched,
+          unmatched,
+          updatedAt: new Date().toISOString() 
+        }
       } as any, { onConflict: 'key' });
 
     return new Response(
