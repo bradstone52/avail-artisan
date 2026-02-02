@@ -274,12 +274,16 @@ export default function Properties() {
             });
 
             // Check for application-level errors
-            if (error || (data && !data.success && data.status !== 'file_too_large')) {
-              console.error(`Error saving brochure for ${listing.listing_id}:`, error || data?.error);
+            const errorStatuses = ['restricted', 'invalid_url', 'dns_error', 'not_found', 'error'];
+            if (error) {
+              console.error(`Error saving brochure for ${listing.listing_id}:`, error);
               failed++;
             } else if (data?.status === 'file_too_large') {
               console.log(`Skipped large file for ${listing.listing_id}`);
               skipped++;
+            } else if (data?.status && errorStatuses.includes(data.status)) {
+              console.error(`Failed to save brochure for ${listing.listing_id}:`, data.error || data.status);
+              failed++;
             } else {
               saved++;
             }

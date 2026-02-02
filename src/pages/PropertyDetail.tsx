@@ -184,6 +184,18 @@ export default function PropertyDetail() {
 
       if (error) throw error;
 
+      // Check for application-level errors (function returns 200 but with error status)
+      if (data?.status && data.status !== 'success') {
+        const errorMessages: Record<string, string> = {
+          'restricted': 'Access restricted - this brochure cannot be downloaded automatically',
+          'file_too_large': data.error || 'File is too large to archive',
+          'invalid_url': 'Invalid brochure URL',
+          'dns_error': 'Could not reach the brochure server',
+          'not_found': 'Brochure file not found (404)',
+        };
+        throw new Error(errorMessages[data.status] || data.error || 'Download failed');
+      }
+
       toast({ title: 'Brochure archived successfully' });
       refetch();
     } catch (error: any) {
@@ -218,7 +230,7 @@ export default function PropertyDetail() {
     
     for (const listing of listingsWithBrochures) {
       try {
-        const { error } = await supabase.functions.invoke('download-brochure', {
+        const { data, error } = await supabase.functions.invoke('download-brochure', {
           body: { 
             propertyId: property.id, 
             marketListingId: listing.id,
@@ -229,6 +241,10 @@ export default function PropertyDetail() {
         
         if (error) {
           console.error(`Failed to save brochure for ${listing.listing_id}:`, error);
+          failed++;
+        } else if (data?.status && data.status !== 'success') {
+          // Application-level error (restricted, file too large, etc.)
+          console.error(`Failed to save brochure for ${listing.listing_id}:`, data.error || data.status);
           failed++;
         } else {
           saved++;
