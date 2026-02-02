@@ -462,8 +462,11 @@ Deno.serve(async (req) => {
 
     return new Response(JSON.stringify({ 
       success: true,
-        assessmentFound: !!assessmentData,
-        permitsFound: assessmentData ? permits.length : 0
+      assessmentFound: !!assessmentData,
+      permitsFound: assessmentData ? permits.length : 0,
+      matchStatus: assessmentData ? 'found' : 'not_found',
+      propertyId,
+      address
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' }
     });
