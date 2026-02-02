@@ -637,6 +637,7 @@ export default function PropertiesMap() {
         }}
         onSave={handleSaveProperty}
         mode="create"
+        initialAddress={reverseGeocodedAddress}
       />
 
       {/* Add Tenant Dialog */}

@@ -30,6 +30,7 @@ interface PropertyEditDialogProps {
   onOpenChange: (open: boolean) => void;
   onSave: (property: Partial<PropertyWithLinks>) => Promise<void>;
   mode: 'create' | 'edit';
+  initialAddress?: string;
 }
 
 const PROPERTY_TYPES = [
@@ -75,7 +76,8 @@ export function PropertyEditDialog({
   open,
   onOpenChange,
   onSave,
-  mode
+  mode,
+  initialAddress = ''
 }: PropertyEditDialogProps) {
   const { user } = useAuth();
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -232,10 +234,10 @@ export function PropertyEditDialog({
       setNotes(property.notes || '');
       setInternalNotes(property.internal_notes || '');
     } else {
-      // Reset form for create mode
+      // Reset form for create mode - use initialAddress if provided
       setName('');
-      setAddress('');
-      setDisplayAddress('');
+      setAddress(initialAddress);
+      setDisplayAddress(initialAddress);
       setDisplayAddressManuallyEdited(false);
       setCityLookupAddress('');
       setCity('Calgary');
@@ -254,7 +256,7 @@ export function PropertyEditDialog({
       setInternalNotes('');
     }
     setActiveTab('property');
-  }, [property, open]);
+  }, [property, open, initialAddress]);
 
   const handleSave = async () => {
     if (!address.trim()) {
