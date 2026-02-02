@@ -55,6 +55,63 @@ export default function PropertyDetail() {
   const [cityDataNotFoundOpen, setCityDataNotFoundOpen] = useState(false);
   const [parcelPickerOpen, setParcelPickerOpen] = useState(false);
   const [uploadingBrochure, setUploadingBrochure] = useState(false);
+  const [openingMyProperty, setOpeningMyProperty] = useState(false);
+
+  // Open My Property map with coordinates (geocodes if needed)
+  const handleOpenMyProperty = async () => {
+    if (!property) return;
+    
+    let lng = property.longitude;
+    let lat = property.latitude;
+    
+    // If no coordinates, geocode the address first
+    if (!lng || !lat) {
+      setOpeningMyProperty(true);
+      try {
+        const { data, error } = await supabase.functions.invoke('get-google-maps-token', {
+          body: { authenticated: true },
+        });
+        
+        if (error || !data?.apiKey) {
+          throw new Error('Failed to get Google Maps API key');
+        }
+        
+        const searchAddress = property.city_lookup_address || property.address;
+        const response = await fetch(
+          `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(searchAddress + ', ' + property.city)}&key=${data.apiKey}&region=CA`
+        );
+        const geocodeData = await response.json();
+        
+        if (geocodeData.status === 'OK' && geocodeData.results.length > 0) {
+          const location = geocodeData.results[0].geometry.location;
+          lng = location.lng;
+          lat = location.lat;
+        } else {
+          toast({
+            title: 'Could not locate address',
+            description: 'Unable to geocode the property address. Try using the Fetch City Data button instead.',
+            variant: 'destructive'
+          });
+          setOpeningMyProperty(false);
+          return;
+        }
+      } catch (err) {
+        console.error('Geocoding error:', err);
+        toast({
+          title: 'Error',
+          description: 'Failed to geocode address for map lookup.',
+          variant: 'destructive'
+        });
+        setOpeningMyProperty(false);
+        return;
+      }
+      setOpeningMyProperty(false);
+    }
+    
+    // Calgary My Property uses lng,lat order for coordinates
+    const url = `https://maps.calgary.ca/myproperty/?find=${lng},${lat}`;
+    window.open(url, '_blank', 'noopener,noreferrer');
+  };
 
   // Fetch tenants when property id changes
   useEffect(() => {
@@ -841,20 +898,14 @@ export default function PropertyDetail() {
               <div className="flex gap-2">
                 <Button
                   variant="outline"
-                  onClick={() => {
-                    if (property.latitude && property.longitude) {
-                      // Calgary My Property uses lng,lat order for coordinates
-                      const url = `https://maps.calgary.ca/myproperty/?find=${property.longitude},${property.latitude}`;
-                      window.open(url, '_blank', 'noopener,noreferrer');
-                    } else {
-                      // Fallback: open My Property with address search
-                      const searchAddress = property.city_lookup_address || property.address;
-                      const url = `https://maps.calgary.ca/myproperty/?find=${encodeURIComponent(searchAddress)}`;
-                      window.open(url, '_blank', 'noopener,noreferrer');
-                    }
-                  }}
+                  onClick={handleOpenMyProperty}
+                  disabled={openingMyProperty}
                 >
-                  <ExternalLink className="h-4 w-4 mr-2" />
+                  {openingMyProperty ? (
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  ) : (
+                    <ExternalLink className="h-4 w-4 mr-2" />
+                  )}
                   View on My Property
                 </Button>
                 <Button 
