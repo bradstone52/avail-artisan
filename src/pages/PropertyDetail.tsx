@@ -696,7 +696,12 @@ export default function PropertyDetail() {
                       <p className="font-medium">{property.tax_class || '-'}</p>
                     </div>
                     <div>
-                      <p className="text-muted-foreground">Total Assessed Value</p>
+                      <p className="text-muted-foreground">
+                        Total Assessed Value
+                        {(property.city_data_raw as any)?.assessment?.roll_year && (
+                          <span className="ml-1">({(property.city_data_raw as any).assessment.roll_year})</span>
+                        )}
+                      </p>
                       <p className="font-medium text-lg">{formatCurrency(property.assessed_value)}</p>
                     </div>
                     <div>
