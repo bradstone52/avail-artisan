@@ -33,7 +33,8 @@ serve(async (req) => {
 
     // Query Calgary's Parcel Address dataset using Socrata SODA API
     // Dataset: https://data.calgary.ca/Base-Maps/Parcel-Address/s8b3-j88p
-    const soqlQuery = `$where=within_circle(the_geom, ${latitude}, ${longitude}, ${radiusMeters})&$limit=50`;
+    // Note: The geometry column in this dataset is called 'location' not 'the_geom'
+    const soqlQuery = `$where=within_circle(location, ${latitude}, ${longitude}, ${radiusMeters})&$limit=50`;
     const url = `https://data.calgary.ca/resource/s8b3-j88p.json?${soqlQuery}`;
 
     console.log(`[search-calgary-parcels] Fetching: ${url}`);
@@ -58,38 +59,39 @@ serve(async (req) => {
 
     // Transform the results to our format
     const results: ParcelResult[] = parcels.map((parcel: any) => {
-      // Build the full address from components
-      // The dataset has: address, street_nm, street_type, street_quad
-      const addressParts: string[] = [];
+      // The 'address' field contains the full formatted address like "4639 72 AV SE"
+      // Individual fields are: house_number, street_name, street_type, street_quad
+      // Use the 'address' field directly if available, otherwise build from components
+      let fullAddress = "";
       
-      if (parcel.address) {
-        addressParts.push(parcel.address);
-      }
-      if (parcel.street_nm) {
-        addressParts.push(parcel.street_nm);
-      }
-      if (parcel.street_type) {
-        addressParts.push(parcel.street_type);
-      }
-      if (parcel.street_quad) {
-        addressParts.push(parcel.street_quad);
+      if (parcel.address && parcel.address.trim()) {
+        fullAddress = parcel.address.trim();
+      } else {
+        // Build address from components as fallback
+        const parts: string[] = [];
+        if (parcel.house_number) parts.push(parcel.house_number);
+        if (parcel.house_alpha) parts.push(parcel.house_alpha);
+        if (parcel.street_name) parts.push(parcel.street_name);
+        if (parcel.street_type) parts.push(parcel.street_type);
+        if (parcel.street_quad) parts.push(parcel.street_quad);
+        fullAddress = parts.join(" ");
       }
 
-      // Extract coordinates from the_geom if available
+      // Extract coordinates from location if available
       let lat = latitude;
       let lng = longitude;
       
-      if (parcel.the_geom && parcel.the_geom.coordinates) {
+      if (parcel.location && parcel.location.coordinates) {
         // GeoJSON format: [longitude, latitude]
-        lng = parcel.the_geom.coordinates[0];
-        lat = parcel.the_geom.coordinates[1];
+        lng = parcel.location.coordinates[0];
+        lat = parcel.location.coordinates[1];
       } else if (parcel.longitude && parcel.latitude) {
         lng = parseFloat(parcel.longitude);
         lat = parseFloat(parcel.latitude);
       }
 
       return {
-        address: addressParts.join(" "),
+        address: fullAddress,
         latitude: lat,
         longitude: lng,
         roll_number: parcel.roll_num || parcel.roll_number || null,
