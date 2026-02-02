@@ -110,10 +110,10 @@ Deno.serve(async (req) => {
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    // Fetch property to check for city_lookup_address override and current submarket
+    // Fetch property to check for city_lookup_address override
     const { data: propertyData, error: propertyError } = await supabase
       .from('properties')
-      .select('city_lookup_address, submarket')
+      .select('city_lookup_address')
       .eq('id', propertyId)
       .single();
 
@@ -124,8 +124,7 @@ Deno.serve(async (req) => {
 
     // Use city_lookup_address if provided, otherwise fall back to the main address
     const lookupAddress = propertyData?.city_lookup_address?.trim() || address;
-    const existingSubmarket = propertyData?.submarket?.trim() || null;
-    console.log(`Using lookup address: "${lookupAddress}" (city_lookup_address: ${propertyData?.city_lookup_address ? 'set' : 'not set'}, existing submarket: ${existingSubmarket || 'none'})`);
+    console.log(`Using lookup address: "${lookupAddress}" (city_lookup_address: ${propertyData?.city_lookup_address ? 'set' : 'not set'})`);
 
     const parseNumber = (value: unknown): number | null => {
       if (value === null || value === undefined) return null;
@@ -450,9 +449,8 @@ Deno.serve(async (req) => {
       );
       updateData.community_name = communityName;
       
-      // Only set submarket from community_name if the property doesn't already have one
-      // This preserves user-defined submarkets (e.g., "Foothills" instead of City's "EAST SHEPARD INDUSTRIAL")
-      if (communityName && !existingSubmarket) {
+      // Also set submarket from community_name
+      if (communityName) {
         updateData.submarket = communityName;
       }
 
