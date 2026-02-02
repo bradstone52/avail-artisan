@@ -157,11 +157,11 @@ export function EditPropertyPinDialog({
         if (!mapContainerRef.current) return;
 
         // Default center: Calgary, or property's current location
-        const center = originalLocation 
+        let center = originalLocation 
           ? { lat: originalLocation.lat, lng: originalLocation.lng }
           : { lat: 51.0447, lng: -114.0719 };
 
-        const zoom = originalLocation ? 17 : 10;
+        let zoom = originalLocation ? 17 : 10;
 
         const map = new Map(mapContainerRef.current, {
           center,
@@ -177,13 +177,41 @@ export function EditPropertyPinDialog({
 
         mapRef.current = map;
 
-        google.maps.event.addListenerOnce(map, "tilesloaded", () => {
+        google.maps.event.addListenerOnce(map, "tilesloaded", async () => {
           setMapReady(true);
           
           // Add marker if there's an existing location
           if (originalLocation) {
             const isManualSource = property?.geocode_source === 'manual';
             updateMarker(originalLocation.lat, originalLocation.lng, isManualSource);
+          } else if (property?.address) {
+            // No existing location - geocode the address to center the map
+            try {
+              const { Geocoder } = await importLibrary("geocoding") as google.maps.GeocodingLibrary;
+              const geocoder = new Geocoder();
+              const fullAddress = `${property.address}${property.city ? `, ${property.city}` : ''}, AB, Canada`;
+              
+              const result = await geocoder.geocode({ address: fullAddress, region: 'ca' });
+              
+              if (result.results && result.results.length > 0) {
+                const loc = result.results[0].geometry.location;
+                const geocodedLat = loc.lat();
+                const geocodedLng = loc.lng();
+                
+                // Center map on geocoded location
+                map.setCenter({ lat: geocodedLat, lng: geocodedLng });
+                map.setZoom(17);
+                
+                // Place a suggested marker (user can click elsewhere to move it)
+                setNewLocation({ lat: geocodedLat, lng: geocodedLng });
+                updateMarker(geocodedLat, geocodedLng, true);
+                
+                toast.info('Suggested location based on address. Click to adjust if needed.');
+              }
+            } catch (geocodeError) {
+              console.error('Failed to geocode address:', geocodeError);
+              // Map will stay on default Calgary view
+            }
           }
         });
 
@@ -203,7 +231,7 @@ export function EditPropertyPinDialog({
     }, 100);
 
     return () => clearTimeout(initTimer);
-  }, [open, googleMapsApiKey, originalLocation, updateMarker, property?.geocode_source]);
+  }, [open, googleMapsApiKey, originalLocation, updateMarker, property?.geocode_source, property?.address, property?.city]);
 
   // Reset to original or clear
   const handleReset = useCallback(() => {
