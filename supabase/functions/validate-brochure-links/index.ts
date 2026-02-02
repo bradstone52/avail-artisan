@@ -296,9 +296,12 @@ Deno.serve(async (req) => {
         // Update database immediately for each result (enables live realtime updates)
         for (const result of refinedBatch) {
           let linkStatus: string;
-          if (result.status === "ok" || result.status === "restricted" || result.status === "redirect") {
+          if (result.status === "ok" || result.status === "redirect") {
             linkStatus = "ok";
             okCount++;
+          } else if (result.status === "restricted") {
+            linkStatus = "restricted";
+            okCount++; // Count as "ok" for summary but track separately
           } else if (result.status === "broken") {
             linkStatus = "broken";
             brokenCount++;
