@@ -845,7 +845,8 @@ export default function PropertyDetail() {
                     let url: string;
                     if (property.latitude && property.longitude) {
                       // City of Calgary My Property uses lng,lat order for coordinates
-                      url = `https://maps.calgary.ca/myproperty/?center=${property.longitude},${property.latitude}&zoom=18`;
+                      // Use find parameter with coordinates to locate the exact parcel
+                      url = `https://maps.calgary.ca/myproperty/?find=${property.longitude},${property.latitude}`;
                     } else {
                       // Fallback: open My Property with address search
                       const searchAddress = encodeURIComponent(property.city_lookup_address || property.address);
