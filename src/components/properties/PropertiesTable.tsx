@@ -80,8 +80,9 @@ export function PropertiesTable({
         <TableHeader>
           <TableRow>
             <TableHead className="sticky left-0 z-30 bg-zinc-700 dark:bg-zinc-600 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.3)]">
-              Property
+              Address
             </TableHead>
+            <TableHead>Name</TableHead>
             <TableHead>City</TableHead>
             <TableHead className="text-right">Size</TableHead>
             <TableHead className="text-center">Listings</TableHead>
@@ -93,7 +94,7 @@ export function PropertiesTable({
         <TableBody>
           {properties.length === 0 ? (
             <TableRow>
-              <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
+              <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
                 No properties found. Add your first property to get started.
               </TableCell>
             </TableRow>
@@ -111,7 +112,7 @@ export function PropertiesTable({
                   className={`${hoverClass} group cursor-pointer`}
                   onClick={() => onViewDashboard(property)}
                 >
-                  {/* Property - Sticky */}
+                  {/* Address - Sticky */}
                   <TableCell className={`sticky left-0 z-20 ${stickyBg} shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)] group-hover:bg-pink-200 dark:group-hover:bg-pink-900`}>
                     <div className="min-w-[200px]">
                       <div className="font-semibold flex items-center gap-2">
@@ -119,6 +120,11 @@ export function PropertiesTable({
                         {property.display_address || property.address}
                       </div>
                     </div>
+                  </TableCell>
+
+                  {/* Name */}
+                  <TableCell className="text-muted-foreground">
+                    {property.name && property.name !== property.address ? property.name : '-'}
                   </TableCell>
 
                   {/* City */}
