@@ -435,11 +435,18 @@ Deno.serve(async (req) => {
         assessmentData.landuse,
         assessmentData.land_use
       );
-      updateData.community_name = firstNonEmpty(
+      const communityName = firstNonEmpty(
         assessmentData.community_name,
         assessmentData.comm_name,
         assessmentData.community
       );
+      updateData.community_name = communityName;
+      
+      // Also set submarket from community_name if submarket is empty
+      // This matches how market_listings auto-assign submarket from geocoding
+      if (communityName) {
+        updateData.submarket = communityName;
+      }
 
       // Year built
       const yearBuilt =
