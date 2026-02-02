@@ -838,17 +838,32 @@ export default function PropertyDetail() {
                   Assessment, zoning, and permit information from City of Calgary Open Data
                 </p>
               </div>
-              <Button 
-                onClick={() => handleFetchCityData()}
-                disabled={fetchingCityData}
-              >
-                {fetchingCityData ? (
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                ) : (
-                  <RefreshCw className="h-4 w-4 mr-2" />
+              <div className="flex gap-2">
+                {property.latitude && property.longitude && (
+                  <Button
+                    variant="outline"
+                    onClick={() => {
+                      // City of Calgary My Property uses lng,lat order for coordinates
+                      const url = `https://myproperty.calgary.ca/?center=${property.longitude},${property.latitude}&zoom=18`;
+                      window.open(url, '_blank');
+                    }}
+                  >
+                    <ExternalLink className="h-4 w-4 mr-2" />
+                    View on My Property
+                  </Button>
                 )}
-                {property.city_data_fetched_at ? 'Refresh City Data' : 'Fetch City Data'}
-              </Button>
+                <Button 
+                  onClick={() => handleFetchCityData()}
+                  disabled={fetchingCityData}
+                >
+                  {fetchingCityData ? (
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  ) : (
+                    <RefreshCw className="h-4 w-4 mr-2" />
+                  )}
+                  {property.city_data_fetched_at ? 'Refresh City Data' : 'Fetch City Data'}
+                </Button>
+              </div>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
