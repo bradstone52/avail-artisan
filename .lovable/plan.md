@@ -1,90 +1,89 @@
 
+# Batch City Data Sync - Handle Unmatched Properties
 
-# Enhanced City Parcel Picker
+## Problem Statement
+When running "Fetch All City Data", properties that don't find a match in the City of Calgary database are processed silently with no indication of failure. Users aren't informed which properties need manual address correction using the City Parcel Picker.
 
-## Problem
-- Parcel polygon/boundary data is proprietary (Calgary sells it for $290+/section)
-- My Property map cannot be embedded (blocked by X-Frame-Options)
-- Current picker shows small pin markers that aren't visually distinctive
+## Proposed Solution
+Track unmatched properties during batch sync and surface them to users so they can take corrective action.
 
-## Solution: Hybrid Approach
+## Implementation Steps
 
-### 1. Widen Search Radius
-Increase from 200m to **500m** to capture more nearby parcels.
+### 1. Modify `fetch-city-data` Edge Function Response
+Update the response to clearly indicate when no assessment match was found:
+- Continue returning HTTP 200 (it's not an error, just "no match")
+- Add explicit `matchStatus: 'found' | 'not_found'` to the response
+- Include the address in the response for tracking purposes
 
-### 2. Switch to Satellite View
-Use Google Maps `mapTypeId: 'hybrid'` to show satellite imagery with labels. Users can see actual building footprints and lot boundaries from aerial photos.
+### 2. Update `nightly-property-sync` Batch Processing
+Track unmatched properties during batch processing:
+- Maintain a list of property IDs/addresses that returned `assessmentFound: false`
+- Store the unmatched count and list in the progress tracking object
+- Include this data in the final "complete" status
 
-### 3. Improved Labeled Markers
-Replace generic pin markers with **custom HTML labels** showing:
-- Street number prominently displayed
-- Background color for visibility
-- Larger touch targets
-
-### 4. Add "Open in My Property" Button
-Direct link to Calgary's official map centered on coordinates:
-```
-https://maps.calgary.ca/myproperty/?find={lat},{lng}
-```
-User can view official blue parcel boundaries in a new tab, then return to select the correct address.
-
-### 5. Semi-Transparent Parcel Circles
-Draw approximate lot areas around each parcel point using Google Maps circles (~30m radius) to give spatial context.
-
-## Files to Modify
-
-**`supabase/functions/search-calgary-parcels/index.ts`**
-- Update default radius parameter to 500m
-
-**`src/components/properties/CityParcelPickerDialog.tsx`**
-- Enable `mapTypeId: 'hybrid'` for satellite view
-- Replace PinElement markers with custom HTML label markers
-- Add circle overlays around parcel points
-- Add "Open in My Property" external link button
-
-## UI Flow
+Progress object enhancement:
 ```text
-1. Dialog opens with satellite view
-2. Labeled markers show each parcel's street number
-3. User can click "Open in My Property" to view official boundaries
-4. User returns and clicks correct address marker
-5. Selection confirmed and property updated
+{
+  syncId: "...",
+  current: 50,
+  total: 100,
+  status: "running",
+  matched: 45,        // NEW: Properties with city data found
+  unmatched: 5,       // NEW: Properties without matches
+  unmatchedIds: [...]  // NEW: List of property IDs needing attention
+}
 ```
 
-## Technical Implementation
+### 3. Update Properties Page UI
+When sync completes, show a summary that distinguishes matched vs. unmatched:
+- Success toast: "City data sync complete: 45 of 50 properties updated"
+- If unmatched > 0, show additional notification with option to review
 
-### Satellite Map Config
+### 4. Add "Review Unmatched Properties" Feature
+Provide a way to see and fix properties that didn't match:
+- Option A: Filter properties list to show only those needing attention (where `city_data_fetched_at` is set but `roll_number` is NULL)
+- Option B: Add a "Needs Review" badge/indicator on property rows
+- Either approach lets users click through to use the City Parcel Picker
+
+## Technical Details
+
+### Edge Function Changes
+
+**`fetch-city-data/index.ts`** - Line ~463:
 ```typescript
-const map = new google.maps.Map(mapRef.current!, {
-  center,
-  zoom: 18,
-  mapTypeId: 'hybrid',  // Satellite + labels
-  mapId: 'parcel-picker-map',
-});
+return new Response(JSON.stringify({ 
+  success: true,
+  assessmentFound: !!assessmentData,
+  permitsFound: assessmentData ? permits.length : 0,
+  matchStatus: assessmentData ? 'found' : 'not_found',  // NEW
+  propertyId,  // NEW - for tracking
+  address      // NEW - for display
+}), { ... });
 ```
 
-### Custom Labeled Markers
-```typescript
-const labelDiv = document.createElement('div');
-labelDiv.innerHTML = `
-  <div style="
-    background: #f59e0b; 
-    color: white;
-    padding: 6px 10px;
-    border-radius: 6px;
-    font-weight: bold;
-    font-size: 14px;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.4);
-    border: 2px solid white;
-  ">
-    ${streetNumber}
-  </div>
-`;
+**`nightly-property-sync/index.ts`** - processBatch function:
+- Parse the response JSON to check `assessmentFound`
+- Maintain arrays for `matchedIds` and `unmatchedAddresses`
+- Include these in progress updates and final completion status
+
+### Frontend Changes
+
+**`src/pages/Properties.tsx`**:
+- Update progress polling to read new fields
+- Modify completion toast to show "X of Y found matches"
+- If unmatched > 0, offer link/button to filter to those properties
+
+### Database Query for Unmatched Properties
+Properties needing attention can be identified with:
+```sql
+SELECT * FROM properties 
+WHERE city ILIKE '%calgary%' 
+  AND city_data_fetched_at IS NOT NULL 
+  AND roll_number IS NULL
 ```
 
-### My Property Link
-```typescript
-const myPropertyUrl = `https://maps.calgary.ca/myproperty/?find=${lat},${lng}`;
-window.open(myPropertyUrl, '_blank');
-```
-
+## Benefits
+- Users will know immediately if some properties need manual intervention
+- Easy to find and fix problem properties
+- No changes needed to the parcel picker itself - it already works well
+- Transparent sync results instead of silent "failures"
