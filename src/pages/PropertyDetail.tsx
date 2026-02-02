@@ -181,16 +181,29 @@ export default function PropertyDetail() {
     if (!property) return;
     
     const addressToUse = overrideAddress || property.address;
+    const isCalgary = (property.city || '').toLowerCase().includes('calgary');
     
     setFetchingCityData(true);
     try {
+      // For Calgary properties, also call geocode-property to ensure submarket is set via ArcGIS
+      // This handles cases where the property was auto-created (e.g., from a transaction) without geocoding
+      if (isCalgary) {
+        await supabase.functions.invoke('geocode-property', {
+          body: {
+            propertyId: property.id,
+            address: addressToUse,
+            city: property.city,
+          },
+        });
+      }
+
       const { data, error } = await supabase.functions.invoke('fetch-city-data', {
         body: { propertyId: property.id, address: addressToUse, city: property.city }
       });
 
       if (error) throw error;
 
-      // If we can't find an assessment match, treat the address as “not found” for city records
+      // If we can't find an assessment match, treat the address as "not found" for city records
       // and offer nearby address suggestions.
       if (data?.assessmentFound === false) {
         toast({
