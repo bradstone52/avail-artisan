@@ -737,6 +737,204 @@ export type Database = {
         }
         Relationships: []
       }
+      internal_listing_status_history: {
+        Row: {
+          changed_at: string
+          changed_by: string
+          id: string
+          listing_id: string
+          new_status: string
+          notes: string | null
+          previous_status: string | null
+        }
+        Insert: {
+          changed_at?: string
+          changed_by: string
+          id?: string
+          listing_id: string
+          new_status: string
+          notes?: string | null
+          previous_status?: string | null
+        }
+        Update: {
+          changed_at?: string
+          changed_by?: string
+          id?: string
+          listing_id?: string
+          new_status?: string
+          notes?: string | null
+          previous_status?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "internal_listing_status_history_listing_id_fkey"
+            columns: ["listing_id"]
+            isOneToOne: false
+            referencedRelation: "internal_listings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      internal_listings: {
+        Row: {
+          address: string
+          archived_at: string | null
+          archived_reason: string | null
+          asking_rent_psf: number | null
+          asking_sale_price: number | null
+          assigned_agent_id: string | null
+          broker_remarks: string | null
+          cam: number | null
+          city: string
+          clear_height_ft: number | null
+          confidential_summary: string | null
+          created_at: string
+          created_by: string
+          deal_type: string
+          description: string | null
+          display_address: string | null
+          dock_doors: number | null
+          drive_in_doors: number | null
+          id: string
+          land_acres: number | null
+          latitude: number | null
+          listing_number: string | null
+          loading_type: string | null
+          longitude: number | null
+          office_sf: number | null
+          op_costs: number | null
+          org_id: string | null
+          owner_contact: string | null
+          owner_id: string | null
+          owner_name: string | null
+          photo_url: string | null
+          power: string | null
+          property_type: string | null
+          published_at: string | null
+          secondary_agent_id: string | null
+          size_sf: number | null
+          status: string
+          submarket: string
+          taxes: number | null
+          updated_at: string
+          warehouse_sf: number | null
+          yard: string | null
+          zoning: string | null
+        }
+        Insert: {
+          address: string
+          archived_at?: string | null
+          archived_reason?: string | null
+          asking_rent_psf?: number | null
+          asking_sale_price?: number | null
+          assigned_agent_id?: string | null
+          broker_remarks?: string | null
+          cam?: number | null
+          city?: string
+          clear_height_ft?: number | null
+          confidential_summary?: string | null
+          created_at?: string
+          created_by: string
+          deal_type?: string
+          description?: string | null
+          display_address?: string | null
+          dock_doors?: number | null
+          drive_in_doors?: number | null
+          id?: string
+          land_acres?: number | null
+          latitude?: number | null
+          listing_number?: string | null
+          loading_type?: string | null
+          longitude?: number | null
+          office_sf?: number | null
+          op_costs?: number | null
+          org_id?: string | null
+          owner_contact?: string | null
+          owner_id?: string | null
+          owner_name?: string | null
+          photo_url?: string | null
+          power?: string | null
+          property_type?: string | null
+          published_at?: string | null
+          secondary_agent_id?: string | null
+          size_sf?: number | null
+          status?: string
+          submarket?: string
+          taxes?: number | null
+          updated_at?: string
+          warehouse_sf?: number | null
+          yard?: string | null
+          zoning?: string | null
+        }
+        Update: {
+          address?: string
+          archived_at?: string | null
+          archived_reason?: string | null
+          asking_rent_psf?: number | null
+          asking_sale_price?: number | null
+          assigned_agent_id?: string | null
+          broker_remarks?: string | null
+          cam?: number | null
+          city?: string
+          clear_height_ft?: number | null
+          confidential_summary?: string | null
+          created_at?: string
+          created_by?: string
+          deal_type?: string
+          description?: string | null
+          display_address?: string | null
+          dock_doors?: number | null
+          drive_in_doors?: number | null
+          id?: string
+          land_acres?: number | null
+          latitude?: number | null
+          listing_number?: string | null
+          loading_type?: string | null
+          longitude?: number | null
+          office_sf?: number | null
+          op_costs?: number | null
+          org_id?: string | null
+          owner_contact?: string | null
+          owner_id?: string | null
+          owner_name?: string | null
+          photo_url?: string | null
+          power?: string | null
+          property_type?: string | null
+          published_at?: string | null
+          secondary_agent_id?: string | null
+          size_sf?: number | null
+          status?: string
+          submarket?: string
+          taxes?: number | null
+          updated_at?: string
+          warehouse_sf?: number | null
+          yard?: string | null
+          zoning?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "internal_listings_assigned_agent_id_fkey"
+            columns: ["assigned_agent_id"]
+            isOneToOne: false
+            referencedRelation: "agents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "internal_listings_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "orgs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "internal_listings_secondary_agent_id_fkey"
+            columns: ["secondary_agent_id"]
+            isOneToOne: false
+            referencedRelation: "agents"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       invite_redemption_attempts: {
         Row: {
           attempted_code: string

@@ -36,6 +36,8 @@ import Settings from "./pages/Settings";
 import CRETracker from "./pages/CRETracker";
 import Tenants from "./pages/Tenants";
 import Install from "./pages/Install";
+import InternalListings from "./pages/InternalListings";
+import InternalListingDetail from "./pages/InternalListingDetail";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient({
@@ -85,6 +87,8 @@ const App = () => (
             <Route path="/account" element={<ProtectedRoute><AccountSettings /></ProtectedRoute>} />
             <Route path="/cre-tracker" element={<ProtectedRoute><CRETracker /></ProtectedRoute>} />
             <Route path="/tenants" element={<ProtectedRoute><Tenants /></ProtectedRoute>} />
+            <Route path="/internal-listings" element={<ProtectedRoute><InternalListings /></ProtectedRoute>} />
+            <Route path="/internal-listings/:id" element={<ProtectedRoute><InternalListingDetail /></ProtectedRoute>} />
             <Route path="/deals" element={<ProtectedRoute><Deals /></ProtectedRoute>} />
             <Route path="/deals/:id" element={<ProtectedRoute><DealDetail /></ProtectedRoute>} />
             <Route path="/prospects" element={<ProtectedRoute><Prospects /></ProtectedRoute>} />

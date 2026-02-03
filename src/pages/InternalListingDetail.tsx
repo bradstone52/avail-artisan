@@ -1,0 +1,442 @@
+import { useParams, useNavigate } from 'react-router-dom';
+import { AppLayout } from '@/components/layout/AppLayout';
+import { PageHeader } from '@/components/common/PageHeader';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Skeleton } from '@/components/ui/skeleton';
+import {
+  useInternalListing,
+  useInternalListingStatusHistory,
+} from '@/hooks/useInternalListings';
+import { formatNumber, formatCurrency } from '@/lib/format';
+import { format } from 'date-fns';
+import {
+  ArrowLeft,
+  Pencil,
+  MapPin,
+  Building2,
+  DollarSign,
+  Users,
+  FileText,
+  History,
+  Mail,
+  BarChart3,
+} from 'lucide-react';
+
+const statusColors: Record<string, string> = {
+  Active: 'bg-green-100 text-green-800 border-green-300',
+  Pending: 'bg-yellow-100 text-yellow-800 border-yellow-300',
+  Leased: 'bg-blue-100 text-blue-800 border-blue-300',
+  Sold: 'bg-purple-100 text-purple-800 border-purple-300',
+  Expired: 'bg-gray-100 text-gray-800 border-gray-300',
+  Archived: 'bg-gray-100 text-gray-500 border-gray-300',
+};
+
+export default function InternalListingDetail() {
+  const { id } = useParams();
+  const navigate = useNavigate();
+  const { data: listing, isLoading } = useInternalListing(id);
+  const { data: statusHistory } = useInternalListingStatusHistory(id);
+
+  if (isLoading) {
+    return (
+      <AppLayout>
+        <div className="p-4 md:p-6 space-y-6">
+          <Skeleton className="h-10 w-64" />
+          <div className="grid md:grid-cols-3 gap-6">
+            <Skeleton className="h-64 md:col-span-2" />
+            <Skeleton className="h-64" />
+          </div>
+        </div>
+      </AppLayout>
+    );
+  }
+
+  if (!listing) {
+    return (
+      <AppLayout>
+        <div className="p-4 md:p-6">
+          <div className="text-center py-12">
+            <p className="text-muted-foreground">Listing not found</p>
+            <Button
+              variant="outline"
+              onClick={() => navigate('/internal-listings')}
+              className="mt-4"
+            >
+              Back to Listings
+            </Button>
+          </div>
+        </div>
+      </AppLayout>
+    );
+  }
+
+  return (
+    <AppLayout>
+      <div className="p-4 md:p-6 space-y-6">
+        <div className="flex items-center gap-4">
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => navigate('/internal-listings')}
+          >
+            <ArrowLeft className="h-5 w-5" />
+          </Button>
+          <div className="flex-1">
+            <div className="flex items-center gap-3 flex-wrap">
+              <h1 className="text-2xl font-bold">
+                {listing.display_address || listing.address}
+              </h1>
+              <Badge
+                variant="outline"
+                className={`font-medium border ${statusColors[listing.status] || ''}`}
+              >
+                {listing.status}
+              </Badge>
+            </div>
+            <p className="text-muted-foreground">
+              {listing.city}
+              {listing.submarket && ` • ${listing.submarket}`}
+              {listing.listing_number && ` • #${listing.listing_number}`}
+            </p>
+          </div>
+          <Button className="gap-2">
+            <Pencil className="h-4 w-4" />
+            Edit
+          </Button>
+        </div>
+
+        <Tabs defaultValue="overview" className="space-y-4">
+          <TabsList>
+            <TabsTrigger value="overview" className="gap-2">
+              <Building2 className="h-4 w-4" />
+              Overview
+            </TabsTrigger>
+            <TabsTrigger value="documents" className="gap-2">
+              <FileText className="h-4 w-4" />
+              Documents
+            </TabsTrigger>
+            <TabsTrigger value="inquiries" className="gap-2">
+              <Mail className="h-4 w-4" />
+              Inquiries
+            </TabsTrigger>
+            <TabsTrigger value="marketing" className="gap-2">
+              <BarChart3 className="h-4 w-4" />
+              Marketing
+            </TabsTrigger>
+            <TabsTrigger value="activity" className="gap-2">
+              <History className="h-4 w-4" />
+              Activity
+            </TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="overview" className="space-y-6">
+            <div className="grid md:grid-cols-3 gap-6">
+              {/* Property Details */}
+              <Card className="md:col-span-2 border-2 border-foreground shadow-[4px_4px_0_hsl(var(--foreground))]">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <MapPin className="h-5 w-5" />
+                    Property Details
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid sm:grid-cols-2 gap-4">
+                    <div>
+                      <p className="text-xs text-muted-foreground uppercase tracking-wide">
+                        Property Type
+                      </p>
+                      <p className="font-medium">{listing.property_type || '-'}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-muted-foreground uppercase tracking-wide">
+                        Zoning
+                      </p>
+                      <p className="font-medium">{listing.zoning || '-'}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-muted-foreground uppercase tracking-wide">
+                        Total Size
+                      </p>
+                      <p className="font-medium">
+                        {listing.size_sf ? `${formatNumber(listing.size_sf)} SF` : '-'}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-muted-foreground uppercase tracking-wide">
+                        Warehouse / Office
+                      </p>
+                      <p className="font-medium">
+                        {listing.warehouse_sf
+                          ? `${formatNumber(listing.warehouse_sf)} SF`
+                          : '-'}
+                        {' / '}
+                        {listing.office_sf
+                          ? `${formatNumber(listing.office_sf)} SF`
+                          : '-'}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-muted-foreground uppercase tracking-wide">
+                        Clear Height
+                      </p>
+                      <p className="font-medium">
+                        {listing.clear_height_ft ? `${listing.clear_height_ft} ft` : '-'}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-muted-foreground uppercase tracking-wide">
+                        Loading
+                      </p>
+                      <p className="font-medium">
+                        {listing.loading_type || '-'}
+                        {listing.dock_doors ? ` • ${listing.dock_doors} Dock` : ''}
+                        {listing.drive_in_doors
+                          ? ` • ${listing.drive_in_doors} Drive-In`
+                          : ''}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-muted-foreground uppercase tracking-wide">
+                        Power
+                      </p>
+                      <p className="font-medium">{listing.power || '-'}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-muted-foreground uppercase tracking-wide">
+                        Yard
+                      </p>
+                      <p className="font-medium">{listing.yard || '-'}</p>
+                    </div>
+                    {listing.land_acres && (
+                      <div>
+                        <p className="text-xs text-muted-foreground uppercase tracking-wide">
+                          Land
+                        </p>
+                        <p className="font-medium">{listing.land_acres} acres</p>
+                      </div>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Financial Summary */}
+              <Card className="border-2 border-foreground shadow-[4px_4px_0_hsl(var(--foreground))]">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <DollarSign className="h-5 w-5" />
+                    Financial
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div>
+                    <p className="text-xs text-muted-foreground uppercase tracking-wide">
+                      Deal Type
+                    </p>
+                    <p className="font-medium">{listing.deal_type}</p>
+                  </div>
+                  {(listing.deal_type === 'Lease' || listing.deal_type === 'Both') &&
+                    listing.asking_rent_psf && (
+                      <div>
+                        <p className="text-xs text-muted-foreground uppercase tracking-wide">
+                          Asking Rent
+                        </p>
+                        <p className="text-xl font-bold">
+                          ${listing.asking_rent_psf}/SF
+                        </p>
+                      </div>
+                    )}
+                  {(listing.deal_type === 'Sale' || listing.deal_type === 'Both') &&
+                    listing.asking_sale_price && (
+                      <div>
+                        <p className="text-xs text-muted-foreground uppercase tracking-wide">
+                          Asking Price
+                        </p>
+                        <p className="text-xl font-bold">
+                          {formatCurrency(listing.asking_sale_price)}
+                        </p>
+                      </div>
+                    )}
+                  {listing.op_costs && (
+                    <div>
+                      <p className="text-xs text-muted-foreground uppercase tracking-wide">
+                        Operating Costs
+                      </p>
+                      <p className="font-medium">${listing.op_costs}/SF</p>
+                    </div>
+                  )}
+                  {listing.taxes && (
+                    <div>
+                      <p className="text-xs text-muted-foreground uppercase tracking-wide">
+                        Taxes
+                      </p>
+                      <p className="font-medium">${listing.taxes}/SF</p>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* Assignment & Owner */}
+            <div className="grid md:grid-cols-2 gap-6">
+              <Card className="border-2 border-foreground shadow-[4px_4px_0_hsl(var(--foreground))]">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Users className="h-5 w-5" />
+                    Assignment
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div>
+                    <p className="text-xs text-muted-foreground uppercase tracking-wide">
+                      Primary Agent
+                    </p>
+                    <p className="font-medium">
+                      {listing.assigned_agent?.name || 'Unassigned'}
+                    </p>
+                  </div>
+                  {listing.secondary_agent && (
+                    <div>
+                      <p className="text-xs text-muted-foreground uppercase tracking-wide">
+                        Secondary Agent
+                      </p>
+                      <p className="font-medium">{listing.secondary_agent.name}</p>
+                    </div>
+                  )}
+                  {listing.owner_name && (
+                    <div>
+                      <p className="text-xs text-muted-foreground uppercase tracking-wide">
+                        Owner/Landlord
+                      </p>
+                      <p className="font-medium">{listing.owner_name}</p>
+                      {listing.owner_contact && (
+                        <p className="text-sm text-muted-foreground">
+                          {listing.owner_contact}
+                        </p>
+                      )}
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+
+              {/* Marketing Content */}
+              {(listing.description || listing.broker_remarks) && (
+                <Card className="border-2 border-foreground shadow-[4px_4px_0_hsl(var(--foreground))]">
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <FileText className="h-5 w-5" />
+                      Marketing Content
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    {listing.description && (
+                      <div>
+                        <p className="text-xs text-muted-foreground uppercase tracking-wide mb-1">
+                          Description
+                        </p>
+                        <p className="text-sm whitespace-pre-wrap">
+                          {listing.description}
+                        </p>
+                      </div>
+                    )}
+                    {listing.broker_remarks && (
+                      <div>
+                        <p className="text-xs text-muted-foreground uppercase tracking-wide mb-1">
+                          Broker Remarks
+                        </p>
+                        <p className="text-sm whitespace-pre-wrap">
+                          {listing.broker_remarks}
+                        </p>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              )}
+            </div>
+          </TabsContent>
+
+          <TabsContent value="documents">
+            <Card className="border-2 border-foreground shadow-[4px_4px_0_hsl(var(--foreground))]">
+              <CardContent className="py-12 text-center text-muted-foreground">
+                <FileText className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                <p>Document management coming in Phase 2</p>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="inquiries">
+            <Card className="border-2 border-foreground shadow-[4px_4px_0_hsl(var(--foreground))]">
+              <CardContent className="py-12 text-center text-muted-foreground">
+                <Mail className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                <p>Inquiry tracking coming in Phase 3</p>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="marketing">
+            <Card className="border-2 border-foreground shadow-[4px_4px_0_hsl(var(--foreground))]">
+              <CardContent className="py-12 text-center text-muted-foreground">
+                <BarChart3 className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                <p>Brochure generation & marketing tools coming in Phase 4</p>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="activity" className="space-y-4">
+            <Card className="border-2 border-foreground shadow-[4px_4px_0_hsl(var(--foreground))]">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <History className="h-5 w-5" />
+                  Status History
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                {statusHistory && statusHistory.length > 0 ? (
+                  <div className="space-y-4">
+                    {statusHistory.map((entry) => (
+                      <div
+                        key={entry.id}
+                        className="flex items-start gap-3 pb-4 border-b last:border-0"
+                      >
+                        <div className="w-2 h-2 rounded-full bg-primary mt-2" />
+                        <div className="flex-1">
+                          <p className="font-medium">
+                            Status changed from{' '}
+                            <span className="text-muted-foreground">
+                              {entry.previous_status || 'New'}
+                            </span>{' '}
+                            to{' '}
+                            <Badge
+                              variant="outline"
+                              className={`font-medium border ${
+                                statusColors[entry.new_status] || ''
+                              }`}
+                            >
+                              {entry.new_status}
+                            </Badge>
+                          </p>
+                          <p className="text-sm text-muted-foreground">
+                            {format(new Date(entry.changed_at), 'PPp')}
+                          </p>
+                          {entry.notes && (
+                            <p className="text-sm mt-1">{entry.notes}</p>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-muted-foreground text-center py-8">
+                    No status changes recorded yet
+                  </p>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+        </Tabs>
+      </div>
+    </AppLayout>
+  );
+}
