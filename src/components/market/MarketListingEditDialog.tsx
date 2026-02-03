@@ -31,6 +31,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Loader2, Trash2 } from 'lucide-react';
 import { BrokerageCombobox } from './BrokerageCombobox';
 import { LandlordCombobox } from './LandlordCombobox';
@@ -107,6 +108,7 @@ export function MarketListingEditDialog({
   // Form state - Core fields for create
   const [listingId, setListingId] = useState('');
   const [address, setAddress] = useState('');
+  const [buildingUnit, setBuildingUnit] = useState('');
   const [displayAddress, setDisplayAddress] = useState('');
   const [displayAddressManuallyEdited, setDisplayAddressManuallyEdited] = useState(false);
   const [city, setCity] = useState('');
@@ -133,6 +135,7 @@ export function MarketListingEditDialog({
   const [clearHeight, setClearHeight] = useState('');
   const [dockDoors, setDockDoors] = useState('');
   const [driveInDoors, setDriveInDoors] = useState('');
+  const [buildingDepth, setBuildingDepth] = useState('');
   const [powerAmps, setPowerAmps] = useState('');
   const [voltage, setVoltage] = useState('');
   const [sprinkler, setSprinkler] = useState('');
@@ -154,6 +157,7 @@ export function MarketListingEditDialog({
   const getFormState = useCallback(() => ({
     listingId,
     address,
+    buildingUnit,
     displayAddress,
     displayAddressManuallyEdited,
     city,
@@ -176,6 +180,7 @@ export function MarketListingEditDialog({
     clearHeight,
     dockDoors,
     driveInDoors,
+    buildingDepth,
     powerAmps,
     voltage,
     sprinkler,
@@ -190,10 +195,10 @@ export function MarketListingEditDialog({
     mua,
     isDistributionWarehouse,
   }), [
-    listingId, address, displayAddress, displayAddressManuallyEdited, city, submarket,
+    listingId, address, buildingUnit, displayAddress, displayAddressManuallyEdited, city, submarket,
     sizeSf, status, listingType, askingRate, opCosts, salePrice, availabilityDate,
     subleaseExp, landlord, brokerSource, link, notesPublic, internalNote, warehouseSf,
-    officeSf, clearHeight, dockDoors, driveInDoors, powerAmps, voltage, sprinkler,
+    officeSf, clearHeight, dockDoors, driveInDoors, buildingDepth, powerAmps, voltage, sprinkler,
     cranes, craneTons, yard, yardArea, crossDock, trailerParking, landAcres, zoning,
     mua, isDistributionWarehouse,
   ]);
@@ -202,6 +207,7 @@ export function MarketListingEditDialog({
   const applyFormState = useCallback((state: ReturnType<typeof getFormState>) => {
     setListingId(state.listingId);
     setAddress(state.address);
+    setBuildingUnit(state.buildingUnit || '');
     setDisplayAddress(state.displayAddress);
     setDisplayAddressManuallyEdited(state.displayAddressManuallyEdited);
     setCity(state.city);
@@ -224,6 +230,7 @@ export function MarketListingEditDialog({
     setClearHeight(state.clearHeight);
     setDockDoors(state.dockDoors);
     setDriveInDoors(state.driveInDoors);
+    setBuildingDepth(state.buildingDepth || '');
     setPowerAmps(state.powerAmps);
     setVoltage(state.voltage);
     setSprinkler(state.sprinkler);
@@ -249,22 +256,37 @@ export function MarketListingEditDialog({
     formSessionIdRef.current = null;
   }, []);
 
+  // Generate combined display address from address + unit
+  const generateDisplayAddress = useCallback((addr: string, unit: string) => {
+    if (!unit.trim()) return addr;
+    return `${addr} — ${unit.trim()}`;
+  }, []);
+
   // Handle address change - mirror to displayAddress if not manually edited
   const handleAddressChange = (value: string) => {
     setAddress(value);
     if (!displayAddressManuallyEdited) {
-      setDisplayAddress(value);
+      setDisplayAddress(generateDisplayAddress(value, buildingUnit));
+    }
+  };
+
+  // Handle building/unit change - mirror to displayAddress if not manually edited
+  const handleBuildingUnitChange = (value: string) => {
+    setBuildingUnit(value);
+    if (!displayAddressManuallyEdited) {
+      setDisplayAddress(generateDisplayAddress(address, value));
     }
   };
 
   // Handle displayAddress change
   const handleDisplayAddressChange = (value: string) => {
     setDisplayAddress(value);
+    const expectedDisplay = generateDisplayAddress(address, buildingUnit);
     if (value === '') {
       // User cleared the field - reset to mirroring mode
       setDisplayAddressManuallyEdited(false);
-      setDisplayAddress(address);
-    } else if (value !== address) {
+      setDisplayAddress(expectedDisplay);
+    } else if (value !== expectedDisplay) {
       // User made a different value - mark as manually edited
       setDisplayAddressManuallyEdited(true);
     }
@@ -299,6 +321,19 @@ export function MarketListingEditDialog({
       // Ignore storage errors (quota exceeded, etc.)
     }
   }, [open, isCreateMode, listing?.id, mode, getFormState]);
+
+  // Parse unit from existing display_address (if present)
+  const parseUnitFromDisplayAddress = (displayAddr: string, addr: string): string => {
+    if (!displayAddr || !addr) return '';
+    // Check for " — " separator pattern
+    if (displayAddr.includes(' — ')) {
+      const parts = displayAddr.split(' — ');
+      if (parts.length > 1) {
+        return parts.slice(1).join(' — ').trim();
+      }
+    }
+    return '';
+  };
 
   // Initialize form when dialog opens
   useEffect(() => {
@@ -344,6 +379,7 @@ export function MarketListingEditDialog({
       // Auto-generate listing ID for create mode
       setListingId(generateListingId());
       setAddress('');
+      setBuildingUnit('');
       setDisplayAddress('');
       setDisplayAddressManuallyEdited(false);
       setCity('Calgary');
@@ -366,6 +402,7 @@ export function MarketListingEditDialog({
       setClearHeight('');
       setDockDoors('');
       setDriveInDoors('');
+      setBuildingDepth('');
       setPowerAmps('');
       setVoltage('');
       setSprinkler('');
@@ -382,8 +419,11 @@ export function MarketListingEditDialog({
     } else if (listing) {
       setListingId(listing.listing_id || '');
       setAddress(listing.address || '');
+      // Try to parse unit from display_address
+      const parsedUnit = parseUnitFromDisplayAddress(listing.display_address || '', listing.address || '');
+      setBuildingUnit(parsedUnit);
       setDisplayAddress(listing.display_address || '');
-      setDisplayAddressManuallyEdited(listing.display_address !== listing.address);
+      setDisplayAddressManuallyEdited(listing.display_address !== listing.address && !parsedUnit);
       setCity(listing.city || '');
       setSubmarket(listing.submarket || '');
       setSizeSf(listing.size_sf?.toString() || '');
@@ -404,6 +444,7 @@ export function MarketListingEditDialog({
       setClearHeight(listing.clear_height_ft?.toString() || '');
       setDockDoors(listing.dock_doors?.toString() || '');
       setDriveInDoors(listing.drive_in_doors?.toString() || '');
+      setBuildingDepth(listing.building_depth || '');
       setPowerAmps(listing.power_amps || '');
       setVoltage(listing.voltage || '');
       setSprinkler(listing.sprinkler || '');
@@ -420,7 +461,7 @@ export function MarketListingEditDialog({
     }
 
     hasInitializedRef.current = true;
-  }, [open, listing, isCreateMode, mode, applyFormState]);
+  }, [open, listing, isCreateMode, mode, applyFormState, generateDisplayAddress]);
 
   const handleStatusChange = (newStatus: string) => {
     // Check if changing to "Sold/Leased" status (only in edit mode)
@@ -473,6 +514,8 @@ export function MarketListingEditDialog({
       return;
     }
 
+    const finalDisplayAddress = displayAddress.trim() || generateDisplayAddress(address.trim(), buildingUnit);
+
     setIsSaving(true);
     try {
       const { data: session } = await supabase.auth.getSession();
@@ -482,7 +525,7 @@ export function MarketListingEditDialog({
         .insert({
           listing_id: listingId.trim(),
           address: address.trim(),
-          display_address: displayAddress.trim() || address.trim(),
+          display_address: finalDisplayAddress,
           city: city || '',
           submarket: city === 'Calgary' ? 'Pending' : submarket.trim(),
           size_sf: parseInt(sizeSf) || 0,
@@ -503,6 +546,7 @@ export function MarketListingEditDialog({
           clear_height_ft: clearHeight ? parseFloat(clearHeight) : null,
           dock_doors: dockDoors ? parseInt(dockDoors) : null,
           drive_in_doors: driveInDoors ? parseInt(driveInDoors) : null,
+          building_depth: buildingDepth || null,
           power_amps: powerAmps || null,
           voltage: voltage || null,
           sprinkler: sprinkler || null,
@@ -597,13 +641,15 @@ export function MarketListingEditDialog({
         }
       : {};
 
+    const finalDisplayAddress = displayAddress.trim() || generateDisplayAddress(address.trim(), buildingUnit);
+
     setIsSaving(true);
     try {
       const { error } = await supabase
         .from('market_listings')
         .update({
           address: address.trim(),
-          display_address: displayAddress.trim() || address.trim(),
+          display_address: finalDisplayAddress,
           city: city || '',
           submarket: needsReGeocode && city === 'Calgary' ? 'Pending' : submarket.trim(),
           size_sf: parseInt(sizeSf.replace(/,/g, '')) || 0,
@@ -624,6 +670,7 @@ export function MarketListingEditDialog({
           clear_height_ft: clearHeight ? parseFloat(clearHeight) : null,
           dock_doors: dockDoors ? parseInt(dockDoors) : null,
           drive_in_doors: driveInDoors ? parseInt(driveInDoors) : null,
+          building_depth: buildingDepth || null,
           power_amps: powerAmps || null,
           voltage: voltage || null,
           sprinkler: sprinkler || null,
@@ -733,6 +780,22 @@ export function MarketListingEditDialog({
     </Dialog>;
   }
 
+  // Neo-brutalist toggle button component
+  const ToggleButton = ({ value, onChange, label }: { value: boolean; onChange: (v: boolean) => void; label?: string }) => (
+    <button
+      type="button"
+      onClick={() => onChange(!value)}
+      className={`px-3 py-1.5 text-xs font-bold uppercase tracking-wide border-2 border-foreground transition-all ${
+        value 
+          ? 'bg-primary text-primary-foreground shadow-[2px_2px_0_hsl(var(--foreground))]' 
+          : 'bg-destructive text-destructive-foreground shadow-[2px_2px_0_hsl(var(--foreground))]'
+      }`}
+      style={{ borderRadius: 'var(--radius)' }}
+    >
+      {label || (value ? 'Yes' : 'No')}
+    </button>
+  );
+
   return (
     <>
       <Dialog open={open} onOpenChange={(isOpen) => { if (!isOpen) handleClose(); }}>
@@ -751,478 +814,501 @@ export function MarketListingEditDialog({
             </DialogDescription>
           </DialogHeader>
 
-          <div className="grid gap-4 py-4">
-            {/* Listing ID - Auto-generated and locked (create mode only) */}
-            {isCreateMode && (
+          <Tabs defaultValue="property" className="w-full">
+            <TabsList className="w-full mb-4">
+              <TabsTrigger value="property" className="flex-1">Property Info</TabsTrigger>
+              <TabsTrigger value="specs" className="flex-1">Building Specs</TabsTrigger>
+              <TabsTrigger value="pricing" className="flex-1">Pricing & Details</TabsTrigger>
+            </TabsList>
+
+            {/* Property Info Tab */}
+            <TabsContent value="property" className="space-y-4">
+              {/* Address */}
               <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="listingId" className="text-right">
-                  Listing ID
+                <Label htmlFor="address" className="text-right">
+                  Address *
                 </Label>
                 <Input
-                  id="listingId"
-                  value={listingId}
-                  readOnly
-                  disabled
-                  className="col-span-3 bg-muted cursor-not-allowed"
+                  id="address"
+                  value={address}
+                  onChange={(e) => handleAddressChange(e.target.value)}
+                  className={`col-span-3 placeholder-light ${address ? 'input-filled' : ''}`}
+                  placeholder="e.g., 123 Industrial Way"
                 />
               </div>
-            )}
 
-            {/* Address - editable in both modes */}
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="address" className="text-right">
-                Address *
-              </Label>
-              <Input
-                id="address"
-                value={address}
-                onChange={(e) => handleAddressChange(e.target.value)}
-                className={`col-span-3 placeholder-light ${address ? 'input-filled' : ''}`}
-                placeholder="e.g., 123 Industrial Way"
-              />
-            </div>
-
-            {/* Display Address - mirrors Address unless manually edited */}
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="displayAddress" className="text-right">
-                Display Address
-              </Label>
-              <Input
-                id="displayAddress"
-                value={displayAddress}
-                onChange={(e) => handleDisplayAddressChange(e.target.value)}
-                className={`col-span-3 placeholder-light ${displayAddress ? 'input-filled' : ''}`}
-                placeholder="e.g., 123 Industrial Way — Unit 4"
-              />
-            </div>
-
-            {/* City */}
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="city" className="text-right">
-                City
-              </Label>
-              <div className="col-span-3">
-                <CityCombobox value={city} onChange={setCity} />
+              {/* Building/Unit */}
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="buildingUnit" className="text-right">
+                  Building/Unit
+                </Label>
+                <Input
+                  id="buildingUnit"
+                  value={buildingUnit}
+                  onChange={(e) => handleBuildingUnitChange(e.target.value)}
+                  className={`col-span-3 placeholder-light ${buildingUnit ? 'input-filled' : ''}`}
+                  placeholder="e.g., Unit 4 or Bay 200"
+                />
               </div>
-            </div>
 
-            {/* Submarket - auto-assigned for Calgary, manual input for others */}
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="submarket" className="text-right">
-                Submarket {city !== 'Calgary' && '*'}
-              </Label>
-              {city === 'Calgary' ? (
+              {/* Display Address (read-only preview) */}
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="displayAddress" className="text-right text-muted-foreground text-xs">
+                  Display Address
+                </Label>
+                <Input
+                  id="displayAddress"
+                  value={displayAddress}
+                  onChange={(e) => handleDisplayAddressChange(e.target.value)}
+                  className={`col-span-3 placeholder-light text-sm ${displayAddress ? 'input-filled' : ''}`}
+                  placeholder="Auto-generated from address + unit"
+                />
+              </div>
+
+              {/* City */}
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="city" className="text-right">
+                  City
+                </Label>
                 <div className="col-span-3">
+                  <CityCombobox value={city} onChange={setCity} />
+                </div>
+              </div>
+
+              {/* Submarket - auto-assigned for Calgary, manual input for others */}
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="submarket" className="text-right">
+                  Submarket {city !== 'Calgary' && '*'}
+                </Label>
+                {city === 'Calgary' ? (
+                  <div className="col-span-3">
+                    <Input
+                      id="submarket"
+                      value={submarket || 'Auto-assigned on save'}
+                      readOnly
+                      disabled
+                      className="bg-muted cursor-not-allowed text-muted-foreground"
+                    />
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Submarket will be auto-assigned based on geocoded location
+                    </p>
+                  </div>
+                ) : (
                   <Input
                     id="submarket"
-                    value={submarket || 'Auto-assigned on save'}
-                    readOnly
-                    disabled
-                    className="bg-muted cursor-not-allowed text-muted-foreground"
+                    value={submarket}
+                    onChange={(e) => setSubmarket(e.target.value)}
+                    className={`col-span-3 placeholder-light ${submarket ? 'input-filled' : ''}`}
+                    placeholder="e.g., SE Industrial"
                   />
-                  <p className="text-xs text-muted-foreground mt-1">
-                    Submarket will be auto-assigned based on geocoded location
-                  </p>
+                )}
+              </div>
+
+              {/* Status */}
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="status" className="text-right">
+                  Status
+                </Label>
+                <div className="col-span-3">
+                  <Select value={status} onValueChange={handleStatusChange}>
+                    <SelectTrigger className={`${getStatusColor(status)} font-semibold`}>
+                      <SelectValue placeholder="Select status" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {(isCreateMode ? STATUS_OPTIONS_CREATE : STATUS_OPTIONS_EDIT).map((opt) => (
+                        <SelectItem key={opt.value} value={opt.value}>
+                          {opt.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
-              ) : (
+              </div>
+
+              {/* Listing Type */}
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="listingType" className="text-right">
+                  Listing Type
+                </Label>
+                <div className="col-span-3">
+                  <Select value={listingType} onValueChange={setListingType}>
+                    <SelectTrigger className={listingType ? 'input-filled' : ''}>
+                      <SelectValue placeholder="Select type" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {LISTING_TYPE_OPTIONS.map((opt) => (
+                        <SelectItem key={opt.value} value={opt.value}>
+                          {opt.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              {/* Zoning */}
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="zoning" className="text-right">
+                  Zoning
+                </Label>
                 <Input
-                  id="submarket"
-                  value={submarket}
-                  onChange={(e) => setSubmarket(e.target.value)}
-                  className={`col-span-3 placeholder-light ${submarket ? 'input-filled' : ''}`}
-                  placeholder="e.g., SE Industrial"
+                  id="zoning"
+                  value={zoning}
+                  onChange={(e) => setZoning(e.target.value)}
+                  className={`col-span-3 placeholder-light ${zoning ? 'input-filled' : ''}`}
+                  placeholder="e.g., I-G"
                 />
+              </div>
+            </TabsContent>
+
+            {/* Building Specs Tab */}
+            <TabsContent value="specs" className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                {/* Land Acres */}
+                <div className="space-y-1">
+                  <Label className="text-xs">Land Acres</Label>
+                  <Input
+                    value={landAcres}
+                    onChange={(e) => setLandAcres(e.target.value)}
+                    className={`placeholder-light ${landAcres ? 'input-filled' : ''}`}
+                    placeholder="e.g., 5.2"
+                  />
+                </div>
+
+                {/* Size SF */}
+                <div className="space-y-1">
+                  <Label className="text-xs">Size (SF)</Label>
+                  <Input
+                    type="number"
+                    value={sizeSf}
+                    onChange={(e) => setSizeSf(e.target.value)}
+                    className={`placeholder-light ${sizeSf ? 'input-filled' : ''}`}
+                    placeholder="e.g., 150000"
+                  />
+                </div>
+
+                {/* Warehouse SF */}
+                <div className="space-y-1">
+                  <Label className="text-xs">Warehouse SF</Label>
+                  <Input
+                    type="number"
+                    value={warehouseSf}
+                    onChange={(e) => setWarehouseSf(e.target.value)}
+                    className={`placeholder-light ${warehouseSf ? 'input-filled' : ''}`}
+                    placeholder="e.g., 120000"
+                  />
+                </div>
+
+                {/* Office SF */}
+                <div className="space-y-1">
+                  <Label className="text-xs">Office SF</Label>
+                  <Input
+                    type="number"
+                    value={officeSf}
+                    onChange={(e) => setOfficeSf(e.target.value)}
+                    className={`placeholder-light ${officeSf ? 'input-filled' : ''}`}
+                    placeholder="e.g., 5000"
+                  />
+                </div>
+
+                {/* Ceiling Height */}
+                <div className="space-y-1">
+                  <Label className="text-xs">Ceiling Height (ft)</Label>
+                  <Input
+                    type="number"
+                    value={clearHeight}
+                    onChange={(e) => setClearHeight(e.target.value)}
+                    className={`placeholder-light ${clearHeight ? 'input-filled' : ''}`}
+                    placeholder="e.g., 32"
+                  />
+                </div>
+
+                {/* Dock Doors */}
+                <div className="space-y-1">
+                  <Label className="text-xs">Dock Doors</Label>
+                  <Input
+                    type="number"
+                    value={dockDoors}
+                    onChange={(e) => setDockDoors(e.target.value)}
+                    className={`placeholder-light ${dockDoors ? 'input-filled' : ''}`}
+                    placeholder="e.g., 12"
+                  />
+                </div>
+
+                {/* Drive-In Doors */}
+                <div className="space-y-1">
+                  <Label className="text-xs">Drive-In Doors</Label>
+                  <Input
+                    type="number"
+                    value={driveInDoors}
+                    onChange={(e) => setDriveInDoors(e.target.value)}
+                    className={`placeholder-light ${driveInDoors ? 'input-filled' : ''}`}
+                    placeholder="e.g., 2"
+                  />
+                </div>
+
+                {/* Building Depth */}
+                <div className="space-y-1">
+                  <Label className="text-xs">Building Depth</Label>
+                  <Input
+                    value={buildingDepth}
+                    onChange={(e) => setBuildingDepth(e.target.value)}
+                    className={`placeholder-light ${buildingDepth ? 'input-filled' : ''}`}
+                    placeholder="e.g., 200 ft"
+                  />
+                </div>
+
+                {/* Power Amps */}
+                <div className="space-y-1">
+                  <Label className="text-xs">Power Amps</Label>
+                  <Input
+                    value={powerAmps}
+                    onChange={(e) => setPowerAmps(e.target.value)}
+                    className={`placeholder-light ${powerAmps ? 'input-filled' : ''}`}
+                    placeholder="e.g., 2000"
+                  />
+                </div>
+
+                {/* Power Voltage */}
+                <div className="space-y-1">
+                  <Label className="text-xs">Power Voltage</Label>
+                  <Input
+                    value={voltage}
+                    onChange={(e) => setVoltage(e.target.value)}
+                    className={`placeholder-light ${voltage ? 'input-filled' : ''}`}
+                    placeholder="e.g., 600V"
+                  />
+                </div>
+
+                {/* Sprinklers */}
+                <div className="space-y-1">
+                  <Label className="text-xs">Sprinklers</Label>
+                  <Input
+                    value={sprinkler}
+                    onChange={(e) => setSprinkler(e.target.value)}
+                    className={`placeholder-light ${sprinkler ? 'input-filled' : ''}`}
+                    placeholder="e.g., ESFR"
+                  />
+                </div>
+
+                {/* Cranes */}
+                <div className="space-y-1">
+                  <Label className="text-xs">Cranes</Label>
+                  <Input
+                    value={cranes}
+                    onChange={(e) => setCranes(e.target.value)}
+                    className={`placeholder-light ${cranes ? 'input-filled' : ''}`}
+                    placeholder="e.g., 2"
+                  />
+                </div>
+
+                {/* Crane Tons */}
+                <div className="space-y-1">
+                  <Label className="text-xs">Crane Tons</Label>
+                  <Input
+                    value={craneTons}
+                    onChange={(e) => setCraneTons(e.target.value)}
+                    className={`placeholder-light ${craneTons ? 'input-filled' : ''}`}
+                    placeholder="e.g., 10T"
+                  />
+                </div>
+
+                {/* Trailer Parking */}
+                <div className="space-y-1">
+                  <Label className="text-xs">Trailer Parking</Label>
+                  <Input
+                    value={trailerParking}
+                    onChange={(e) => setTrailerParking(e.target.value)}
+                    className={`placeholder-light ${trailerParking ? 'input-filled' : ''}`}
+                    placeholder="e.g., 20 stalls"
+                  />
+                </div>
+              </div>
+
+              {/* Toggle fields row */}
+              <div className="border-t pt-4 mt-2">
+                <div className="grid grid-cols-4 gap-4">
+                  <div className="space-y-2">
+                    <Label className="text-xs">Yard</Label>
+                    <div className="flex items-center gap-2">
+                      <ToggleButton value={yard} onChange={setYard} />
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label className="text-xs">Cross-Dock</Label>
+                    <div className="flex items-center gap-2">
+                      <ToggleButton value={crossDock} onChange={setCrossDock} />
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label className="text-xs">MUA</Label>
+                    <div className="flex items-center gap-2">
+                      <ToggleButton value={mua} onChange={setMua} />
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label className="text-xs">Dist. Warehouse</Label>
+                    <div className="flex items-center gap-2">
+                      <ToggleButton value={isDistributionWarehouse} onChange={setIsDistributionWarehouse} />
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Yard Area (shown when yard is enabled) */}
+              {yard && (
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label className="text-right text-xs">Yard Area</Label>
+                  <Input
+                    value={yardArea}
+                    onChange={(e) => setYardArea(e.target.value)}
+                    className={`col-span-3 placeholder-light ${yardArea ? 'input-filled' : ''}`}
+                    placeholder="e.g., 2 acres"
+                  />
+                </div>
               )}
-            </div>
+            </TabsContent>
 
-            {/* Size */}
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="sizeSf" className="text-right">
-                Size (SF)
-              </Label>
-              <Input
-                id="sizeSf"
-                type="number"
-                value={sizeSf}
-                onChange={(e) => setSizeSf(e.target.value)}
-                className={`col-span-3 placeholder-light ${sizeSf ? 'input-filled' : ''}`}
-                placeholder="e.g., 150000"
-              />
-            </div>
+            {/* Pricing & Details Tab */}
+            <TabsContent value="pricing" className="space-y-4">
+              {/* Asking Rate / Op Costs */}
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-1">
+                  <Label className="text-xs">Asking Rate (PSF)</Label>
+                  <Input
+                    value={askingRate}
+                    onChange={(e) => setAskingRate(e.target.value)}
+                    className={`placeholder-light ${askingRate ? 'input-filled' : ''}`}
+                    placeholder="e.g., $12.50"
+                  />
+                </div>
 
-            {/* Warehouse / Office SF */}
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label className="text-right">Warehouse SF</Label>
-              <Input
-                type="number"
-                value={warehouseSf}
-                onChange={(e) => setWarehouseSf(e.target.value)}
-                className={`col-span-1 placeholder-light ${warehouseSf ? 'input-filled' : ''}`}
-                placeholder="e.g., 120000"
-              />
-              <Label className="text-right">Office SF</Label>
-              <Input
-                type="number"
-                value={officeSf}
-                onChange={(e) => setOfficeSf(e.target.value)}
-                className={`col-span-1 placeholder-light ${officeSf ? 'input-filled' : ''}`}
-                placeholder="e.g., 5000"
-              />
-            </div>
-
-            {/* Status */}
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="status" className="text-right">
-                Status
-              </Label>
-              <div className="col-span-3">
-                <Select value={status} onValueChange={handleStatusChange}>
-                  <SelectTrigger className={`${getStatusColor(status)} font-semibold`}>
-                    <SelectValue placeholder="Select status" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {(isCreateMode ? STATUS_OPTIONS_CREATE : STATUS_OPTIONS_EDIT).map((opt) => (
-                      <SelectItem key={opt.value} value={opt.value}>
-                        {opt.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <div className="space-y-1">
+                  <Label className="text-xs">Op Costs</Label>
+                  <Input
+                    value={opCosts}
+                    onChange={(e) => setOpCosts(e.target.value)}
+                    className={`placeholder-light ${opCosts ? 'input-filled' : ''}`}
+                    placeholder="e.g., $4.50"
+                  />
+                </div>
               </div>
-            </div>
 
-            {/* Listing Type */}
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="listingType" className="text-right">
-                Listing Type
-              </Label>
-              <div className="col-span-3">
-                <Select value={listingType} onValueChange={setListingType}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select type" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {LISTING_TYPE_OPTIONS.map((opt) => (
-                      <SelectItem key={opt.value} value={opt.value}>
-                        {opt.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+              {/* Sale Price / Sublease Exp */}
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-1">
+                  <Label className="text-xs">Sale Price</Label>
+                  <Input
+                    value={salePrice}
+                    onChange={(e) => setSalePrice(e.target.value)}
+                    className={`placeholder-light ${salePrice ? 'input-filled' : ''}`}
+                    placeholder="e.g., $5,000,000"
+                  />
+                </div>
+
+                <div className="space-y-1">
+                  <Label className="text-xs">Sublease Expiry</Label>
+                  <Input
+                    value={subleaseExp}
+                    onChange={(e) => setSubleaseExp(e.target.value)}
+                    className={`placeholder-light ${subleaseExp ? 'input-filled' : ''}`}
+                    placeholder="e.g., Dec 2027"
+                  />
+                </div>
               </div>
-            </div>
 
-            {/* Brokerage */}
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="brokerSource" className="text-right">
-                Brokerage
-              </Label>
-              <div className="col-span-3">
-                <BrokerageCombobox
-                  value={brokerSource}
-                  onChange={setBrokerSource}
+              {/* Availability */}
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label className="text-right">Availability</Label>
+                <Input
+                  value={availabilityDate}
+                  onChange={(e) => setAvailabilityDate(e.target.value)}
+                  className={`col-span-3 placeholder-light ${availabilityDate ? 'input-filled' : ''}`}
+                  placeholder="e.g., Immediate or Q2 2026"
                 />
               </div>
-            </div>
 
-            {/* Asking Rate / Op Costs */}
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label className="text-right">Asking Rate (PSF)</Label>
-              <Input
-                value={askingRate}
-                onChange={(e) => setAskingRate(e.target.value)}
-                className={`col-span-1 placeholder-light ${askingRate ? 'input-filled' : ''}`}
-                placeholder="e.g., $12.50"
-              />
-              <Label className="text-right">Op Costs</Label>
-              <Input
-                value={opCosts}
-                onChange={(e) => setOpCosts(e.target.value)}
-                className={`col-span-1 placeholder-light ${opCosts ? 'input-filled' : ''}`}
-                placeholder="e.g., $4.50"
-              />
-            </div>
+              {/* Brokerage */}
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="brokerSource" className="text-right">
+                  Brokerage
+                </Label>
+                <div className="col-span-3">
+                  <BrokerageCombobox
+                    value={brokerSource}
+                    onChange={setBrokerSource}
+                  />
+                </div>
+              </div>
 
-            {/* Sale Price / Sublease Exp */}
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label className="text-right">Sale Price</Label>
-              <Input
-                value={salePrice}
-                onChange={(e) => setSalePrice(e.target.value)}
-                className={`col-span-1 placeholder-light ${salePrice ? 'input-filled' : ''}`}
-                placeholder="e.g., $5,000,000"
-              />
-              <Label className="text-right">Sublease Exp</Label>
-              <Input
-                value={subleaseExp}
-                onChange={(e) => setSubleaseExp(e.target.value)}
-                className={`col-span-1 placeholder-light ${subleaseExp ? 'input-filled' : ''}`}
-                placeholder="e.g., Dec 2027"
-              />
-            </div>
+              {/* Landlord */}
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="landlord" className="text-right">
+                  Landlord
+                </Label>
+                <div className="col-span-3">
+                  <LandlordCombobox
+                    value={landlord}
+                    onChange={setLandlord}
+                  />
+                </div>
+              </div>
 
-            {/* Availability */}
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="availability" className="text-right">
-                Availability
-              </Label>
-              <Input
-                id="availability"
-                value={availabilityDate}
-                onChange={(e) => setAvailabilityDate(e.target.value)}
-                className={`col-span-3 placeholder-light ${availabilityDate ? 'input-filled' : ''}`}
-                placeholder="e.g., Immediate, Q2 2026"
-              />
-            </div>
-
-            {/* Landlord */}
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="landlord" className="text-right">
-                Landlord
-              </Label>
-              <div className="col-span-3">
-                <LandlordCombobox
-                  value={landlord}
-                  onChange={setLandlord}
+              {/* Brochure Link */}
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="link" className="text-right">
+                  Brochure Link
+                </Label>
+                <Input
+                  id="link"
+                  value={link}
+                  onChange={(e) => setLink(e.target.value)}
+                  className={`col-span-3 placeholder-light ${link ? 'input-filled' : ''}`}
+                  placeholder="e.g., https://..."
                 />
               </div>
-            </div>
 
-            {/* Brochure Link */}
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="link" className="text-right">
-                Brochure Link
-              </Label>
-              <Input
-                id="link"
-                value={link}
-                onChange={(e) => setLink(e.target.value)}
-                className={`col-span-3 placeholder-light ${link ? 'input-filled' : ''}`}
-                placeholder="e.g., https://..."
-              />
-            </div>
-
-            {/* Building Specs Section Header */}
-            <div className="border-t pt-4 mt-2">
-              <p className="text-sm font-semibold text-muted-foreground mb-3">Building Specs</p>
-            </div>
-
-            {/* Clear Height / Dock Doors */}
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label className="text-right">Clear Height (ft)</Label>
-              <Input
-                type="number"
-                value={clearHeight}
-                onChange={(e) => setClearHeight(e.target.value)}
-                className={`col-span-1 placeholder-light ${clearHeight ? 'input-filled' : ''}`}
-                placeholder="e.g., 32"
-              />
-              <Label className="text-right">Dock Doors</Label>
-              <Input
-                type="number"
-                value={dockDoors}
-                onChange={(e) => setDockDoors(e.target.value)}
-                className={`col-span-1 placeholder-light ${dockDoors ? 'input-filled' : ''}`}
-                placeholder="e.g., 12"
-              />
-            </div>
-
-            {/* Drive-In / Power */}
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label className="text-right">Drive-In Doors</Label>
-              <Input
-                type="number"
-                value={driveInDoors}
-                onChange={(e) => setDriveInDoors(e.target.value)}
-                className={`col-span-1 placeholder-light ${driveInDoors ? 'input-filled' : ''}`}
-                placeholder="e.g., 2"
-              />
-              <Label className="text-right">Power (Amps)</Label>
-              <Input
-                value={powerAmps}
-                onChange={(e) => setPowerAmps(e.target.value)}
-                className={`col-span-1 placeholder-light ${powerAmps ? 'input-filled' : ''}`}
-                placeholder="e.g., 2000"
-              />
-            </div>
-
-            {/* Voltage / Sprinkler */}
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label className="text-right">Voltage</Label>
-              <Input
-                value={voltage}
-                onChange={(e) => setVoltage(e.target.value)}
-                className={`col-span-1 placeholder-light ${voltage ? 'input-filled' : ''}`}
-                placeholder="e.g., 600V"
-              />
-              <Label className="text-right">Sprinkler</Label>
-              <Input
-                value={sprinkler}
-                onChange={(e) => setSprinkler(e.target.value)}
-                className={`col-span-1 placeholder-light ${sprinkler ? 'input-filled' : ''}`}
-                placeholder="e.g., ESFR"
-              />
-            </div>
-
-            {/* Cranes / Crane Tons */}
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label className="text-right">Cranes</Label>
-              <Input
-                value={cranes}
-                onChange={(e) => setCranes(e.target.value)}
-                className={`col-span-1 placeholder-light ${cranes ? 'input-filled' : ''}`}
-                placeholder="e.g., 2"
-              />
-              <Label className="text-right">Crane Tons</Label>
-              <Input
-                value={craneTons}
-                onChange={(e) => setCraneTons(e.target.value)}
-                className={`col-span-1 placeholder-light ${craneTons ? 'input-filled' : ''}`}
-                placeholder="e.g., 10T"
-              />
-            </div>
-
-            {/* Yard / Yard Area */}
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label className="text-right">Yard</Label>
-              <div className="col-span-1">
-                <button
-                  type="button"
-                  onClick={() => setYard(!yard)}
-                  className={`px-3 py-1.5 text-xs font-bold uppercase tracking-wide border-2 border-foreground transition-all ${
-                    yard 
-                      ? 'bg-primary text-primary-foreground shadow-[2px_2px_0_hsl(var(--foreground))]' 
-                      : 'bg-destructive text-destructive-foreground shadow-[2px_2px_0_hsl(var(--foreground))]'
-                  }`}
-                  style={{ borderRadius: 'var(--radius)' }}
-                >
-                  {yard ? 'Yes' : 'No'}
-                </button>
+              {/* Notes Section */}
+              <div className="border-t pt-4 mt-2">
+                <p className="text-sm font-semibold text-muted-foreground mb-3">Notes</p>
               </div>
-              <Label className="text-right">Yard Area</Label>
-              <Input
-                value={yardArea}
-                onChange={(e) => setYardArea(e.target.value)}
-                className={`col-span-1 placeholder-light ${yardArea ? 'input-filled' : ''}`}
-                placeholder="e.g., 2 acres"
-              />
-            </div>
 
-            {/* Cross-Dock / Trailer Parking */}
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label className="text-right">Cross-Dock</Label>
-              <div className="col-span-1">
-                <button
-                  type="button"
-                  onClick={() => setCrossDock(!crossDock)}
-                  className={`px-3 py-1.5 text-xs font-bold uppercase tracking-wide border-2 border-foreground transition-all ${
-                    crossDock 
-                      ? 'bg-primary text-primary-foreground shadow-[2px_2px_0_hsl(var(--foreground))]' 
-                      : 'bg-destructive text-destructive-foreground shadow-[2px_2px_0_hsl(var(--foreground))]'
-                  }`}
-                  style={{ borderRadius: 'var(--radius)' }}
-                >
-                  {crossDock ? 'Yes' : 'No'}
-                </button>
+              {/* Public Notes */}
+              <div className="grid grid-cols-4 items-start gap-4">
+                <Label htmlFor="notesPublic" className="text-right pt-2">
+                  Public Notes
+                </Label>
+                <Textarea
+                  id="notesPublic"
+                  value={notesPublic}
+                  onChange={(e) => setNotesPublic(e.target.value)}
+                  className={`col-span-3 placeholder-light ${notesPublic ? 'input-filled' : ''}`}
+                  rows={2}
+                  placeholder="Visible on reports"
+                />
               </div>
-              <Label className="text-right">Trailer Parking</Label>
-              <Input
-                value={trailerParking}
-                onChange={(e) => setTrailerParking(e.target.value)}
-                className={`col-span-1 placeholder-light ${trailerParking ? 'input-filled' : ''}`}
-                placeholder="e.g., 20 stalls"
-              />
-            </div>
 
-            {/* Land Acres / Zoning */}
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label className="text-right">Land Acres</Label>
-              <Input
-                value={landAcres}
-                onChange={(e) => setLandAcres(e.target.value)}
-                className={`col-span-1 placeholder-light ${landAcres ? 'input-filled' : ''}`}
-                placeholder="e.g., 5.2"
-              />
-              <Label className="text-right">Zoning</Label>
-              <Input
-                value={zoning}
-                onChange={(e) => setZoning(e.target.value)}
-                className={`col-span-1 placeholder-light ${zoning ? 'input-filled' : ''}`}
-                placeholder="e.g., I-G"
-              />
-            </div>
-
-            {/* MUA / Distribution Warehouse */}
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label className="text-right">MUA</Label>
-              <div className="col-span-1">
-                <button
-                  type="button"
-                  onClick={() => setMua(!mua)}
-                  className={`px-3 py-1.5 text-xs font-bold uppercase tracking-wide border-2 border-foreground transition-all ${
-                    mua 
-                      ? 'bg-primary text-primary-foreground shadow-[2px_2px_0_hsl(var(--foreground))]' 
-                      : 'bg-destructive text-destructive-foreground shadow-[2px_2px_0_hsl(var(--foreground))]'
-                  }`}
-                  style={{ borderRadius: 'var(--radius)' }}
-                >
-                  {mua ? 'Yes' : 'No'}
-                </button>
+              {/* Internal Notes */}
+              <div className="grid grid-cols-4 items-start gap-4">
+                <Label htmlFor="internalNote" className="text-right pt-2">
+                  Internal Notes
+                </Label>
+                <Textarea
+                  id="internalNote"
+                  value={internalNote}
+                  onChange={(e) => setInternalNote(e.target.value)}
+                  className={`col-span-3 placeholder-light ${internalNote ? 'input-filled' : ''}`}
+                  rows={2}
+                  placeholder="Private notes (not shown externally)"
+                />
               </div>
-              <Label className="text-right">Dist. Warehouse</Label>
-              <div className="col-span-1">
-                <button
-                  type="button"
-                  onClick={() => setIsDistributionWarehouse(!isDistributionWarehouse)}
-                  className={`px-3 py-1.5 text-xs font-bold uppercase tracking-wide border-2 border-foreground transition-all ${
-                    isDistributionWarehouse 
-                      ? 'bg-primary text-primary-foreground shadow-[2px_2px_0_hsl(var(--foreground))]' 
-                      : 'bg-destructive text-destructive-foreground shadow-[2px_2px_0_hsl(var(--foreground))]'
-                  }`}
-                  style={{ borderRadius: 'var(--radius)' }}
-                >
-                  {isDistributionWarehouse ? 'Yes' : 'No'}
-                </button>
-              </div>
-            </div>
+            </TabsContent>
+          </Tabs>
 
-            {/* Notes Section Header */}
-            <div className="border-t pt-4 mt-2">
-              <p className="text-sm font-semibold text-muted-foreground mb-3">Notes</p>
-            </div>
-
-            {/* Public Notes */}
-            <div className="grid grid-cols-4 items-start gap-4">
-              <Label htmlFor="notesPublic" className="text-right pt-2">
-                Public Notes
-              </Label>
-              <Textarea
-                id="notesPublic"
-                value={notesPublic}
-                onChange={(e) => setNotesPublic(e.target.value)}
-                className={`col-span-3 placeholder-light ${notesPublic ? 'input-filled' : ''}`}
-                rows={2}
-                placeholder="Visible on reports"
-              />
-            </div>
-
-            {/* Internal Notes */}
-            <div className="grid grid-cols-4 items-start gap-4">
-              <Label htmlFor="internalNote" className="text-right pt-2">
-                Internal Notes
-              </Label>
-              <Textarea
-                id="internalNote"
-                value={internalNote}
-                onChange={(e) => setInternalNote(e.target.value)}
-                className={`col-span-3 placeholder-light ${internalNote ? 'input-filled' : ''}`}
-                rows={2}
-                placeholder="Private notes (not shown externally)"
-              />
-            </div>
-          </div>
-
-          <DialogFooter className="flex justify-between sm:justify-between">
+          <DialogFooter className="flex justify-between sm:justify-between mt-4">
             {!isCreateMode && (
               <Button 
                 variant="destructive" 

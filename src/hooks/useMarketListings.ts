@@ -49,6 +49,7 @@ export interface MarketListing {
   crane_tons: string | null;
   zoning: string | null;
   land_acres: string | null;
+  building_depth: string | null;
   mua: string | null;
   op_costs: string | null;
   gross_rate: string | null;
