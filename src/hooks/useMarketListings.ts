@@ -57,6 +57,7 @@ export interface MarketListing {
   sublease_exp: string | null;
   notes_public: string | null;
   internal_note: string | null;
+  property_tax: string | null;
 }
 
 export interface MarketSyncLog {
