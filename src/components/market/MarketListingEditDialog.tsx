@@ -33,6 +33,8 @@ import {
 } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Loader2, Trash2 } from 'lucide-react';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Separator } from '@/components/ui/separator';
 import { BrokerageCombobox } from './BrokerageCombobox';
 import { LandlordCombobox } from './LandlordCombobox';
 import { CityCombobox } from '@/components/common/CityCombobox';
@@ -108,7 +110,8 @@ export function MarketListingEditDialog({
   // Form state - Core fields for create
   const [listingId, setListingId] = useState('');
   const [address, setAddress] = useState('');
-  const [buildingUnit, setBuildingUnit] = useState('');
+  const [building, setBuilding] = useState('');
+  const [unit, setUnit] = useState('');
   const [displayAddress, setDisplayAddress] = useState('');
   const [displayAddressManuallyEdited, setDisplayAddressManuallyEdited] = useState(false);
   const [city, setCity] = useState('');
@@ -139,6 +142,8 @@ export function MarketListingEditDialog({
   const [powerAmps, setPowerAmps] = useState('');
   const [voltage, setVoltage] = useState('');
   const [sprinkler, setSprinkler] = useState('');
+  const [hasSprinklers, setHasSprinklers] = useState(false);
+  const [hasCranes, setHasCranes] = useState(false);
   const [cranes, setCranes] = useState('');
   const [craneTons, setCraneTons] = useState('');
   const [yard, setYard] = useState(false);
@@ -157,7 +162,8 @@ export function MarketListingEditDialog({
   const getFormState = useCallback(() => ({
     listingId,
     address,
-    buildingUnit,
+    building,
+    unit,
     displayAddress,
     displayAddressManuallyEdited,
     city,
@@ -184,6 +190,8 @@ export function MarketListingEditDialog({
     powerAmps,
     voltage,
     sprinkler,
+    hasSprinklers,
+    hasCranes,
     cranes,
     craneTons,
     yard,
@@ -195,11 +203,11 @@ export function MarketListingEditDialog({
     mua,
     isDistributionWarehouse,
   }), [
-    listingId, address, buildingUnit, displayAddress, displayAddressManuallyEdited, city, submarket,
+    listingId, address, building, unit, displayAddress, displayAddressManuallyEdited, city, submarket,
     sizeSf, status, listingType, askingRate, opCosts, salePrice, availabilityDate,
     subleaseExp, landlord, brokerSource, link, notesPublic, internalNote, warehouseSf,
     officeSf, clearHeight, dockDoors, driveInDoors, buildingDepth, powerAmps, voltage, sprinkler,
-    cranes, craneTons, yard, yardArea, crossDock, trailerParking, landAcres, zoning,
+    hasSprinklers, hasCranes, cranes, craneTons, yard, yardArea, crossDock, trailerParking, landAcres, zoning,
     mua, isDistributionWarehouse,
   ]);
 
@@ -207,7 +215,8 @@ export function MarketListingEditDialog({
   const applyFormState = useCallback((state: ReturnType<typeof getFormState>) => {
     setListingId(state.listingId);
     setAddress(state.address);
-    setBuildingUnit(state.buildingUnit || '');
+    setBuilding(state.building || '');
+    setUnit(state.unit || '');
     setDisplayAddress(state.displayAddress);
     setDisplayAddressManuallyEdited(state.displayAddressManuallyEdited);
     setCity(state.city);
@@ -234,6 +243,8 @@ export function MarketListingEditDialog({
     setPowerAmps(state.powerAmps);
     setVoltage(state.voltage);
     setSprinkler(state.sprinkler);
+    setHasSprinklers(state.hasSprinklers || !!state.sprinkler);
+    setHasCranes(state.hasCranes || !!state.cranes || !!state.craneTons);
     setCranes(state.cranes);
     setCraneTons(state.craneTons);
     setYard(state.yard);
@@ -256,32 +267,43 @@ export function MarketListingEditDialog({
     formSessionIdRef.current = null;
   }, []);
 
-  // Generate combined display address from address + unit
-  const generateDisplayAddress = useCallback((addr: string, unit: string) => {
-    if (!unit.trim()) return addr;
-    return `${addr} — ${unit.trim()}`;
+  // Generate combined display address from address + building + unit
+  const generateDisplayAddress = useCallback((addr: string, bldg: string, unt: string) => {
+    const parts = [addr];
+    if (bldg.trim()) parts.push(bldg.trim());
+    if (unt.trim()) parts.push(unt.trim());
+    if (parts.length === 1) return addr;
+    return parts.join(' — ');
   }, []);
 
   // Handle address change - mirror to displayAddress if not manually edited
   const handleAddressChange = (value: string) => {
     setAddress(value);
     if (!displayAddressManuallyEdited) {
-      setDisplayAddress(generateDisplayAddress(value, buildingUnit));
+      setDisplayAddress(generateDisplayAddress(value, building, unit));
     }
   };
 
-  // Handle building/unit change - mirror to displayAddress if not manually edited
-  const handleBuildingUnitChange = (value: string) => {
-    setBuildingUnit(value);
+  // Handle building change - mirror to displayAddress if not manually edited
+  const handleBuildingChange = (value: string) => {
+    setBuilding(value);
     if (!displayAddressManuallyEdited) {
-      setDisplayAddress(generateDisplayAddress(address, value));
+      setDisplayAddress(generateDisplayAddress(address, value, unit));
+    }
+  };
+
+  // Handle unit change - mirror to displayAddress if not manually edited
+  const handleUnitChange = (value: string) => {
+    setUnit(value);
+    if (!displayAddressManuallyEdited) {
+      setDisplayAddress(generateDisplayAddress(address, building, value));
     }
   };
 
   // Handle displayAddress change
   const handleDisplayAddressChange = (value: string) => {
     setDisplayAddress(value);
-    const expectedDisplay = generateDisplayAddress(address, buildingUnit);
+    const expectedDisplay = generateDisplayAddress(address, building, unit);
     if (value === '') {
       // User cleared the field - reset to mirroring mode
       setDisplayAddressManuallyEdited(false);
@@ -322,17 +344,22 @@ export function MarketListingEditDialog({
     }
   }, [open, isCreateMode, listing?.id, mode, getFormState]);
 
-  // Parse unit from existing display_address (if present)
-  const parseUnitFromDisplayAddress = (displayAddr: string, addr: string): string => {
-    if (!displayAddr || !addr) return '';
+  // Parse building/unit from existing display_address (if present)
+  const parseBuildingUnitFromDisplayAddress = (displayAddr: string, addr: string): { building: string; unit: string } => {
+    if (!displayAddr || !addr) return { building: '', unit: '' };
     // Check for " — " separator pattern
     if (displayAddr.includes(' — ')) {
       const parts = displayAddr.split(' — ');
-      if (parts.length > 1) {
-        return parts.slice(1).join(' — ').trim();
+      if (parts.length === 2) {
+        // Could be building or unit
+        return { building: parts[1].trim(), unit: '' };
+      } else if (parts.length === 3) {
+        return { building: parts[1].trim(), unit: parts[2].trim() };
+      } else if (parts.length > 3) {
+        return { building: parts[1].trim(), unit: parts.slice(2).join(' — ').trim() };
       }
     }
-    return '';
+    return { building: '', unit: '' };
   };
 
   // Initialize form when dialog opens
@@ -379,7 +406,8 @@ export function MarketListingEditDialog({
       // Auto-generate listing ID for create mode
       setListingId(generateListingId());
       setAddress('');
-      setBuildingUnit('');
+      setBuilding('');
+      setUnit('');
       setDisplayAddress('');
       setDisplayAddressManuallyEdited(false);
       setCity('Calgary');
@@ -406,6 +434,8 @@ export function MarketListingEditDialog({
       setPowerAmps('');
       setVoltage('');
       setSprinkler('');
+      setHasSprinklers(false);
+      setHasCranes(false);
       setCranes('');
       setCraneTons('');
       setYard(false);
@@ -419,11 +449,12 @@ export function MarketListingEditDialog({
     } else if (listing) {
       setListingId(listing.listing_id || '');
       setAddress(listing.address || '');
-      // Try to parse unit from display_address
-      const parsedUnit = parseUnitFromDisplayAddress(listing.display_address || '', listing.address || '');
-      setBuildingUnit(parsedUnit);
+      // Try to parse building/unit from display_address
+      const parsed = parseBuildingUnitFromDisplayAddress(listing.display_address || '', listing.address || '');
+      setBuilding(parsed.building);
+      setUnit(parsed.unit);
       setDisplayAddress(listing.display_address || '');
-      setDisplayAddressManuallyEdited(listing.display_address !== listing.address && !parsedUnit);
+      setDisplayAddressManuallyEdited(listing.display_address !== listing.address && !parsed.building && !parsed.unit);
       setCity(listing.city || '');
       setSubmarket(listing.submarket || '');
       setSizeSf(listing.size_sf?.toString() || '');
@@ -448,8 +479,10 @@ export function MarketListingEditDialog({
       setPowerAmps(listing.power_amps || '');
       setVoltage(listing.voltage || '');
       setSprinkler(listing.sprinkler || '');
+      setHasSprinklers(!!listing.sprinkler);
       setCranes(listing.cranes || '');
       setCraneTons(listing.crane_tons || '');
+      setHasCranes(!!listing.cranes || !!listing.crane_tons);
       setYard(listing.yard === 'Yes' || listing.yard === 'yes' || listing.yard === 'Y');
       setYardArea(listing.yard_area || '');
       setCrossDock(listing.cross_dock === 'Yes' || listing.cross_dock === 'yes' || listing.cross_dock === 'Y');
@@ -514,7 +547,7 @@ export function MarketListingEditDialog({
       return;
     }
 
-    const finalDisplayAddress = displayAddress.trim() || generateDisplayAddress(address.trim(), buildingUnit);
+    const finalDisplayAddress = displayAddress.trim() || generateDisplayAddress(address.trim(), building, unit);
 
     setIsSaving(true);
     try {
@@ -641,7 +674,7 @@ export function MarketListingEditDialog({
         }
       : {};
 
-    const finalDisplayAddress = displayAddress.trim() || generateDisplayAddress(address.trim(), buildingUnit);
+    const finalDisplayAddress = displayAddress.trim() || generateDisplayAddress(address.trim(), building, unit);
 
     setIsSaving(true);
     try {
@@ -837,18 +870,27 @@ export function MarketListingEditDialog({
                 />
               </div>
 
-              {/* Building/Unit */}
+              {/* Building and Unit - side by side */}
               <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="buildingUnit" className="text-right">
-                  Building/Unit
+                <Label className="text-right">
+                  Building / Unit
                 </Label>
-                <Input
-                  id="buildingUnit"
-                  value={buildingUnit}
-                  onChange={(e) => handleBuildingUnitChange(e.target.value)}
-                  className={`col-span-3 placeholder-light ${buildingUnit ? 'input-filled' : ''}`}
-                  placeholder="e.g., Unit 4 or Bay 200"
-                />
+                <div className="col-span-3 grid grid-cols-2 gap-3">
+                  <Input
+                    id="building"
+                    value={building}
+                    onChange={(e) => handleBuildingChange(e.target.value)}
+                    className={`placeholder-light ${building ? 'input-filled' : ''}`}
+                    placeholder="e.g., Building A"
+                  />
+                  <Input
+                    id="unit"
+                    value={unit}
+                    onChange={(e) => handleUnitChange(e.target.value)}
+                    className={`placeholder-light ${unit ? 'input-filled' : ''}`}
+                    placeholder="e.g., Unit 4"
+                  />
+                </div>
               </div>
 
               {/* Display Address (read-only preview) */}
@@ -963,171 +1005,126 @@ export function MarketListingEditDialog({
 
             {/* Building Specs Tab */}
             <TabsContent value="specs" className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                {/* Land Acres */}
-                <div className="space-y-1">
-                  <Label className="text-xs">Land Acres</Label>
-                  <Input
-                    value={landAcres}
-                    onChange={(e) => setLandAcres(e.target.value)}
-                    className={`placeholder-light ${landAcres ? 'input-filled' : ''}`}
-                    placeholder="e.g., 5.2"
-                  />
-                </div>
+              {/* SIZING SECTION */}
+              <div>
+                <p className="text-sm font-semibold text-muted-foreground mb-3">Sizing</p>
+                <div className="grid grid-cols-2 gap-4">
+                  {/* Land Acres */}
+                  <div className="space-y-1">
+                    <Label className="text-xs">Land Acres</Label>
+                    <Input
+                      value={landAcres}
+                      onChange={(e) => setLandAcres(e.target.value)}
+                      className={`placeholder-light ${landAcres ? 'input-filled' : ''}`}
+                      placeholder="e.g., 5.2"
+                    />
+                  </div>
 
-                {/* Size SF */}
-                <div className="space-y-1">
-                  <Label className="text-xs">Size (SF)</Label>
-                  <Input
-                    type="number"
-                    value={sizeSf}
-                    onChange={(e) => setSizeSf(e.target.value)}
-                    className={`placeholder-light ${sizeSf ? 'input-filled' : ''}`}
-                    placeholder="e.g., 150000"
-                  />
-                </div>
+                  {/* Size SF */}
+                  <div className="space-y-1">
+                    <Label className="text-xs">Size (SF)</Label>
+                    <Input
+                      type="number"
+                      value={sizeSf}
+                      onChange={(e) => setSizeSf(e.target.value)}
+                      className={`placeholder-light ${sizeSf ? 'input-filled' : ''}`}
+                      placeholder="e.g., 150000"
+                    />
+                  </div>
 
-                {/* Warehouse SF */}
-                <div className="space-y-1">
-                  <Label className="text-xs">Warehouse SF</Label>
-                  <Input
-                    type="number"
-                    value={warehouseSf}
-                    onChange={(e) => setWarehouseSf(e.target.value)}
-                    className={`placeholder-light ${warehouseSf ? 'input-filled' : ''}`}
-                    placeholder="e.g., 120000"
-                  />
-                </div>
+                  {/* Warehouse SF */}
+                  <div className="space-y-1">
+                    <Label className="text-xs">Warehouse SF</Label>
+                    <Input
+                      type="number"
+                      value={warehouseSf}
+                      onChange={(e) => setWarehouseSf(e.target.value)}
+                      className={`placeholder-light ${warehouseSf ? 'input-filled' : ''}`}
+                      placeholder="e.g., 120000"
+                    />
+                  </div>
 
-                {/* Office SF */}
-                <div className="space-y-1">
-                  <Label className="text-xs">Office SF</Label>
-                  <Input
-                    type="number"
-                    value={officeSf}
-                    onChange={(e) => setOfficeSf(e.target.value)}
-                    className={`placeholder-light ${officeSf ? 'input-filled' : ''}`}
-                    placeholder="e.g., 5000"
-                  />
-                </div>
+                  {/* Office SF */}
+                  <div className="space-y-1">
+                    <Label className="text-xs">Office SF</Label>
+                    <Input
+                      type="number"
+                      value={officeSf}
+                      onChange={(e) => setOfficeSf(e.target.value)}
+                      className={`placeholder-light ${officeSf ? 'input-filled' : ''}`}
+                      placeholder="e.g., 5000"
+                    />
+                  </div>
 
-                {/* Ceiling Height */}
-                <div className="space-y-1">
-                  <Label className="text-xs">Ceiling Height (ft)</Label>
-                  <Input
-                    type="number"
-                    value={clearHeight}
-                    onChange={(e) => setClearHeight(e.target.value)}
-                    className={`placeholder-light ${clearHeight ? 'input-filled' : ''}`}
-                    placeholder="e.g., 32"
-                  />
-                </div>
+                  {/* Ceiling Height */}
+                  <div className="space-y-1">
+                    <Label className="text-xs">Ceiling Height (ft)</Label>
+                    <Input
+                      type="number"
+                      value={clearHeight}
+                      onChange={(e) => setClearHeight(e.target.value)}
+                      className={`placeholder-light ${clearHeight ? 'input-filled' : ''}`}
+                      placeholder="e.g., 32"
+                    />
+                  </div>
 
-                {/* Dock Doors */}
-                <div className="space-y-1">
-                  <Label className="text-xs">Dock Doors</Label>
-                  <Input
-                    type="number"
-                    value={dockDoors}
-                    onChange={(e) => setDockDoors(e.target.value)}
-                    className={`placeholder-light ${dockDoors ? 'input-filled' : ''}`}
-                    placeholder="e.g., 12"
-                  />
-                </div>
-
-                {/* Drive-In Doors */}
-                <div className="space-y-1">
-                  <Label className="text-xs">Drive-In Doors</Label>
-                  <Input
-                    type="number"
-                    value={driveInDoors}
-                    onChange={(e) => setDriveInDoors(e.target.value)}
-                    className={`placeholder-light ${driveInDoors ? 'input-filled' : ''}`}
-                    placeholder="e.g., 2"
-                  />
-                </div>
-
-                {/* Building Depth */}
-                <div className="space-y-1">
-                  <Label className="text-xs">Building Depth</Label>
-                  <Input
-                    value={buildingDepth}
-                    onChange={(e) => setBuildingDepth(e.target.value)}
-                    className={`placeholder-light ${buildingDepth ? 'input-filled' : ''}`}
-                    placeholder="e.g., 200 ft"
-                  />
-                </div>
-
-                {/* Power Amps */}
-                <div className="space-y-1">
-                  <Label className="text-xs">Power Amps</Label>
-                  <Input
-                    value={powerAmps}
-                    onChange={(e) => setPowerAmps(e.target.value)}
-                    className={`placeholder-light ${powerAmps ? 'input-filled' : ''}`}
-                    placeholder="e.g., 2000"
-                  />
-                </div>
-
-                {/* Power Voltage */}
-                <div className="space-y-1">
-                  <Label className="text-xs">Power Voltage</Label>
-                  <Input
-                    value={voltage}
-                    onChange={(e) => setVoltage(e.target.value)}
-                    className={`placeholder-light ${voltage ? 'input-filled' : ''}`}
-                    placeholder="e.g., 600V"
-                  />
-                </div>
-
-                {/* Sprinklers */}
-                <div className="space-y-1">
-                  <Label className="text-xs">Sprinklers</Label>
-                  <Input
-                    value={sprinkler}
-                    onChange={(e) => setSprinkler(e.target.value)}
-                    className={`placeholder-light ${sprinkler ? 'input-filled' : ''}`}
-                    placeholder="e.g., ESFR"
-                  />
-                </div>
-
-                {/* Cranes */}
-                <div className="space-y-1">
-                  <Label className="text-xs">Cranes</Label>
-                  <Input
-                    value={cranes}
-                    onChange={(e) => setCranes(e.target.value)}
-                    className={`placeholder-light ${cranes ? 'input-filled' : ''}`}
-                    placeholder="e.g., 2"
-                  />
-                </div>
-
-                {/* Crane Tons */}
-                <div className="space-y-1">
-                  <Label className="text-xs">Crane Tons</Label>
-                  <Input
-                    value={craneTons}
-                    onChange={(e) => setCraneTons(e.target.value)}
-                    className={`placeholder-light ${craneTons ? 'input-filled' : ''}`}
-                    placeholder="e.g., 10T"
-                  />
-                </div>
-
-                {/* Trailer Parking */}
-                <div className="space-y-1">
-                  <Label className="text-xs">Trailer Parking</Label>
-                  <Input
-                    value={trailerParking}
-                    onChange={(e) => setTrailerParking(e.target.value)}
-                    className={`placeholder-light ${trailerParking ? 'input-filled' : ''}`}
-                    placeholder="e.g., 20 stalls"
-                  />
+                  {/* Building Depth */}
+                  <div className="space-y-1">
+                    <Label className="text-xs">Building Depth</Label>
+                    <Input
+                      value={buildingDepth}
+                      onChange={(e) => setBuildingDepth(e.target.value)}
+                      className={`placeholder-light ${buildingDepth ? 'input-filled' : ''}`}
+                      placeholder="e.g., 200 ft"
+                    />
+                  </div>
                 </div>
               </div>
 
-              {/* Toggle fields row */}
-              <div className="border-t pt-4 mt-2">
-                <div className="grid grid-cols-4 gap-4">
+              <Separator />
+
+              {/* LOADING SECTION */}
+              <div>
+                <p className="text-sm font-semibold text-muted-foreground mb-3">Loading</p>
+                <div className="grid grid-cols-2 gap-4">
+                  {/* Dock Doors */}
+                  <div className="space-y-1">
+                    <Label className="text-xs">Dock Doors</Label>
+                    <Input
+                      type="number"
+                      value={dockDoors}
+                      onChange={(e) => setDockDoors(e.target.value)}
+                      className={`placeholder-light ${dockDoors ? 'input-filled' : ''}`}
+                      placeholder="e.g., 12"
+                    />
+                  </div>
+
+                  {/* Drive-In Doors */}
+                  <div className="space-y-1">
+                    <Label className="text-xs">Drive-In Doors</Label>
+                    <Input
+                      type="number"
+                      value={driveInDoors}
+                      onChange={(e) => setDriveInDoors(e.target.value)}
+                      className={`placeholder-light ${driveInDoors ? 'input-filled' : ''}`}
+                      placeholder="e.g., 2"
+                    />
+                  </div>
+
+                  {/* Trailer Parking */}
+                  <div className="space-y-1">
+                    <Label className="text-xs">Trailer Parking</Label>
+                    <Input
+                      value={trailerParking}
+                      onChange={(e) => setTrailerParking(e.target.value)}
+                      className={`placeholder-light ${trailerParking ? 'input-filled' : ''}`}
+                      placeholder="e.g., 20 stalls"
+                    />
+                  </div>
+                </div>
+
+                {/* Loading toggles */}
+                <div className="grid grid-cols-3 gap-4 mt-4">
                   <div className="space-y-2">
                     <Label className="text-xs">Yard</Label>
                     <div className="flex items-center gap-2">
@@ -1143,33 +1140,126 @@ export function MarketListingEditDialog({
                   </div>
 
                   <div className="space-y-2">
-                    <Label className="text-xs">MUA</Label>
-                    <div className="flex items-center gap-2">
-                      <ToggleButton value={mua} onChange={setMua} />
-                    </div>
-                  </div>
-
-                  <div className="space-y-2">
                     <Label className="text-xs">Dist. Warehouse</Label>
                     <div className="flex items-center gap-2">
                       <ToggleButton value={isDistributionWarehouse} onChange={setIsDistributionWarehouse} />
                     </div>
                   </div>
                 </div>
+
+                {/* Yard Area (shown when yard is enabled) */}
+                {yard && (
+                  <div className="grid grid-cols-4 items-center gap-4 mt-3">
+                    <Label className="text-right text-xs">Yard Area</Label>
+                    <Input
+                      value={yardArea}
+                      onChange={(e) => setYardArea(e.target.value)}
+                      className={`col-span-3 placeholder-light ${yardArea ? 'input-filled' : ''}`}
+                      placeholder="e.g., 2 acres"
+                    />
+                  </div>
+                )}
               </div>
 
-              {/* Yard Area (shown when yard is enabled) */}
-              {yard && (
-                <div className="grid grid-cols-4 items-center gap-4">
-                  <Label className="text-right text-xs">Yard Area</Label>
-                  <Input
-                    value={yardArea}
-                    onChange={(e) => setYardArea(e.target.value)}
-                    className={`col-span-3 placeholder-light ${yardArea ? 'input-filled' : ''}`}
-                    placeholder="e.g., 2 acres"
-                  />
+              <Separator />
+
+              {/* FEATURES SECTION */}
+              <div>
+                <p className="text-sm font-semibold text-muted-foreground mb-3">Features</p>
+                <div className="grid grid-cols-2 gap-4">
+                  {/* Power Amps */}
+                  <div className="space-y-1">
+                    <Label className="text-xs">Power Amps</Label>
+                    <Input
+                      value={powerAmps}
+                      onChange={(e) => setPowerAmps(e.target.value)}
+                      className={`placeholder-light ${powerAmps ? 'input-filled' : ''}`}
+                      placeholder="e.g., 2000"
+                    />
+                  </div>
+
+                  {/* Power Voltage */}
+                  <div className="space-y-1">
+                    <Label className="text-xs">Power Voltage</Label>
+                    <Input
+                      value={voltage}
+                      onChange={(e) => setVoltage(e.target.value)}
+                      className={`placeholder-light ${voltage ? 'input-filled' : ''}`}
+                      placeholder="e.g., 600V"
+                    />
+                  </div>
                 </div>
-              )}
+
+                {/* Sprinklers checkbox row */}
+                <div className="flex items-center gap-3 mt-4">
+                  <Checkbox
+                    id="hasSprinklers"
+                    checked={hasSprinklers}
+                    onCheckedChange={(checked) => {
+                      setHasSprinklers(!!checked);
+                      if (checked && !sprinkler) {
+                        setSprinkler('TBV');
+                      }
+                      if (!checked) {
+                        setSprinkler('');
+                      }
+                    }}
+                  />
+                  <Label htmlFor="hasSprinklers" className="text-sm cursor-pointer">Sprinklers</Label>
+                  {hasSprinklers && (
+                    <Input
+                      value={sprinkler}
+                      onChange={(e) => setSprinkler(e.target.value)}
+                      className={`flex-1 placeholder-light ${sprinkler ? 'input-filled' : ''}`}
+                      placeholder="e.g., ESFR"
+                    />
+                  )}
+                </div>
+
+                {/* Cranes checkbox row */}
+                <div className="flex items-center gap-3 mt-3">
+                  <Checkbox
+                    id="hasCranes"
+                    checked={hasCranes}
+                    onCheckedChange={(checked) => {
+                      setHasCranes(!!checked);
+                      if (!checked) {
+                        setCranes('');
+                        setCraneTons('');
+                      }
+                    }}
+                  />
+                  <Label htmlFor="hasCranes" className="text-sm cursor-pointer">Cranes</Label>
+                </div>
+                {hasCranes && (
+                  <div className="grid grid-cols-2 gap-4 mt-2 ml-7">
+                    <div className="space-y-1">
+                      <Label className="text-xs">Number of Cranes</Label>
+                      <Input
+                        value={cranes}
+                        onChange={(e) => setCranes(e.target.value)}
+                        className={`placeholder-light ${cranes ? 'input-filled' : ''}`}
+                        placeholder="e.g., 2"
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <Label className="text-xs">Crane Tons</Label>
+                      <Input
+                        value={craneTons}
+                        onChange={(e) => setCraneTons(e.target.value)}
+                        className={`placeholder-light ${craneTons ? 'input-filled' : ''}`}
+                        placeholder="e.g., 10T"
+                      />
+                    </div>
+                  </div>
+                )}
+
+                {/* MUA toggle */}
+                <div className="flex items-center gap-3 mt-4">
+                  <Label className="text-xs">MUA</Label>
+                  <ToggleButton value={mua} onChange={setMua} />
+                </div>
+              </div>
             </TabsContent>
 
             {/* Pricing & Details Tab */}
@@ -1197,28 +1287,31 @@ export function MarketListingEditDialog({
                 </div>
               </div>
 
-              {/* Sale Price / Sublease Exp */}
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-1">
-                  <Label className="text-xs">Sale Price</Label>
+              {/* Sale Price - only show if listing type is Sale or Sale/Lease */}
+              {(listingType === 'Sale' || listingType === 'Sale/Lease') && (
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label className="text-right">Sale Price</Label>
                   <Input
                     value={salePrice}
                     onChange={(e) => setSalePrice(e.target.value)}
-                    className={`placeholder-light ${salePrice ? 'input-filled' : ''}`}
+                    className={`col-span-3 placeholder-light ${salePrice ? 'input-filled' : ''}`}
                     placeholder="e.g., $5,000,000"
                   />
                 </div>
+              )}
 
-                <div className="space-y-1">
-                  <Label className="text-xs">Sublease Expiry</Label>
+              {/* Sublease Expiry - only show if listing type is Sublease */}
+              {listingType === 'Sublease' && (
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label className="text-right">Sublease Expiry</Label>
                   <Input
                     value={subleaseExp}
                     onChange={(e) => setSubleaseExp(e.target.value)}
-                    className={`placeholder-light ${subleaseExp ? 'input-filled' : ''}`}
+                    className={`col-span-3 placeholder-light ${subleaseExp ? 'input-filled' : ''}`}
                     placeholder="e.g., Dec 2027"
                   />
                 </div>
-              </div>
+              )}
 
               {/* Availability */}
               <div className="grid grid-cols-4 items-center gap-4">
@@ -1257,10 +1350,10 @@ export function MarketListingEditDialog({
                 </div>
               </div>
 
-              {/* Brochure Link */}
+              {/* Brochure/Website Link */}
               <div className="grid grid-cols-4 items-center gap-4">
                 <Label htmlFor="link" className="text-right">
-                  Brochure Link
+                  Brochure/Website
                 </Label>
                 <Input
                   id="link"
