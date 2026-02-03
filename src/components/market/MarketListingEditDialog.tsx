@@ -32,7 +32,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { CalendarIcon, Loader2, Trash2 } from 'lucide-react';
+import { Loader2, Trash2 } from 'lucide-react';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Separator } from '@/components/ui/separator';
 import { BrokerageCombobox } from './BrokerageCombobox';
@@ -40,9 +40,6 @@ import { LandlordCombobox } from './LandlordCombobox';
 import { CityCombobox } from '@/components/common/CityCombobox';
 import { useOrg } from '@/hooks/useOrg';
 import { useAuth } from '@/contexts/AuthContext';
-import { Calendar } from '@/components/ui/calendar';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { format, parseISO, isValid } from 'date-fns';
 import { cn } from '@/lib/utils';
 
 const FORM_STORAGE_KEY = 'market-listing-form-draft';
@@ -131,8 +128,8 @@ export function MarketListingEditDialog({
   const [opCosts, setOpCosts] = useState('');
   const [propertyTax, setPropertyTax] = useState('');
   const [salePrice, setSalePrice] = useState('');
-  const [availabilityDate, setAvailabilityDate] = useState<Date | undefined>(undefined);
-  const [subleaseExp, setSubleaseExp] = useState<Date | undefined>(undefined);
+  const [availabilityDate, setAvailabilityDate] = useState('');
+  const [subleaseExp, setSubleaseExp] = useState('');
   const [landlord, setLandlord] = useState('');
   const [brokerSource, setBrokerSource] = useState('');
   const [link, setLink] = useState('');
@@ -183,8 +180,8 @@ export function MarketListingEditDialog({
     opCosts,
     propertyTax,
     salePrice,
-    availabilityDate: availabilityDate ? availabilityDate.toISOString() : '',
-    subleaseExp: subleaseExp ? subleaseExp.toISOString() : '',
+    availabilityDate,
+    subleaseExp,
     landlord,
     brokerSource,
     link,
@@ -221,16 +218,6 @@ export function MarketListingEditDialog({
     mua, muaValue, isDistributionWarehouse,
   ]);
 
-  // Helper to parse date from string
-  const parseDate = (dateStr: string | undefined | null): Date | undefined => {
-    if (!dateStr) return undefined;
-    try {
-      const parsed = parseISO(dateStr);
-      return isValid(parsed) ? parsed : undefined;
-    } catch {
-      return undefined;
-    }
-  };
 
   // Apply form state from storage
   const applyFormState = useCallback((state: ReturnType<typeof getFormState>) => {
@@ -249,8 +236,8 @@ export function MarketListingEditDialog({
     setOpCosts(state.opCosts);
     setPropertyTax(state.propertyTax || '');
     setSalePrice(state.salePrice);
-    setAvailabilityDate(parseDate(state.availabilityDate));
-    setSubleaseExp(parseDate(state.subleaseExp));
+    setAvailabilityDate(state.availabilityDate || '');
+    setSubleaseExp(state.subleaseExp || '');
     setLandlord(state.landlord);
     setBrokerSource(state.brokerSource);
     setLink(state.link);
@@ -442,8 +429,8 @@ export function MarketListingEditDialog({
       setOpCosts('');
       setPropertyTax('');
       setSalePrice('');
-      setAvailabilityDate(undefined);
-      setSubleaseExp(undefined);
+      setAvailabilityDate('');
+      setSubleaseExp('');
       setLandlord('');
       setBrokerSource('');
       setLink('');
@@ -489,8 +476,8 @@ export function MarketListingEditDialog({
       setOpCosts(listing.op_costs || '');
       setPropertyTax(listing.property_tax || '');
       setSalePrice(listing.sale_price || '');
-      setAvailabilityDate(parseDate(listing.availability_date));
-      setSubleaseExp(parseDate(listing.sublease_exp));
+      setAvailabilityDate(listing.availability_date || '');
+      setSubleaseExp(listing.sublease_exp || '');
       setLandlord(listing.landlord || '');
       setBrokerSource(listing.broker_source || '');
       setLink(listing.link || '');
@@ -599,8 +586,8 @@ export function MarketListingEditDialog({
           op_costs: opCosts || null,
           property_tax: propertyTax || null,
           sale_price: salePrice || null,
-          availability_date: availabilityDate ? format(availabilityDate, 'yyyy-MM-dd') : null,
-          sublease_exp: subleaseExp ? format(subleaseExp, 'yyyy-MM-dd') : null,
+          availability_date: availabilityDate || null,
+          sublease_exp: subleaseExp || null,
           landlord: landlord || null,
           broker_source: brokerSource || null,
           link: link || null,
@@ -728,8 +715,8 @@ export function MarketListingEditDialog({
           op_costs: opCosts || null,
           property_tax: propertyTax || null,
           sale_price: salePrice || null,
-          availability_date: availabilityDate ? format(availabilityDate, 'yyyy-MM-dd') : null,
-          sublease_exp: subleaseExp ? format(subleaseExp, 'yyyy-MM-dd') : null,
+          availability_date: availabilityDate || null,
+          sublease_exp: subleaseExp || null,
           landlord: landlord || null,
           broker_source: brokerSource || null,
           link: link || null,
@@ -1406,74 +1393,24 @@ export function MarketListingEditDialog({
               {listingType === 'Sublease' && (
                 <div className="grid grid-cols-4 items-center gap-4">
                   <Label className="text-right">Sublease Expiry</Label>
-                  <div className="col-span-3 flex gap-2">
-                    <Input
-                      value={subleaseExp ? format(subleaseExp, "MMM d, yyyy") : ''}
-                      onChange={(e) => {
-                        const parsed = new Date(e.target.value);
-                        if (!isNaN(parsed.getTime())) {
-                          setSubleaseExp(parsed);
-                        } else if (e.target.value === '') {
-                          setSubleaseExp(undefined);
-                        }
-                      }}
-                      className={`flex-1 placeholder-light ${subleaseExp ? 'input-filled' : ''}`}
-                      placeholder="e.g., Jan 1, 2025"
-                    />
-                    <Popover>
-                      <PopoverTrigger asChild>
-                        <Button variant="outline" size="icon" className="shrink-0">
-                          <CalendarIcon className="h-4 w-4" />
-                        </Button>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-auto p-0" align="end">
-                        <Calendar
-                          mode="single"
-                          selected={subleaseExp}
-                          onSelect={setSubleaseExp}
-                          initialFocus
-                          className="pointer-events-auto"
-                        />
-                      </PopoverContent>
-                    </Popover>
-                  </div>
+                  <Input
+                    value={subleaseExp}
+                    onChange={(e) => setSubleaseExp(e.target.value)}
+                    className={`col-span-3 placeholder-light ${subleaseExp ? 'input-filled' : ''}`}
+                    placeholder="e.g., Jan 2025 or Q1 2025"
+                  />
                 </div>
               )}
 
               {/* Availability */}
               <div className="grid grid-cols-4 items-center gap-4">
                 <Label className="text-right">Availability</Label>
-                <div className="col-span-3 flex gap-2">
-                  <Input
-                    value={availabilityDate ? format(availabilityDate, "MMM d, yyyy") : ''}
-                    onChange={(e) => {
-                      const parsed = new Date(e.target.value);
-                      if (!isNaN(parsed.getTime())) {
-                        setAvailabilityDate(parsed);
-                      } else if (e.target.value === '') {
-                        setAvailabilityDate(undefined);
-                      }
-                    }}
-                    className={`flex-1 placeholder-light ${availabilityDate ? 'input-filled' : ''}`}
-                    placeholder="e.g., Jan 1, 2025"
-                  />
-                  <Popover>
-                    <PopoverTrigger asChild>
-                      <Button variant="outline" size="icon" className="shrink-0">
-                        <CalendarIcon className="h-4 w-4" />
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0" align="end">
-                      <Calendar
-                        mode="single"
-                        selected={availabilityDate}
-                        onSelect={setAvailabilityDate}
-                        initialFocus
-                        className="pointer-events-auto"
-                      />
-                    </PopoverContent>
-                  </Popover>
-                </div>
+                <Input
+                  value={availabilityDate}
+                  onChange={(e) => setAvailabilityDate(e.target.value)}
+                  className={`col-span-3 placeholder-light ${availabilityDate ? 'input-filled' : ''}`}
+                  placeholder="e.g., Immediate, Q2 2025, or Jan 15, 2025"
+                />
               </div>
 
               {/* Brokerage */}
