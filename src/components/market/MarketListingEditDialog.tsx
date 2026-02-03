@@ -32,7 +32,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Loader2, Trash2 } from 'lucide-react';
+import { CalendarIcon, Loader2, Trash2 } from 'lucide-react';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Separator } from '@/components/ui/separator';
 import { BrokerageCombobox } from './BrokerageCombobox';
@@ -40,6 +40,10 @@ import { LandlordCombobox } from './LandlordCombobox';
 import { CityCombobox } from '@/components/common/CityCombobox';
 import { useOrg } from '@/hooks/useOrg';
 import { useAuth } from '@/contexts/AuthContext';
+import { Calendar } from '@/components/ui/calendar';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { format, parseISO, isValid } from 'date-fns';
+import { cn } from '@/lib/utils';
 
 const FORM_STORAGE_KEY = 'market-listing-form-draft';
 
@@ -125,9 +129,10 @@ export function MarketListingEditDialog({
   const [listingType, setListingType] = useState('');
   const [askingRate, setAskingRate] = useState('');
   const [opCosts, setOpCosts] = useState('');
+  const [propertyTax, setPropertyTax] = useState('');
   const [salePrice, setSalePrice] = useState('');
-  const [availabilityDate, setAvailabilityDate] = useState('');
-  const [subleaseExp, setSubleaseExp] = useState('');
+  const [availabilityDate, setAvailabilityDate] = useState<Date | undefined>(undefined);
+  const [subleaseExp, setSubleaseExp] = useState<Date | undefined>(undefined);
   const [landlord, setLandlord] = useState('');
   const [brokerSource, setBrokerSource] = useState('');
   const [link, setLink] = useState('');
@@ -176,9 +181,10 @@ export function MarketListingEditDialog({
     listingType,
     askingRate,
     opCosts,
+    propertyTax,
     salePrice,
-    availabilityDate,
-    subleaseExp,
+    availabilityDate: availabilityDate ? availabilityDate.toISOString() : '',
+    subleaseExp: subleaseExp ? subleaseExp.toISOString() : '',
     landlord,
     brokerSource,
     link,
@@ -208,12 +214,23 @@ export function MarketListingEditDialog({
     isDistributionWarehouse,
   }), [
     listingId, address, building, unit, displayAddress, displayAddressManuallyEdited, city, submarket,
-    sizeSf, status, listingType, askingRate, opCosts, salePrice, availabilityDate,
+    sizeSf, status, listingType, askingRate, opCosts, propertyTax, salePrice, availabilityDate,
     subleaseExp, landlord, brokerSource, link, notesPublic, internalNote, warehouseSf,
     officeSf, clearHeight, dockDoors, driveInDoors, buildingDepth, powerAmps, voltage, sprinkler,
     hasSprinklers, hasCranes, cranes, craneTons, yard, yardArea, crossDock, trailerParking, landAcres, zoning,
     mua, muaValue, isDistributionWarehouse,
   ]);
+
+  // Helper to parse date from string
+  const parseDate = (dateStr: string | undefined | null): Date | undefined => {
+    if (!dateStr) return undefined;
+    try {
+      const parsed = parseISO(dateStr);
+      return isValid(parsed) ? parsed : undefined;
+    } catch {
+      return undefined;
+    }
+  };
 
   // Apply form state from storage
   const applyFormState = useCallback((state: ReturnType<typeof getFormState>) => {
@@ -230,9 +247,10 @@ export function MarketListingEditDialog({
     setListingType(state.listingType);
     setAskingRate(state.askingRate);
     setOpCosts(state.opCosts);
+    setPropertyTax(state.propertyTax || '');
     setSalePrice(state.salePrice);
-    setAvailabilityDate(state.availabilityDate);
-    setSubleaseExp(state.subleaseExp);
+    setAvailabilityDate(parseDate(state.availabilityDate));
+    setSubleaseExp(parseDate(state.subleaseExp));
     setLandlord(state.landlord);
     setBrokerSource(state.brokerSource);
     setLink(state.link);
@@ -422,9 +440,10 @@ export function MarketListingEditDialog({
       setListingType('');
       setAskingRate('');
       setOpCosts('');
+      setPropertyTax('');
       setSalePrice('');
-      setAvailabilityDate('');
-      setSubleaseExp('');
+      setAvailabilityDate(undefined);
+      setSubleaseExp(undefined);
       setLandlord('');
       setBrokerSource('');
       setLink('');
@@ -468,9 +487,10 @@ export function MarketListingEditDialog({
       setListingType(listing.listing_type || '');
       setAskingRate(listing.asking_rate_psf || '');
       setOpCosts(listing.op_costs || '');
+      setPropertyTax(listing.property_tax || '');
       setSalePrice(listing.sale_price || '');
-      setAvailabilityDate(listing.availability_date || '');
-      setSubleaseExp(listing.sublease_exp || '');
+      setAvailabilityDate(parseDate(listing.availability_date));
+      setSubleaseExp(parseDate(listing.sublease_exp));
       setLandlord(listing.landlord || '');
       setBrokerSource(listing.broker_source || '');
       setLink(listing.link || '');
@@ -577,9 +597,10 @@ export function MarketListingEditDialog({
           listing_type: listingType || null,
           asking_rate_psf: askingRate || null,
           op_costs: opCosts || null,
+          property_tax: propertyTax || null,
           sale_price: salePrice || null,
-          availability_date: availabilityDate || null,
-          sublease_exp: subleaseExp || null,
+          availability_date: availabilityDate ? format(availabilityDate, 'yyyy-MM-dd') : null,
+          sublease_exp: subleaseExp ? format(subleaseExp, 'yyyy-MM-dd') : null,
           landlord: landlord || null,
           broker_source: brokerSource || null,
           link: link || null,
@@ -606,6 +627,7 @@ export function MarketListingEditDialog({
           is_distribution_warehouse: isDistributionWarehouse,
           user_id: user.id,
           org_id: org.id,
+          last_verified_date: new Date().toISOString().split('T')[0], // Auto-verify on create
         });
 
       if (error) throw error;
@@ -704,9 +726,10 @@ export function MarketListingEditDialog({
           listing_type: listingType || null,
           asking_rate_psf: askingRate || null,
           op_costs: opCosts || null,
+          property_tax: propertyTax || null,
           sale_price: salePrice || null,
-          availability_date: availabilityDate || null,
-          sublease_exp: subleaseExp || null,
+          availability_date: availabilityDate ? format(availabilityDate, 'yyyy-MM-dd') : null,
+          sublease_exp: subleaseExp ? format(subleaseExp, 'yyyy-MM-dd') : null,
           landlord: landlord || null,
           broker_source: brokerSource || null,
           link: link || null,
@@ -730,9 +753,42 @@ export function MarketListingEditDialog({
           mua: mua ? (muaValue || 'Yes') : 'No',
           is_distribution_warehouse: isDistributionWarehouse,
           updated_at: new Date().toISOString(),
+          last_verified_date: new Date().toISOString().split('T')[0], // Auto-verify on update
           ...geocodeReset,
         })
         .eq('id', listing.id);
+
+      if (error) throw error;
+
+      // Update linked property if exists
+      if (listing) {
+        // Find property linked to this address
+        const { data: linkedProperties } = await supabase
+          .from('properties')
+          .select('id')
+          .ilike('address', address.trim())
+          .limit(1);
+
+        if (linkedProperties && linkedProperties.length > 0) {
+          const propertyId = linkedProperties[0].id;
+          await supabase
+            .from('properties')
+            .update({
+              name: finalDisplayAddress,
+              address: address.trim(),
+              display_address: finalDisplayAddress,
+              city: city || '',
+              submarket: needsReGeocode && city === 'Calgary' ? 'Pending' : submarket.trim(),
+              size_sf: parseInt(sizeSf.replace(/,/g, '')) || null,
+              clear_height_ft: clearHeight ? parseFloat(clearHeight) : null,
+              dock_doors: dockDoors ? parseInt(dockDoors) : null,
+              drive_in_doors: driveInDoors ? parseInt(driveInDoors) : null,
+              zoning: zoning || null,
+              updated_at: new Date().toISOString(),
+            })
+            .eq('id', propertyId);
+        }
+      }
 
       if (error) throw error;
 
@@ -1339,23 +1395,72 @@ export function MarketListingEditDialog({
               {listingType === 'Sublease' && (
                 <div className="grid grid-cols-4 items-center gap-4">
                   <Label className="text-right">Sublease Expiry</Label>
-                  <Input
-                    value={subleaseExp}
-                    onChange={(e) => setSubleaseExp(e.target.value)}
-                    className={`col-span-3 placeholder-light ${subleaseExp ? 'input-filled' : ''}`}
-                    placeholder="e.g., Dec 2027"
-                  />
+                  <div className="col-span-3">
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <Button
+                          variant="outline"
+                          className={cn(
+                            "w-full justify-start text-left font-normal",
+                            !subleaseExp && "text-muted-foreground"
+                          )}
+                        >
+                          <CalendarIcon className="mr-2 h-4 w-4" />
+                          {subleaseExp ? format(subleaseExp, "MMM d, yyyy") : <span>Select date</span>}
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0" align="start">
+                        <Calendar
+                          mode="single"
+                          selected={subleaseExp}
+                          onSelect={setSubleaseExp}
+                          initialFocus
+                          className="pointer-events-auto"
+                        />
+                      </PopoverContent>
+                    </Popover>
+                  </div>
                 </div>
               )}
 
               {/* Availability */}
               <div className="grid grid-cols-4 items-center gap-4">
                 <Label className="text-right">Availability</Label>
+                <div className="col-span-3">
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        className={cn(
+                          "w-full justify-start text-left font-normal",
+                          !availabilityDate && "text-muted-foreground"
+                        )}
+                      >
+                        <CalendarIcon className="mr-2 h-4 w-4" />
+                        {availabilityDate ? format(availabilityDate, "MMM d, yyyy") : <span>Select date</span>}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="start">
+                      <Calendar
+                        mode="single"
+                        selected={availabilityDate}
+                        onSelect={setAvailabilityDate}
+                        initialFocus
+                        className="pointer-events-auto"
+                      />
+                    </PopoverContent>
+                  </Popover>
+                </div>
+              </div>
+
+              {/* Taxes */}
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label className="text-right">Taxes</Label>
                 <Input
-                  value={availabilityDate}
-                  onChange={(e) => setAvailabilityDate(e.target.value)}
-                  className={`col-span-3 placeholder-light ${availabilityDate ? 'input-filled' : ''}`}
-                  placeholder="e.g., Immediate or Q2 2026"
+                  value={propertyTax}
+                  onChange={(e) => setPropertyTax(e.target.value)}
+                  className={`col-span-3 placeholder-light ${propertyTax ? 'input-filled' : ''}`}
+                  placeholder="e.g., $3.50/SF"
                 />
               </div>
 
