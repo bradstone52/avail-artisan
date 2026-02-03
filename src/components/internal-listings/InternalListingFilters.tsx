@@ -84,14 +84,14 @@ export function InternalListingFilters({
 
       {/* Quick Status Filter */}
       <Select
-        value={filters.status}
-        onValueChange={(value) => onFiltersChange({ ...filters, status: value })}
+        value={filters.status || "__all__"}
+        onValueChange={(value) => onFiltersChange({ ...filters, status: value === "__all__" ? "" : value })}
       >
         <SelectTrigger className="w-[140px]">
           <SelectValue placeholder="All Status" />
         </SelectTrigger>
         <SelectContent>
-          <SelectItem value="">All Status</SelectItem>
+          <SelectItem value="__all__">All Status</SelectItem>
           {INTERNAL_LISTING_STATUSES.map((status) => (
             <SelectItem key={status} value={status}>
               {status}
@@ -133,16 +133,16 @@ export function InternalListingFilters({
               <div className="space-y-1.5">
                 <Label className="text-xs">Property Type</Label>
                 <Select
-                  value={filters.propertyType}
+                  value={filters.propertyType || "__all__"}
                   onValueChange={(value) =>
-                    onFiltersChange({ ...filters, propertyType: value })
+                    onFiltersChange({ ...filters, propertyType: value === "__all__" ? "" : value })
                   }
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Any type" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">Any type</SelectItem>
+                    <SelectItem value="__all__">Any type</SelectItem>
                     {PROPERTY_TYPES.map((type) => (
                       <SelectItem key={type} value={type}>
                         {type}
@@ -155,16 +155,16 @@ export function InternalListingFilters({
               <div className="space-y-1.5">
                 <Label className="text-xs">Deal Type</Label>
                 <Select
-                  value={filters.dealType}
+                  value={filters.dealType || "__all__"}
                   onValueChange={(value) =>
-                    onFiltersChange({ ...filters, dealType: value })
+                    onFiltersChange({ ...filters, dealType: value === "__all__" ? "" : value })
                   }
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Any deal" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">Any deal</SelectItem>
+                    <SelectItem value="__all__">Any deal</SelectItem>
                     {DEAL_TYPES.map((type) => (
                       <SelectItem key={type} value={type}>
                         {type}
@@ -177,16 +177,16 @@ export function InternalListingFilters({
               <div className="space-y-1.5">
                 <Label className="text-xs">Assigned Agent</Label>
                 <Select
-                  value={filters.agentId}
+                  value={filters.agentId || "__all__"}
                   onValueChange={(value) =>
-                    onFiltersChange({ ...filters, agentId: value })
+                    onFiltersChange({ ...filters, agentId: value === "__all__" ? "" : value })
                   }
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Any agent" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">Any agent</SelectItem>
+                    <SelectItem value="__all__">Any agent</SelectItem>
                     {agents.map((agent) => (
                       <SelectItem key={agent.id} value={agent.id}>
                         {agent.name}
