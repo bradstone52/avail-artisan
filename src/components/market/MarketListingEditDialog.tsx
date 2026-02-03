@@ -153,6 +153,7 @@ export function MarketListingEditDialog({
   const [landAcres, setLandAcres] = useState('');
   const [zoning, setZoning] = useState('');
   const [mua, setMua] = useState(false);
+  const [muaValue, setMuaValue] = useState('');
   const [isDistributionWarehouse, setIsDistributionWarehouse] = useState(false);
   // Track if we've initialized form from storage to avoid re-init on re-renders
   const hasInitializedRef = useRef(false);
@@ -201,6 +202,7 @@ export function MarketListingEditDialog({
     landAcres,
     zoning,
     mua,
+    muaValue,
     isDistributionWarehouse,
   }), [
     listingId, address, building, unit, displayAddress, displayAddressManuallyEdited, city, submarket,
@@ -208,7 +210,7 @@ export function MarketListingEditDialog({
     subleaseExp, landlord, brokerSource, link, notesPublic, internalNote, warehouseSf,
     officeSf, clearHeight, dockDoors, driveInDoors, buildingDepth, powerAmps, voltage, sprinkler,
     hasSprinklers, hasCranes, cranes, craneTons, yard, yardArea, crossDock, trailerParking, landAcres, zoning,
-    mua, isDistributionWarehouse,
+    mua, muaValue, isDistributionWarehouse,
   ]);
 
   // Apply form state from storage
@@ -254,6 +256,7 @@ export function MarketListingEditDialog({
     setLandAcres(state.landAcres);
     setZoning(state.zoning);
     setMua(state.mua);
+    setMuaValue(state.muaValue || '');
     setIsDistributionWarehouse(state.isDistributionWarehouse);
   }, []);
 
@@ -445,6 +448,7 @@ export function MarketListingEditDialog({
       setLandAcres('');
       setZoning('');
       setMua(false);
+      setMuaValue('');
       setIsDistributionWarehouse(false);
     } else if (listing) {
       setListingId(listing.listing_id || '');
@@ -489,7 +493,11 @@ export function MarketListingEditDialog({
       setTrailerParking(listing.trailer_parking || '');
       setLandAcres(listing.land_acres || '');
       setZoning(listing.zoning || '');
-      setMua(listing.mua === 'Yes' || listing.mua === 'yes' || listing.mua === 'Y');
+      // MUA can be 'Yes', 'No', or a specific value like 'TBV' or details
+      const muaVal = listing.mua || '';
+      const isMuaChecked = muaVal && muaVal !== 'No' && muaVal !== 'no' && muaVal !== 'N';
+      setMua(isMuaChecked);
+      setMuaValue(isMuaChecked && muaVal !== 'Yes' && muaVal !== 'yes' && muaVal !== 'Y' ? muaVal : '');
       setIsDistributionWarehouse(listing.is_distribution_warehouse || false);
     }
 
@@ -591,7 +599,7 @@ export function MarketListingEditDialog({
           trailer_parking: trailerParking || null,
           land_acres: landAcres || null,
           zoning: zoning || null,
-          mua: mua ? 'Yes' : 'No',
+          mua: mua ? (muaValue || 'Yes') : 'No',
           is_distribution_warehouse: isDistributionWarehouse,
           user_id: user.id,
           org_id: org.id,
@@ -715,7 +723,7 @@ export function MarketListingEditDialog({
           trailer_parking: trailerParking || null,
           land_acres: landAcres || null,
           zoning: zoning || null,
-          mua: mua ? 'Yes' : 'No',
+          mua: mua ? (muaValue || 'Yes') : 'No',
           is_distribution_warehouse: isDistributionWarehouse,
           updated_at: new Date().toISOString(),
           ...geocodeReset,
@@ -1123,42 +1131,51 @@ export function MarketListingEditDialog({
                   </div>
                 </div>
 
-                {/* Loading toggles */}
-                <div className="grid grid-cols-3 gap-4 mt-4">
-                  <div className="space-y-2">
-                    <Label className="text-xs">Yard</Label>
-                    <div className="flex items-center gap-2">
-                      <ToggleButton value={yard} onChange={setYard} />
-                    </div>
+                {/* Loading checkboxes with inputs */}
+                <div className="space-y-3 mt-4">
+                  {/* Yard checkbox row */}
+                  <div className="flex items-center gap-3">
+                    <Checkbox
+                      id="hasYard"
+                      checked={yard}
+                      onCheckedChange={(checked) => {
+                        setYard(!!checked);
+                        if (!checked) {
+                          setYardArea('');
+                        }
+                      }}
+                    />
+                    <Label htmlFor="hasYard" className="text-sm cursor-pointer">Yard</Label>
+                    {yard && (
+                      <Input
+                        value={yardArea}
+                        onChange={(e) => setYardArea(e.target.value)}
+                        className={`flex-1 placeholder-light ${yardArea ? 'input-filled' : ''}`}
+                        placeholder="e.g., 2 acres"
+                      />
+                    )}
                   </div>
 
-                  <div className="space-y-2">
-                    <Label className="text-xs">Cross-Dock</Label>
-                    <div className="flex items-center gap-2">
-                      <ToggleButton value={crossDock} onChange={setCrossDock} />
-                    </div>
+                  {/* Cross-Dock checkbox row */}
+                  <div className="flex items-center gap-3">
+                    <Checkbox
+                      id="hasCrossDock"
+                      checked={crossDock}
+                      onCheckedChange={(checked) => setCrossDock(!!checked)}
+                    />
+                    <Label htmlFor="hasCrossDock" className="text-sm cursor-pointer">Cross-Dock</Label>
                   </div>
 
-                  <div className="space-y-2">
-                    <Label className="text-xs">Dist. Warehouse</Label>
-                    <div className="flex items-center gap-2">
-                      <ToggleButton value={isDistributionWarehouse} onChange={setIsDistributionWarehouse} />
-                    </div>
+                  {/* Dist. Warehouse checkbox row */}
+                  <div className="flex items-center gap-3">
+                    <Checkbox
+                      id="hasDistWarehouse"
+                      checked={isDistributionWarehouse}
+                      onCheckedChange={(checked) => setIsDistributionWarehouse(!!checked)}
+                    />
+                    <Label htmlFor="hasDistWarehouse" className="text-sm cursor-pointer">Dist. Warehouse</Label>
                   </div>
                 </div>
-
-                {/* Yard Area (shown when yard is enabled) */}
-                {yard && (
-                  <div className="grid grid-cols-4 items-center gap-4 mt-3">
-                    <Label className="text-right text-xs">Yard Area</Label>
-                    <Input
-                      value={yardArea}
-                      onChange={(e) => setYardArea(e.target.value)}
-                      className={`col-span-3 placeholder-light ${yardArea ? 'input-filled' : ''}`}
-                      placeholder="e.g., 2 acres"
-                    />
-                  </div>
-                )}
               </div>
 
               <Separator />
@@ -1254,10 +1271,30 @@ export function MarketListingEditDialog({
                   </div>
                 )}
 
-                {/* MUA toggle */}
-                <div className="flex items-center gap-3 mt-4">
-                  <Label className="text-xs">MUA</Label>
-                  <ToggleButton value={mua} onChange={setMua} />
+                {/* MUA checkbox row */}
+                <div className="flex items-center gap-3 mt-3">
+                  <Checkbox
+                    id="hasMua"
+                    checked={mua}
+                    onCheckedChange={(checked) => {
+                      setMua(!!checked);
+                      if (checked && !muaValue) {
+                        setMuaValue('TBV');
+                      }
+                      if (!checked) {
+                        setMuaValue('');
+                      }
+                    }}
+                  />
+                  <Label htmlFor="hasMua" className="text-sm cursor-pointer">MUA</Label>
+                  {mua && (
+                    <Input
+                      value={muaValue}
+                      onChange={(e) => setMuaValue(e.target.value)}
+                      className={`flex-1 placeholder-light ${muaValue ? 'input-filled' : ''}`}
+                      placeholder="e.g., TBV"
+                    />
+                  )}
                 </div>
               </div>
             </TabsContent>
