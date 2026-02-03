@@ -32,6 +32,8 @@ const SIZE_RANGES = [
   { label: 'Over 500,000 SF', value: 'over500k', min: 500000, max: Infinity },
 ];
 
+const ALL_MARKET_STATUS_OPTIONS = ['Active', 'Under Contract', 'Sold/Leased', 'Unknown/Removed'] as const;
+
 export default function MarketListings() {
   const { 
     listings, 
@@ -97,6 +99,11 @@ export default function MarketListings() {
     const statuses = [...new Set(listings.map(l => l.status).filter(Boolean))];
     return statuses.sort();
   }, [listings]);
+
+  const statusOptions = useMemo(() => {
+    const extras = uniqueStatuses.filter((s) => !(ALL_MARKET_STATUS_OPTIONS as readonly string[]).includes(s));
+    return [...ALL_MARKET_STATUS_OPTIONS, ...extras];
+  }, [uniqueStatuses]);
 
   const uniqueBrokers = useMemo(() => {
     const brokers = [...new Set(listings.map(l => l.broker_source).filter(Boolean))] as string[];
@@ -512,7 +519,7 @@ export default function MarketListings() {
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="all">All Statuses</SelectItem>
-                      {uniqueStatuses.map(status => (
+                      {statusOptions.map(status => (
                         <SelectItem key={status} value={status}>{status}</SelectItem>
                       ))}
                     </SelectContent>

@@ -47,6 +47,8 @@ const FORM_STORAGE_KEY = 'market-listing-form-draft';
 const STATUS_OPTIONS_CREATE = [
   { value: 'Active', label: 'Active' },
   { value: 'Under Contract', label: 'Under Contract' },
+  { value: 'Sold/Leased', label: 'Sold/Leased' },
+  { value: 'Unknown/Removed', label: 'Unknown/Removed' },
 ];
 
 // Edit mode: all status options available
@@ -556,6 +558,7 @@ export function MarketListingEditDialog({
     }
 
     const finalDisplayAddress = displayAddress.trim() || generateDisplayAddress(address.trim(), building, unit);
+    const finalSprinkler = hasSprinklers ? (sprinkler.trim() || 'TBV') : null;
 
     setIsSaving(true);
     try {
@@ -590,7 +593,7 @@ export function MarketListingEditDialog({
           building_depth: buildingDepth || null,
           power_amps: powerAmps || null,
           voltage: voltage || null,
-          sprinkler: sprinkler || null,
+          sprinkler: finalSprinkler,
           cranes: cranes || null,
           crane_tons: craneTons || null,
           yard: yard ? 'Yes' : 'No',
@@ -683,6 +686,7 @@ export function MarketListingEditDialog({
       : {};
 
     const finalDisplayAddress = displayAddress.trim() || generateDisplayAddress(address.trim(), building, unit);
+    const finalSprinkler = hasSprinklers ? (sprinkler.trim() || 'TBV') : null;
 
     setIsSaving(true);
     try {
@@ -714,7 +718,7 @@ export function MarketListingEditDialog({
           building_depth: buildingDepth || null,
           power_amps: powerAmps || null,
           voltage: voltage || null,
-          sprinkler: sprinkler || null,
+          sprinkler: finalSprinkler,
           cranes: cranes || null,
           crane_tons: craneTons || null,
           yard: yard ? 'Yes' : 'No',
@@ -1214,9 +1218,6 @@ export function MarketListingEditDialog({
                     checked={hasSprinklers}
                     onCheckedChange={(checked) => {
                       setHasSprinklers(!!checked);
-                      if (checked && !sprinkler) {
-                        setSprinkler('TBV');
-                      }
                       if (!checked) {
                         setSprinkler('');
                       }
@@ -1278,9 +1279,6 @@ export function MarketListingEditDialog({
                     checked={mua}
                     onCheckedChange={(checked) => {
                       setMua(!!checked);
-                      if (checked && !muaValue) {
-                        setMuaValue('TBV');
-                      }
                       if (!checked) {
                         setMuaValue('');
                       }
