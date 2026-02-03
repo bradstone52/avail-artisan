@@ -1391,25 +1391,42 @@ export function MarketListingEditDialog({
                 </div>
               )}
 
+              {/* Taxes */}
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label className="text-right">Taxes</Label>
+                <Input
+                  value={propertyTax}
+                  onChange={(e) => setPropertyTax(e.target.value)}
+                  className={`col-span-3 placeholder-light ${propertyTax ? 'input-filled' : ''}`}
+                  placeholder="e.g., $3.50/SF"
+                />
+              </div>
+
               {/* Sublease Expiry - only show if listing type is Sublease */}
               {listingType === 'Sublease' && (
                 <div className="grid grid-cols-4 items-center gap-4">
                   <Label className="text-right">Sublease Expiry</Label>
-                  <div className="col-span-3">
+                  <div className="col-span-3 flex gap-2">
+                    <Input
+                      value={subleaseExp ? format(subleaseExp, "MMM d, yyyy") : ''}
+                      onChange={(e) => {
+                        const parsed = new Date(e.target.value);
+                        if (!isNaN(parsed.getTime())) {
+                          setSubleaseExp(parsed);
+                        } else if (e.target.value === '') {
+                          setSubleaseExp(undefined);
+                        }
+                      }}
+                      className={`flex-1 placeholder-light ${subleaseExp ? 'input-filled' : ''}`}
+                      placeholder="e.g., Jan 1, 2025"
+                    />
                     <Popover>
                       <PopoverTrigger asChild>
-                        <Button
-                          variant="outline"
-                          className={cn(
-                            "w-full justify-start text-left font-normal",
-                            !subleaseExp && "text-muted-foreground"
-                          )}
-                        >
-                          <CalendarIcon className="mr-2 h-4 w-4" />
-                          {subleaseExp ? format(subleaseExp, "MMM d, yyyy") : <span>Select date</span>}
+                        <Button variant="outline" size="icon" className="shrink-0">
+                          <CalendarIcon className="h-4 w-4" />
                         </Button>
                       </PopoverTrigger>
-                      <PopoverContent className="w-auto p-0" align="start">
+                      <PopoverContent className="w-auto p-0" align="end">
                         <Calendar
                           mode="single"
                           selected={subleaseExp}
@@ -1426,21 +1443,27 @@ export function MarketListingEditDialog({
               {/* Availability */}
               <div className="grid grid-cols-4 items-center gap-4">
                 <Label className="text-right">Availability</Label>
-                <div className="col-span-3">
+                <div className="col-span-3 flex gap-2">
+                  <Input
+                    value={availabilityDate ? format(availabilityDate, "MMM d, yyyy") : ''}
+                    onChange={(e) => {
+                      const parsed = new Date(e.target.value);
+                      if (!isNaN(parsed.getTime())) {
+                        setAvailabilityDate(parsed);
+                      } else if (e.target.value === '') {
+                        setAvailabilityDate(undefined);
+                      }
+                    }}
+                    className={`flex-1 placeholder-light ${availabilityDate ? 'input-filled' : ''}`}
+                    placeholder="e.g., Jan 1, 2025"
+                  />
                   <Popover>
                     <PopoverTrigger asChild>
-                      <Button
-                        variant="outline"
-                        className={cn(
-                          "w-full justify-start text-left font-normal",
-                          !availabilityDate && "text-muted-foreground"
-                        )}
-                      >
-                        <CalendarIcon className="mr-2 h-4 w-4" />
-                        {availabilityDate ? format(availabilityDate, "MMM d, yyyy") : <span>Select date</span>}
+                      <Button variant="outline" size="icon" className="shrink-0">
+                        <CalendarIcon className="h-4 w-4" />
                       </Button>
                     </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0" align="start">
+                    <PopoverContent className="w-auto p-0" align="end">
                       <Calendar
                         mode="single"
                         selected={availabilityDate}
@@ -1451,17 +1474,6 @@ export function MarketListingEditDialog({
                     </PopoverContent>
                   </Popover>
                 </div>
-              </div>
-
-              {/* Taxes */}
-              <div className="grid grid-cols-4 items-center gap-4">
-                <Label className="text-right">Taxes</Label>
-                <Input
-                  value={propertyTax}
-                  onChange={(e) => setPropertyTax(e.target.value)}
-                  className={`col-span-3 placeholder-light ${propertyTax ? 'input-filled' : ''}`}
-                  placeholder="e.g., $3.50/SF"
-                />
               </div>
 
               {/* Brokerage */}
