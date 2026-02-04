@@ -86,8 +86,13 @@ export function InternalListingEditDialog({
   onSubmit,
   isSubmitting,
 }: InternalListingEditDialogProps) {
-  const { data: agents = [] } = useAgents();
+  const { data: allAgents = [] } = useAgents();
   const isEditing = !!listing;
+
+  // Filter to only show agents from ClearView (the user's own brokerage)
+  const agents = allAgents.filter(
+    (agent) => agent.brokerage?.name?.toLowerCase().includes('clearview')
+  );
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
