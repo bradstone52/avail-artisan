@@ -10,10 +10,17 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { SearchInput } from '@/components/common/SearchInput';
 import { ConfirmDialog } from '@/components/common/ConfirmDialog';
 import { useBrokerages, useCreateBrokerage, useUpdateBrokerage, useDeleteBrokerage } from '@/hooks/useBrokerages';
-import { useAgents, useCreateAgent, useDeleteAgent } from '@/hooks/useAgents';
+import { useAgents, useCreateAgent, useUpdateAgent, useDeleteAgent } from '@/hooks/useAgents';
 import { Edit, Trash2, Plus, ChevronDown, ChevronRight, UserPlus } from 'lucide-react';
 import {
   Dialog,
@@ -22,7 +29,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
-import type { Brokerage, BrokerageFormData } from '@/types/database';
+import type { Brokerage, BrokerageFormData, Agent } from '@/types/database';
 
 export function BrokeragesTab() {
   const { data: brokerages, isLoading } = useBrokerages();
@@ -31,6 +38,7 @@ export function BrokeragesTab() {
   const updateBrokerage = useUpdateBrokerage();
   const deleteBrokerage = useDeleteBrokerage();
   const createAgent = useCreateAgent();
+  const updateAgent = useUpdateAgent();
   const deleteAgent = useDeleteAgent();
 
   const [search, setSearch] = useState('');
@@ -46,8 +54,13 @@ export function BrokeragesTab() {
     name: '',
     phone: '',
     email: '',
+    brokerage_id: '',
   });
   const [deleteAgentId, setDeleteAgentId] = useState<string | null>(null);
+
+  // Edit agent dialog state
+  const [editAgentDialogOpen, setEditAgentDialogOpen] = useState(false);
+  const [editingAgent, setEditingAgent] = useState<Agent | null>(null);
 
   const [formData, setFormData] = useState<BrokerageFormData>({
     name: '',
@@ -115,7 +128,7 @@ export function BrokeragesTab() {
 
   const handleOpenAddAgentDialog = (brokerageId: string) => {
     setAddAgentBrokerageId(brokerageId);
-    setAgentFormData({ name: '', phone: '', email: '' });
+    setAgentFormData({ name: '', phone: '', email: '', brokerage_id: brokerageId });
     setAddAgentDialogOpen(true);
   };
 
@@ -133,6 +146,40 @@ export function BrokeragesTab() {
       setAddAgentDialogOpen(false);
       // Expand the brokerage to show the new agent
       setExpandedBrokerages(prev => new Set(prev).add(addAgentBrokerageId));
+    } catch (error) {
+      // Error handled by mutation
+    }
+  };
+
+  const handleOpenEditAgentDialog = (agent: Agent) => {
+    setEditingAgent(agent);
+    setAgentFormData({
+      name: agent.name,
+      phone: agent.phone || '',
+      email: agent.email || '',
+      brokerage_id: agent.brokerage_id || '',
+    });
+    setEditAgentDialogOpen(true);
+  };
+
+  const handleUpdateAgent = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingAgent) return;
+    
+    try {
+      await updateAgent.mutateAsync({
+        id: editingAgent.id,
+        name: agentFormData.name,
+        phone: agentFormData.phone,
+        email: agentFormData.email,
+        brokerage_id: agentFormData.brokerage_id || null,
+      });
+      setEditAgentDialogOpen(false);
+      setEditingAgent(null);
+      // Expand both old and new brokerage to show the change
+      if (agentFormData.brokerage_id) {
+        setExpandedBrokerages(prev => new Set(prev).add(agentFormData.brokerage_id));
+      }
     } catch (error) {
       // Error handled by mutation
     }
@@ -236,14 +283,24 @@ export function BrokeragesTab() {
                           {agent.phone && <span className="text-sm text-muted-foreground">{agent.phone}</span>}
                         </TableCell>
                         <TableCell>
-                          <Button 
-                            variant="ghost" 
-                            size="icon" 
-                            className="w-8 h-8 text-destructive" 
-                            onClick={() => setDeleteAgentId(agent.id)}
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </Button>
+                          <div className="flex items-center gap-1">
+                            <Button 
+                              variant="ghost" 
+                              size="icon" 
+                              className="w-8 h-8"
+                              onClick={() => handleOpenEditAgentDialog(agent)}
+                            >
+                              <Edit className="w-4 h-4" />
+                            </Button>
+                            <Button 
+                              variant="ghost" 
+                              size="icon" 
+                              className="w-8 h-8 text-destructive" 
+                              onClick={() => setDeleteAgentId(agent.id)}
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </Button>
+                          </div>
                         </TableCell>
                       </TableRow>
                     ))}
@@ -345,6 +402,68 @@ export function BrokeragesTab() {
             <div className="flex justify-end gap-2">
               <Button type="button" variant="outline" onClick={() => setAddAgentDialogOpen(false)}>Cancel</Button>
               <Button type="submit">Add Agent</Button>
+            </div>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Agent Dialog */}
+      <Dialog open={editAgentDialogOpen} onOpenChange={(open) => {
+        setEditAgentDialogOpen(open);
+        if (!open) setEditingAgent(null);
+      }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Edit Agent</DialogTitle>
+          </DialogHeader>
+          <form onSubmit={handleUpdateAgent} className="space-y-4">
+            <div className="space-y-2">
+              <Label>Name *</Label>
+              <Input
+                value={agentFormData.name}
+                onChange={(e) => setAgentFormData({ ...agentFormData, name: e.target.value })}
+                required
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Phone</Label>
+              <Input
+                value={agentFormData.phone}
+                onChange={(e) => setAgentFormData({ ...agentFormData, phone: e.target.value })}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Email</Label>
+              <Input
+                type="email"
+                value={agentFormData.email}
+                onChange={(e) => setAgentFormData({ ...agentFormData, email: e.target.value })}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Brokerage</Label>
+              <Select
+                value={agentFormData.brokerage_id || 'none'}
+                onValueChange={(value) =>
+                  setAgentFormData({ ...agentFormData, brokerage_id: value === 'none' ? '' : value })
+                }
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select brokerage" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">No brokerage</SelectItem>
+                  {brokerages?.map((brokerage) => (
+                    <SelectItem key={brokerage.id} value={brokerage.id}>
+                      {brokerage.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="flex justify-end gap-2">
+              <Button type="button" variant="outline" onClick={() => setEditAgentDialogOpen(false)}>Cancel</Button>
+              <Button type="submit">Save Changes</Button>
             </div>
           </form>
         </DialogContent>
