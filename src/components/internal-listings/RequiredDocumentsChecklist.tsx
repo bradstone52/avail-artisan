@@ -7,6 +7,7 @@ const REQUIRED_DOCUMENTS = [
   { name: 'Listing Agreement', color: 'bg-blue-500', hoverColor: 'hover:bg-blue-600', lightBg: 'bg-blue-50', borderColor: 'border-blue-300' },
   { name: 'Title', color: 'bg-amber-500', hoverColor: 'hover:bg-amber-600', lightBg: 'bg-amber-50', borderColor: 'border-amber-300' },
   { name: 'Corporate Search', color: 'bg-green-500', hoverColor: 'hover:bg-green-600', lightBg: 'bg-green-50', borderColor: 'border-green-300' },
+  { name: 'Brochure', color: 'bg-indigo-500', hoverColor: 'hover:bg-indigo-600', lightBg: 'bg-indigo-50', borderColor: 'border-indigo-300' },
 ];
 
 const ENCOURAGED_DOCUMENTS = [
@@ -133,7 +134,7 @@ export function RequiredDocumentsChecklist({
         documents={documents}
         docList={ENCOURAGED_DOCUMENTS}
         onSelectDocument={onSelectDocument}
-        showCounter={false}
+        showCounter={true}
       />
     </div>
   );

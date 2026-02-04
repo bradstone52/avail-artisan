@@ -30,6 +30,7 @@ const REQUIRED_DOCUMENT_NAMES = [
   'Listing Agreement',
   'Title',
   'Corporate Search',
+  'Brochure',
   'Building Plans',
   'Real Property Report',
   'ESA Phase 1',
