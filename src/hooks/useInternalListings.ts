@@ -34,6 +34,7 @@ export interface InternalListing {
   op_costs: number | null;
   taxes: number | null;
   cam: number | null;
+  gross_rate: number | null;
   status: string;
   assigned_agent_id: string | null;
   secondary_agent_id: string | null;
@@ -48,6 +49,9 @@ export interface InternalListing {
   archived_at: string | null;
   archived_reason: string | null;
   photo_url: string | null;
+  brochure_link: string | null;
+  website_link: string | null;
+  has_land: boolean | null;
   // Joined data
   assigned_agent?: { id: string; name: string } | null;
   secondary_agent?: { id: string; name: string } | null;
@@ -76,6 +80,7 @@ export interface InternalListingFormData {
   op_costs?: number;
   taxes?: number;
   cam?: number;
+  gross_rate?: number;
   status: string;
   assigned_agent_id?: string;
   secondary_agent_id?: string;
@@ -86,6 +91,9 @@ export interface InternalListingFormData {
   broker_remarks?: string;
   confidential_summary?: string;
   photo_url?: string;
+  brochure_link?: string;
+  website_link?: string;
+  has_land?: boolean;
 }
 
 export interface InternalListingStatusHistory {

@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useMemo } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -19,6 +19,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
+import { Checkbox } from '@/components/ui/checkbox';
 import {
   Select,
   SelectContent,
@@ -55,12 +56,14 @@ const formSchema = z.object({
   dock_doors: z.number().optional(),
   drive_in_doors: z.number().optional(),
   land_acres: z.number().optional(),
+  has_land: z.boolean().optional(),
   deal_type: z.string().min(1, 'Deal type is required'),
   asking_rent_psf: z.number().optional(),
   asking_sale_price: z.number().optional(),
   op_costs: z.number().optional(),
   taxes: z.number().optional(),
   cam: z.number().optional(),
+  gross_rate: z.number().optional(),
   status: z.string().min(1, 'Status is required'),
   assigned_agent_id: z.string().optional(),
   secondary_agent_id: z.string().optional(),
@@ -70,6 +73,8 @@ const formSchema = z.object({
   description: z.string().optional(),
   broker_remarks: z.string().optional(),
   confidential_summary: z.string().optional(),
+  brochure_link: z.string().optional(),
+  website_link: z.string().optional(),
 });
 
 interface InternalListingEditDialogProps {
@@ -114,12 +119,14 @@ export function InternalListingEditDialog({
       dock_doors: undefined,
       drive_in_doors: undefined,
       land_acres: undefined,
+      has_land: false,
       deal_type: 'Lease',
       asking_rent_psf: undefined,
       asking_sale_price: undefined,
       op_costs: undefined,
       taxes: undefined,
       cam: undefined,
+      gross_rate: undefined,
       status: 'Active',
       assigned_agent_id: '',
       secondary_agent_id: '',
@@ -129,6 +136,8 @@ export function InternalListingEditDialog({
       description: '',
       broker_remarks: '',
       confidential_summary: '',
+      brochure_link: '',
+      website_link: '',
     },
   });
 
@@ -151,12 +160,14 @@ export function InternalListingEditDialog({
         dock_doors: listing.dock_doors ?? undefined,
         drive_in_doors: listing.drive_in_doors ?? undefined,
         land_acres: listing.land_acres ?? undefined,
+        has_land: listing.has_land ?? false,
         deal_type: listing.deal_type,
         asking_rent_psf: listing.asking_rent_psf ?? undefined,
         asking_sale_price: listing.asking_sale_price ?? undefined,
         op_costs: listing.op_costs ?? undefined,
         taxes: listing.taxes ?? undefined,
         cam: listing.cam ?? undefined,
+        gross_rate: listing.gross_rate ?? undefined,
         status: listing.status,
         assigned_agent_id: listing.assigned_agent_id || '',
         secondary_agent_id: listing.secondary_agent_id || '',
@@ -166,6 +177,8 @@ export function InternalListingEditDialog({
         description: listing.description || '',
         broker_remarks: listing.broker_remarks || '',
         confidential_summary: listing.confidential_summary || '',
+        brochure_link: listing.brochure_link || '',
+        website_link: listing.website_link || '',
       });
     } else {
       form.reset({
@@ -185,12 +198,14 @@ export function InternalListingEditDialog({
         dock_doors: undefined,
         drive_in_doors: undefined,
         land_acres: undefined,
+        has_land: false,
         deal_type: 'Lease',
         asking_rent_psf: undefined,
         asking_sale_price: undefined,
         op_costs: undefined,
         taxes: undefined,
         cam: undefined,
+        gross_rate: undefined,
         status: 'Active',
         assigned_agent_id: '',
         secondary_agent_id: '',
@@ -200,9 +215,31 @@ export function InternalListingEditDialog({
         description: '',
         broker_remarks: '',
         confidential_summary: '',
+        brochure_link: '',
+        website_link: '',
       });
     }
   }, [listing, form]);
+
+  // Watch for asking rent and op costs to auto-calculate gross rate
+  const askingRent = form.watch('asking_rent_psf');
+  const opCosts = form.watch('op_costs');
+  const dealType = form.watch('deal_type');
+
+  // Auto-calculate gross rate when asking rent and op costs are both filled
+  const calculatedGrossRate = useMemo(() => {
+    if (askingRent != null && opCosts != null) {
+      return askingRent + opCosts;
+    }
+    return undefined;
+  }, [askingRent, opCosts]);
+
+  // Update gross rate field when calculated value changes
+  useEffect(() => {
+    if (calculatedGrossRate !== undefined) {
+      form.setValue('gross_rate', calculatedGrossRate);
+    }
+  }, [calculatedGrossRate, form]);
 
   const handleSubmit = (data: z.infer<typeof formSchema>) => {
     const cleanedData: InternalListingFormData = {
@@ -224,11 +261,13 @@ export function InternalListingEditDialog({
       dock_doors: data.dock_doors,
       drive_in_doors: data.drive_in_doors,
       land_acres: data.land_acres,
+      has_land: data.has_land,
       asking_rent_psf: data.asking_rent_psf,
       asking_sale_price: data.asking_sale_price,
       op_costs: data.op_costs,
       taxes: data.taxes,
       cam: data.cam,
+      gross_rate: data.gross_rate,
       assigned_agent_id: data.assigned_agent_id || undefined,
       secondary_agent_id: data.secondary_agent_id || undefined,
       owner_name: data.owner_name,
@@ -237,11 +276,11 @@ export function InternalListingEditDialog({
       description: data.description,
       broker_remarks: data.broker_remarks,
       confidential_summary: data.confidential_summary,
+      brochure_link: data.brochure_link,
+      website_link: data.website_link,
     };
     onSubmit(cleanedData);
   };
-
-  const dealType = form.watch('deal_type');
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -538,6 +577,27 @@ export function InternalListingEditDialog({
                     )}
                   />
 
+                  {/* Features section */}
+                  <div className="col-span-2">
+                    <FormLabel className="text-sm font-medium mb-3 block">Features</FormLabel>
+                    <div className="flex flex-wrap gap-4">
+                      <FormField
+                        control={form.control}
+                        name="has_land"
+                        render={({ field }) => (
+                          <FormItem className="flex items-center space-x-2 space-y-0">
+                            <FormControl>
+                              <Checkbox
+                                checked={field.value}
+                                onCheckedChange={field.onChange}
+                              />
+                            </FormControl>
+                            <FormLabel className="font-normal cursor-pointer">Land</FormLabel>
+                          </FormItem>
+                        )}
+                      />
+                    </div>
+                  </div>
                 </div>
               </TabsContent>
 
@@ -633,23 +693,52 @@ export function InternalListingEditDialog({
                     />
                   )}
 
-                  <FormField
-                    control={form.control}
-                    name="op_costs"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Operating Costs ($/SF)</FormLabel>
-                        <FormControl>
-                          <FormattedNumberInput
-                            value={field.value}
-                            onChange={field.onChange}
-                            placeholder="4.50"
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
+                  {/* Op Costs, Gross Rate row - only show for Lease/Both */}
+                  {(dealType === 'Lease' || dealType === 'Both') && (
+                    <>
+                      <FormField
+                        control={form.control}
+                        name="op_costs"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Operating Costs ($/SF)</FormLabel>
+                            <FormControl>
+                              <FormattedNumberInput
+                                value={field.value}
+                                onChange={field.onChange}
+                                placeholder="4.50"
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+
+                      <FormField
+                        control={form.control}
+                        name="gross_rate"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Gross Rate ($/SF)</FormLabel>
+                            <FormControl>
+                              <FormattedNumberInput
+                                value={field.value}
+                                onChange={field.onChange}
+                                placeholder="Auto-calculated"
+                                disabled={askingRent != null && opCosts != null}
+                              />
+                            </FormControl>
+                            {askingRent != null && opCosts != null && (
+                              <p className="text-xs text-muted-foreground">
+                                Auto-calculated: Asking + Op Costs
+                              </p>
+                            )}
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    </>
+                  )}
 
                   <FormField
                     control={form.control}
@@ -794,6 +883,36 @@ export function InternalListingEditDialog({
               </TabsContent>
 
               <TabsContent value="marketing" className="space-y-4 mt-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <FormField
+                    control={form.control}
+                    name="brochure_link"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Brochure Link</FormLabel>
+                        <FormControl>
+                          <Input {...field} placeholder="https://..." type="url" />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="website_link"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Website Link</FormLabel>
+                        <FormControl>
+                          <Input {...field} placeholder="https://..." type="url" />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+
                 <FormField
                   control={form.control}
                   name="description"

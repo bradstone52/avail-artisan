@@ -961,6 +961,7 @@ export type Database = {
           asking_rent_psf: number | null
           asking_sale_price: number | null
           assigned_agent_id: string | null
+          brochure_link: string | null
           broker_remarks: string | null
           cam: number | null
           city: string
@@ -973,6 +974,8 @@ export type Database = {
           display_address: string | null
           dock_doors: number | null
           drive_in_doors: number | null
+          gross_rate: number | null
+          has_land: boolean | null
           id: string
           land_acres: number | null
           latitude: number | null
@@ -997,6 +1000,7 @@ export type Database = {
           taxes: number | null
           updated_at: string
           warehouse_sf: number | null
+          website_link: string | null
           yard: string | null
           zoning: string | null
         }
@@ -1007,6 +1011,7 @@ export type Database = {
           asking_rent_psf?: number | null
           asking_sale_price?: number | null
           assigned_agent_id?: string | null
+          brochure_link?: string | null
           broker_remarks?: string | null
           cam?: number | null
           city?: string
@@ -1019,6 +1024,8 @@ export type Database = {
           display_address?: string | null
           dock_doors?: number | null
           drive_in_doors?: number | null
+          gross_rate?: number | null
+          has_land?: boolean | null
           id?: string
           land_acres?: number | null
           latitude?: number | null
@@ -1043,6 +1050,7 @@ export type Database = {
           taxes?: number | null
           updated_at?: string
           warehouse_sf?: number | null
+          website_link?: string | null
           yard?: string | null
           zoning?: string | null
         }
@@ -1053,6 +1061,7 @@ export type Database = {
           asking_rent_psf?: number | null
           asking_sale_price?: number | null
           assigned_agent_id?: string | null
+          brochure_link?: string | null
           broker_remarks?: string | null
           cam?: number | null
           city?: string
@@ -1065,6 +1074,8 @@ export type Database = {
           display_address?: string | null
           dock_doors?: number | null
           drive_in_doors?: number | null
+          gross_rate?: number | null
+          has_land?: boolean | null
           id?: string
           land_acres?: number | null
           latitude?: number | null
@@ -1089,6 +1100,7 @@ export type Database = {
           taxes?: number | null
           updated_at?: string
           warehouse_sf?: number | null
+          website_link?: string | null
           yard?: string | null
           zoning?: string | null
         }
