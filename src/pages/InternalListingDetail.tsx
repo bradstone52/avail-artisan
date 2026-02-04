@@ -253,7 +253,7 @@ export default function InternalListingDetail() {
                 <CardContent className="space-y-4">
                   <div>
                     <p className="text-xs text-muted-foreground uppercase tracking-wide">
-                      Deal Type
+                      Listing Type
                     </p>
                     <p className="font-medium">{listing.deal_type}</p>
                   </div>
