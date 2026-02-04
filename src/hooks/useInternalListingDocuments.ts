@@ -40,6 +40,33 @@ export function useInternalListingDocuments(listingId: string | undefined) {
     enabled: !!user && !!listingId,
   });
 
+  // Generate a unique document name with versioning if duplicate exists
+  const getVersionedName = (baseName: string, existingDocs: InternalListingDocument[]): string => {
+    const existingNames = existingDocs.map(d => d.name);
+    
+    // Check if base name exists
+    if (!existingNames.includes(baseName)) {
+      return baseName;
+    }
+    
+    // Find all versions of this document name
+    // Match patterns like "Name", "Name_v2", "Name_v3", etc.
+    const versionPattern = new RegExp(`^${baseName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}(_v(\\d+))?$`);
+    const versions = existingNames
+      .map(n => {
+        const match = n.match(versionPattern);
+        if (match) {
+          return match[2] ? parseInt(match[2], 10) : 1;
+        }
+        return null;
+      })
+      .filter((v): v is number => v !== null);
+    
+    // Get the next version number
+    const maxVersion = versions.length > 0 ? Math.max(...versions) : 1;
+    return `${baseName}_v${maxVersion + 1}`;
+  };
+
   const uploadDocument = async (file: File, name: string) => {
     if (!listingId || !user?.id) {
       toast.error('Not authenticated');
@@ -60,8 +87,12 @@ export function useInternalListingDocuments(listingId: string | undefined) {
 
     setIsUploading(true);
     try {
+      // Get existing documents to check for duplicates
+      const existingDocs = query.data || [];
+      const finalName = getVersionedName(name, existingDocs);
+      
       const fileExt = file.name.split('.').pop()?.toLowerCase() || '';
-      const sanitizedName = name.replace(/[^a-zA-Z0-9-_]/g, '-').toLowerCase();
+      const sanitizedName = finalName.replace(/[^a-zA-Z0-9-_]/g, '-').toLowerCase();
       const filePath = `${listingId}/${Date.now()}-${sanitizedName}.${fileExt}`;
 
       const { error: uploadError } = await supabase.storage
@@ -75,7 +106,7 @@ export function useInternalListingDocuments(listingId: string | undefined) {
         .insert({
           listing_id: listingId,
           org_id: orgId,
-          name,
+          name: finalName,
           file_path: filePath,
           file_size: file.size,
           file_type: file.type || null,
@@ -89,7 +120,7 @@ export function useInternalListingDocuments(listingId: string | undefined) {
       }
 
       queryClient.invalidateQueries({ queryKey: ['internal_listing_documents', listingId] });
-      toast.success('Document uploaded successfully');
+      toast.success(`Document uploaded as "${finalName}"`);
     } catch (error) {
       console.error('Error uploading document:', error);
       toast.error('Failed to upload document');
