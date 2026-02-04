@@ -791,6 +791,130 @@ export type Database = {
           },
         ]
       }
+      internal_listing_inquiries: {
+        Row: {
+          assigned_broker_id: string | null
+          contact_company: string | null
+          contact_email: string | null
+          contact_name: string
+          contact_phone: string | null
+          created_at: string
+          created_by: string | null
+          id: string
+          listing_id: string
+          next_follow_up: string | null
+          notes: string | null
+          org_id: string | null
+          source: string
+          stage: string
+          updated_at: string
+        }
+        Insert: {
+          assigned_broker_id?: string | null
+          contact_company?: string | null
+          contact_email?: string | null
+          contact_name: string
+          contact_phone?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          listing_id: string
+          next_follow_up?: string | null
+          notes?: string | null
+          org_id?: string | null
+          source?: string
+          stage?: string
+          updated_at?: string
+        }
+        Update: {
+          assigned_broker_id?: string | null
+          contact_company?: string | null
+          contact_email?: string | null
+          contact_name?: string
+          contact_phone?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          listing_id?: string
+          next_follow_up?: string | null
+          notes?: string | null
+          org_id?: string | null
+          source?: string
+          stage?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "internal_listing_inquiries_assigned_broker_id_fkey"
+            columns: ["assigned_broker_id"]
+            isOneToOne: false
+            referencedRelation: "agents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "internal_listing_inquiries_listing_id_fkey"
+            columns: ["listing_id"]
+            isOneToOne: false
+            referencedRelation: "internal_listings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "internal_listing_inquiries_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "orgs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      internal_listing_inquiry_timeline: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          event_date: string
+          event_type: string
+          id: string
+          inquiry_id: string
+          notes: string | null
+          org_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          event_date?: string
+          event_type: string
+          id?: string
+          inquiry_id: string
+          notes?: string | null
+          org_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          event_date?: string
+          event_type?: string
+          id?: string
+          inquiry_id?: string
+          notes?: string | null
+          org_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "internal_listing_inquiry_timeline_inquiry_id_fkey"
+            columns: ["inquiry_id"]
+            isOneToOne: false
+            referencedRelation: "internal_listing_inquiries"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "internal_listing_inquiry_timeline_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "orgs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       internal_listing_status_history: {
         Row: {
           changed_at: string

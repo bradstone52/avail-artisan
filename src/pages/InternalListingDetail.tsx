@@ -15,6 +15,7 @@ import {
 } from '@/hooks/useInternalListings';
 import { InternalListingEditDialog } from '@/components/internal-listings/InternalListingEditDialog';
 import { InternalListingDocumentsSection } from '@/components/internal-listings/InternalListingDocumentsSection';
+import { InquiriesSection } from '@/components/internal-listings/InquiriesSection';
 import { formatNumber, formatCurrency } from '@/lib/format';
 import { format } from 'date-fns';
 import {
@@ -382,12 +383,7 @@ export default function InternalListingDetail() {
           </TabsContent>
 
           <TabsContent value="inquiries">
-            <Card className="border-2 border-foreground shadow-[4px_4px_0_hsl(var(--foreground))]">
-              <CardContent className="py-12 text-center text-muted-foreground">
-                <Mail className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                <p>Inquiry tracking coming in Phase 3</p>
-              </CardContent>
-            </Card>
+            <InquiriesSection listingId={listing.id} />
           </TabsContent>
 
           <TabsContent value="marketing">

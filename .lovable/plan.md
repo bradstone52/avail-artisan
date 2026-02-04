@@ -1,79 +1,94 @@
 
-# Phase 2: Document Management for Internal Listings ✅ COMPLETED
+# Phase 3: Inquiry & Lead Tracking ✅ COMPLETED
 
 ## Overview
-Implement full document management capabilities for internal listings, allowing users to upload, view, download, and delete documents associated with each listing. This follows the established patterns from the Deals module.
+Implement inquiry and lead tracking for internal listings, allowing users to track prospects, manage pipeline stages, and log activity touchpoints.
 
 ---
 
 ## Implementation Steps
 
 ### Step 1: Database Schema ✅
-Created the `internal_listing_documents` table to store document metadata.
+Created two tables for inquiry tracking:
 
-**Table Structure:**
+**`internal_listing_inquiries`:**
 | Column | Type | Notes |
 |--------|------|-------|
-| id | UUID | Primary key, auto-generated |
-| listing_id | UUID | Foreign key to `internal_listings` |
-| org_id | UUID | For RLS enforcement |
-| name | TEXT | Display name (user-editable) |
-| file_path | TEXT | Storage path in bucket |
-| file_size | INTEGER | Size in bytes |
-| file_type | TEXT | MIME type (optional) |
-| uploaded_by | UUID | Reference to user |
-| uploaded_at | TIMESTAMPTZ | Auto-set to now() |
+| id | UUID | Primary key |
+| listing_id | UUID | FK to internal_listings |
+| org_id | UUID | For RLS |
+| contact_name | TEXT | Required |
+| contact_email | TEXT | Optional |
+| contact_phone | TEXT | Optional |
+| contact_company | TEXT | Optional |
+| source | TEXT | Lead source (Direct, Website, Signage, etc.) |
+| stage | TEXT | Pipeline stage |
+| assigned_broker_id | UUID | FK to agents |
+| notes | TEXT | General notes |
+| next_follow_up | DATE | Follow-up reminder |
+| created_at/updated_at | TIMESTAMPTZ | Auto-managed |
 
-**RLS Policies:** ✅
-- SELECT/INSERT/UPDATE/DELETE: Users can only access documents where listing belongs to their organization
+**`internal_listing_inquiry_timeline`:**
+| Column | Type | Notes |
+|--------|------|-------|
+| id | UUID | Primary key |
+| inquiry_id | UUID | FK to inquiries |
+| org_id | UUID | For RLS |
+| event_type | TEXT | Call, Email, Tour, etc. |
+| notes | TEXT | Event notes |
+| event_date | TIMESTAMPTZ | When event occurred |
 
-### Step 2: Storage Bucket Policies ✅
-Configured RLS on the existing `internal-listing-assets` bucket to enforce organization-based access control for file operations.
+### Step 2: RLS Policies ✅
+Organization-based access control through internal_listings relationship.
 
-### Step 3: Create Data Hook ✅
-Created `useInternalListingDocuments.ts` with:
-- Query to fetch documents for a listing
-- Upload function (file + metadata)
-- Delete function (storage + database)
-- Download URL generation via signed URLs
+### Step 3: Data Hook ✅
+Created `useInternalListingInquiries.ts` with:
+- `useInternalListingInquiries(listingId)` - CRUD for inquiries
+- `useInquiryTimeline(inquiryId)` - CRUD for timeline events
+- Constants: INQUIRY_SOURCES, INQUIRY_STAGES, TIMELINE_EVENT_TYPES
 
-### Step 4: Build UI Component ✅
-Created `InternalListingDocumentsSection.tsx`:
-- Upload form with drag-and-drop support
-- Document list with name, size, date
-- Download and delete actions per document
-- Empty state messaging
-- Loading and uploading states
+### Step 4: UI Components ✅
+- `InquiriesSection.tsx` - Main tab component with pipeline filter
+- `InquiryCard.tsx` - Individual inquiry display with expandable timeline
+- `InquiryTimeline.tsx` - Activity log with add/delete
+- `InquiryFormDialog.tsx` - Create/edit inquiry form
 
-### Step 5: Integrate into Detail Page ✅
-Replaced the placeholder content in the Documents tab of `InternalListingDetail.tsx` with the new `InternalListingDocumentsSection` component.
+### Step 5: Integration ✅
+Replaced placeholder in Inquiries tab of InternalListingDetail.tsx
 
 ---
 
-## Technical Details
+## Features
 
-### File Path Convention
-```text
-{listing_id}/{timestamp}-{sanitized_name}.{extension}
-```
-Example: `cc88991f-53e4-4b96-928e-e295ed3c43c3/1707012345678-lease-agreement.pdf`
+### Pipeline Stages
+New → Contacted → Tour Booked → Tour Completed → Offer Sent → LOI Pending → Completed/Lost
 
-### Supported File Types
-- PDFs (primary)
-- Images (JPG, PNG)
-- Office documents (DOCX, XLSX)
-- Maximum size: 15MB per file
+### Lead Sources
+Direct, Website, Signage, Email Blast, LoopNet, CoStar, Referral, Cold Call, Trade Show, Other
 
-### Component Architecture
-```text
-InternalListingDetail.tsx
-  └── Documents Tab
-       └── InternalListingDocumentsSection.tsx
-            ├── Upload Form (drag-drop + file input)
-            ├── Document List
-            │    └── Document Row (name, size, date, actions)
-            └── Empty State
-```
+### Timeline Event Types
+Call, Email, Tour, Meeting, Offer, LOI, Note, Other
+
+---
+
+## Files Created/Modified
+
+| Action | File |
+|--------|------|
+| ✅ Created | `src/hooks/useInternalListingInquiries.ts` |
+| ✅ Created | `src/components/internal-listings/InquiriesSection.tsx` |
+| ✅ Created | `src/components/internal-listings/InquiryCard.tsx` |
+| ✅ Created | `src/components/internal-listings/InquiryTimeline.tsx` |
+| ✅ Created | `src/components/internal-listings/InquiryFormDialog.tsx` |
+| ✅ Modified | `src/pages/InternalListingDetail.tsx` |
+| ✅ Created | Database migration for tables + RLS |
+
+---
+
+# Phase 2: Document Management for Internal Listings ✅ COMPLETED
+
+## Overview
+Implement full document management capabilities for internal listings, allowing users to upload, view, download, and delete documents associated with each listing.
 
 ---
 
@@ -86,3 +101,23 @@ InternalListingDetail.tsx
 | ✅ Modified | `src/pages/InternalListingDetail.tsx` |
 | ✅ Created | Database migration for table + RLS |
 | ✅ Created | Storage policy migration |
+
+---
+
+# Future Phases
+
+## Phase 4: AI Marketing & IDML Brochure Generation
+- Automated brochure creation in PDF and InDesign (IDML) formats
+- AI-generated marketing copy
+
+## Phase 5: Smart Validation
+- Data integrity checks for listings
+
+## Phase 6: Market Intelligence  
+- Comparable listing tracking and pricing indicators
+
+## Phase 7: Analytics & Audit Trail
+- View tracking and performance metrics
+
+## Phase 8: Owner Portal
+- Secure, read-only access for landlords
