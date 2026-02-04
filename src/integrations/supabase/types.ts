@@ -737,6 +737,57 @@ export type Database = {
         }
         Relationships: []
       }
+      internal_listing_documents: {
+        Row: {
+          file_path: string
+          file_size: number | null
+          file_type: string | null
+          id: string
+          listing_id: string
+          name: string
+          org_id: string | null
+          uploaded_at: string
+          uploaded_by: string | null
+        }
+        Insert: {
+          file_path: string
+          file_size?: number | null
+          file_type?: string | null
+          id?: string
+          listing_id: string
+          name: string
+          org_id?: string | null
+          uploaded_at?: string
+          uploaded_by?: string | null
+        }
+        Update: {
+          file_path?: string
+          file_size?: number | null
+          file_type?: string | null
+          id?: string
+          listing_id?: string
+          name?: string
+          org_id?: string | null
+          uploaded_at?: string
+          uploaded_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "internal_listing_documents_listing_id_fkey"
+            columns: ["listing_id"]
+            isOneToOne: false
+            referencedRelation: "internal_listings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "internal_listing_documents_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "orgs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       internal_listing_status_history: {
         Row: {
           changed_at: string
