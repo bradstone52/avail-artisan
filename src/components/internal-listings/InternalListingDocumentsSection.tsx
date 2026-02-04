@@ -9,6 +9,7 @@ import { FileText, Upload, Trash2, Download, File, FileImage, FileSpreadsheet } 
 import { format } from 'date-fns';
 import { useInternalListingDocuments, InternalListingDocument } from '@/hooks/useInternalListingDocuments';
 import { ConfirmDialog } from '@/components/common/ConfirmDialog';
+import { DocumentNameCombobox } from './DocumentNameCombobox';
 
 interface InternalListingDocumentsSectionProps {
   listingId: string;
@@ -104,6 +105,17 @@ export function InternalListingDocumentsSection({ listingId }: InternalListingDo
     return File;
   };
 
+  // Extract original filename from file_path
+  // Format: {listing_id}/{timestamp}-{sanitized_name}.{extension}
+  const getOriginalFilename = (filePath: string) => {
+    const parts = filePath.split('/');
+    if (parts.length < 2) return filePath;
+    const filenamePart = parts[parts.length - 1];
+    // Remove timestamp prefix (e.g., "1707012345678-")
+    const match = filenamePart.match(/^\d+-(.+)$/);
+    return match ? match[1] : filenamePart;
+  };
+
   if (isLoading) {
     return (
       <Card className="border-2 border-foreground shadow-[4px_4px_0_hsl(var(--foreground))]">
@@ -143,10 +155,10 @@ export function InternalListingDocumentsSection({ listingId }: InternalListingDo
             <div className="flex flex-col sm:flex-row gap-3 items-end">
               <div className="flex-1 space-y-2 w-full">
                 <Label>Document Name</Label>
-                <Input
+                <DocumentNameCombobox
                   value={fileName}
-                  onChange={(e) => setFileName(e.target.value)}
-                  placeholder="Enter document name..."
+                  onChange={setFileName}
+                  placeholder="e.g., Lease Agreement, Survey..."
                 />
               </div>
               <div className="space-y-2 w-full sm:w-auto">
@@ -183,6 +195,7 @@ export function InternalListingDocumentsSection({ listingId }: InternalListingDo
             <div className="space-y-2">
               {documents.map((doc) => {
                 const IconComponent = getFileIcon(doc.file_type);
+                const originalFilename = getOriginalFilename(doc.file_path);
                 return (
                   <div
                     key={doc.id}
@@ -192,6 +205,9 @@ export function InternalListingDocumentsSection({ listingId }: InternalListingDo
                       <IconComponent className="h-5 w-5 text-muted-foreground flex-shrink-0" />
                       <div className="min-w-0">
                         <p className="font-medium truncate">{doc.name}</p>
+                        <p className="text-xs text-muted-foreground truncate">
+                          {originalFilename}
+                        </p>
                         <p className="text-xs text-muted-foreground">
                           {format(new Date(doc.uploaded_at), 'MMM d, yyyy')}
                           {doc.file_size && ` • ${formatFileSize(doc.file_size)}`}
