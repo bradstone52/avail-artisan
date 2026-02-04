@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { PageHeader } from '@/components/common/PageHeader';
@@ -9,7 +10,10 @@ import { Skeleton } from '@/components/ui/skeleton';
 import {
   useInternalListing,
   useInternalListingStatusHistory,
+  useInternalListings,
+  InternalListingFormData,
 } from '@/hooks/useInternalListings';
+import { InternalListingEditDialog } from '@/components/internal-listings/InternalListingEditDialog';
 import { formatNumber, formatCurrency } from '@/lib/format';
 import { format } from 'date-fns';
 import {
@@ -37,8 +41,23 @@ const statusColors: Record<string, string> = {
 export default function InternalListingDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { data: listing, isLoading } = useInternalListing(id);
+  const { data: listing, isLoading, refetch } = useInternalListing(id);
   const { data: statusHistory } = useInternalListingStatusHistory(id);
+  const { updateListing } = useInternalListings();
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
+
+  const handleEditSubmit = (data: InternalListingFormData) => {
+    if (!listing) return;
+    updateListing.mutate(
+      { id: listing.id, ...data },
+      {
+        onSuccess: () => {
+          setEditDialogOpen(false);
+          refetch();
+        },
+      }
+    );
+  };
 
   if (isLoading) {
     return (
@@ -102,7 +121,7 @@ export default function InternalListingDetail() {
               {listing.listing_number && ` • #${listing.listing_number}`}
             </p>
           </div>
-          <Button className="gap-2">
+          <Button className="gap-2" onClick={() => setEditDialogOpen(true)}>
             <Pencil className="h-4 w-4" />
             Edit
           </Button>
@@ -436,6 +455,14 @@ export default function InternalListingDetail() {
             </Card>
           </TabsContent>
         </Tabs>
+
+        <InternalListingEditDialog
+          open={editDialogOpen}
+          onOpenChange={setEditDialogOpen}
+          listing={listing}
+          onSubmit={handleEditSubmit}
+          isSubmitting={updateListing.isPending}
+        />
       </div>
     </AppLayout>
   );
