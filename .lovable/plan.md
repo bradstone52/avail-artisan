@@ -1,103 +1,88 @@
 
-# Market Listings Form Reorganization
+# Phase 2: Document Management for Internal Listings
 
 ## Overview
+Implement full document management capabilities for internal listings, allowing users to upload, view, download, and delete documents associated with each listing. This follows the established patterns from the Deals module.
 
-Reorganize the MarketListingEditDialog form into a tabbed interface with three sections:
-- **Property Info** - Location and classification fields
-- **Building Specs** - Physical building characteristics
-- **Pricing & Details** - Financials, contacts, and notes
-
-## Changes Summary
-
-### 1. Hide Listing ID Field
-- Remove the visible Listing ID input from the form
-- Keep the auto-generation logic for create mode (runs behind the scenes)
-
-### 2. Add Tabs Component
-Import and use the existing `Tabs` component from `@/components/ui/tabs`
-
-### 3. Tab Structure
-
-**Tab 1: Property Info**
-Fields in order:
-- Address (street address field)
-- Building/Unit (new field for suite/unit number - will display combined in display_address)
-- City (dropdown using CityCombobox)
-- Submarket (auto-assigned for Calgary, manual for others - read-only display)
-- Status (dropdown)
-- Listing Type (dropdown: Lease, Sale, Sublease, Sale/Lease)
-- Zoning (text input)
-
-**Tab 2: Building Specs**
-Fields organized in 2-column grid:
-- Land Acres
-- Size (SF)
-- Warehouse SF
-- Office SF
-- Ceiling Height (clear_height_ft)
-- Dock Doors
-- Drive-In Doors
-- Building Depth (new field - already in DB)
-- Power Amps
-- Power Voltage
-- Sprinklers
-- Cranes
-- Crane Tons
-- Yard (toggle)
-- Yard Area
-- Cross-Dock (toggle)
-- Trailer Parking
-- MUA (toggle)
-- Dist. Warehouse (toggle)
-
-**Tab 3: Pricing & Details**
-Fields in order:
-- Asking Rate (PSF)
-- Op Costs
-- Sale Price
-- Sublease Expiry
-- Availability
-- Brokerage (dropdown using BrokerageCombobox)
-- Landlord (dropdown using LandlordCombobox)
-- Brochure Link
-- Public Notes (textarea)
-- Internal Notes (textarea)
-
-## Technical Details
-
-### File to Modify
-`src/components/market/MarketListingEditDialog.tsx`
-
-### New State Variables
-- `buildingUnit` - for the new building/unit field
-- `buildingDepth` - to support the existing DB field
-
-### Address Handling
-The address field will be split into:
-1. **Address** - Street address (e.g., "123 Industrial Way")
-2. **Building/Unit** - Suite or unit number (e.g., "Unit 4" or "Bay 200")
-
-The `display_address` will be auto-generated as `{address} — {buildingUnit}` unless manually edited.
-
-### Form Persistence
-Update the `getFormState` and `applyFormState` functions to include new fields while maintaining the existing localStorage draft persistence pattern.
-
-### Styling
-- Use existing neo-brutalist tab styling from `@/components/ui/tabs`
-- Maintain the existing `input-filled` class pattern for populated fields
-- Keep the neo-brutalist toggle buttons for boolean fields (Yard, Cross-Dock, MUA, Dist. Warehouse)
+---
 
 ## Implementation Steps
 
-1. Add import for `Tabs, TabsContent, TabsList, TabsTrigger`
-2. Add new state variables for `buildingUnit` and `buildingDepth`
-3. Update `getFormState()` and `applyFormState()` to include new fields
-4. Update initialization logic to parse building/unit from existing listings if present
-5. Replace the flat form layout with tabbed structure
-6. Remove the Listing ID field from visible form
-7. Reorganize fields into the three tabs per the specification
-8. Update save handlers to include `building_depth` and combine address with unit
+### Step 1: Database Schema
+Create the `internal_listing_documents` table to store document metadata.
 
-## Database
-No schema changes required - `building_depth` already exists in the `market_listings` table.
+**Table Structure:**
+| Column | Type | Notes |
+|--------|------|-------|
+| id | UUID | Primary key, auto-generated |
+| listing_id | UUID | Foreign key to `internal_listings` |
+| org_id | UUID | For RLS enforcement |
+| name | TEXT | Display name (user-editable) |
+| file_path | TEXT | Storage path in bucket |
+| file_size | INTEGER | Size in bytes |
+| file_type | TEXT | MIME type (optional) |
+| uploaded_by | UUID | Reference to user |
+| uploaded_at | TIMESTAMPTZ | Auto-set to now() |
+
+**RLS Policies:**
+- SELECT/INSERT/UPDATE/DELETE: Users can only access documents where listing belongs to their organization
+
+### Step 2: Storage Bucket Policies
+Configure RLS on the existing `internal-listing-assets` bucket to enforce organization-based access control for file operations.
+
+### Step 3: Create Data Hook
+Create `useInternalListingDocuments.ts` with:
+- Query to fetch documents for a listing
+- Upload function (file + metadata)
+- Delete function (storage + database)
+- Download URL generation via signed URLs
+
+### Step 4: Build UI Component
+Create `InternalListingDocumentsSection.tsx`:
+- Upload form with drag-and-drop support
+- Document list with name, size, date
+- Download and delete actions per document
+- Empty state messaging
+- Loading and uploading states
+
+### Step 5: Integrate into Detail Page
+Replace the placeholder content in the Documents tab of `InternalListingDetail.tsx` with the new `InternalListingDocumentsSection` component.
+
+---
+
+## Technical Details
+
+### File Path Convention
+```text
+{listing_id}/{timestamp}-{sanitized_name}.{extension}
+```
+Example: `cc88991f-53e4-4b96-928e-e295ed3c43c3/1707012345678-lease-agreement.pdf`
+
+### Supported File Types
+- PDFs (primary)
+- Images (JPG, PNG)
+- Office documents (DOCX, XLSX)
+- Maximum size: 15MB per file
+
+### Component Architecture
+```text
+InternalListingDetail.tsx
+  └── Documents Tab
+       └── InternalListingDocumentsSection.tsx
+            ├── Upload Form (drag-drop + file input)
+            ├── Document List
+            │    └── Document Row (name, size, date, actions)
+            └── Empty State
+```
+
+---
+
+## Files to Create/Modify
+
+| Action | File |
+|--------|------|
+| Create | `src/hooks/useInternalListingDocuments.ts` |
+| Create | `src/components/internal-listings/InternalListingDocumentsSection.tsx` |
+| Modify | `src/pages/InternalListingDetail.tsx` |
+| Create | Database migration for table + RLS |
+| Create | Storage policy migration |
