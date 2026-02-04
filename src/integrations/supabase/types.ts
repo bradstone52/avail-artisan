@@ -953,6 +953,73 @@ export type Database = {
           },
         ]
       }
+      internal_listing_tours: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          id: string
+          listing_id: string
+          notes: string | null
+          org_id: string | null
+          tour_date: string
+          touring_agent_id: string | null
+          touring_party_company: string | null
+          touring_party_email: string | null
+          touring_party_name: string | null
+          touring_party_phone: string | null
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          listing_id: string
+          notes?: string | null
+          org_id?: string | null
+          tour_date?: string
+          touring_agent_id?: string | null
+          touring_party_company?: string | null
+          touring_party_email?: string | null
+          touring_party_name?: string | null
+          touring_party_phone?: string | null
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          listing_id?: string
+          notes?: string | null
+          org_id?: string | null
+          tour_date?: string
+          touring_agent_id?: string | null
+          touring_party_company?: string | null
+          touring_party_email?: string | null
+          touring_party_name?: string | null
+          touring_party_phone?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "internal_listing_tours_listing_id_fkey"
+            columns: ["listing_id"]
+            isOneToOne: false
+            referencedRelation: "internal_listings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "internal_listing_tours_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "orgs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "internal_listing_tours_touring_agent_id_fkey"
+            columns: ["touring_agent_id"]
+            isOneToOne: false
+            referencedRelation: "agents"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       internal_listings: {
         Row: {
           address: string

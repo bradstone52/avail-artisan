@@ -16,6 +16,7 @@ import {
 import { InternalListingEditDialog } from '@/components/internal-listings/InternalListingEditDialog';
 import { InternalListingDocumentsSection } from '@/components/internal-listings/InternalListingDocumentsSection';
 import { InquiriesSection } from '@/components/internal-listings/InquiriesSection';
+import { ToursSection } from '@/components/internal-listings/ToursSection';
 import { formatNumber, formatCurrency } from '@/lib/format';
 import { format } from 'date-fns';
 import {
@@ -382,7 +383,8 @@ export default function InternalListingDetail() {
             <InternalListingDocumentsSection listingId={listing.id} />
           </TabsContent>
 
-          <TabsContent value="inquiries">
+          <TabsContent value="inquiries" className="space-y-6">
+            <ToursSection listingId={listing.id} />
             <InquiriesSection listingId={listing.id} />
           </TabsContent>
 
