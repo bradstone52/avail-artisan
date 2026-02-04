@@ -66,6 +66,7 @@ const formSchema = z.object({
   secondary_agent_id: z.string().optional(),
   owner_name: z.string().optional(),
   owner_contact: z.string().optional(),
+  owner_phone: z.string().optional(),
   description: z.string().optional(),
   broker_remarks: z.string().optional(),
   confidential_summary: z.string().optional(),
@@ -123,6 +124,7 @@ export function InternalListingEditDialog({
       assigned_agent_id: '',
       secondary_agent_id: '',
       owner_name: '',
+      owner_phone: '',
       owner_contact: '',
       description: '',
       broker_remarks: '',
@@ -160,6 +162,7 @@ export function InternalListingEditDialog({
         secondary_agent_id: listing.secondary_agent_id || '',
         owner_name: listing.owner_name || '',
         owner_contact: listing.owner_contact || '',
+        owner_phone: listing.owner_phone || '',
         description: listing.description || '',
         broker_remarks: listing.broker_remarks || '',
         confidential_summary: listing.confidential_summary || '',
@@ -193,6 +196,7 @@ export function InternalListingEditDialog({
         secondary_agent_id: '',
         owner_name: '',
         owner_contact: '',
+        owner_phone: '',
         description: '',
         broker_remarks: '',
         confidential_summary: '',
@@ -229,6 +233,7 @@ export function InternalListingEditDialog({
       secondary_agent_id: data.secondary_agent_id || undefined,
       owner_name: data.owner_name,
       owner_contact: data.owner_contact,
+      owner_phone: data.owner_phone,
       description: data.description,
       broker_remarks: data.broker_remarks,
       confidential_summary: data.confidential_summary,
@@ -763,9 +768,23 @@ export function InternalListingEditDialog({
                     name="owner_contact"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Owner Contact</FormLabel>
+                        <FormLabel>Owner Email</FormLabel>
                         <FormControl>
-                          <Input {...field} placeholder="john@abcproperties.com" />
+                          <Input {...field} placeholder="john@abcproperties.com" type="email" />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="owner_phone"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Owner Phone</FormLabel>
+                        <FormControl>
+                          <Input {...field} placeholder="(403) 555-1234" type="tel" />
                         </FormControl>
                         <FormMessage />
                       </FormItem>

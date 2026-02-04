@@ -40,6 +40,7 @@ export interface InternalListing {
   owner_id: string | null;
   owner_name: string | null;
   owner_contact: string | null;
+  owner_phone: string | null;
   description: string | null;
   broker_remarks: string | null;
   confidential_summary: string | null;
@@ -80,6 +81,7 @@ export interface InternalListingFormData {
   secondary_agent_id?: string;
   owner_name?: string;
   owner_contact?: string;
+  owner_phone?: string;
   description?: string;
   broker_remarks?: string;
   confidential_summary?: string;

@@ -807,6 +807,7 @@ export type Database = {
           owner_contact: string | null
           owner_id: string | null
           owner_name: string | null
+          owner_phone: string | null
           photo_url: string | null
           power: string | null
           property_type: string | null
@@ -852,6 +853,7 @@ export type Database = {
           owner_contact?: string | null
           owner_id?: string | null
           owner_name?: string | null
+          owner_phone?: string | null
           photo_url?: string | null
           power?: string | null
           property_type?: string | null
@@ -897,6 +899,7 @@ export type Database = {
           owner_contact?: string | null
           owner_id?: string | null
           owner_name?: string | null
+          owner_phone?: string | null
           photo_url?: string | null
           power?: string | null
           property_type?: string | null
