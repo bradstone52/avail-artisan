@@ -39,7 +39,6 @@ import {
 import { useAgents } from '@/hooks/useAgents';
 
 const formSchema = z.object({
-  listing_number: z.string().optional(),
   address: z.string().min(1, 'Address is required'),
   display_address: z.string().optional(),
   city: z.string().min(1, 'City is required'),
@@ -93,7 +92,6 @@ export function InternalListingEditDialog({
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      listing_number: '',
       address: '',
       display_address: '',
       city: '',
@@ -130,7 +128,6 @@ export function InternalListingEditDialog({
   useEffect(() => {
     if (listing) {
       form.reset({
-        listing_number: listing.listing_number || '',
         address: listing.address,
         display_address: listing.display_address || '',
         city: listing.city,
@@ -164,7 +161,6 @@ export function InternalListingEditDialog({
       });
     } else {
       form.reset({
-        listing_number: '',
         address: '',
         display_address: '',
         city: '',
@@ -206,7 +202,6 @@ export function InternalListingEditDialog({
       deal_type: data.deal_type,
       status: data.status,
       submarket: data.submarket || '',
-      listing_number: data.listing_number,
       display_address: data.display_address,
       property_type: data.property_type,
       zoning: data.zoning,
@@ -533,19 +528,6 @@ export function InternalListingEditDialog({
                     )}
                   />
 
-                  <FormField
-                    control={form.control}
-                    name="listing_number"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Listing Number</FormLabel>
-                        <FormControl>
-                          <Input {...field} placeholder="IL-2024-001" />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
                 </div>
               </TabsContent>
 

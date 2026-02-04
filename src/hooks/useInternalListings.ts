@@ -53,7 +53,6 @@ export interface InternalListing {
 }
 
 export interface InternalListingFormData {
-  listing_number?: string;
   address: string;
   display_address?: string;
   city: string;
