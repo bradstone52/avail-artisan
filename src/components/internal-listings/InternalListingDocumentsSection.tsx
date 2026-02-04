@@ -37,10 +37,13 @@ export function InternalListingDocumentsSection({ listingId }: InternalListingDo
     const file = acceptedFiles[0];
     if (file) {
       setSelectedFile(file);
-      const nameWithoutExt = file.name.replace(/\.[^/.]+$/, '');
-      setFileName(nameWithoutExt);
+      // Only auto-fill name if field is empty (preserve user's custom name)
+      if (!fileName.trim()) {
+        const nameWithoutExt = file.name.replace(/\.[^/.]+$/, '');
+        setFileName(nameWithoutExt);
+      }
     }
-  }, []);
+  }, [fileName]);
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,
@@ -54,8 +57,11 @@ export function InternalListingDocumentsSection({ listingId }: InternalListingDo
     const file = e.target.files?.[0];
     if (file) {
       setSelectedFile(file);
-      const nameWithoutExt = file.name.replace(/\.[^/.]+$/, '');
-      setFileName(nameWithoutExt);
+      // Only auto-fill name if field is empty (preserve user's custom name)
+      if (!fileName.trim()) {
+        const nameWithoutExt = file.name.replace(/\.[^/.]+$/, '');
+        setFileName(nameWithoutExt);
+      }
     }
   };
 
