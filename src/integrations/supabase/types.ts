@@ -746,6 +746,7 @@ export type Database = {
           listing_id: string
           name: string
           org_id: string | null
+          original_filename: string | null
           uploaded_at: string
           uploaded_by: string | null
         }
@@ -757,6 +758,7 @@ export type Database = {
           listing_id: string
           name: string
           org_id?: string | null
+          original_filename?: string | null
           uploaded_at?: string
           uploaded_by?: string | null
         }
@@ -768,6 +770,7 @@ export type Database = {
           listing_id?: string
           name?: string
           org_id?: string | null
+          original_filename?: string | null
           uploaded_at?: string
           uploaded_by?: string | null
         }

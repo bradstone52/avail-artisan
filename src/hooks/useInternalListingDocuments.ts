@@ -15,6 +15,7 @@ export interface InternalListingDocument {
   file_type: string | null;
   uploaded_by: string | null;
   uploaded_at: string;
+  original_filename: string | null;
 }
 
 export function useInternalListingDocuments(listingId: string | undefined) {
@@ -111,6 +112,7 @@ export function useInternalListingDocuments(listingId: string | undefined) {
           file_size: file.size,
           file_type: file.type || null,
           uploaded_by: user.id,
+          original_filename: file.name,
         });
 
       if (dbError) {

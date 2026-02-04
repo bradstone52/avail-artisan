@@ -202,7 +202,8 @@ export function InternalListingDocumentsSection({ listingId }: InternalListingDo
             <div className="space-y-2">
               {documents.map((doc) => {
                 const IconComponent = getFileIcon(doc.file_type);
-                const originalFilename = getOriginalFilename(doc.file_path);
+                // Use stored original_filename, or fallback to parsing from path for older docs
+                const displayFilename = doc.original_filename || getOriginalFilename(doc.file_path);
                 return (
                   <div
                     key={doc.id}
@@ -213,7 +214,7 @@ export function InternalListingDocumentsSection({ listingId }: InternalListingDo
                       <div className="min-w-0">
                         <p className="font-medium truncate">{doc.name}</p>
                         <p className="text-xs text-muted-foreground truncate">
-                          {originalFilename}
+                          {displayFilename}
                         </p>
                         <p className="text-xs text-muted-foreground">
                           {format(new Date(doc.uploaded_at), 'MMM d, yyyy')}
