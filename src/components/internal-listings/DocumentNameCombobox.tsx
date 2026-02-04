@@ -25,12 +25,15 @@ interface DocumentNameComboboxProps {
   placeholder?: string;
 }
 
-// Required documents that should always appear as suggestions
+// Required and encouraged documents that should always appear as suggestions
 const REQUIRED_DOCUMENT_NAMES = [
   'Listing Agreement',
   'Title',
   'Corporate Search',
   'Building Plans',
+  'Real Property Report',
+  'ESA Phase 1',
+  'ESA Phase 2',
 ];
 
 export function DocumentNameCombobox({ 
