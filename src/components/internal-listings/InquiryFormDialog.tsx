@@ -40,7 +40,11 @@ export function InquiryFormDialog({
   isSubmitting,
 }: InquiryFormDialogProps) {
   const agentsQuery = useAgents();
-  const agents = agentsQuery.data ?? [];
+  // Filter to only ClearView Commercial Realty Inc. agents
+  const agents = (agentsQuery.data ?? []).filter(
+    (agent) =>
+      agent.brokerage?.name?.toLowerCase() === 'clearview commercial realty inc.'
+  );
   const [formData, setFormData] = useState<InquiryFormData>({
     contact_name: '',
     contact_email: '',
