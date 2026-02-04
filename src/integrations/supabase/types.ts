@@ -1548,6 +1548,7 @@ export type Database = {
           address: string
           asking_rate_psf: string | null
           availability_date: string | null
+          brochure_link: string | null
           brochure_search_url: string | null
           broker_source: string | null
           building_depth: string | null
@@ -1564,6 +1565,7 @@ export type Database = {
           geocode_source: string | null
           geocoded_at: string | null
           gross_rate: string | null
+          has_land: boolean | null
           id: string
           internal_note: string | null
           is_distribution_warehouse: boolean | null
@@ -1595,6 +1597,7 @@ export type Database = {
           user_id: string
           voltage: string | null
           warehouse_sf: number | null
+          website_link: string | null
           yard: string | null
           yard_area: string | null
           zoning: string | null
@@ -1603,6 +1606,7 @@ export type Database = {
           address: string
           asking_rate_psf?: string | null
           availability_date?: string | null
+          brochure_link?: string | null
           brochure_search_url?: string | null
           broker_source?: string | null
           building_depth?: string | null
@@ -1619,6 +1623,7 @@ export type Database = {
           geocode_source?: string | null
           geocoded_at?: string | null
           gross_rate?: string | null
+          has_land?: boolean | null
           id?: string
           internal_note?: string | null
           is_distribution_warehouse?: boolean | null
@@ -1650,6 +1655,7 @@ export type Database = {
           user_id: string
           voltage?: string | null
           warehouse_sf?: number | null
+          website_link?: string | null
           yard?: string | null
           yard_area?: string | null
           zoning?: string | null
@@ -1658,6 +1664,7 @@ export type Database = {
           address?: string
           asking_rate_psf?: string | null
           availability_date?: string | null
+          brochure_link?: string | null
           brochure_search_url?: string | null
           broker_source?: string | null
           building_depth?: string | null
@@ -1674,6 +1681,7 @@ export type Database = {
           geocode_source?: string | null
           geocoded_at?: string | null
           gross_rate?: string | null
+          has_land?: boolean | null
           id?: string
           internal_note?: string | null
           is_distribution_warehouse?: boolean | null
@@ -1705,6 +1713,7 @@ export type Database = {
           user_id?: string
           voltage?: string | null
           warehouse_sf?: number | null
+          website_link?: string | null
           yard?: string | null
           yard_area?: string | null
           zoning?: string | null
