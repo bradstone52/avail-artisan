@@ -10,6 +10,7 @@ import { format } from 'date-fns';
 import { useInternalListingDocuments, InternalListingDocument } from '@/hooks/useInternalListingDocuments';
 import { ConfirmDialog } from '@/components/common/ConfirmDialog';
 import { DocumentNameCombobox } from './DocumentNameCombobox';
+import { RequiredDocumentsChecklist } from './RequiredDocumentsChecklist';
 
 interface InternalListingDocumentsSectionProps {
   listingId: string;
@@ -144,6 +145,12 @@ export function InternalListingDocumentsSection({ listingId }: InternalListingDo
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
+          {/* Required Documents Checklist */}
+          <RequiredDocumentsChecklist 
+            documents={documents} 
+            onSelectDocument={setFileName}
+          />
+
           {/* Upload form with drag-drop */}
           <div
             {...getRootProps()}

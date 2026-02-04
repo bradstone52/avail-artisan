@@ -25,6 +25,14 @@ interface DocumentNameComboboxProps {
   placeholder?: string;
 }
 
+// Required documents that should always appear as suggestions
+const REQUIRED_DOCUMENT_NAMES = [
+  'Listing Agreement',
+  'Title',
+  'Corporate Search',
+  'Building Plans',
+];
+
 export function DocumentNameCombobox({ 
   value, 
   onChange, 
@@ -45,10 +53,14 @@ export function DocumentNameCombobox({
         .not('name', 'eq', '');
 
       if (!error && data) {
-        // Get unique values and sort alphabetically
-        const unique = [...new Set(data.map(d => d.name).filter(Boolean))] as string[];
-        unique.sort((a, b) => a.localeCompare(b));
-        setDocumentNames(unique);
+        // Get unique values, merge with required docs, and sort alphabetically
+        const fromDb = data.map(d => d.name).filter(Boolean) as string[];
+        const merged = [...new Set([...REQUIRED_DOCUMENT_NAMES, ...fromDb])];
+        merged.sort((a, b) => a.localeCompare(b));
+        setDocumentNames(merged);
+      } else {
+        // If no db data, still show required documents
+        setDocumentNames([...REQUIRED_DOCUMENT_NAMES].sort((a, b) => a.localeCompare(b)));
       }
     };
 
@@ -61,12 +73,20 @@ export function DocumentNameCombobox({
     return !documentNames.some(n => n.toLowerCase() === inputValue.toLowerCase());
   }, [inputValue, documentNames]);
 
-  // Filter document names based on input
+  // Filter document names based on input, with required docs shown first
   const filteredNames = useMemo(() => {
-    if (!inputValue.trim()) return documentNames;
-    return documentNames.filter(n => 
-      n.toLowerCase().includes(inputValue.toLowerCase())
-    );
+    const filtered = inputValue.trim() 
+      ? documentNames.filter(n => n.toLowerCase().includes(inputValue.toLowerCase()))
+      : documentNames;
+    
+    // Sort with required docs first
+    return filtered.sort((a, b) => {
+      const aIsRequired = REQUIRED_DOCUMENT_NAMES.includes(a);
+      const bIsRequired = REQUIRED_DOCUMENT_NAMES.includes(b);
+      if (aIsRequired && !bIsRequired) return -1;
+      if (!aIsRequired && bIsRequired) return 1;
+      return a.localeCompare(b);
+    });
   }, [documentNames, inputValue]);
 
   const handleSelect = (selectedValue: string) => {
