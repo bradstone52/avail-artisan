@@ -705,14 +705,17 @@ export function InternalListingEditDialog({
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel>Primary Agent</FormLabel>
-                        <Select onValueChange={field.onChange} value={field.value}>
+                        <Select 
+                          onValueChange={(value) => field.onChange(value === "__none__" ? "" : value)} 
+                          value={field.value || "__none__"}
+                        >
                           <FormControl>
                             <SelectTrigger>
                               <SelectValue placeholder="Select agent" />
                             </SelectTrigger>
                           </FormControl>
                           <SelectContent>
-                            <SelectItem value="">Unassigned</SelectItem>
+                            <SelectItem value="__none__">Unassigned</SelectItem>
                             {agents.map((agent) => (
                               <SelectItem key={agent.id} value={agent.id}>
                                 {agent.name}
@@ -731,14 +734,17 @@ export function InternalListingEditDialog({
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel>Secondary Agent</FormLabel>
-                        <Select onValueChange={field.onChange} value={field.value}>
+                        <Select 
+                          onValueChange={(value) => field.onChange(value === "__none__" ? "" : value)} 
+                          value={field.value || "__none__"}
+                        >
                           <FormControl>
                             <SelectTrigger>
                               <SelectValue placeholder="Select agent" />
                             </SelectTrigger>
                           </FormControl>
                           <SelectContent>
-                            <SelectItem value="">None</SelectItem>
+                            <SelectItem value="__none__">None</SelectItem>
                             {agents.map((agent) => (
                               <SelectItem key={agent.id} value={agent.id}>
                                 {agent.name}
