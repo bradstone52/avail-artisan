@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { MarketListing } from '@/hooks/useMarketListings';
@@ -128,11 +128,13 @@ export function MarketListingEditDialog({
   const [opCosts, setOpCosts] = useState('');
   const [propertyTax, setPropertyTax] = useState('');
   const [salePrice, setSalePrice] = useState('');
+  const [grossRate, setGrossRate] = useState('');
   const [availabilityDate, setAvailabilityDate] = useState('');
   const [subleaseExp, setSubleaseExp] = useState('');
   const [landlord, setLandlord] = useState('');
   const [brokerSource, setBrokerSource] = useState('');
-  const [link, setLink] = useState('');
+  const [brochureLink, setBrochureLink] = useState('');
+  const [websiteLink, setWebsiteLink] = useState('');
   const [notesPublic, setNotesPublic] = useState('');
   const [internalNote, setInternalNote] = useState('');
 
@@ -158,6 +160,7 @@ export function MarketListingEditDialog({
   const [zoning, setZoning] = useState('');
   const [mua, setMua] = useState(false);
   const [muaValue, setMuaValue] = useState('');
+  const [hasLand, setHasLand] = useState(false);
   const [isDistributionWarehouse, setIsDistributionWarehouse] = useState(false);
   // Track if we've initialized form from storage to avoid re-init on re-renders
   const hasInitializedRef = useRef(false);
@@ -184,7 +187,8 @@ export function MarketListingEditDialog({
     subleaseExp,
     landlord,
     brokerSource,
-    link,
+    brochureLink,
+    websiteLink,
     notesPublic,
     internalNote,
     warehouseSf,
@@ -208,14 +212,16 @@ export function MarketListingEditDialog({
     zoning,
     mua,
     muaValue,
+    hasLand,
+    grossRate,
     isDistributionWarehouse,
   }), [
     listingId, address, building, unit, displayAddress, displayAddressManuallyEdited, city, submarket,
     sizeSf, status, listingType, askingRate, opCosts, propertyTax, salePrice, availabilityDate,
-    subleaseExp, landlord, brokerSource, link, notesPublic, internalNote, warehouseSf,
+    subleaseExp, landlord, brokerSource, brochureLink, websiteLink, notesPublic, internalNote, warehouseSf,
     officeSf, clearHeight, dockDoors, driveInDoors, buildingDepth, powerAmps, voltage, sprinkler,
     hasSprinklers, hasCranes, cranes, craneTons, yard, yardArea, crossDock, trailerParking, landAcres, zoning,
-    mua, muaValue, isDistributionWarehouse,
+    mua, muaValue, hasLand, grossRate, isDistributionWarehouse,
   ]);
 
 
@@ -240,7 +246,8 @@ export function MarketListingEditDialog({
     setSubleaseExp(state.subleaseExp || '');
     setLandlord(state.landlord);
     setBrokerSource(state.brokerSource);
-    setLink(state.link);
+    setBrochureLink(state.brochureLink || '');
+    setWebsiteLink(state.websiteLink || '');
     setNotesPublic(state.notesPublic);
     setInternalNote(state.internalNote);
     setWarehouseSf(state.warehouseSf);
@@ -264,8 +271,36 @@ export function MarketListingEditDialog({
     setZoning(state.zoning);
     setMua(state.mua);
     setMuaValue(state.muaValue || '');
+    setHasLand(state.hasLand || false);
+    setGrossRate(state.grossRate || '');
     setIsDistributionWarehouse(state.isDistributionWarehouse);
   }, []);
+
+  // Auto-calculate gross rate when asking rate and op costs are both numeric
+  const calculatedGrossRate = useMemo(() => {
+    // Parse numeric values from asking rate and op costs (strip $ and commas)
+    const parseNumeric = (val: string) => {
+      if (!val) return null;
+      const cleaned = val.replace(/[$,]/g, '');
+      const num = parseFloat(cleaned);
+      return isNaN(num) ? null : num;
+    };
+    
+    const askingNum = parseNumeric(askingRate);
+    const opCostsNum = parseNumeric(opCosts);
+    
+    if (askingNum !== null && opCostsNum !== null) {
+      return `$${(askingNum + opCostsNum).toFixed(2)}`;
+    }
+    return null;
+  }, [askingRate, opCosts]);
+
+  // Auto-fill gross rate when calculated value is available and field is empty
+  useEffect(() => {
+    if (calculatedGrossRate && !grossRate) {
+      setGrossRate(calculatedGrossRate);
+    }
+  }, [calculatedGrossRate, grossRate]);
 
   // Clear stored draft
   const clearDraft = useCallback(() => {
@@ -276,6 +311,31 @@ export function MarketListingEditDialog({
     }
     formSessionIdRef.current = null;
   }, []);
+
+  // Helper to format a number string with commas
+  const formatNumberWithCommas = (val: string) => {
+    const cleaned = val.replace(/[^0-9]/g, '');
+    if (!cleaned) return '';
+    return new Intl.NumberFormat('en-CA').format(parseInt(cleaned));
+  };
+
+  // Handle formatted number input - strips commas for storage but displays with commas
+  const handleFormattedNumberChange = (
+    value: string, 
+    setter: (val: string) => void
+  ) => {
+    // Allow typing numbers and commas
+    const cleaned = value.replace(/[^0-9,]/g, '');
+    setter(cleaned);
+  };
+
+  const handleFormattedNumberBlur = (
+    value: string, 
+    setter: (val: string) => void
+  ) => {
+    // Format with commas on blur
+    setter(formatNumberWithCommas(value));
+  };
 
   // Generate combined display address from address + building + unit
   const generateDisplayAddress = useCallback((addr: string, bldg: string, unt: string) => {
@@ -433,11 +493,14 @@ export function MarketListingEditDialog({
       setSubleaseExp('');
       setLandlord('');
       setBrokerSource('');
-      setLink('');
+      setBrochureLink('');
+      setWebsiteLink('');
       setNotesPublic('');
       setInternalNote('');
       setWarehouseSf('');
       setOfficeSf('');
+      setHasLand(false);
+      setGrossRate('');
       setClearHeight('');
       setDockDoors('');
       setDriveInDoors('');
@@ -480,11 +543,14 @@ export function MarketListingEditDialog({
       setSubleaseExp(listing.sublease_exp || '');
       setLandlord(listing.landlord || '');
       setBrokerSource(listing.broker_source || '');
-      setLink(listing.link || '');
+      setBrochureLink((listing as any).brochure_link || listing.link || '');
+      setWebsiteLink((listing as any).website_link || '');
       setNotesPublic(listing.notes_public || '');
       setInternalNote(listing.internal_note || '');
       setWarehouseSf(listing.warehouse_sf?.toString() || '');
       setOfficeSf(listing.office_sf?.toString() || '');
+      setHasLand((listing as any).has_land || false);
+      setGrossRate((listing as any).gross_rate || '');
       setClearHeight(listing.clear_height_ft?.toString() || '');
       setDockDoors(listing.dock_doors?.toString() || '');
       setDriveInDoors(listing.drive_in_doors?.toString() || '');
@@ -590,7 +656,10 @@ export function MarketListingEditDialog({
           sublease_exp: subleaseExp || null,
           landlord: landlord || null,
           broker_source: brokerSource || null,
-          link: link || null,
+          brochure_link: brochureLink || null,
+          website_link: websiteLink || null,
+          has_land: hasLand,
+          gross_rate: grossRate || null,
           notes_public: notesPublic || null,
           internal_note: internalNote || null,
           warehouse_sf: warehouseSf ? parseInt(warehouseSf) : null,
@@ -719,7 +788,10 @@ export function MarketListingEditDialog({
           sublease_exp: subleaseExp || null,
           landlord: landlord || null,
           broker_source: brokerSource || null,
-          link: link || null,
+          brochure_link: brochureLink || null,
+          website_link: websiteLink || null,
+          has_land: hasLand,
+          gross_rate: grossRate || null,
           notes_public: notesPublic || null,
           internal_note: internalNote || null,
           clear_height_ft: clearHeight ? parseFloat(clearHeight) : null,
@@ -1079,11 +1151,11 @@ export function MarketListingEditDialog({
                   <div className="space-y-1">
                     <Label className="text-xs">Size (SF)</Label>
                     <Input
-                      type="number"
                       value={sizeSf}
-                      onChange={(e) => setSizeSf(e.target.value)}
+                      onChange={(e) => handleFormattedNumberChange(e.target.value, setSizeSf)}
+                      onBlur={(e) => handleFormattedNumberBlur(e.target.value, setSizeSf)}
                       className={`placeholder-light ${sizeSf ? 'input-filled' : ''}`}
-                      placeholder="e.g., 150000"
+                      placeholder="e.g., 150,000"
                     />
                   </div>
 
@@ -1091,11 +1163,11 @@ export function MarketListingEditDialog({
                   <div className="space-y-1">
                     <Label className="text-xs">Warehouse SF</Label>
                     <Input
-                      type="number"
                       value={warehouseSf}
-                      onChange={(e) => setWarehouseSf(e.target.value)}
+                      onChange={(e) => handleFormattedNumberChange(e.target.value, setWarehouseSf)}
+                      onBlur={(e) => handleFormattedNumberBlur(e.target.value, setWarehouseSf)}
                       className={`placeholder-light ${warehouseSf ? 'input-filled' : ''}`}
-                      placeholder="e.g., 120000"
+                      placeholder="e.g., 120,000"
                     />
                   </div>
 
@@ -1103,11 +1175,11 @@ export function MarketListingEditDialog({
                   <div className="space-y-1">
                     <Label className="text-xs">Office SF</Label>
                     <Input
-                      type="number"
                       value={officeSf}
-                      onChange={(e) => setOfficeSf(e.target.value)}
+                      onChange={(e) => handleFormattedNumberChange(e.target.value, setOfficeSf)}
+                      onBlur={(e) => handleFormattedNumberBlur(e.target.value, setOfficeSf)}
                       className={`placeholder-light ${officeSf ? 'input-filled' : ''}`}
-                      placeholder="e.g., 5000"
+                      placeholder="e.g., 5,000"
                     />
                   </div>
 
@@ -1337,13 +1409,23 @@ export function MarketListingEditDialog({
                     />
                   )}
                 </div>
+
+                {/* Land checkbox row */}
+                <div className="flex items-center gap-3 mt-3">
+                  <Checkbox
+                    id="hasLand"
+                    checked={hasLand}
+                    onCheckedChange={(checked) => setHasLand(!!checked)}
+                  />
+                  <Label htmlFor="hasLand" className="text-sm cursor-pointer">Land</Label>
+                </div>
               </div>
             </TabsContent>
 
             {/* Pricing & Details Tab */}
             <TabsContent value="pricing" className="space-y-4">
-              {/* Asking Rate / Op Costs */}
-              <div className="grid grid-cols-2 gap-4">
+              {/* Asking Rate / Op Costs / Gross Rate */}
+              <div className="grid grid-cols-3 gap-4">
                 <div className="space-y-1">
                   <Label className="text-xs">Asking Rate (PSF)</Label>
                   <Input
@@ -1361,6 +1443,16 @@ export function MarketListingEditDialog({
                     onChange={(e) => setOpCosts(e.target.value)}
                     className={`placeholder-light ${opCosts ? 'input-filled' : ''}`}
                     placeholder="e.g., $4.50"
+                  />
+                </div>
+
+                <div className="space-y-1">
+                  <Label className="text-xs">Gross Rate</Label>
+                  <Input
+                    value={grossRate}
+                    onChange={(e) => setGrossRate(e.target.value)}
+                    className={`placeholder-light ${grossRate ? 'input-filled' : ''}`}
+                    placeholder="Auto-calc or enter"
                   />
                 </div>
               </div>
@@ -1445,10 +1537,24 @@ export function MarketListingEditDialog({
                   Brochure/Website
                 </Label>
                 <Input
-                  id="link"
-                  value={link}
-                  onChange={(e) => setLink(e.target.value)}
-                  className={`col-span-3 placeholder-light ${link ? 'input-filled' : ''}`}
+                  id="brochureLink"
+                  value={brochureLink}
+                  onChange={(e) => setBrochureLink(e.target.value)}
+                  className={`col-span-3 placeholder-light ${brochureLink ? 'input-filled' : ''}`}
+                  placeholder="e.g., https://..."
+                />
+              </div>
+
+              {/* Website Link */}
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="websiteLink" className="text-right">
+                  Website Link
+                </Label>
+                <Input
+                  id="websiteLink"
+                  value={websiteLink}
+                  onChange={(e) => setWebsiteLink(e.target.value)}
+                  className={`col-span-3 placeholder-light ${websiteLink ? 'input-filled' : ''}`}
                   placeholder="e.g., https://..."
                 />
               </div>
