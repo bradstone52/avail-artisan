@@ -70,29 +70,33 @@
         // Hide all POI (points of interest)
         "feature:poi|visibility:off",
         "feature:transit|element:labels|visibility:off",
-        // Muted background
-        "feature:landscape|element:geometry|color:0xf5f5f0",
-        "feature:water|element:geometry|color:0xc9e4f0",
-        // Local roads - clean white with bold dark stroke
-        "feature:road.local|element:geometry.fill|color:0xffffff",
-        "feature:road.local|element:geometry.stroke|color:0x444444|weight:1.5",
-        // Arterial roads - warm accent
-        "feature:road.arterial|element:geometry.fill|color:0xffd866",
-        "feature:road.arterial|element:geometry.stroke|color:0xcc8800|weight:1.5",
-        // Highways - bold coral/orange
-        "feature:road.highway|element:geometry.fill|color:0xff7744",
-        "feature:road.highway|element:geometry.stroke|color:0xcc4400|weight:2",
-        // Road labels - high contrast
-        "feature:road|element:labels.text.fill|color:0x111111",
-        "feature:road|element:labels.text.stroke|color:0xffffff|weight:4",
-        // Administrative labels subtle
-        "feature:administrative|element:labels.text.fill|color:0x666666",
+        // Neo-brutalist theme - cream background, bold black strokes
+        "feature:landscape|element:geometry|color:0xFAF8F5",
+        "feature:water|element:geometry|color:0x3B82F6",
+        // Local roads - cream fill with thick black stroke
+        "feature:road.local|element:geometry.fill|color:0xFFFFFF",
+        "feature:road.local|element:geometry.stroke|color:0x000000|weight:2",
+        // Arterial roads - bold yellow (matches dashboard Quick Actions)
+        "feature:road.arterial|element:geometry.fill|color:0xFBBF24",
+        "feature:road.arterial|element:geometry.stroke|color:0x000000|weight:2.5",
+        // Highways - primary blue with thick black stroke
+        "feature:road.highway|element:geometry.fill|color:0x3B82F6",
+        "feature:road.highway|element:geometry.stroke|color:0x000000|weight:3",
+        // Road labels - bold black, thick white halo
+        "feature:road|element:labels.text.fill|color:0x000000",
+        "feature:road|element:labels.text.stroke|color:0xFFFFFF|weight:5",
+        // Administrative labels - bold black
+        "feature:administrative|element:labels.text.fill|color:0x000000",
+        "feature:administrative|element:labels.text.stroke|color:0xFFFFFF|weight:3",
+        // Buildings - light gray with visible outlines
+        "feature:building|element:geometry.fill|color:0xE5E5E5",
+        "feature:building|element:geometry.stroke|color:0x000000|weight:1",
       ];
       
       const styleParams = styles.map(s => `style=${encodeURIComponent(s)}`).join("&");
 
-      // Custom marker - blue and yellow bullseye using Google's paddle icons
-      const customIconUrl = "https://maps.google.com/mapfiles/kml/paddle/ylw-blank.png";
+      // Custom marker - blue and yellow bullseye hosted in storage
+      const customIconUrl = "https://vouzfwrumlhmtmgglsti.supabase.co/storage/v1/object/public/internal-listing-assets/map-marker-bullseye.png";
       const markerStyle = `icon:${encodeURIComponent(customIconUrl)}`;
       
       // Build Google Static Maps URL with custom styling and marker
