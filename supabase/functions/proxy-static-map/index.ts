@@ -51,6 +51,8 @@
      const url = new URL(req.url);
      const lat = url.searchParams.get("lat");
      const lng = url.searchParams.get("lng");
+      const markerLat = url.searchParams.get("markerLat") || lat;
+      const markerLng = url.searchParams.get("markerLng") || lng;
      const zoom = url.searchParams.get("zoom") || "14";
      const size = url.searchParams.get("size") || "800x450";
      const scale = url.searchParams.get("scale") || "2";
@@ -89,12 +91,13 @@
       
       const styleParams = styles.map(s => `style=${encodeURIComponent(s)}`).join("&");
 
-      // Custom marker - use a themed color (0x followed by hex without #)
-      // Orange marker to match the poppy theme
-      const markerStyle = "color:0xFF6B35%7Csize:mid";
+      // Custom marker - blue color, larger size with star label
+      // Using a custom icon URL for a blue star
+      const customIconUrl = "https://maps.google.com/mapfiles/kml/shapes/star.png";
+      const markerStyle = `icon:${encodeURIComponent(customIconUrl)}`;
       
       // Build Google Static Maps URL with custom styling and marker
-      const staticMapUrl = `https://maps.googleapis.com/maps/api/staticmap?center=${lat},${lng}&zoom=${zoom}&size=${size}&scale=${scale}&maptype=${maptype}&markers=${markerStyle}%7C${lat},${lng}&${styleParams}&key=${googleMapsApiKey}`;
+      const staticMapUrl = `https://maps.googleapis.com/maps/api/staticmap?center=${lat},${lng}&zoom=${zoom}&size=${size}&scale=${scale}&maptype=${maptype}&markers=${markerStyle}%7C${markerLat},${markerLng}&${styleParams}&key=${googleMapsApiKey}`;
  
      // Fetch the image from Google
      const mapResponse = await fetch(staticMapUrl);
