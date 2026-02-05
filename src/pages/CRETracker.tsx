@@ -76,13 +76,36 @@ export default function CRETracker() {
   ];
 
   const [selectedDate, setSelectedDate] = React.useState<Date | undefined>(undefined);
+  const [displayedMonth, setDisplayedMonth] = React.useState<Date>(new Date());
   
-  // Filter for upcoming list (30 days only)
   const today = new Date();
   const thirtyDaysFromNow = addDays(today, 30);
-  const upcomingEvents = calendarDates
+  
+  // Check if the calendar is showing the current month
+  const isCurrentMonth = displayedMonth.getMonth() === today.getMonth() && displayedMonth.getFullYear() === today.getFullYear();
+  
+  // Events for the displayed month (when navigating months)
+  const displayedMonthEvents = calendarDates
+    .filter(d => d.date.getMonth() === displayedMonth.getMonth() && d.date.getFullYear() === displayedMonth.getFullYear())
+    .sort((a, b) => a.date.getTime() - b.date.getTime());
+
+  // Upcoming events in next 30 days
+  const next30DaysEvents = calendarDates
     .filter(d => d.date >= today && d.date <= thirtyDaysFromNow)
     .sort((a, b) => a.date.getTime() - b.date.getTime());
+
+  // If no events in next 30 days, find the next upcoming event
+  const nextUpcomingEvent = next30DaysEvents.length === 0
+    ? calendarDates
+        .filter(d => d.date >= today)
+        .sort((a, b) => a.date.getTime() - b.date.getTime())
+        .slice(0, 1)
+    : [];
+
+  // Determine which events to show in the list
+  const upcomingEvents = isCurrentMonth
+    ? (next30DaysEvents.length > 0 ? next30DaysEvents : nextUpcomingEvent)
+    : displayedMonthEvents;
 
   const eventsOnSelectedDate = selectedDate
     ? calendarDates.filter(d => isSameDay(d.date, selectedDate))
@@ -276,12 +299,18 @@ export default function CRETracker() {
                     prospect: 'bg-accent text-accent-foreground font-bold',
                   }}
                   className="pointer-events-auto"
+                  month={displayedMonth}
+                  onMonthChange={setDisplayedMonth}
                 />
               </div>
               <div>
                 <div className="flex items-center justify-between mb-3">
                   <h4 className="font-bold">
-                    {selectedDate ? format(selectedDate, 'MMMM d, yyyy') : 'Upcoming (30 days)'}
+                    {selectedDate
+                      ? format(selectedDate, 'MMMM d, yyyy')
+                      : isCurrentMonth
+                        ? (next30DaysEvents.length > 0 ? 'Upcoming (30 days)' : 'Next Upcoming')
+                        : format(displayedMonth, 'MMMM yyyy')}
                   </h4>
                   {selectedDate && (
                     <button
@@ -337,7 +366,9 @@ export default function CRETracker() {
                         </Link>
                       ))}
                     {upcomingEvents.length === 0 && (
-                      <p className="text-sm text-muted-foreground text-center py-4">No upcoming dates in the next 30 days</p>
+                      <p className="text-sm text-muted-foreground text-center py-4">
+                        {isCurrentMonth ? 'No upcoming dates' : `No dates in ${format(displayedMonth, 'MMMM yyyy')}`}
+                      </p>
                     )}
                   </div>
                 )}
