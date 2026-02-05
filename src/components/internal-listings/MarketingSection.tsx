@@ -30,8 +30,12 @@ import { AspectRatio } from '@/components/ui/aspect-ratio';
   ChevronLeft,
   ChevronRight,
   RotateCcw,
+  Plus,
+  Images,
  } from 'lucide-react';
  import { ListingBrochurePDF, MarketingContent } from './ListingBrochurePDF';
+import { useInternalListingPhotos } from '@/hooks/useInternalListingPhotos';
+import { useOrg } from '@/hooks/useOrg';
  
  interface MarketingSectionProps {
    listing: {
@@ -89,6 +93,11 @@ export function MarketingSection({ listing, onPhotoUpdate }: MarketingSectionPro
   const [mapError, setMapError] = useState<string | null>(null);
   const [mapZoom, setMapZoom] = useState(14);
   const [mapOffset, setMapOffset] = useState({ lat: 0, lng: 0 });
+
+  // Additional photos
+  const { photos: additionalPhotos, uploadPhoto, deletePhoto, isLoading: photosLoading } = useInternalListingPhotos(listing.id);
+  const { org } = useOrg();
+  const [isUploadingAdditional, setIsUploadingAdditional] = useState(false);
 
   // Sync coordinates when listing prop changes (e.g., after parent refetch)
   useEffect(() => {
@@ -252,6 +261,34 @@ export function MarketingSection({ listing, onPhotoUpdate }: MarketingSectionPro
     maxSize: 10 * 1024 * 1024, // 10MB
   });
 
+  // Additional photos dropzone
+  const onDropAdditional = useCallback(async (acceptedFiles: File[]) => {
+    if (!org?.id) {
+      toast.error('Organization not found');
+      return;
+    }
+    
+    setIsUploadingAdditional(true);
+    try {
+      for (const file of acceptedFiles) {
+        await uploadPhoto.mutateAsync({ file, orgId: org.id });
+      }
+    } finally {
+      setIsUploadingAdditional(false);
+    }
+  }, [org?.id, uploadPhoto]);
+
+  const {
+    getRootProps: getAdditionalRootProps,
+    getInputProps: getAdditionalInputProps,
+    isDragActive: isAdditionalDragActive,
+  } = useDropzone({
+    onDrop: onDropAdditional,
+    accept: { 'image/*': ['.jpg', '.jpeg', '.png', '.webp'] },
+    maxFiles: 10,
+    maxSize: 10 * 1024 * 1024,
+  });
+
   const handleRemovePhoto = async () => {
     try {
       const { error } = await supabase
@@ -403,6 +440,7 @@ export function MarketingSection({ listing, onPhotoUpdate }: MarketingSectionPro
            marketing={marketingContent}
            includeConfidential={includeConfidential}
           staticMapUrl={staticMapBase64}
+          additionalPhotos={additionalPhotos}
          />
        );
        
@@ -545,6 +583,70 @@ export function MarketingSection({ listing, onPhotoUpdate }: MarketingSectionPro
               </p>
             </div>
           )}
+        </CardContent>
+      </Card>
+
+      {/* Additional Photos Section */}
+      <Card className="border-2 border-foreground shadow-[4px_4px_0_hsl(var(--foreground))]">
+        <CardHeader>
+          <CardTitle className="text-base flex items-center gap-2">
+            <Images className="h-4 w-4" />
+            Additional Photos
+            {additionalPhotos.length > 0 && (
+              <span className="text-xs bg-muted px-2 py-0.5 rounded-full">
+                {additionalPhotos.length}
+              </span>
+            )}
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          {/* Existing photos grid */}
+          {additionalPhotos.length > 0 && (
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-4">
+              {additionalPhotos.map((photo) => (
+                <div key={photo.id} className="relative group">
+                  <AspectRatio ratio={4 / 3} className="overflow-hidden rounded border-2 border-foreground">
+                    <img
+                      src={photo.photo_url}
+                      alt="Property photo"
+                      className="object-cover w-full h-full"
+                    />
+                  </AspectRatio>
+                  <Button
+                    variant="destructive"
+                    size="icon"
+                    className="absolute top-1 right-1 h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
+                    onClick={() => deletePhoto.mutate(photo.id)}
+                  >
+                    <Trash2 className="h-3 w-3" />
+                  </Button>
+                </div>
+              ))}
+            </div>
+          )}
+          
+          {/* Upload area */}
+          <div
+            {...getAdditionalRootProps()}
+            className={`border-2 border-dashed rounded-lg p-6 text-center cursor-pointer transition-colors ${
+              isAdditionalDragActive
+                ? 'border-primary bg-primary/5'
+                : 'border-muted-foreground/25 hover:border-primary/50'
+            }`}
+          >
+            <input {...getAdditionalInputProps()} />
+            {isUploadingAdditional ? (
+              <RefreshCw className="h-6 w-6 mx-auto mb-2 animate-spin text-primary" />
+            ) : (
+              <Plus className="h-6 w-6 mx-auto mb-2 text-muted-foreground" />
+            )}
+            <p className="text-sm text-muted-foreground">
+              {isAdditionalDragActive ? 'Drop images here...' : 'Add more photos for the brochure'}
+            </p>
+            <p className="text-xs text-muted-foreground mt-1">
+              These will appear on a second page in the PDF
+            </p>
+          </div>
         </CardContent>
       </Card>
 

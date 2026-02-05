@@ -1,6 +1,12 @@
  import { Document, Page, Text, View, StyleSheet, Image } from '@react-pdf/renderer';
  import clearviewLogo from '@/assets/clearview-logo.png';
  
+export interface ListingPhoto {
+  id: string;
+  photo_url: string;
+  caption: string | null;
+}
+
  export interface MarketingContent {
    headline: string;
    tagline: string;
@@ -42,14 +48,16 @@
    marketing: MarketingContent;
    includeConfidential?: boolean;
   staticMapUrl?: string;
+  additionalPhotos?: ListingPhoto[];
  }
  
  const colors = {
    primary: '#1a1a1a',
    secondary: '#666666',
-   accent: '#2563eb',
+  accent: '#3B82F6',
    lightGray: '#f5f5f5',
    border: '#e5e5e5',
+  yellow: '#FBBF24',
  };
  
  const styles = StyleSheet.create({
@@ -65,44 +73,44 @@
      alignItems: 'flex-start',
      marginBottom: 20,
      paddingBottom: 15,
-     borderBottomWidth: 2,
+    borderBottomWidth: 3,
      borderBottomColor: colors.primary,
    },
    logo: {
-     width: 160,
-     height: 36,
+    width: 180,
+    height: 40,
      objectFit: 'contain',
    },
    listingInfo: {
      textAlign: 'right',
    },
-   listingNumber: {
-     fontSize: 9,
-     color: colors.secondary,
-     marginBottom: 2,
-   },
    dealType: {
-     fontSize: 11,
+    fontSize: 16,
      fontWeight: 'bold',
-     color: colors.accent,
+    color: '#ffffff',
+    backgroundColor: colors.primary,
+    paddingVertical: 6,
+    paddingHorizontal: 12,
      textTransform: 'uppercase',
+    letterSpacing: 1,
    },
    heroSection: {
      marginBottom: 20,
    },
    headline: {
-     fontSize: 22,
+    fontSize: 26,
      fontWeight: 'bold',
      color: colors.primary,
-     marginBottom: 6,
+    marginBottom: 8,
    },
    tagline: {
-     fontSize: 12,
+    fontSize: 14,
      color: colors.accent,
-     marginBottom: 10,
+    marginBottom: 12,
+    fontWeight: 'bold',
    },
    addressLine: {
-     fontSize: 14,
+    fontSize: 13,
      color: colors.secondary,
    },
    twoColumn: {
@@ -138,7 +146,8 @@
    highlightsBox: {
      backgroundColor: colors.lightGray,
      padding: 12,
-     borderRadius: 4,
+    borderWidth: 2,
+    borderColor: colors.primary,
    },
    highlightItem: {
      flexDirection: 'row',
@@ -160,6 +169,8 @@
    specsGrid: {
      backgroundColor: colors.lightGray,
      padding: 12,
+    borderWidth: 2,
+    borderColor: colors.primary,
    },
    specRow: {
      flexDirection: 'row',
@@ -178,9 +189,11 @@
      color: colors.primary,
    },
    pricingBox: {
-     backgroundColor: colors.accent,
+    backgroundColor: colors.primary,
      padding: 12,
      marginTop: 10,
+    borderWidth: 3,
+    borderColor: colors.yellow,
    },
    pricingLabel: {
      fontSize: 9,
@@ -234,10 +247,11 @@
    },
   heroImage: {
     width: '100%',
-    height: 180,
+   height: 220,
     objectFit: 'cover',
     marginBottom: 15,
-    borderRadius: 4,
+   borderWidth: 3,
+   borderColor: colors.primary,
   },
   mapSection: {
     marginTop: 15,
@@ -245,15 +259,48 @@
   },
   mapImage: {
     width: '100%',
-    height: 140,
+   height: 200,
     objectFit: 'cover',
-    borderRadius: 4,
+   borderWidth: 3,
+   borderColor: colors.primary,
   },
   mapCaption: {
     fontSize: 8,
     color: colors.secondary,
     textAlign: 'center',
     marginTop: 4,
+  },
+  // Additional photos page styles
+  photosPageTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: colors.primary,
+    marginBottom: 20,
+    paddingBottom: 10,
+    borderBottomWidth: 3,
+    borderBottomColor: colors.primary,
+  },
+  photoGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 15,
+  },
+  photoItem: {
+    width: '47%',
+    marginBottom: 15,
+  },
+  additionalPhoto: {
+    width: '100%',
+    height: 180,
+    objectFit: 'cover',
+    borderWidth: 2,
+    borderColor: colors.primary,
+  },
+  photoCaption: {
+    fontSize: 9,
+    color: colors.secondary,
+    marginTop: 4,
+    textAlign: 'center',
   },
  });
  
@@ -276,7 +323,7 @@
    return `$${value.toFixed(2)}/SF`;
  };
  
-export function ListingBrochurePDF({ listing, marketing, includeConfidential = false, staticMapUrl }: ListingBrochurePDFProps) {
+export function ListingBrochurePDF({ listing, marketing, includeConfidential = false, staticMapUrl, additionalPhotos = [] }: ListingBrochurePDFProps) {
    const dealTypeLabel = listing.deal_type === 'sale' ? 'FOR SALE' :
                          listing.deal_type === 'lease' ? 'FOR LEASE' : 'FOR SALE/LEASE';
  
@@ -309,9 +356,6 @@ export function ListingBrochurePDF({ listing, marketing, includeConfidential = f
          <View style={styles.header}>
            <Image src={clearviewLogo} style={styles.logo} />
            <View style={styles.listingInfo}>
-             {listing.listing_number && (
-               <Text style={styles.listingNumber}>{listing.listing_number}</Text>
-             )}
              <Text style={styles.dealType}>{dealTypeLabel}</Text>
            </View>
          </View>
@@ -430,6 +474,41 @@ export function ListingBrochurePDF({ listing, marketing, includeConfidential = f
            </Text>
          </View>
        </Page>
+      
+      {/* Additional Photos Page - only if there are additional photos */}
+      {additionalPhotos.length > 0 && (
+        <Page size="LETTER" style={styles.page}>
+          <View style={styles.header}>
+            <Image src={clearviewLogo} style={styles.logo} />
+            <View style={styles.listingInfo}>
+              <Text style={styles.dealType}>{dealTypeLabel}</Text>
+            </View>
+          </View>
+          
+          <Text style={styles.photosPageTitle}>Property Photos</Text>
+          
+          <View style={styles.photoGrid}>
+            {additionalPhotos.map((photo, idx) => (
+              <View key={photo.id || idx} style={styles.photoItem}>
+                <Image src={photo.photo_url} style={styles.additionalPhoto} />
+                {photo.caption && (
+                  <Text style={styles.photoCaption}>{photo.caption}</Text>
+                )}
+              </View>
+            ))}
+          </View>
+          
+          {/* Footer */}
+          <View style={styles.footer}>
+            <Text style={styles.footerText}>
+              {listing.display_address || listing.address}, {listing.city}
+            </Text>
+            <Text style={styles.disclaimer}>
+              Information believed accurate but not warranted.
+            </Text>
+          </View>
+        </Page>
+      )}
      </Document>
    );
  }
