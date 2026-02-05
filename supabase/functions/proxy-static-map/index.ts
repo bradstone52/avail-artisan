@@ -79,8 +79,8 @@
         // Arterial roads - bold yellow (matches dashboard Quick Actions)
         "feature:road.arterial|element:geometry.fill|color:0xFBBF24",
         "feature:road.arterial|element:geometry.stroke|color:0x000000|weight:2.5",
-        // Highways - dark blue with thick black stroke
-        "feature:road.highway|element:geometry.fill|color:0x1E3A5F",
+        // Highways - darker yellow/amber with thick black stroke
+        "feature:road.highway|element:geometry.fill|color:0xD97706",
         "feature:road.highway|element:geometry.stroke|color:0x000000|weight:3",
         // Road labels - bold black, thick white halo
         "feature:road|element:labels.text.fill|color:0x000000",
@@ -95,9 +95,9 @@
       
       const styleParams = styles.map(s => `style=${encodeURIComponent(s)}`).join("&");
 
-      // Custom marker - blue and yellow bullseye hosted in storage
-      const markerIconUrl = "https://vouzfwrumlhmtmgglsti.supabase.co/storage/v1/object/public/internal-listing-assets/map-marker-bullseye.png";
-      const markerStyle = `anchor:center|scale:2|icon:${encodeURIComponent(markerIconUrl)}`;
+      // Custom marker - blue circle with yellow center (bullseye effect)
+      // Using Google's built-in marker with custom color since custom icons have size limits
+      const markerStyle = "color:0x3B82F6|size:mid|label:●";
       
       // Build Google Static Maps URL with custom styling and marker
       const staticMapUrl = `https://maps.googleapis.com/maps/api/staticmap?center=${lat},${lng}&zoom=${zoom}&size=${size}&scale=${scale}&maptype=${maptype}&markers=${markerStyle}%7C${markerLat},${markerLng}&${styleParams}&key=${googleMapsApiKey}`;
