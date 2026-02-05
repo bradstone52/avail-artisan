@@ -63,8 +63,30 @@
        );
      }
  
-     // Build Google Static Maps URL
-     const staticMapUrl = `https://maps.googleapis.com/maps/api/staticmap?center=${lat},${lng}&zoom=${zoom}&size=${size}&scale=${scale}&maptype=${maptype}&markers=color:red%7C${lat},${lng}&key=${googleMapsApiKey}`;
+      // Custom styling: hide business labels, emphasize roads
+      const styles = [
+        // Hide all POI (points of interest) - businesses, etc.
+        "feature:poi|visibility:off",
+        // Hide transit labels
+        "feature:transit|element:labels|visibility:off",
+        // Make roads more prominent with better contrast
+        "feature:road|element:geometry|color:0xffffff",
+        "feature:road|element:geometry.stroke|color:0xaaaaaa|weight:1",
+        // Make road labels more visible - darker text with white stroke
+        "feature:road|element:labels.text.fill|color:0x222222",
+        "feature:road|element:labels.text.stroke|color:0xffffff|weight:4",
+        // Arterial roads
+        "feature:road.arterial|element:geometry|color:0xf5f5f5",
+        "feature:road.arterial|element:geometry.stroke|color:0x999999",
+        // Highway styling - slightly darker
+        "feature:road.highway|element:geometry|color:0xe8e8e8",
+        "feature:road.highway|element:geometry.stroke|color:0x888888|weight:1",
+      ];
+      
+      const styleParams = styles.map(s => `style=${encodeURIComponent(s)}`).join("&");
+
+      // Build Google Static Maps URL with custom styling
+      const staticMapUrl = `https://maps.googleapis.com/maps/api/staticmap?center=${lat},${lng}&zoom=${zoom}&size=${size}&scale=${scale}&maptype=${maptype}&markers=color:red%7C${lat},${lng}&${styleParams}&key=${googleMapsApiKey}`;
  
      // Fetch the image from Google
      const mapResponse = await fetch(staticMapUrl);
