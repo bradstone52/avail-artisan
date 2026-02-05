@@ -17,7 +17,10 @@ interface MatchingListingsSectionProps {
 }
 
 function getSizeRange(requiredSize: number): { minSize: number; maxSize: number } | null {
-  if (requiredSize >= 8000 && requiredSize < 13000) {
+  if (requiredSize > 0 && requiredSize < 8000) {
+    // Small requirements: show 8,000 to 10,000
+    return { minSize: 8000, maxSize: 10000 };
+  } else if (requiredSize >= 8000 && requiredSize < 13000) {
     // Fixed range for smaller requirements
     return { minSize: 8000, maxSize: 13000 };
   } else if (requiredSize >= 13000 && requiredSize < 20000) {
