@@ -127,6 +127,7 @@ export function MarketListingEditDialog({
   const [askingRate, setAskingRate] = useState('');
   const [opCosts, setOpCosts] = useState('');
   const [propertyTax, setPropertyTax] = useState('');
+  const [condoFees, setCondoFees] = useState('');
   const [salePrice, setSalePrice] = useState('');
   const [grossRate, setGrossRate] = useState('');
   const [availabilityDate, setAvailabilityDate] = useState('');
@@ -182,6 +183,7 @@ export function MarketListingEditDialog({
     askingRate,
     opCosts,
     propertyTax,
+    condoFees,
     salePrice,
     availabilityDate,
     subleaseExp,
@@ -217,7 +219,7 @@ export function MarketListingEditDialog({
     isDistributionWarehouse,
   }), [
     listingId, address, building, unit, displayAddress, displayAddressManuallyEdited, city, submarket,
-    sizeSf, status, listingType, askingRate, opCosts, propertyTax, salePrice, availabilityDate,
+    sizeSf, status, listingType, askingRate, opCosts, propertyTax, condoFees, salePrice, availabilityDate,
     subleaseExp, landlord, brokerSource, brochureLink, websiteLink, notesPublic, internalNote, warehouseSf,
     officeSf, clearHeight, dockDoors, driveInDoors, buildingDepth, powerAmps, voltage, sprinkler,
     hasSprinklers, hasCranes, cranes, craneTons, yard, yardArea, crossDock, trailerParking, landAcres, zoning,
@@ -241,6 +243,7 @@ export function MarketListingEditDialog({
     setAskingRate(state.askingRate);
     setOpCosts(state.opCosts);
     setPropertyTax(state.propertyTax || '');
+    setCondoFees(state.condoFees || '');
     setSalePrice(state.salePrice);
     setAvailabilityDate(state.availabilityDate || '');
     setSubleaseExp(state.subleaseExp || '');
@@ -488,6 +491,7 @@ export function MarketListingEditDialog({
       setAskingRate('');
       setOpCosts('');
       setPropertyTax('');
+      setCondoFees('');
       setSalePrice('');
       setAvailabilityDate('');
       setSubleaseExp('');
@@ -538,6 +542,7 @@ export function MarketListingEditDialog({
       setAskingRate(listing.asking_rate_psf || '');
       setOpCosts(listing.op_costs || '');
       setPropertyTax(listing.property_tax || '');
+      setCondoFees((listing as any).condo_fees || '');
       setSalePrice(listing.sale_price || '');
       setAvailabilityDate(listing.availability_date || '');
       setSubleaseExp(listing.sublease_exp || '');
@@ -651,6 +656,7 @@ export function MarketListingEditDialog({
           asking_rate_psf: askingRate || null,
           op_costs: opCosts || null,
           property_tax: propertyTax || null,
+          condo_fees: condoFees || null,
           sale_price: salePrice || null,
           availability_date: availabilityDate || null,
           sublease_exp: subleaseExp || null,
@@ -783,6 +789,7 @@ export function MarketListingEditDialog({
           asking_rate_psf: askingRate || null,
           op_costs: opCosts || null,
           property_tax: propertyTax || null,
+          condo_fees: condoFees || null,
           sale_price: salePrice || null,
           availability_date: availabilityDate || null,
           sublease_exp: subleaseExp || null,
@@ -1478,6 +1485,17 @@ export function MarketListingEditDialog({
                   onChange={(e) => setPropertyTax(e.target.value)}
                   className={`col-span-3 placeholder-light ${propertyTax ? 'input-filled' : ''}`}
                   placeholder="e.g., $3.50/SF"
+                />
+              </div>
+
+              {/* Condo Fees */}
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label className="text-right">Condo Fees</Label>
+                <Input
+                  value={condoFees}
+                  onChange={(e) => setCondoFees(e.target.value)}
+                  className={`col-span-3 placeholder-light ${condoFees ? 'input-filled' : ''}`}
+                  placeholder="e.g., $2.00/SF"
                 />
               </div>
 

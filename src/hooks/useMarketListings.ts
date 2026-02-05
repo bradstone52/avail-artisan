@@ -58,6 +58,7 @@ export interface MarketListing {
   notes_public: string | null;
   internal_note: string | null;
   property_tax: string | null;
+  condo_fees: string | null;
   // New fields
   brochure_link: string | null;
   website_link: string | null;
