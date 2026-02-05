@@ -86,9 +86,13 @@
         "feature:road.highway|element:geometry.fill|color:0xD97706",
       "feature:road.highway|element:geometry.stroke|color:0x000000|weight:1.5",
         // Road labels - super bold, high contrast poppy style
+      "feature:road|element:labels|visibility:on",
         "feature:road|element:labels.text.fill|color:0x000000",
         "feature:road|element:labels.text.stroke|color:0xFFFFFF|weight:6",
         "feature:road|element:labels.icon|visibility:off",
+      // Force major road labels to show at all zooms
+      "feature:road.highway|element:labels|visibility:on",
+      "feature:road.arterial|element:labels|visibility:on",
         // Buildings - light gray with visible outlines
         "feature:building|element:geometry.fill|color:0xE5E5E5",
       "feature:building|element:geometry.stroke|color:0x000000|weight:0.5",
