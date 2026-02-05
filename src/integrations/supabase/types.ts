@@ -915,6 +915,54 @@ export type Database = {
           },
         ]
       }
+      internal_listing_photos: {
+        Row: {
+          caption: string | null
+          id: string
+          listing_id: string
+          org_id: string | null
+          photo_url: string
+          sort_order: number | null
+          uploaded_at: string
+          uploaded_by: string | null
+        }
+        Insert: {
+          caption?: string | null
+          id?: string
+          listing_id: string
+          org_id?: string | null
+          photo_url: string
+          sort_order?: number | null
+          uploaded_at?: string
+          uploaded_by?: string | null
+        }
+        Update: {
+          caption?: string | null
+          id?: string
+          listing_id?: string
+          org_id?: string | null
+          photo_url?: string
+          sort_order?: number | null
+          uploaded_at?: string
+          uploaded_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "internal_listing_photos_listing_id_fkey"
+            columns: ["listing_id"]
+            isOneToOne: false
+            referencedRelation: "internal_listings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "internal_listing_photos_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "orgs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       internal_listing_status_history: {
         Row: {
           changed_at: string
