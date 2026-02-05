@@ -70,6 +70,9 @@
         // Hide all POI (points of interest)
         "feature:poi|visibility:off",
         "feature:transit|element:labels|visibility:off",
+        // Hide neighborhood/community names
+        "feature:administrative.neighborhood|visibility:off",
+        "feature:administrative.locality|element:labels|visibility:off",
         // Neo-brutalist theme - white background, bold black strokes
         "feature:landscape|element:geometry|color:0xFFFFFF",
         "feature:water|element:geometry|color:0x93C5FD",
@@ -82,12 +85,10 @@
         // Highways - darker yellow/amber with thick black stroke
         "feature:road.highway|element:geometry.fill|color:0xD97706",
         "feature:road.highway|element:geometry.stroke|color:0x000000|weight:3",
-        // Road labels - bold black, thick white halo
+        // Road labels - super bold, high contrast poppy style
         "feature:road|element:labels.text.fill|color:0x000000",
-        "feature:road|element:labels.text.stroke|color:0xFFFFFF|weight:5",
-        // Administrative labels - bold black
-        "feature:administrative|element:labels.text.fill|color:0x000000",
-        "feature:administrative|element:labels.text.stroke|color:0xFFFFFF|weight:3",
+        "feature:road|element:labels.text.stroke|color:0xFFFFFF|weight:6",
+        "feature:road|element:labels.icon|visibility:off",
         // Buildings - light gray with visible outlines
         "feature:building|element:geometry.fill|color:0xE5E5E5",
         "feature:building|element:geometry.stroke|color:0x000000|weight:1",
