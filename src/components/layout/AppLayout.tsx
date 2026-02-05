@@ -1,4 +1,4 @@
-import { ReactNode, useState } from 'react';
+import { ReactNode, useState, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { useUserRole } from '@/hooks/useUserRole';
@@ -97,6 +97,15 @@ export function AppLayout({ children }: AppLayoutProps) {
   const toggleGroup = (groupName: string) => {
     setOpenGroups(prev => ({ ...prev, [groupName]: !prev[groupName] }));
   };
+
+  // Keep groups open when their child routes are active
+  useEffect(() => {
+    setOpenGroups(prev => ({
+      ...prev,
+      'Distribution': prev['Distribution'] || ['/listings', '/recipients'].includes(location.pathname),
+      'CRE Tracker': prev['CRE Tracker'] || ['/cre-tracker', '/internal-listings'].some(p => location.pathname.startsWith(p)),
+    }));
+  }, [location.pathname]);
 
   // Listen for global toasts (e.g., from background sync tasks)
   useGlobalToast();
