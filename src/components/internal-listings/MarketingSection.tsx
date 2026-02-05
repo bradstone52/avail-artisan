@@ -23,6 +23,7 @@ import { AspectRatio } from '@/components/ui/aspect-ratio';
   Upload,
   Image as ImageIcon,
   Trash2,
+  MapPin,
  } from 'lucide-react';
  import { ListingBrochurePDF, MarketingContent } from './ListingBrochurePDF';
  
@@ -71,6 +72,11 @@ export function MarketingSection({ listing, onPhotoUpdate }: MarketingSectionPro
    const [isDownloading, setIsDownloading] = useState(false);
   const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
   const [photoUrl, setPhotoUrl] = useState<string | null>(listing.photo_url);
+  const [isGeocoding, setIsGeocoding] = useState(false);
+  const [coordinates, setCoordinates] = useState<{ lat: number | null; lng: number | null }>({
+    lat: listing.latitude,
+    lng: listing.longitude,
+  });
 
   const onDrop = useCallback(async (acceptedFiles: File[]) => {
     const file = acceptedFiles[0];
@@ -135,6 +141,53 @@ export function MarketingSection({ listing, onPhotoUpdate }: MarketingSectionPro
     }
   };
  
+  const handleGeocode = async () => {
+    setIsGeocoding(true);
+    try {
+      // Get Google Maps API key
+      const { data: tokenData, error: tokenError } = await supabase.functions.invoke('get-google-maps-token', {
+        body: { authenticated: true }
+      });
+
+      if (tokenError || !tokenData?.token) {
+        throw new Error('Failed to get map token');
+      }
+
+      // Geocode the address
+      const address = `${listing.address}, ${listing.city}, AB, Canada`;
+      const geocodeUrl = `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(address)}&key=${tokenData.token}`;
+      
+      const response = await fetch(geocodeUrl);
+      const data = await response.json();
+
+      if (data.status !== 'OK' || !data.results?.[0]) {
+        throw new Error('Address not found');
+      }
+
+      const location = data.results[0].geometry.location;
+      
+      // Update the listing
+      const { error: updateError } = await supabase
+        .from('internal_listings')
+        .update({
+          latitude: location.lat,
+          longitude: location.lng,
+        })
+        .eq('id', listing.id);
+
+      if (updateError) throw updateError;
+
+      setCoordinates({ lat: location.lat, lng: location.lng });
+      onPhotoUpdate?.(photoUrl); // Trigger refetch
+      toast.success('Location geocoded successfully');
+    } catch (error) {
+      console.error('Error geocoding:', error);
+      toast.error(error instanceof Error ? error.message : 'Failed to geocode address');
+    } finally {
+      setIsGeocoding(false);
+    }
+  };
+
    const generateMarketingContent = async () => {
      setIsGenerating(true);
      try {
@@ -176,13 +229,13 @@ export function MarketingSection({ listing, onPhotoUpdate }: MarketingSectionPro
      try {
       // Get Google Maps API key for static map
       let staticMapUrl: string | undefined;
-      if (listing.latitude && listing.longitude) {
+      if (coordinates.lat && coordinates.lng) {
         try {
           const { data: tokenData } = await supabase.functions.invoke('get-google-maps-token', {
             body: { authenticated: true }
           });
           if (tokenData?.token) {
-            staticMapUrl = `https://maps.googleapis.com/maps/api/staticmap?center=${listing.latitude},${listing.longitude}&zoom=14&size=800x450&scale=2&maptype=roadmap&markers=color:red%7C${listing.latitude},${listing.longitude}&key=${tokenData.token}`;
+            staticMapUrl = `https://maps.googleapis.com/maps/api/staticmap?center=${coordinates.lat},${coordinates.lng}&zoom=14&size=800x450&scale=2&maptype=roadmap&markers=color:red%7C${coordinates.lat},${coordinates.lng}&key=${tokenData.token}`;
           }
         } catch (mapError) {
           console.warn('Could not fetch map token:', mapError);
@@ -193,6 +246,8 @@ export function MarketingSection({ listing, onPhotoUpdate }: MarketingSectionPro
       const listingWithPhoto = {
         ...listing,
         photo_url: photoUrl,
+        latitude: coordinates.lat,
+        longitude: coordinates.lng,
       };
 
        const doc = (
@@ -281,7 +336,7 @@ export function MarketingSection({ listing, onPhotoUpdate }: MarketingSectionPro
      toast.success('IDML data exported! Import into InDesign via Data Merge.');
    };
  
-  const hasLocation = listing.latitude && listing.longitude;
+  const hasLocation = coordinates.lat && coordinates.lng;
 
    return (
      <div className="space-y-6">
@@ -349,14 +404,17 @@ export function MarketingSection({ listing, onPhotoUpdate }: MarketingSectionPro
       {/* Location Map Preview */}
       <Card className="border-2 border-foreground shadow-[4px_4px_0_hsl(var(--foreground))]">
         <CardHeader>
-          <CardTitle className="text-base">Location Map</CardTitle>
+          <CardTitle className="text-base flex items-center gap-2">
+            <MapPin className="h-4 w-4" />
+            Location Map
+          </CardTitle>
         </CardHeader>
         <CardContent>
           {hasLocation ? (
             <div className="space-y-2">
               <AspectRatio ratio={16 / 9} className="overflow-hidden rounded-lg border bg-muted">
                 <img
-                  src={`https://maps.googleapis.com/maps/api/staticmap?center=${listing.latitude},${listing.longitude}&zoom=14&size=800x450&scale=2&maptype=roadmap&markers=color:red%7C${listing.latitude},${listing.longitude}&key=${import.meta.env.VITE_GOOGLE_MAPS_KEY || ''}`}
+                  src={`https://maps.googleapis.com/maps/api/staticmap?center=${coordinates.lat},${coordinates.lng}&zoom=14&size=800x450&scale=2&maptype=roadmap&markers=color:red%7C${coordinates.lat},${coordinates.lng}&key=${import.meta.env.VITE_GOOGLE_MAPS_KEY || ''}`}
                   alt="Location map"
                   className="object-cover w-full h-full"
                   onError={(e) => {
@@ -369,9 +427,22 @@ export function MarketingSection({ listing, onPhotoUpdate }: MarketingSectionPro
               </p>
             </div>
           ) : (
-            <div className="text-center py-6 text-muted-foreground">
-              <p className="text-sm">No location coordinates available</p>
-              <p className="text-xs mt-1">Geocode the listing to include a map in the brochure</p>
+            <div className="text-center py-8">
+              <MapPin className="h-8 w-8 mx-auto mb-3 text-muted-foreground" />
+              <p className="text-sm text-muted-foreground mb-1">No location coordinates available</p>
+              <p className="text-xs text-muted-foreground mb-4">Geocode the listing to include a map in the brochure</p>
+              <Button 
+                variant="outline" 
+                onClick={handleGeocode}
+                disabled={isGeocoding}
+              >
+                {isGeocoding ? (
+                  <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                ) : (
+                  <MapPin className="h-4 w-4 mr-2" />
+                )}
+                Geocode Address
+              </Button>
             </div>
           )}
         </CardContent>
