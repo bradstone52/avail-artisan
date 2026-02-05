@@ -44,7 +44,7 @@ serve(async (req) => {
       
       // Validate the user's JWT from the Authorization header
       const authHeader = req.headers.get("Authorization");
-      if (!authHeader) {
+      if (!authHeader?.startsWith("Bearer ")) {
         console.log("[get-google-maps-token] Missing Authorization header for authenticated request");
         return new Response(
           JSON.stringify({ error: "Authorization required" }),
@@ -52,24 +52,26 @@ serve(async (req) => {
         );
       }
 
-      // Create a client with the user's token to verify they're authenticated
-      const supabaseClient = createClient(supabaseUrl, supabaseAnonKey, {
+      // Use getClaims() to validate the JWT - this works with Supabase's signing-keys system
+      const supabase = createClient(supabaseUrl, supabaseAnonKey, {
         global: {
           headers: { Authorization: authHeader },
         },
       });
 
-      const { data: { user }, error: userError } = await supabaseClient.auth.getUser();
-
-      if (userError || !user) {
-        console.log("[get-google-maps-token] Invalid or expired user token:", userError?.message);
+      const token = authHeader.replace("Bearer ", "");
+      const { data, error: claimsError } = await supabase.auth.getClaims(token);
+      
+      if (claimsError || !data?.claims) {
+        console.log("[get-google-maps-token] Invalid or expired user token:", claimsError?.message);
         return new Response(
           JSON.stringify({ error: "Invalid or expired session" }),
           { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       }
 
-      console.log(`[get-google-maps-token] Authenticated user: ${user.id.substring(0, 8)}...`);
+      const userId = data.claims.sub as string;
+      console.log(`[get-google-maps-token] Authenticated user: ${userId.substring(0, 8)}...`);
       console.log("[get-google-maps-token] Returning Google Maps API key for authenticated user");
 
       return new Response(
