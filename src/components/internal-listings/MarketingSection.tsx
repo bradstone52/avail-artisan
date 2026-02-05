@@ -356,18 +356,36 @@ export function MarketingSection({ listing, onPhotoUpdate }: MarketingSectionPro
      
      setIsDownloading(true);
      try {
-      // Get Google Maps API key for static map
-      let staticMapUrl: string | undefined;
+      // Fetch styled map image via proxy (uses current zoom and offset)
+      let staticMapBase64: string | undefined;
       if (coordinates.lat && coordinates.lng) {
         try {
-          const { data: tokenData } = await supabase.functions.invoke('get-google-maps-token', {
-            body: { authenticated: true }
-          });
-          if (tokenData?.apiKey) {
-            staticMapUrl = `https://maps.googleapis.com/maps/api/staticmap?center=${coordinates.lat},${coordinates.lng}&zoom=14&size=800x450&scale=2&maptype=roadmap&markers=color:red%7C${coordinates.lat},${coordinates.lng}&key=${tokenData.apiKey}`;
+          const { data: sessionData } = await supabase.auth.getSession();
+          if (sessionData.session?.access_token) {
+            // Calculate adjusted center with current offset
+            const adjustedLat = coordinates.lat + mapOffset.lat;
+            const adjustedLng = coordinates.lng + mapOffset.lng;
+            
+            const proxyUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/proxy-static-map?lat=${adjustedLat}&lng=${adjustedLng}&markerLat=${coordinates.lat}&markerLng=${coordinates.lng}&zoom=${mapZoom}&size=800x450&scale=2&maptype=roadmap`;
+            
+            const response = await fetch(proxyUrl, {
+              headers: {
+                Authorization: `Bearer ${sessionData.session.access_token}`,
+              },
+            });
+            
+            if (response.ok) {
+              const blob = await response.blob();
+              // Convert to base64 data URL for react-pdf
+              const reader = new FileReader();
+              staticMapBase64 = await new Promise((resolve) => {
+                reader.onloadend = () => resolve(reader.result as string);
+                reader.readAsDataURL(blob);
+              });
+            }
           }
         } catch (mapError) {
-          console.warn('Could not fetch map token:', mapError);
+          console.warn('Could not fetch map image:', mapError);
         }
       }
 
@@ -384,7 +402,7 @@ export function MarketingSection({ listing, onPhotoUpdate }: MarketingSectionPro
           listing={listingWithPhoto} 
            marketing={marketingContent}
            includeConfidential={includeConfidential}
-          staticMapUrl={staticMapUrl}
+          staticMapUrl={staticMapBase64}
          />
        );
        
