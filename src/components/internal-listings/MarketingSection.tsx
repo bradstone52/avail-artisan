@@ -79,22 +79,28 @@ export function MarketingSection({ listing, onPhotoUpdate }: MarketingSectionPro
   });
   const [googleMapsKey, setGoogleMapsKey] = useState<string | null>(null);
 
-  // Fetch Google Maps API key for map preview
-  useEffect(() => {
-    const fetchMapsKey = async () => {
-      try {
-        const { data: tokenData } = await supabase.functions.invoke('get-google-maps-token', {
-          body: { authenticated: true }
-        });
-        if (tokenData?.apiKey) {
-          setGoogleMapsKey(tokenData.apiKey);
-        }
-      } catch (error) {
-        console.warn('Could not fetch maps key for preview:', error);
+  // Fetch Google Maps API key for map preview - refetch when coordinates change or if key is missing
+  const fetchMapsKey = useCallback(async () => {
+    try {
+      const { data: tokenData } = await supabase.functions.invoke('get-google-maps-token', {
+        body: { authenticated: true }
+      });
+      if (tokenData?.apiKey) {
+        setGoogleMapsKey(tokenData.apiKey);
+        return true;
       }
-    };
-    fetchMapsKey();
+    } catch (error) {
+      console.warn('Could not fetch maps key for preview:', error);
+    }
+    return false;
   }, []);
+
+  useEffect(() => {
+    // Fetch key on mount and when coordinates are set (e.g., after geocoding)
+    if (!googleMapsKey) {
+      fetchMapsKey();
+    }
+  }, [googleMapsKey, fetchMapsKey, coordinates.lat, coordinates.lng]);
 
   const onDrop = useCallback(async (acceptedFiles: File[]) => {
     const file = acceptedFiles[0];
