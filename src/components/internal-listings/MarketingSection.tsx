@@ -1,5 +1,4 @@
- import { useState } from 'react';
-import { useCallback, useEffect } from 'react';
+ import { useState, useCallback, useEffect } from 'react';
  import { pdf } from '@react-pdf/renderer';
  import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
  import { Button } from '@/components/ui/button';
@@ -78,6 +77,14 @@ export function MarketingSection({ listing, onPhotoUpdate }: MarketingSectionPro
     lng: listing.longitude,
   });
   const [googleMapsKey, setGoogleMapsKey] = useState<string | null>(null);
+
+  // Sync coordinates when listing prop changes (e.g., after parent refetch)
+  useEffect(() => {
+    setCoordinates({
+      lat: listing.latitude,
+      lng: listing.longitude,
+    });
+  }, [listing.latitude, listing.longitude]);
 
   // Fetch Google Maps API key for map preview - refetch when coordinates change or if key is missing
   const fetchMapsKey = useCallback(async () => {
