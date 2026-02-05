@@ -35,3 +35,6 @@ verify_jwt = false
 
 [functions.search-calgary-parcels]
 verify_jwt = false
+ 
+ [functions.generate-listing-marketing]
+ verify_jwt = false
