@@ -77,6 +77,9 @@ export function MarketingSection({ listing, onPhotoUpdate }: MarketingSectionPro
     lng: listing.longitude,
   });
   const [googleMapsKey, setGoogleMapsKey] = useState<string | null>(null);
+  const [mapImageUrl, setMapImageUrl] = useState<string | null>(null);
+  const [mapLoading, setMapLoading] = useState(false);
+  const [mapError, setMapError] = useState<string | null>(null);
 
   // Sync coordinates when listing prop changes (e.g., after parent refetch)
   useEffect(() => {
@@ -108,6 +111,64 @@ export function MarketingSection({ listing, onPhotoUpdate }: MarketingSectionPro
       fetchMapsKey();
     }
   }, [googleMapsKey, fetchMapsKey, coordinates.lat, coordinates.lng]);
+
+  // Fetch map image via proxy when we have coordinates
+  useEffect(() => {
+    const fetchMapImage = async () => {
+      if (!coordinates.lat || !coordinates.lng) {
+        setMapImageUrl(null);
+        return;
+      }
+
+      setMapLoading(true);
+      setMapError(null);
+
+      try {
+        // Use proxy endpoint to avoid referrer restrictions
+        const { data: sessionData } = await supabase.auth.getSession();
+        if (!sessionData.session?.access_token) {
+          throw new Error('Not authenticated');
+        }
+
+        const proxyUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/proxy-static-map?lat=${coordinates.lat}&lng=${coordinates.lng}&zoom=14&size=800x450&scale=2&maptype=roadmap`;
+        
+        const response = await fetch(proxyUrl, {
+          headers: {
+            Authorization: `Bearer ${sessionData.session.access_token}`,
+          },
+        });
+
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => ({}));
+          throw new Error(errorData.error || 'Failed to load map');
+        }
+
+        const blob = await response.blob();
+        const blobUrl = URL.createObjectURL(blob);
+        
+        // Clean up previous blob URL
+        if (mapImageUrl) {
+          URL.revokeObjectURL(mapImageUrl);
+        }
+        
+        setMapImageUrl(blobUrl);
+      } catch (error) {
+        console.error('Failed to load map image:', error);
+        setMapError(error instanceof Error ? error.message : 'Failed to load map');
+      } finally {
+        setMapLoading(false);
+      }
+    };
+
+    fetchMapImage();
+
+    // Cleanup on unmount
+    return () => {
+      if (mapImageUrl) {
+        URL.revokeObjectURL(mapImageUrl);
+      }
+    };
+  }, [coordinates.lat, coordinates.lng]);
 
   const onDrop = useCallback(async (acceptedFiles: File[]) => {
     const file = acceptedFiles[0];
@@ -444,14 +505,20 @@ export function MarketingSection({ listing, onPhotoUpdate }: MarketingSectionPro
           {hasLocation ? (
             <div className="space-y-2">
               <AspectRatio ratio={16 / 9} className="overflow-hidden rounded-lg border bg-muted">
-                {googleMapsKey ? (
+                {mapLoading ? (
+                  <div className="flex items-center justify-center h-full">
+                    <RefreshCw className="h-6 w-6 animate-spin text-muted-foreground" />
+                  </div>
+                ) : mapError ? (
+                  <div className="flex flex-col items-center justify-center h-full text-muted-foreground">
+                    <MapPin className="h-6 w-6 mb-2" />
+                    <p className="text-xs">{mapError}</p>
+                  </div>
+                ) : mapImageUrl ? (
                   <img
-                    src={`https://maps.googleapis.com/maps/api/staticmap?center=${coordinates.lat},${coordinates.lng}&zoom=14&size=800x450&scale=2&maptype=roadmap&markers=color:red%7C${coordinates.lat},${coordinates.lng}&key=${googleMapsKey}`}
+                    src={mapImageUrl}
                     alt="Location map"
                     className="object-cover w-full h-full"
-                    onError={(e) => {
-                      (e.target as HTMLImageElement).style.display = 'none';
-                    }}
                   />
                 ) : (
                   <div className="flex items-center justify-center h-full">
