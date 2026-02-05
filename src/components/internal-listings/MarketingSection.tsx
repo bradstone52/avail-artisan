@@ -149,13 +149,13 @@ export function MarketingSection({ listing, onPhotoUpdate }: MarketingSectionPro
         body: { authenticated: true }
       });
 
-      if (tokenError || !tokenData?.token) {
+      if (tokenError || !tokenData?.apiKey) {
         throw new Error('Failed to get map token');
       }
 
       // Geocode the address
       const address = `${listing.address}, ${listing.city}, AB, Canada`;
-      const geocodeUrl = `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(address)}&key=${tokenData.token}`;
+      const geocodeUrl = `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(address)}&key=${tokenData.apiKey}`;
       
       const response = await fetch(geocodeUrl);
       const data = await response.json();
