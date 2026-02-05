@@ -91,10 +91,8 @@
       
       const styleParams = styles.map(s => `style=${encodeURIComponent(s)}`).join("&");
 
-      // Custom marker - blue color, larger size with star label
-      // Using a custom icon URL for a blue star
-      // Using Chart API to create a blue and yellow bullseye marker
-      const customIconUrl = "https://chart.googleapis.com/chart?chst=d_map_spin&chld=1.2|0|0066FF|14|b|●";
+      // Custom marker - blue and yellow bullseye using Google's paddle icons
+      const customIconUrl = "https://maps.google.com/mapfiles/kml/paddle/ylw-blank.png";
       const markerStyle = `icon:${encodeURIComponent(customIconUrl)}`;
       
       // Build Google Static Maps URL with custom styling and marker
