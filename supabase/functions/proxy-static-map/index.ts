@@ -70,17 +70,17 @@
         // Hide all POI (points of interest)
         "feature:poi|visibility:off",
         "feature:transit|element:labels|visibility:off",
-        // Neo-brutalist theme - cream background, bold black strokes
-        "feature:landscape|element:geometry|color:0xFAF8F5",
-        "feature:water|element:geometry|color:0x3B82F6",
+        // Neo-brutalist theme - white background, bold black strokes
+        "feature:landscape|element:geometry|color:0xFFFFFF",
+        "feature:water|element:geometry|color:0x93C5FD",
         // Local roads - cream fill with thick black stroke
         "feature:road.local|element:geometry.fill|color:0xFFFFFF",
         "feature:road.local|element:geometry.stroke|color:0x000000|weight:2",
         // Arterial roads - bold yellow (matches dashboard Quick Actions)
         "feature:road.arterial|element:geometry.fill|color:0xFBBF24",
         "feature:road.arterial|element:geometry.stroke|color:0x000000|weight:2.5",
-        // Highways - primary blue with thick black stroke
-        "feature:road.highway|element:geometry.fill|color:0x3B82F6",
+        // Highways - dark blue with thick black stroke
+        "feature:road.highway|element:geometry.fill|color:0x1E3A5F",
         "feature:road.highway|element:geometry.stroke|color:0x000000|weight:3",
         // Road labels - bold black, thick white halo
         "feature:road|element:labels.text.fill|color:0x000000",
@@ -96,8 +96,8 @@
       const styleParams = styles.map(s => `style=${encodeURIComponent(s)}`).join("&");
 
       // Custom marker - blue and yellow bullseye hosted in storage
-      const customIconUrl = "https://vouzfwrumlhmtmgglsti.supabase.co/storage/v1/object/public/internal-listing-assets/map-marker-bullseye.png";
-      const markerStyle = `icon:${encodeURIComponent(customIconUrl)}`;
+      const markerIconUrl = "https://vouzfwrumlhmtmgglsti.supabase.co/storage/v1/object/public/internal-listing-assets/map-marker-bullseye.png";
+      const markerStyle = `anchor:center|scale:2|icon:${encodeURIComponent(markerIconUrl)}`;
       
       // Build Google Static Maps URL with custom styling and marker
       const staticMapUrl = `https://maps.googleapis.com/maps/api/staticmap?center=${lat},${lng}&zoom=${zoom}&size=${size}&scale=${scale}&maptype=${maptype}&markers=${markerStyle}%7C${markerLat},${markerLng}&${styleParams}&key=${googleMapsApiKey}`;
