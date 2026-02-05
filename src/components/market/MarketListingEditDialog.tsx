@@ -1135,6 +1135,18 @@ export function MarketListingEditDialog({
                   placeholder="e.g., I-G"
                 />
               </div>
+
+              {/* Land checkbox */}
+              <div className="grid grid-cols-4 items-center gap-4">
+                <div className="col-start-2 col-span-3 flex items-center gap-3">
+                  <Checkbox
+                    id="hasLand"
+                    checked={hasLand}
+                    onCheckedChange={(checked) => setHasLand(!!checked)}
+                  />
+                  <Label htmlFor="hasLand" className="text-sm cursor-pointer">Land</Label>
+                </div>
+              </div>
             </TabsContent>
 
             {/* Building Specs Tab */}
@@ -1417,15 +1429,6 @@ export function MarketListingEditDialog({
                   )}
                 </div>
 
-                {/* Land checkbox row */}
-                <div className="flex items-center gap-3 mt-3">
-                  <Checkbox
-                    id="hasLand"
-                    checked={hasLand}
-                    onCheckedChange={(checked) => setHasLand(!!checked)}
-                  />
-                  <Label htmlFor="hasLand" className="text-sm cursor-pointer">Land</Label>
-                </div>
               </div>
             </TabsContent>
 
