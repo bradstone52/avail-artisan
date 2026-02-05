@@ -143,8 +143,8 @@ export function MarketingSection({ listing, onPhotoUpdate }: MarketingSectionPro
         const adjustedLat = coordinates.lat + mapOffset.lat;
         const adjustedLng = coordinates.lng + mapOffset.lng;
         
-        // Add cache-buster to force fresh fetch
-        const proxyUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/proxy-static-map?lat=${adjustedLat}&lng=${adjustedLng}&zoom=${mapZoom}&size=800x450&scale=2&maptype=roadmap&_t=${Date.now()}`;
+        // Add cache-buster to force fresh fetch; marker stays at original coords
+        const proxyUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/proxy-static-map?lat=${adjustedLat}&lng=${adjustedLng}&markerLat=${coordinates.lat}&markerLng=${coordinates.lng}&zoom=${mapZoom}&size=800x450&scale=2&maptype=roadmap&_t=${Date.now()}`;
         
         const response = await fetch(proxyUrl, {
           headers: {
