@@ -23,6 +23,13 @@ import { AspectRatio } from '@/components/ui/aspect-ratio';
   Image as ImageIcon,
   Trash2,
   MapPin,
+  ZoomIn,
+  ZoomOut,
+  ChevronUp,
+  ChevronDown,
+  ChevronLeft,
+  ChevronRight,
+  RotateCcw,
  } from 'lucide-react';
  import { ListingBrochurePDF, MarketingContent } from './ListingBrochurePDF';
  
@@ -80,6 +87,8 @@ export function MarketingSection({ listing, onPhotoUpdate }: MarketingSectionPro
   const [mapImageUrl, setMapImageUrl] = useState<string | null>(null);
   const [mapLoading, setMapLoading] = useState(false);
   const [mapError, setMapError] = useState<string | null>(null);
+  const [mapZoom, setMapZoom] = useState(14);
+  const [mapOffset, setMapOffset] = useState({ lat: 0, lng: 0 });
 
   // Sync coordinates when listing prop changes (e.g., after parent refetch)
   useEffect(() => {
@@ -130,8 +139,12 @@ export function MarketingSection({ listing, onPhotoUpdate }: MarketingSectionPro
           throw new Error('Not authenticated');
         }
 
+        // Calculate adjusted center with offset
+        const adjustedLat = coordinates.lat + mapOffset.lat;
+        const adjustedLng = coordinates.lng + mapOffset.lng;
+        
         // Add cache-buster to force fresh fetch
-        const proxyUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/proxy-static-map?lat=${coordinates.lat}&lng=${coordinates.lng}&zoom=14&size=800x450&scale=2&maptype=roadmap&_t=${Date.now()}`;
+        const proxyUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/proxy-static-map?lat=${adjustedLat}&lng=${adjustedLng}&zoom=${mapZoom}&size=800x450&scale=2&maptype=roadmap&_t=${Date.now()}`;
         
         const response = await fetch(proxyUrl, {
           headers: {
@@ -169,7 +182,30 @@ export function MarketingSection({ listing, onPhotoUpdate }: MarketingSectionPro
         URL.revokeObjectURL(mapImageUrl);
       }
     };
-  }, [coordinates.lat, coordinates.lng]);
+  }, [coordinates.lat, coordinates.lng, mapZoom, mapOffset.lat, mapOffset.lng]);
+
+  // Map control handlers
+  const handleZoomIn = () => setMapZoom(prev => Math.min(prev + 1, 20));
+  const handleZoomOut = () => setMapZoom(prev => Math.max(prev - 1, 10));
+  
+  const handlePan = (direction: 'up' | 'down' | 'left' | 'right') => {
+    // Pan amount decreases with higher zoom (more zoomed in = smaller pan)
+    const panAmount = 0.005 * Math.pow(2, 14 - mapZoom);
+    setMapOffset(prev => {
+      switch (direction) {
+        case 'up': return { ...prev, lat: prev.lat + panAmount };
+        case 'down': return { ...prev, lat: prev.lat - panAmount };
+        case 'left': return { ...prev, lng: prev.lng - panAmount };
+        case 'right': return { ...prev, lng: prev.lng + panAmount };
+        default: return prev;
+      }
+    });
+  };
+  
+  const handleResetMap = () => {
+    setMapZoom(14);
+    setMapOffset({ lat: 0, lng: 0 });
+  };
 
   const onDrop = useCallback(async (acceptedFiles: File[]) => {
     const file = acceptedFiles[0];
@@ -505,30 +541,116 @@ export function MarketingSection({ listing, onPhotoUpdate }: MarketingSectionPro
         <CardContent>
           {hasLocation ? (
             <div className="space-y-2">
-              <AspectRatio ratio={16 / 9} className="overflow-hidden rounded-lg border bg-muted">
-                {mapLoading ? (
-                  <div className="flex items-center justify-center h-full">
-                    <RefreshCw className="h-6 w-6 animate-spin text-muted-foreground" />
+              <div className="relative">
+                <AspectRatio ratio={16 / 9} className="overflow-hidden rounded-lg border-2 border-foreground bg-muted">
+                  {mapLoading ? (
+                    <div className="flex items-center justify-center h-full">
+                      <RefreshCw className="h-6 w-6 animate-spin text-muted-foreground" />
+                    </div>
+                  ) : mapError ? (
+                    <div className="flex flex-col items-center justify-center h-full text-muted-foreground">
+                      <MapPin className="h-6 w-6 mb-2" />
+                      <p className="text-xs">{mapError}</p>
+                    </div>
+                  ) : mapImageUrl ? (
+                    <img
+                      src={mapImageUrl}
+                      alt="Location map"
+                      className="object-cover w-full h-full"
+                    />
+                  ) : (
+                    <div className="flex items-center justify-center h-full">
+                      <RefreshCw className="h-6 w-6 animate-spin text-muted-foreground" />
+                    </div>
+                  )}
+                </AspectRatio>
+                
+                {/* Map Controls Overlay */}
+                <div className="absolute top-2 right-2 flex flex-col gap-1">
+                  {/* Zoom controls */}
+                  <div className="flex flex-col bg-background/90 backdrop-blur-sm rounded border-2 border-foreground shadow-[2px_2px_0_hsl(var(--foreground))]">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8 rounded-none rounded-t"
+                      onClick={handleZoomIn}
+                      disabled={mapZoom >= 20 || mapLoading}
+                    >
+                      <ZoomIn className="h-4 w-4" />
+                    </Button>
+                    <div className="text-xs text-center py-0.5 border-y border-foreground/20 font-mono">
+                      {mapZoom}
+                    </div>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8 rounded-none rounded-b"
+                      onClick={handleZoomOut}
+                      disabled={mapZoom <= 10 || mapLoading}
+                    >
+                      <ZoomOut className="h-4 w-4" />
+                    </Button>
                   </div>
-                ) : mapError ? (
-                  <div className="flex flex-col items-center justify-center h-full text-muted-foreground">
-                    <MapPin className="h-6 w-6 mb-2" />
-                    <p className="text-xs">{mapError}</p>
+                </div>
+                
+                {/* Pan controls */}
+                <div className="absolute bottom-2 right-2 bg-background/90 backdrop-blur-sm rounded border-2 border-foreground shadow-[2px_2px_0_hsl(var(--foreground))] p-1">
+                  <div className="grid grid-cols-3 gap-0.5">
+                    <div />
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-7 w-7"
+                      onClick={() => handlePan('up')}
+                      disabled={mapLoading}
+                    >
+                      <ChevronUp className="h-4 w-4" />
+                    </Button>
+                    <div />
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-7 w-7"
+                      onClick={() => handlePan('left')}
+                      disabled={mapLoading}
+                    >
+                      <ChevronLeft className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-7 w-7"
+                      onClick={handleResetMap}
+                      disabled={mapLoading}
+                      title="Reset to original position"
+                    >
+                      <RotateCcw className="h-3 w-3" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-7 w-7"
+                      onClick={() => handlePan('right')}
+                      disabled={mapLoading}
+                    >
+                      <ChevronRight className="h-4 w-4" />
+                    </Button>
+                    <div />
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-7 w-7"
+                      onClick={() => handlePan('down')}
+                      disabled={mapLoading}
+                    >
+                      <ChevronDown className="h-4 w-4" />
+                    </Button>
+                    <div />
                   </div>
-                ) : mapImageUrl ? (
-                  <img
-                    src={mapImageUrl}
-                    alt="Location map"
-                    className="object-cover w-full h-full"
-                  />
-                ) : (
-                  <div className="flex items-center justify-center h-full">
-                    <RefreshCw className="h-6 w-6 animate-spin text-muted-foreground" />
-                  </div>
-                )}
-              </AspectRatio>
+                </div>
+              </div>
               <p className="text-xs text-muted-foreground text-center">
-                Map will be included in PDF brochure
+                Adjust zoom and position using controls • Map will be included in PDF brochure
               </p>
             </div>
           ) : (

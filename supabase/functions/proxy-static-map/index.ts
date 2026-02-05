@@ -63,30 +63,38 @@
        );
      }
  
-      // Custom styling: hide business labels, emphasize roads
+      // "Poppy" color scheme: bold, high-contrast roads with clean look
       const styles = [
-        // Hide all POI (points of interest) - businesses, etc.
+        // Hide all POI (points of interest)
         "feature:poi|visibility:off",
-        // Hide transit labels
         "feature:transit|element:labels|visibility:off",
-        // Make roads more prominent with better contrast
-        "feature:road|element:geometry|color:0xffffff",
-        "feature:road|element:geometry.stroke|color:0xaaaaaa|weight:1",
-        // Make road labels more visible - darker text with white stroke
-        "feature:road|element:labels.text.fill|color:0x222222",
+        // Muted background
+        "feature:landscape|element:geometry|color:0xf5f5f0",
+        "feature:water|element:geometry|color:0xc9e4f0",
+        // Local roads - clean white with bold dark stroke
+        "feature:road.local|element:geometry.fill|color:0xffffff",
+        "feature:road.local|element:geometry.stroke|color:0x444444|weight:1.5",
+        // Arterial roads - warm accent
+        "feature:road.arterial|element:geometry.fill|color:0xffd866",
+        "feature:road.arterial|element:geometry.stroke|color:0xcc8800|weight:1.5",
+        // Highways - bold coral/orange
+        "feature:road.highway|element:geometry.fill|color:0xff7744",
+        "feature:road.highway|element:geometry.stroke|color:0xcc4400|weight:2",
+        // Road labels - high contrast
+        "feature:road|element:labels.text.fill|color:0x111111",
         "feature:road|element:labels.text.stroke|color:0xffffff|weight:4",
-        // Arterial roads
-        "feature:road.arterial|element:geometry|color:0xf5f5f5",
-        "feature:road.arterial|element:geometry.stroke|color:0x999999",
-        // Highway styling - slightly darker
-        "feature:road.highway|element:geometry|color:0xe8e8e8",
-        "feature:road.highway|element:geometry.stroke|color:0x888888|weight:1",
+        // Administrative labels subtle
+        "feature:administrative|element:labels.text.fill|color:0x666666",
       ];
       
       const styleParams = styles.map(s => `style=${encodeURIComponent(s)}`).join("&");
 
-      // Build Google Static Maps URL with custom styling
-      const staticMapUrl = `https://maps.googleapis.com/maps/api/staticmap?center=${lat},${lng}&zoom=${zoom}&size=${size}&scale=${scale}&maptype=${maptype}&markers=color:red%7C${lat},${lng}&${styleParams}&key=${googleMapsApiKey}`;
+      // Custom marker - use a themed color (0x followed by hex without #)
+      // Orange marker to match the poppy theme
+      const markerStyle = "color:0xFF6B35%7Csize:mid";
+      
+      // Build Google Static Maps URL with custom styling and marker
+      const staticMapUrl = `https://maps.googleapis.com/maps/api/staticmap?center=${lat},${lng}&zoom=${zoom}&size=${size}&scale=${scale}&maptype=${maptype}&markers=${markerStyle}%7C${lat},${lng}&${styleParams}&key=${googleMapsApiKey}`;
  
      // Fetch the image from Google
      const mapResponse = await fetch(staticMapUrl);
