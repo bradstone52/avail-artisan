@@ -17,6 +17,7 @@ import { InternalListingEditDialog } from '@/components/internal-listings/Intern
 import { InternalListingDocumentsSection } from '@/components/internal-listings/InternalListingDocumentsSection';
 import { InquiriesSection } from '@/components/internal-listings/InquiriesSection';
 import { ToursSection } from '@/components/internal-listings/ToursSection';
+ import { MarketingSection } from '@/components/internal-listings/MarketingSection';
 import { formatNumber, formatCurrency } from '@/lib/format';
 import { format } from 'date-fns';
 import {
@@ -30,6 +31,7 @@ import {
   History,
   Mail,
   BarChart3,
+   Sparkles,
 } from 'lucide-react';
 
 const statusColors: Record<string, string> = {
@@ -124,10 +126,23 @@ export default function InternalListingDetail() {
               {listing.listing_number && ` • #${listing.listing_number}`}
             </p>
           </div>
-          <Button className="gap-2" onClick={() => setEditDialogOpen(true)}>
-            <Pencil className="h-4 w-4" />
-            Edit
-          </Button>
+           <div className="flex items-center gap-2">
+             <Button
+               variant="outline"
+               className="gap-2"
+               onClick={() => {
+                 const marketingTab = document.querySelector('[value="marketing"]') as HTMLButtonElement;
+                 marketingTab?.click();
+               }}
+             >
+               <Sparkles className="h-4 w-4" />
+               <span className="hidden sm:inline">Generate Brochure</span>
+             </Button>
+             <Button className="gap-2" onClick={() => setEditDialogOpen(true)}>
+               <Pencil className="h-4 w-4" />
+               Edit
+             </Button>
+           </div>
         </div>
 
         <Tabs defaultValue="overview" className="space-y-4">
@@ -389,12 +404,7 @@ export default function InternalListingDetail() {
           </TabsContent>
 
           <TabsContent value="marketing">
-            <Card className="border-2 border-foreground shadow-[4px_4px_0_hsl(var(--foreground))]">
-              <CardContent className="py-12 text-center text-muted-foreground">
-                <BarChart3 className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                <p>Brochure generation & marketing tools coming in Phase 4</p>
-              </CardContent>
-            </Card>
+             <MarketingSection listing={listing} />
           </TabsContent>
 
           <TabsContent value="activity" className="space-y-4">

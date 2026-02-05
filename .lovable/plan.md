@@ -109,9 +109,31 @@ Implement full document management capabilities for internal listings, allowing 
 
 # Future Phases
 
-## Phase 4: AI Marketing & IDML Brochure Generation
-- Automated brochure creation in PDF and InDesign (IDML) formats
-- AI-generated marketing copy
+ # Phase 4: AI Marketing & IDML Brochure Generation ✅ COMPLETED
+ 
+ ## Overview
+ Implemented AI-powered marketing content generation and brochure creation for internal listings.
+ 
+ ## Features
+ - **AI Marketing Copy**: Generates headline, tagline, description, highlights, and confidential broker pitch using Lovable AI (Gemini)
+ - **PDF Brochure**: Professional two-column layout with property specs, pricing, and marketing content
+ - **InDesign Export**: JSON data export compatible with Adobe InDesign Data Merge
+ - **Content Editing**: Full inline editing of AI-generated content before export
+ - **Confidential Toggle**: Option to include/exclude broker notes from exports
+ 
+ ## Files Created/Modified
+ 
+ | Action | File |
+ |--------|------|
+ | ✅ Created | `supabase/functions/generate-listing-marketing/index.ts` |
+ | ✅ Created | `src/components/internal-listings/ListingBrochurePDF.tsx` |
+ | ✅ Created | `src/components/internal-listings/MarketingSection.tsx` |
+ | ✅ Modified | `src/pages/InternalListingDetail.tsx` |
+ | ✅ Modified | `supabase/config.toml` |
+ 
+ ---
+ 
+ # Future Phases
 
 ## Phase 5: Smart Validation
 - Data integrity checks for listings
