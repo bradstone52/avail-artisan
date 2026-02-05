@@ -95,9 +95,8 @@
       
       const styleParams = styles.map(s => `style=${encodeURIComponent(s)}`).join("&");
 
-      // Custom marker - blue circle with yellow center (bullseye effect)
-      // Using Google's built-in marker with custom color since custom icons have size limits
-      const markerStyle = "color:0x3B82F6|size:mid|label:●";
+      // High contrast marker - bright magenta/hot pink for maximum visibility
+      const markerStyle = "color:0xFF0066|size:large";
       
       // Build Google Static Maps URL with custom styling and marker
       const staticMapUrl = `https://maps.googleapis.com/maps/api/staticmap?center=${lat},${lng}&zoom=${zoom}&size=${size}&scale=${scale}&maptype=${maptype}&markers=${markerStyle}%7C${markerLat},${markerLng}&${styleParams}&key=${googleMapsApiKey}`;
