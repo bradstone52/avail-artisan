@@ -34,7 +34,7 @@ import { cn } from '@/lib/utils';
 import { formatSubmarket } from '@/lib/formatters';
 
 export type SortDirection = 'asc' | 'desc' | null;
-export type SortableColumn = 'size_sf' | 'warehouse_sf' | 'office_sf' | 'dock_doors' | 'drive_in_doors' | 'power_amps';
+export type SortableColumn = 'size_sf' | 'warehouse_sf' | 'office_sf' | 'dock_doors' | 'drive_in_doors' | 'power_amps' | 'last_verified_date';
 
 interface MarketListingsTableProps {
   listings: MarketListing[];
@@ -397,7 +397,7 @@ export function MarketListingsTable({ listings, onEdit, onRefresh, sortColumn, s
             <TableHead className="text-background min-w-[140px] bg-zinc-700 dark:bg-zinc-600">Brokerage</TableHead>
             <TableHead className="text-background min-w-[180px] bg-zinc-700 dark:bg-zinc-600">Notes</TableHead>
             <TableHead className="text-background min-w-[130px] bg-zinc-700 dark:bg-zinc-600">Status</TableHead>
-            <TableHead className="text-background min-w-[100px] bg-zinc-700 dark:bg-zinc-600">Verified</TableHead>
+            <SortableHeader column="last_verified_date" className="min-w-[100px] bg-zinc-700 dark:bg-zinc-600">Verified</SortableHeader>
             <TableHead className="sticky right-0 z-30 min-w-[160px] bg-zinc-700 dark:bg-zinc-600 text-background shadow-[-2px_0_5px_-2px_rgba(0,0,0,0.3)]">Actions</TableHead>
           </TableRow>
         </TableHeader>

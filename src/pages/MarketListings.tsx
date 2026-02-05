@@ -238,6 +238,10 @@ export default function MarketListings() {
           aVal = a.power_amps;
           bVal = b.power_amps;
           break;
+        case 'last_verified_date':
+          aVal = a.last_verified_date;
+          bVal = b.last_verified_date;
+          break;
       }
       
       // Handle nulls - push to end
@@ -250,6 +254,14 @@ export default function MarketListings() {
         const aNum = parseFloat(String(aVal).replace(/[^0-9.-]/g, '')) || 0;
         const bNum = parseFloat(String(bVal).replace(/[^0-9.-]/g, '')) || 0;
         return sortDirection === 'asc' ? aNum - bNum : bNum - aNum;
+      }
+
+      // For last_verified_date (string date), compare as strings (ISO format sorts correctly)
+      if (sortColumn === 'last_verified_date') {
+        const aStr = String(aVal);
+        const bStr = String(bVal);
+        const cmp = aStr.localeCompare(bStr);
+        return sortDirection === 'asc' ? cmp : -cmp;
       }
       
       // Numeric comparison
