@@ -1,8 +1,8 @@
 
-# Phase 3: Inquiry & Lead Tracking ✅ COMPLETED
+ # Phase 3: Inquiry & Lead Tracking ✅ COMPLETED (Includes Tours)
 
 ## Overview
-Implement inquiry and lead tracking for internal listings, allowing users to track prospects, manage pipeline stages, and log activity touchpoints.
+ Implemented inquiry and lead tracking for internal listings, allowing users to track prospects, manage pipeline stages, and log activity touchpoints. Also includes property tour logging functionality.
 
 ---
 
@@ -76,12 +76,15 @@ Call, Email, Tour, Meeting, Offer, LOI, Note, Other
 | Action | File |
 |--------|------|
 | ✅ Created | `src/hooks/useInternalListingInquiries.ts` |
-| ✅ Created | `src/components/internal-listings/InquiriesSection.tsx` |
+ | ✅ Created | `src/hooks/useInternalListingTours.ts` |
 | ✅ Created | `src/components/internal-listings/InquiryCard.tsx` |
 | ✅ Created | `src/components/internal-listings/InquiryTimeline.tsx` |
 | ✅ Created | `src/components/internal-listings/InquiryFormDialog.tsx` |
+ | ✅ Created | `src/components/internal-listings/InquiriesSection.tsx` |
+ | ✅ Created | `src/components/internal-listings/TourFormDialog.tsx` |
+ | ✅ Created | `src/components/internal-listings/ToursSection.tsx` |
 | ✅ Modified | `src/pages/InternalListingDetail.tsx` |
-| ✅ Created | Database migration for tables + RLS |
+ | ✅ Created | Database migrations for inquiry + tour tables + RLS |
 
 ---
 
