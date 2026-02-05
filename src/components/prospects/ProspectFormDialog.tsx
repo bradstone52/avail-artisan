@@ -20,6 +20,7 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { FormattedNumberInput } from '@/components/common/FormattedNumberInput';
 import { useCreateProspect, useUpdateProspect } from '@/hooks/useProspects';
+import { useCreateFollowUpDate } from '@/hooks/useProspectFollowUpDates';
 import type { Prospect, ProspectFormData, ProspectType, ProspectSource } from '@/types/prospect';
 
 interface ProspectFormDialogProps {
@@ -37,6 +38,7 @@ const prospectSources: ProspectSource[] = [
 export function ProspectFormDialog({ open, onOpenChange, prospect }: ProspectFormDialogProps) {
   const createProspect = useCreateProspect();
   const updateProspect = useUpdateProspect();
+  const createFollowUpDate = useCreateFollowUpDate();
   const isEditing = !!prospect;
 
   const [formData, setFormData] = useState<ProspectFormData>({
@@ -97,8 +99,22 @@ export function ProspectFormDialog({ open, onOpenChange, prospect }: ProspectFor
     try {
       if (isEditing && prospect) {
         await updateProspect.mutateAsync({ id: prospect.id, ...formData });
+        // If follow_up_date was added/changed, also add it to the follow-up dates list
+        if (formData.follow_up_date && formData.follow_up_date !== prospect.follow_up_date) {
+          await createFollowUpDate.mutateAsync({
+            prospectId: prospect.id,
+            date: formData.follow_up_date,
+          });
+        }
       } else {
-        await createProspect.mutateAsync(formData);
+        const created = await createProspect.mutateAsync(formData);
+        // If follow_up_date was set on creation, also add it to the follow-up dates list
+        if (formData.follow_up_date && created?.id) {
+          await createFollowUpDate.mutateAsync({
+            prospectId: created.id,
+            date: formData.follow_up_date,
+          });
+        }
       }
       onOpenChange(false);
     } catch (error) {
