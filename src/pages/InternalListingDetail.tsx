@@ -404,7 +404,10 @@ export default function InternalListingDetail() {
           </TabsContent>
 
           <TabsContent value="marketing">
-             <MarketingSection listing={listing} />
+           <MarketingSection 
+             listing={listing} 
+             onPhotoUpdate={(url) => refetch()}
+           />
           </TabsContent>
 
           <TabsContent value="activity" className="space-y-4">

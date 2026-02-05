@@ -35,9 +35,13 @@
      taxes: number | null;
      gross_rate: number | null;
      listing_number: string | null;
+    latitude: number | null;
+    longitude: number | null;
+    photo_url: string | null;
    };
    marketing: MarketingContent;
    includeConfidential?: boolean;
+  staticMapUrl?: string;
  }
  
  const colors = {
@@ -228,6 +232,29 @@
      textAlign: 'center',
      maxWidth: '70%',
    },
+  heroImage: {
+    width: '100%',
+    height: 180,
+    objectFit: 'cover',
+    marginBottom: 15,
+    borderRadius: 4,
+  },
+  mapSection: {
+    marginTop: 15,
+    marginBottom: 15,
+  },
+  mapImage: {
+    width: '100%',
+    height: 140,
+    objectFit: 'cover',
+    borderRadius: 4,
+  },
+  mapCaption: {
+    fontSize: 8,
+    color: colors.secondary,
+    textAlign: 'center',
+    marginTop: 4,
+  },
  });
  
  const formatNumber = (value: number | null | undefined) => {
@@ -249,7 +276,7 @@
    return `$${value.toFixed(2)}/SF`;
  };
  
- export function ListingBrochurePDF({ listing, marketing, includeConfidential = false }: ListingBrochurePDFProps) {
+export function ListingBrochurePDF({ listing, marketing, includeConfidential = false, staticMapUrl }: ListingBrochurePDFProps) {
    const dealTypeLabel = listing.deal_type === 'sale' ? 'FOR SALE' :
                          listing.deal_type === 'lease' ? 'FOR LEASE' : 'FOR SALE/LEASE';
  
@@ -289,6 +316,11 @@
            </View>
          </View>
  
+        {/* Hero Photo */}
+        {listing.photo_url && (
+          <Image src={listing.photo_url} style={styles.heroImage} />
+        )}
+
          {/* Hero Section */}
          <View style={styles.heroSection}>
            <Text style={styles.headline}>{marketing.headline}</Text>
@@ -369,6 +401,17 @@
            </View>
          </View>
  
+        {/* Location Map */}
+        {staticMapUrl && (
+          <View style={styles.mapSection}>
+            <Text style={styles.sectionTitle}>Location</Text>
+            <Image src={staticMapUrl} style={styles.mapImage} />
+            <Text style={styles.mapCaption}>
+              {listing.display_address || listing.address}, {listing.city}
+            </Text>
+          </View>
+        )}
+
          {/* Confidential Broker Pitch */}
          {includeConfidential && (
            <View style={styles.confidentialBox}>

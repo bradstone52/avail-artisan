@@ -1,4 +1,5 @@
  import { useState } from 'react';
+import { useCallback } from 'react';
  import { pdf } from '@react-pdf/renderer';
  import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
  import { Button } from '@/components/ui/button';
@@ -9,6 +10,8 @@
  import { Skeleton } from '@/components/ui/skeleton';
  import { supabase } from '@/integrations/supabase/client';
  import { toast } from 'sonner';
+import { useDropzone } from 'react-dropzone';
+import { AspectRatio } from '@/components/ui/aspect-ratio';
  import {
    Sparkles,
    FileText,
@@ -17,6 +20,9 @@
    Pencil,
    Save,
    X,
+  Upload,
+  Image as ImageIcon,
+  Trash2,
  } from 'lucide-react';
  import { ListingBrochurePDF, MarketingContent } from './ListingBrochurePDF';
  
@@ -49,16 +55,85 @@
      taxes: number | null;
      gross_rate: number | null;
      listing_number: string | null;
+      latitude: number | null;
+      longitude: number | null;
+      photo_url: string | null;
    };
+    onPhotoUpdate?: (photoUrl: string | null) => void;
  }
  
- export function MarketingSection({ listing }: MarketingSectionProps) {
+export function MarketingSection({ listing, onPhotoUpdate }: MarketingSectionProps) {
    const [isGenerating, setIsGenerating] = useState(false);
    const [marketingContent, setMarketingContent] = useState<MarketingContent | null>(null);
    const [isEditing, setIsEditing] = useState(false);
    const [editedContent, setEditedContent] = useState<MarketingContent | null>(null);
    const [includeConfidential, setIncludeConfidential] = useState(false);
    const [isDownloading, setIsDownloading] = useState(false);
+  const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
+  const [photoUrl, setPhotoUrl] = useState<string | null>(listing.photo_url);
+
+  const onDrop = useCallback(async (acceptedFiles: File[]) => {
+    const file = acceptedFiles[0];
+    if (!file) return;
+
+    setIsUploadingPhoto(true);
+    try {
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${listing.id}/${Date.now()}.${fileExt}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from('internal-listing-photos')
+        .upload(fileName, file, { upsert: true });
+
+      if (uploadError) throw uploadError;
+
+      const { data: { publicUrl } } = supabase.storage
+        .from('internal-listing-photos')
+        .getPublicUrl(fileName);
+
+      // Update the listing record
+      const { error: updateError } = await supabase
+        .from('internal_listings')
+        .update({ photo_url: publicUrl })
+        .eq('id', listing.id);
+
+      if (updateError) throw updateError;
+
+      setPhotoUrl(publicUrl);
+      onPhotoUpdate?.(publicUrl);
+      toast.success('Photo uploaded successfully');
+    } catch (error) {
+      console.error('Error uploading photo:', error);
+      toast.error('Failed to upload photo');
+    } finally {
+      setIsUploadingPhoto(false);
+    }
+  }, [listing.id, onPhotoUpdate]);
+
+  const { getRootProps, getInputProps, isDragActive } = useDropzone({
+    onDrop,
+    accept: { 'image/*': ['.jpg', '.jpeg', '.png', '.webp'] },
+    maxFiles: 1,
+    maxSize: 10 * 1024 * 1024, // 10MB
+  });
+
+  const handleRemovePhoto = async () => {
+    try {
+      const { error } = await supabase
+        .from('internal_listings')
+        .update({ photo_url: null })
+        .eq('id', listing.id);
+
+      if (error) throw error;
+
+      setPhotoUrl(null);
+      onPhotoUpdate?.(null);
+      toast.success('Photo removed');
+    } catch (error) {
+      console.error('Error removing photo:', error);
+      toast.error('Failed to remove photo');
+    }
+  };
  
    const generateMarketingContent = async () => {
      setIsGenerating(true);
@@ -99,11 +174,33 @@
      
      setIsDownloading(true);
      try {
+      // Get Google Maps API key for static map
+      let staticMapUrl: string | undefined;
+      if (listing.latitude && listing.longitude) {
+        try {
+          const { data: tokenData } = await supabase.functions.invoke('get-google-maps-token', {
+            body: { authenticated: true }
+          });
+          if (tokenData?.token) {
+            staticMapUrl = `https://maps.googleapis.com/maps/api/staticmap?center=${listing.latitude},${listing.longitude}&zoom=14&size=800x450&scale=2&maptype=roadmap&markers=color:red%7C${listing.latitude},${listing.longitude}&key=${tokenData.token}`;
+          }
+        } catch (mapError) {
+          console.warn('Could not fetch map token:', mapError);
+        }
+      }
+
+      // Use current photoUrl state (which may have been updated via upload)
+      const listingWithPhoto = {
+        ...listing,
+        photo_url: photoUrl,
+      };
+
        const doc = (
          <ListingBrochurePDF 
-           listing={listing} 
+          listing={listingWithPhoto} 
            marketing={marketingContent}
            includeConfidential={includeConfidential}
+          staticMapUrl={staticMapUrl}
          />
        );
        
@@ -134,6 +231,11 @@
          listing_id: listing.id,
          listing_number: listing.listing_number,
        },
+        assets: {
+          photo_url: photoUrl,
+          latitude: listing.latitude,
+          longitude: listing.longitude,
+        },
        content: {
          headline: marketingContent.headline,
          tagline: marketingContent.tagline,
@@ -179,8 +281,102 @@
      toast.success('IDML data exported! Import into InDesign via Data Merge.');
    };
  
+  const hasLocation = listing.latitude && listing.longitude;
+
    return (
      <div className="space-y-6">
+      {/* Photo Upload Section */}
+      <Card className="border-2 border-foreground shadow-[4px_4px_0_hsl(var(--foreground))]">
+        <CardHeader>
+          <CardTitle className="text-base flex items-center gap-2">
+            <ImageIcon className="h-4 w-4" />
+            Brochure Photo
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          {photoUrl ? (
+            <div className="space-y-4">
+              <AspectRatio ratio={16 / 9} className="overflow-hidden rounded-lg border">
+                <img
+                  src={photoUrl}
+                  alt="Listing photo"
+                  className="object-cover w-full h-full"
+                />
+              </AspectRatio>
+              <div className="flex gap-2">
+                <div {...getRootProps()} className="flex-1">
+                  <input {...getInputProps()} />
+                  <Button variant="outline" className="w-full" disabled={isUploadingPhoto}>
+                    {isUploadingPhoto ? (
+                      <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                    ) : (
+                      <Upload className="h-4 w-4 mr-2" />
+                    )}
+                    Replace Photo
+                  </Button>
+                </div>
+                <Button variant="outline" onClick={handleRemovePhoto}>
+                  <Trash2 className="h-4 w-4" />
+                </Button>
+              </div>
+            </div>
+          ) : (
+            <div
+              {...getRootProps()}
+              className={`border-2 border-dashed rounded-lg p-8 text-center cursor-pointer transition-colors ${
+                isDragActive
+                  ? 'border-primary bg-primary/5'
+                  : 'border-muted-foreground/25 hover:border-primary/50'
+              }`}
+            >
+              <input {...getInputProps()} />
+              {isUploadingPhoto ? (
+                <RefreshCw className="h-8 w-8 mx-auto mb-2 animate-spin text-primary" />
+              ) : (
+                <Upload className="h-8 w-8 mx-auto mb-2 text-muted-foreground" />
+              )}
+              <p className="text-sm text-muted-foreground">
+                {isDragActive ? 'Drop image here...' : 'Drag & drop a photo, or click to select'}
+              </p>
+              <p className="text-xs text-muted-foreground mt-1">
+                JPG, PNG, or WebP up to 10MB
+              </p>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Location Map Preview */}
+      <Card className="border-2 border-foreground shadow-[4px_4px_0_hsl(var(--foreground))]">
+        <CardHeader>
+          <CardTitle className="text-base">Location Map</CardTitle>
+        </CardHeader>
+        <CardContent>
+          {hasLocation ? (
+            <div className="space-y-2">
+              <AspectRatio ratio={16 / 9} className="overflow-hidden rounded-lg border bg-muted">
+                <img
+                  src={`https://maps.googleapis.com/maps/api/staticmap?center=${listing.latitude},${listing.longitude}&zoom=14&size=800x450&scale=2&maptype=roadmap&markers=color:red%7C${listing.latitude},${listing.longitude}&key=${import.meta.env.VITE_GOOGLE_MAPS_KEY || ''}`}
+                  alt="Location map"
+                  className="object-cover w-full h-full"
+                  onError={(e) => {
+                    (e.target as HTMLImageElement).style.display = 'none';
+                  }}
+                />
+              </AspectRatio>
+              <p className="text-xs text-muted-foreground text-center">
+                Map will be included in PDF brochure
+              </p>
+            </div>
+          ) : (
+            <div className="text-center py-6 text-muted-foreground">
+              <p className="text-sm">No location coordinates available</p>
+              <p className="text-xs mt-1">Geocode the listing to include a map in the brochure</p>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
        {/* Generate Button */}
        {!marketingContent && !isGenerating && (
          <Card className="border-2 border-foreground shadow-[4px_4px_0_hsl(var(--foreground))]">
