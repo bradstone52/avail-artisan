@@ -78,20 +78,20 @@
         "feature:water|element:geometry|color:0x93C5FD",
         // Local roads - cream fill with thick black stroke
         "feature:road.local|element:geometry.fill|color:0xFFFFFF",
-        "feature:road.local|element:geometry.stroke|color:0x000000|weight:2",
-        // Arterial roads - bold yellow (matches dashboard Quick Actions)
-        "feature:road.arterial|element:geometry.fill|color:0xFBBF24",
-        "feature:road.arterial|element:geometry.stroke|color:0x000000|weight:2.5",
+      "feature:road.local|element:geometry.stroke|color:0xD1D5DB|weight:1",
+      // Arterial roads - darker yellow with thin grey stroke
+      "feature:road.arterial|element:geometry.fill|color:0xF59E0B",
+      "feature:road.arterial|element:geometry.stroke|color:0xD1D5DB|weight:1",
         // Highways - darker yellow/amber with thick black stroke
         "feature:road.highway|element:geometry.fill|color:0xD97706",
-        "feature:road.highway|element:geometry.stroke|color:0x000000|weight:3",
+      "feature:road.highway|element:geometry.stroke|color:0x9CA3AF|weight:1.5",
         // Road labels - super bold, high contrast poppy style
         "feature:road|element:labels.text.fill|color:0x000000",
         "feature:road|element:labels.text.stroke|color:0xFFFFFF|weight:6",
         "feature:road|element:labels.icon|visibility:off",
         // Buildings - light gray with visible outlines
         "feature:building|element:geometry.fill|color:0xE5E5E5",
-        "feature:building|element:geometry.stroke|color:0x000000|weight:1",
+      "feature:building|element:geometry.stroke|color:0xD1D5DB|weight:0.5",
       ];
       
       const styleParams = styles.map(s => `style=${encodeURIComponent(s)}`).join("&");
