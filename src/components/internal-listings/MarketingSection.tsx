@@ -1,5 +1,5 @@
  import { useState } from 'react';
-import { useCallback } from 'react';
+import { useCallback, useEffect } from 'react';
  import { pdf } from '@react-pdf/renderer';
  import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
  import { Button } from '@/components/ui/button';
@@ -77,6 +77,24 @@ export function MarketingSection({ listing, onPhotoUpdate }: MarketingSectionPro
     lat: listing.latitude,
     lng: listing.longitude,
   });
+  const [googleMapsKey, setGoogleMapsKey] = useState<string | null>(null);
+
+  // Fetch Google Maps API key for map preview
+  useEffect(() => {
+    const fetchMapsKey = async () => {
+      try {
+        const { data: tokenData } = await supabase.functions.invoke('get-google-maps-token', {
+          body: { authenticated: true }
+        });
+        if (tokenData?.apiKey) {
+          setGoogleMapsKey(tokenData.apiKey);
+        }
+      } catch (error) {
+        console.warn('Could not fetch maps key for preview:', error);
+      }
+    };
+    fetchMapsKey();
+  }, []);
 
   const onDrop = useCallback(async (acceptedFiles: File[]) => {
     const file = acceptedFiles[0];
@@ -234,8 +252,8 @@ export function MarketingSection({ listing, onPhotoUpdate }: MarketingSectionPro
           const { data: tokenData } = await supabase.functions.invoke('get-google-maps-token', {
             body: { authenticated: true }
           });
-          if (tokenData?.token) {
-            staticMapUrl = `https://maps.googleapis.com/maps/api/staticmap?center=${coordinates.lat},${coordinates.lng}&zoom=14&size=800x450&scale=2&maptype=roadmap&markers=color:red%7C${coordinates.lat},${coordinates.lng}&key=${tokenData.token}`;
+          if (tokenData?.apiKey) {
+            staticMapUrl = `https://maps.googleapis.com/maps/api/staticmap?center=${coordinates.lat},${coordinates.lng}&zoom=14&size=800x450&scale=2&maptype=roadmap&markers=color:red%7C${coordinates.lat},${coordinates.lng}&key=${tokenData.apiKey}`;
           }
         } catch (mapError) {
           console.warn('Could not fetch map token:', mapError);
@@ -413,14 +431,20 @@ export function MarketingSection({ listing, onPhotoUpdate }: MarketingSectionPro
           {hasLocation ? (
             <div className="space-y-2">
               <AspectRatio ratio={16 / 9} className="overflow-hidden rounded-lg border bg-muted">
-                <img
-                  src={`https://maps.googleapis.com/maps/api/staticmap?center=${coordinates.lat},${coordinates.lng}&zoom=14&size=800x450&scale=2&maptype=roadmap&markers=color:red%7C${coordinates.lat},${coordinates.lng}&key=${import.meta.env.VITE_GOOGLE_MAPS_KEY || ''}`}
-                  alt="Location map"
-                  className="object-cover w-full h-full"
-                  onError={(e) => {
-                    (e.target as HTMLImageElement).style.display = 'none';
-                  }}
-                />
+                {googleMapsKey ? (
+                  <img
+                    src={`https://maps.googleapis.com/maps/api/staticmap?center=${coordinates.lat},${coordinates.lng}&zoom=14&size=800x450&scale=2&maptype=roadmap&markers=color:red%7C${coordinates.lat},${coordinates.lng}&key=${googleMapsKey}`}
+                    alt="Location map"
+                    className="object-cover w-full h-full"
+                    onError={(e) => {
+                      (e.target as HTMLImageElement).style.display = 'none';
+                    }}
+                  />
+                ) : (
+                  <div className="flex items-center justify-center h-full">
+                    <RefreshCw className="h-6 w-6 animate-spin text-muted-foreground" />
+                  </div>
+                )}
               </AspectRatio>
               <p className="text-xs text-muted-foreground text-center">
                 Map will be included in PDF brochure
