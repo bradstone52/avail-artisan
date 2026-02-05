@@ -130,7 +130,8 @@ export function MarketingSection({ listing, onPhotoUpdate }: MarketingSectionPro
           throw new Error('Not authenticated');
         }
 
-        const proxyUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/proxy-static-map?lat=${coordinates.lat}&lng=${coordinates.lng}&zoom=14&size=800x450&scale=2&maptype=roadmap`;
+        // Add cache-buster to force fresh fetch
+        const proxyUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/proxy-static-map?lat=${coordinates.lat}&lng=${coordinates.lng}&zoom=14&size=800x450&scale=2&maptype=roadmap&_t=${Date.now()}`;
         
         const response = await fetch(proxyUrl, {
           headers: {
