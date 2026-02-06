@@ -29,6 +29,7 @@ import {
 } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { FormattedNumberInput } from '@/components/common/FormattedNumberInput';
+import { CityCombobox } from '@/components/common/CityCombobox';
 import {
   InternalListing,
   InternalListingFormData,
@@ -593,7 +594,11 @@ export function InternalListingEditDialog({
                       <FormItem>
                         <FormLabel>City *</FormLabel>
                         <FormControl>
-                          <Input {...field} placeholder="Calgary" />
+                          <CityCombobox
+                            value={field.value}
+                            onChange={field.onChange}
+                            placeholder="Select city"
+                          />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
