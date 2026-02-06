@@ -59,6 +59,7 @@ export default function MarketListings() {
   const [docksFilter, setDocksFilter] = useState<string>('all');
   const [driveInFilter, setDriveInFilter] = useState<string>('all');
   const [staleFilter, setStaleFilter] = useState<string>('all');
+  const [landOnlyFilter, setLandOnlyFilter] = useState<string>('all');
 
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
@@ -210,11 +211,18 @@ export default function MarketListings() {
         if (staleFilter === 'no' && isStale) return false;
       }
 
+      // Land Only filter
+      if (landOnlyFilter !== 'all') {
+        const hasLand = (listing as any).has_land === true;
+        if (landOnlyFilter === 'yes' && !hasLand) return false;
+        if (landOnlyFilter === 'no' && hasLand) return false;
+      }
+
       return true;
     });
-  }, [listings, searchQuery, submarketFilter, cityFilter, statusFilter, sizeFilter, distWarehouseFilter, brokerFilter, listingTypeFilter, landlordFilter, docksFilter, driveInFilter, staleFilter]);
+  }, [listings, searchQuery, submarketFilter, cityFilter, statusFilter, sizeFilter, distWarehouseFilter, brokerFilter, listingTypeFilter, landlordFilter, docksFilter, driveInFilter, staleFilter, landOnlyFilter]);
 
-  const hasActiveFilters = searchQuery || submarketFilter.length > 0 || cityFilter !== 'all' || statusFilter !== 'all' || sizeFilter !== 'all' || distWarehouseFilter !== 'all' || brokerFilter !== 'all' || listingTypeFilter !== 'all' || landlordFilter !== 'all' || docksFilter !== 'all' || driveInFilter !== 'all' || staleFilter !== 'all';
+  const hasActiveFilters = searchQuery || submarketFilter.length > 0 || cityFilter !== 'all' || statusFilter !== 'all' || sizeFilter !== 'all' || distWarehouseFilter !== 'all' || brokerFilter !== 'all' || listingTypeFilter !== 'all' || landlordFilter !== 'all' || docksFilter !== 'all' || driveInFilter !== 'all' || staleFilter !== 'all' || landOnlyFilter !== 'all';
 
   // Sort filtered listings
   const sortedListings = useMemo(() => {
@@ -302,6 +310,7 @@ export default function MarketListings() {
     setDocksFilter('all');
     setDriveInFilter('all');
     setStaleFilter('all');
+    setLandOnlyFilter('all');
     setCurrentPage(1);
   };
 
@@ -670,6 +679,21 @@ export default function MarketListings() {
                       <SelectItem value="all">All</SelectItem>
                       <SelectItem value="yes">Stale (30+ days)</SelectItem>
                       <SelectItem value="no">Recently Verified</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {/* Land Only */}
+                <div>
+                  <Label className="text-xs text-muted-foreground mb-1.5 block">Land Only</Label>
+                  <Select value={landOnlyFilter} onValueChange={setLandOnlyFilter}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="All" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All</SelectItem>
+                      <SelectItem value="yes">Land Only</SelectItem>
+                      <SelectItem value="no">Not Land</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
