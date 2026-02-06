@@ -33,7 +33,7 @@ import { AspectRatio } from '@/components/ui/aspect-ratio';
   Plus,
   Images,
  } from 'lucide-react';
- import { ListingBrochurePDF, MarketingContent } from './ListingBrochurePDF';
+ import { ListingBrochurePDF, MarketingContent, BrochureListingData } from './ListingBrochurePDF';
 import { useInternalListingPhotos } from '@/hooks/useInternalListingPhotos';
 import { useOrg } from '@/hooks/useOrg';
  
@@ -48,10 +48,12 @@ import { useOrg } from '@/hooks/useOrg';
      size_sf: number | null;
      warehouse_sf: number | null;
      office_sf: number | null;
+     second_floor_office_sf?: number | null;
      land_acres: number | null;
      clear_height_ft: number | null;
      dock_doors: number | null;
      drive_in_doors: number | null;
+     drive_in_door_dimensions?: unknown[] | null;
      asking_rent_psf: number | null;
      asking_sale_price: number | null;
      property_type: string | null;
@@ -69,6 +71,19 @@ import { useOrg } from '@/hooks/useOrg';
       latitude: number | null;
       longitude: number | null;
       photo_url: string | null;
+      // Extended building features
+      has_sprinklers?: boolean | null;
+      sprinklers_esfr?: boolean | null;
+      has_heated?: boolean | null;
+      has_air_conditioning?: boolean | null;
+      has_led_lighting?: boolean | null;
+      has_rail_access?: boolean | null;
+      has_mua?: boolean | null;
+      mua_units?: number | null;
+      mua_cfm_ratings?: unknown[] | null;
+      additional_features?: string | null;
+      estimated_annual_tax?: number | null;
+      assessed_value?: number | null;
    };
     onPhotoUpdate?: (photoUrl: string | null) => void;
  }
@@ -427,11 +442,13 @@ export function MarketingSection({ listing, onPhotoUpdate }: MarketingSectionPro
       }
 
       // Use current photoUrl state (which may have been updated via upload)
-      const listingWithPhoto = {
+      const listingWithPhoto: BrochureListingData = {
         ...listing,
         photo_url: photoUrl,
         latitude: coordinates.lat,
         longitude: coordinates.lng,
+        drive_in_door_dimensions: (listing.drive_in_door_dimensions as (string | null)[] | null) ?? null,
+        mua_cfm_ratings: (listing.mua_cfm_ratings as (string | null)[] | null) ?? null,
       };
 
        const doc = (
