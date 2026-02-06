@@ -120,7 +120,8 @@ export default function MarketListings() {
   }, [listings]);
 
   const uniqueListingTypes = useMemo(() => {
-    const types = [...new Set(listings.map(l => l.listing_type).filter(Boolean))] as string[];
+    const normalize = (t: string) => (t === 'Sale/Lease' ? 'Sale or Lease' : t);
+    const types = [...new Set(listings.map(l => l.listing_type).filter(Boolean).map(t => normalize(t as string)))] as string[];
     return types.sort();
   }, [listings]);
 
@@ -180,9 +181,10 @@ export default function MarketListings() {
         return false;
       }
 
-      // Listing type filter
-      if (listingTypeFilter !== 'all' && listing.listing_type !== listingTypeFilter) {
-        return false;
+      // Listing type filter (normalize Sale/Lease variants)
+      if (listingTypeFilter !== 'all') {
+        const normalized = listing.listing_type === 'Sale/Lease' ? 'Sale or Lease' : listing.listing_type;
+        if (normalized !== listingTypeFilter) return false;
       }
 
       // Landlord filter
