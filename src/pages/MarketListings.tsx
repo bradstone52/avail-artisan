@@ -49,6 +49,7 @@ export default function MarketListings() {
   // Filter state
   const [searchQuery, setSearchQuery] = useState('');
   const [submarketFilter, setSubmarketFilter] = useState<string[]>([]);
+  const [cityFilter, setCityFilter] = useState<string>('all');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [sizeFilter, setSizeFilter] = useState<string>('all');
   const [distWarehouseFilter, setDistWarehouseFilter] = useState<string>('all');
@@ -95,6 +96,11 @@ export default function MarketListings() {
     return submarkets.sort();
   }, [listings]);
 
+  const uniqueCities = useMemo(() => {
+    const cities = [...new Set(listings.map(l => l.city).filter(Boolean))] as string[];
+    return cities.sort();
+  }, [listings]);
+
   const uniqueStatuses = useMemo(() => {
     const statuses = [...new Set(listings.map(l => l.status).filter(Boolean))];
     return statuses.sort();
@@ -138,6 +144,11 @@ export default function MarketListings() {
 
       // Submarket filter (multi-select)
       if (submarketFilter.length > 0 && !submarketFilter.includes(listing.submarket)) {
+        return false;
+      }
+
+      // City filter
+      if (cityFilter !== 'all' && listing.city !== cityFilter) {
         return false;
       }
 
@@ -201,9 +212,9 @@ export default function MarketListings() {
 
       return true;
     });
-  }, [listings, searchQuery, submarketFilter, statusFilter, sizeFilter, distWarehouseFilter, brokerFilter, listingTypeFilter, landlordFilter, docksFilter, driveInFilter, staleFilter]);
+  }, [listings, searchQuery, submarketFilter, cityFilter, statusFilter, sizeFilter, distWarehouseFilter, brokerFilter, listingTypeFilter, landlordFilter, docksFilter, driveInFilter, staleFilter]);
 
-  const hasActiveFilters = searchQuery || submarketFilter.length > 0 || statusFilter !== 'all' || sizeFilter !== 'all' || distWarehouseFilter !== 'all' || brokerFilter !== 'all' || listingTypeFilter !== 'all' || landlordFilter !== 'all' || docksFilter !== 'all' || driveInFilter !== 'all' || staleFilter !== 'all';
+  const hasActiveFilters = searchQuery || submarketFilter.length > 0 || cityFilter !== 'all' || statusFilter !== 'all' || sizeFilter !== 'all' || distWarehouseFilter !== 'all' || brokerFilter !== 'all' || listingTypeFilter !== 'all' || landlordFilter !== 'all' || docksFilter !== 'all' || driveInFilter !== 'all' || staleFilter !== 'all';
 
   // Sort filtered listings
   const sortedListings = useMemo(() => {
@@ -281,6 +292,7 @@ export default function MarketListings() {
   const clearFilters = () => {
     setSearchQuery('');
     setSubmarketFilter([]);
+    setCityFilter('all');
     setStatusFilter('all');
     setSizeFilter('all');
     setDistWarehouseFilter('all');
@@ -471,6 +483,22 @@ export default function MarketListings() {
                       </button>
                     )}
                   </div>
+                </div>
+
+                {/* City */}
+                <div>
+                  <Label className="text-xs text-muted-foreground mb-1.5 block">City</Label>
+                  <Select value={cityFilter} onValueChange={setCityFilter}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="All Cities" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Cities</SelectItem>
+                      {uniqueCities.map(city => (
+                        <SelectItem key={city} value={city}>{city}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
 
                 {/* Submarket - Multi-select */}
