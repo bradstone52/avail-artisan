@@ -1,8 +1,8 @@
 
- # Phase 3: Inquiry & Lead Tracking ✅ COMPLETED (Includes Tours)
+# Phase 3: Inquiry & Lead Tracking ✅ COMPLETED (Includes Tours)
 
 ## Overview
- Implemented inquiry and lead tracking for internal listings, allowing users to track prospects, manage pipeline stages, and log activity touchpoints. Also includes property tour logging functionality.
+Implemented inquiry and lead tracking for internal listings, allowing users to track prospects, manage pipeline stages, and log activity touchpoints. Also includes property tour logging functionality.
 
 ---
 
@@ -76,15 +76,15 @@ Call, Email, Tour, Meeting, Offer, LOI, Note, Other
 | Action | File |
 |--------|------|
 | ✅ Created | `src/hooks/useInternalListingInquiries.ts` |
- | ✅ Created | `src/hooks/useInternalListingTours.ts` |
+| ✅ Created | `src/hooks/useInternalListingTours.ts` |
 | ✅ Created | `src/components/internal-listings/InquiryCard.tsx` |
 | ✅ Created | `src/components/internal-listings/InquiryTimeline.tsx` |
 | ✅ Created | `src/components/internal-listings/InquiryFormDialog.tsx` |
- | ✅ Created | `src/components/internal-listings/InquiriesSection.tsx` |
- | ✅ Created | `src/components/internal-listings/TourFormDialog.tsx` |
- | ✅ Created | `src/components/internal-listings/ToursSection.tsx` |
+| ✅ Created | `src/components/internal-listings/InquiriesSection.tsx` |
+| ✅ Created | `src/components/internal-listings/TourFormDialog.tsx` |
+| ✅ Created | `src/components/internal-listings/ToursSection.tsx` |
 | ✅ Modified | `src/pages/InternalListingDetail.tsx` |
- | ✅ Created | Database migrations for inquiry + tour tables + RLS |
+| ✅ Created | Database migrations for inquiry + tour tables + RLS |
 
 ---
 
@@ -107,39 +107,72 @@ Implement full document management capabilities for internal listings, allowing 
 
 ---
 
-# Future Phases
+# Phase 4: AI Marketing & IDML Brochure Generation ✅ COMPLETED
 
- # Phase 4: AI Marketing & IDML Brochure Generation ✅ COMPLETED
- 
- ## Overview
- Implemented AI-powered marketing content generation and brochure creation for internal listings.
- 
- ## Features
- - **AI Marketing Copy**: Generates headline, tagline, description, highlights, and confidential broker pitch using Lovable AI (Gemini)
- - **PDF Brochure**: Professional two-column layout with property specs, pricing, and marketing content
- - **InDesign Export**: JSON data export compatible with Adobe InDesign Data Merge
- - **Content Editing**: Full inline editing of AI-generated content before export
- - **Confidential Toggle**: Option to include/exclude broker notes from exports
- 
- ## Files Created/Modified
- 
- | Action | File |
- |--------|------|
- | ✅ Created | `supabase/functions/generate-listing-marketing/index.ts` |
- | ✅ Created | `src/components/internal-listings/ListingBrochurePDF.tsx` |
- | ✅ Created | `src/components/internal-listings/MarketingSection.tsx` |
- | ✅ Modified | `src/pages/InternalListingDetail.tsx` |
- | ✅ Modified | `supabase/config.toml` |
- 
- ---
- 
- # Future Phases
+## Overview
+Implemented AI-powered marketing content generation and brochure creation for internal listings.
+
+## Features
+- **AI Marketing Copy**: Generates headline, tagline, description, highlights, and confidential broker pitch using Lovable AI (Gemini)
+- **PDF Brochure**: Professional two-column layout with property specs, pricing, and marketing content
+- **InDesign Export**: JSON data export compatible with Adobe InDesign Data Merge
+- **Content Editing**: Full inline editing of AI-generated content before export
+- **Confidential Toggle**: Option to include/exclude broker notes from exports
+
+## Files Created/Modified
+
+| Action | File |
+|--------|------|
+| ✅ Created | `supabase/functions/generate-listing-marketing/index.ts` |
+| ✅ Created | `src/components/internal-listings/ListingBrochurePDF.tsx` |
+| ✅ Created | `src/components/internal-listings/MarketingSection.tsx` |
+| ✅ Modified | `src/pages/InternalListingDetail.tsx` |
+| ✅ Modified | `supabase/config.toml` |
+
+---
+
+# Phase 6: Market Intelligence ✅ COMPLETED
+
+## Overview
+Implemented market intelligence features for internal listings, providing comparable listing tracking and pricing indicators to help brokers benchmark their listings against the market.
+
+## Features
+
+### Pricing Indicators
+- **Rent Position**: Shows if your asking rent is below/at/above market average with percentage difference
+- **Sale Position**: Shows if your asking sale price (per SF) is below/at/above market average
+- Visual color-coded indicators (green = below, blue = at, amber = above)
+
+### Market Summary
+- Total active comparable listings count
+- Average size in submarket
+- Rent range (min-max) for comparable listings
+- Average sale price per SF
+
+### Comparable Listings
+- Fetches active market listings in same submarket within ±30% size range (min 20,000 SF variance)
+- Displays address, size, asking rate, clear height, and loading info
+- Shows broker source for competitive intelligence
+
+### Recent Transactions
+- Shows deals closed in the last 24 months in the same submarket
+- Links to transaction detail pages for full history
+- Displays transaction type, price, and buyer/tenant info
+
+## Files Created/Modified
+
+| Action | File |
+|--------|------|
+| ✅ Created | `src/hooks/useMarketIntelligence.ts` |
+| ✅ Created | `src/components/internal-listings/MarketIntelligenceSection.tsx` |
+| ✅ Modified | `src/pages/InternalListingDetail.tsx` |
+
+---
+
+# Future Phases
 
 ## Phase 5: Smart Validation
 - Data integrity checks for listings
-
-## Phase 6: Market Intelligence  
-- Comparable listing tracking and pricing indicators
 
 ## Phase 7: Analytics & Audit Trail
 - View tracking and performance metrics

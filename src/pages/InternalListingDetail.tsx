@@ -17,7 +17,8 @@ import { InternalListingEditDialog } from '@/components/internal-listings/Intern
 import { InternalListingDocumentsSection } from '@/components/internal-listings/InternalListingDocumentsSection';
 import { InquiriesSection } from '@/components/internal-listings/InquiriesSection';
 import { ToursSection } from '@/components/internal-listings/ToursSection';
- import { MarketingSection } from '@/components/internal-listings/MarketingSection';
+import { MarketingSection } from '@/components/internal-listings/MarketingSection';
+import { MarketIntelligenceSection } from '@/components/internal-listings/MarketIntelligenceSection';
 import { formatNumber, formatCurrency } from '@/lib/format';
 import { format } from 'date-fns';
 import {
@@ -31,7 +32,8 @@ import {
   History,
   Mail,
   BarChart3,
-   Sparkles,
+  Sparkles,
+  LineChart,
 } from 'lucide-react';
 
 const statusColors: Record<string, string> = {
@@ -146,10 +148,14 @@ export default function InternalListingDetail() {
         </div>
 
         <Tabs defaultValue="overview" className="space-y-4">
-          <TabsList>
+          <TabsList className="flex-wrap">
             <TabsTrigger value="overview" className="gap-2">
               <Building2 className="h-4 w-4" />
               Overview
+            </TabsTrigger>
+            <TabsTrigger value="market" className="gap-2">
+              <LineChart className="h-4 w-4" />
+              Market Intel
             </TabsTrigger>
             <TabsTrigger value="documents" className="gap-2">
               <FileText className="h-4 w-4" />
@@ -392,6 +398,10 @@ export default function InternalListingDetail() {
                 </Card>
               )}
             </div>
+          </TabsContent>
+
+          <TabsContent value="market">
+            <MarketIntelligenceSection listing={listing} />
           </TabsContent>
 
           <TabsContent value="documents">
