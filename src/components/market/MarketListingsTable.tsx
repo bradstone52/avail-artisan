@@ -400,7 +400,6 @@ export function MarketListingsTable({ listings, onEdit, onRefresh, sortColumn, s
             <TableHead className="text-background min-w-[80px] bg-zinc-700 dark:bg-zinc-600">Voltage</TableHead>
             <TableHead className="text-background min-w-[90px] bg-zinc-700 dark:bg-zinc-600">Sprinkler</TableHead>
             <TableHead className="text-background min-w-[70px] bg-zinc-700 dark:bg-zinc-600">Cranes</TableHead>
-            <TableHead className="text-background min-w-[80px] bg-zinc-700 dark:bg-zinc-600">Crane T</TableHead>
             <TableHead className="text-background min-w-[60px] bg-zinc-700 dark:bg-zinc-600">Yard</TableHead>
             <TableHead className="text-background min-w-[90px] bg-zinc-700 dark:bg-zinc-600">Yard Area</TableHead>
             <TableHead className="text-background min-w-[80px] bg-zinc-700 dark:bg-zinc-600">X-Dock</TableHead>
@@ -553,11 +552,8 @@ export function MarketListingsTable({ listings, onEdit, onRefresh, sortColumn, s
               {/* Sprinkler */}
               <TableCell className="text-sm">{listing.sprinkler || '-'}</TableCell>
               
-              {/* Cranes */}
-              <TableCell className="text-sm">{listing.cranes || '-'}</TableCell>
-              
-              {/* Crane Tons */}
-              <TableCell className="text-sm">{listing.crane_tons || '-'}</TableCell>
+              {/* Cranes - Y/N based on whether values exist */}
+              <TableCell className="text-sm">{(listing.cranes || listing.crane_tons) ? 'Y' : 'N'}</TableCell>
               
               {/* Yard */}
               <TableCell className="text-sm">{listing.yard || '-'}</TableCell>
