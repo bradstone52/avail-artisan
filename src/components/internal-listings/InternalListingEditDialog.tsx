@@ -409,6 +409,8 @@ export function InternalListingEditDialog({
 
         assessmentData = typeMatch || quadrantCandidates[0] || data[0];
         console.log('Selected assessment:', assessmentData?.address);
+        console.log('Assessment fields:', Object.keys(assessmentData).join(', '));
+        console.log('Assessment data:', JSON.stringify(assessmentData, null, 2));
         break;
       }
       
@@ -417,15 +419,22 @@ export function InternalListingEditDialog({
         return;
       }
 
-      // Parse the assessed value (can be string with commas or number)
-      const rawValue = assessmentData.assessed_value || assessmentData.current_year_total_assessment || assessmentData.total_assessed || assessmentData.nr_assessed_value;
+      // Parse the assessed value - Calgary API uses current_assessed_value as the primary field
+      const rawValue = assessmentData.current_assessed_value || 
+                       assessmentData.assessed_value || 
+                       assessmentData.current_year_total_assessment || 
+                       assessmentData.total_assessed || 
+                       assessmentData.nr_assessed_value;
+      
+      console.log('Raw assessment value:', rawValue, typeof rawValue);
+      
       const assessedValue = typeof rawValue === 'number' 
         ? rawValue 
         : parseInt(String(rawValue).replace(/[^0-9]/g, ''), 10);
       
       if (assessedValue && !isNaN(assessedValue)) {
         form.setValue('assessed_value', assessedValue);
-        toast.success(`City data fetched: ${assessmentData.address}`);
+        toast.success(`City data fetched: ${assessmentData.address} - $${assessedValue.toLocaleString()}`);
       } else {
         toast.error('Assessment value not found in city data');
       }
@@ -1065,6 +1074,7 @@ export function InternalListingEditDialog({
                                   value={field.value}
                                   onChange={field.onChange}
                                   placeholder="5,000,000"
+                                  prefix="$"
                                 />
                               </FormControl>
                               {isCalgary && (
@@ -1105,6 +1115,7 @@ export function InternalListingEditDialog({
                                 value={field.value}
                                 onChange={field.onChange}
                                 placeholder="Auto-calculated"
+                                prefix="$"
                                 disabled={isCalgary && assessedValue != null}
                               />
                             </FormControl>
