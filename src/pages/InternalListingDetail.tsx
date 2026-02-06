@@ -221,6 +221,16 @@ export default function InternalListingDetail() {
                           : '-'}
                       </p>
                     </div>
+                    {listing.second_floor_office_sf && (
+                      <div>
+                        <p className="text-xs text-muted-foreground uppercase tracking-wide">
+                          Second Floor Office
+                        </p>
+                        <p className="font-medium">
+                          {formatNumber(listing.second_floor_office_sf)} SF
+                        </p>
+                      </div>
+                    )}
                     <div>
                       <p className="text-xs text-muted-foreground uppercase tracking-wide">
                         Clear Height
@@ -241,6 +251,20 @@ export default function InternalListingDetail() {
                           : ''}
                       </p>
                     </div>
+                    {listing.drive_in_door_dimensions && listing.drive_in_door_dimensions.length > 0 && (
+                      <div className="sm:col-span-2">
+                        <p className="text-xs text-muted-foreground uppercase tracking-wide mb-1">
+                          Drive-In Door Dimensions
+                        </p>
+                        <div className="flex flex-wrap gap-2">
+                          {listing.drive_in_door_dimensions.map((dim, idx) => (
+                            <span key={idx} className="text-sm bg-muted px-2 py-1 rounded">
+                              Door {idx + 1}: {dim}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    )}
                     <div>
                       <p className="text-xs text-muted-foreground uppercase tracking-wide">
                         Power
@@ -259,6 +283,14 @@ export default function InternalListingDetail() {
                           Land
                         </p>
                         <p className="font-medium">{listing.land_acres} acres</p>
+                      </div>
+                    )}
+                    {listing.additional_features && (
+                      <div className="sm:col-span-2">
+                        <p className="text-xs text-muted-foreground uppercase tracking-wide mb-1">
+                          Additional Features
+                        </p>
+                        <p className="text-sm whitespace-pre-wrap">{listing.additional_features}</p>
                       </div>
                     )}
                   </div>
@@ -313,9 +345,25 @@ export default function InternalListingDetail() {
                   {listing.taxes && (
                     <div>
                       <p className="text-xs text-muted-foreground uppercase tracking-wide">
-                        Taxes
+                        Taxes ($/SF)
                       </p>
                       <p className="font-medium">${listing.taxes}/SF</p>
+                    </div>
+                  )}
+                  {listing.assessed_value && (
+                    <div>
+                      <p className="text-xs text-muted-foreground uppercase tracking-wide">
+                        Assessed Value
+                      </p>
+                      <p className="font-medium">{formatCurrency(listing.assessed_value)}</p>
+                    </div>
+                  )}
+                  {listing.estimated_annual_tax && (
+                    <div>
+                      <p className="text-xs text-muted-foreground uppercase tracking-wide">
+                        Est. Annual Tax
+                      </p>
+                      <p className="font-medium">{formatCurrency(listing.estimated_annual_tax)}</p>
                     </div>
                   )}
                 </CardContent>
