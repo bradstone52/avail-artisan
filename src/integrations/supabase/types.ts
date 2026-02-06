@@ -1923,6 +1923,44 @@ export type Database = {
           },
         ]
       }
+      municipal_mill_rates: {
+        Row: {
+          created_at: string
+          id: string
+          mill_rate: number
+          municipality: string
+          org_id: string | null
+          rate_year: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          mill_rate: number
+          municipality: string
+          org_id?: string | null
+          rate_year: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          mill_rate?: number
+          municipality?: string
+          org_id?: string | null
+          rate_year?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "municipal_mill_rates_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "orgs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       org_integrations: {
         Row: {
           google_access_token: string | null

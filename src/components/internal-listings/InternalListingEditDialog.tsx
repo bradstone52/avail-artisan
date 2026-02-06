@@ -39,7 +39,8 @@ import {
 } from '@/hooks/useInternalListings';
 import { useAgents } from '@/hooks/useAgents';
 import { useMillRate } from '@/hooks/useMillRate';
-import { Loader2 } from 'lucide-react';
+import { useMunicipalMillRate, useUpsertMunicipalMillRate } from '@/hooks/useMunicipalMillRates';
+import { Loader2, Save } from 'lucide-react';
 import { toast } from 'sonner';
 
 const formSchema = z.object({
@@ -101,9 +102,11 @@ export function InternalListingEditDialog({
   isSubmitting,
 }: InternalListingEditDialogProps) {
   const { data: allAgents = [] } = useAgents();
-  const { rate: millRate, year: millRateYear } = useMillRate();
+  const { rate: calgaryMillRate, year: calgaryMillRateYear } = useMillRate();
   const isEditing = !!listing;
   const [fetchingCityData, setFetchingCityData] = useState(false);
+  const [customMillRate, setCustomMillRate] = useState<number | null>(null);
+  const [customMillRateYear, setCustomMillRateYear] = useState<number>(new Date().getFullYear());
 
   // Filter to only show agents from ClearView (the user's own brokerage)
   const agents = allAgents.filter(
@@ -259,6 +262,28 @@ export function InternalListingEditDialog({
   // Check if this is a Calgary property
   const isCalgary = city?.toLowerCase().includes('calgary');
 
+  // Fetch stored mill rate for non-Calgary municipalities
+  const { data: storedMillRate, isLoading: loadingMillRate } = useMunicipalMillRate(
+    !isCalgary ? city : null
+  );
+  const upsertMillRate = useUpsertMunicipalMillRate();
+
+  // Determine which mill rate to use
+  const effectiveMillRate = isCalgary ? calgaryMillRate : (customMillRate ?? 0) / 100;
+  const effectiveMillRateYear = isCalgary ? calgaryMillRateYear : customMillRateYear;
+
+  // Load stored mill rate when city changes (for non-Calgary)
+  useEffect(() => {
+    if (!isCalgary && storedMillRate) {
+      setCustomMillRate(storedMillRate.mill_rate * 100); // Convert decimal to percentage
+      setCustomMillRateYear(storedMillRate.rate_year);
+    } else if (!isCalgary && !storedMillRate && !loadingMillRate) {
+      // Reset for new municipality
+      setCustomMillRate(null);
+      setCustomMillRateYear(new Date().getFullYear());
+    }
+  }, [isCalgary, storedMillRate, loadingMillRate]);
+
   // Auto-calculate gross rate when asking rent and op costs are both filled
   const calculatedGrossRate = useMemo(() => {
     if (askingRent != null && opCosts != null) {
@@ -274,13 +299,24 @@ export function InternalListingEditDialog({
     }
   }, [calculatedGrossRate, form]);
 
-  // Auto-calculate estimated annual tax when assessed value changes
+  // Auto-calculate estimated annual tax when assessed value or mill rate changes
   useEffect(() => {
-    if (assessedValue != null && assessedValue > 0) {
-      const estimatedTax = assessedValue * millRate;
+    if (assessedValue != null && assessedValue > 0 && effectiveMillRate > 0) {
+      const estimatedTax = assessedValue * effectiveMillRate;
       form.setValue('estimated_annual_tax', Math.round(estimatedTax));
     }
-  }, [assessedValue, millRate, form]);
+  }, [assessedValue, effectiveMillRate, form]);
+
+  // Save custom mill rate for the municipality
+  const handleSaveMillRate = async () => {
+    if (!city || isCalgary || customMillRate == null) return;
+    
+    await upsertMillRate.mutateAsync({
+      municipality: city,
+      millRate: customMillRate / 100, // Convert percentage to decimal
+      rateYear: customMillRateYear,
+    });
+  };
 
   // Update drive-in door dimensions array when count changes
   useEffect(() => {
@@ -1117,17 +1153,17 @@ export function InternalListingEditDialog({
                                 onChange={field.onChange}
                                 placeholder="Auto-calculated"
                                 prefix="$"
-                                disabled={isCalgary && assessedValue != null}
+                                disabled={assessedValue != null && effectiveMillRate > 0}
                               />
                             </FormControl>
-                            {isCalgary && assessedValue != null && (
+                            {assessedValue != null && effectiveMillRate > 0 && (
                               <p className="text-xs text-muted-foreground">
-                                Auto-calculated using {millRateYear} mill rate ({(millRate * 100).toFixed(2)}%)
+                                Auto-calculated using {effectiveMillRateYear} mill rate ({(effectiveMillRate * 100).toFixed(4)}%)
                               </p>
                             )}
-                            {!isCalgary && (
+                            {!isCalgary && (!customMillRate || customMillRate === 0) && (
                               <p className="text-xs text-muted-foreground">
-                                Enter manually for non-Calgary properties
+                                Enter mill rate below to auto-calculate
                               </p>
                             )}
                             <FormMessage />
@@ -1135,6 +1171,55 @@ export function InternalListingEditDialog({
                         )}
                       />
                     </div>
+
+                    {/* Non-Calgary Mill Rate Inputs */}
+                    {!isCalgary && (
+                      <div className="grid grid-cols-3 gap-4 mt-4 pt-4 border-t border-dashed">
+                        <div className="space-y-2">
+                          <label className="text-sm font-medium">Mill Rate (%)</label>
+                          <FormattedNumberInput
+                            value={customMillRate}
+                            onChange={(val) => setCustomMillRate(val)}
+                            placeholder="e.g. 2.18"
+                            suffix="%"
+                          />
+                          <p className="text-xs text-muted-foreground">
+                            {storedMillRate ? `Stored rate for ${city}` : 'Enter municipality mill rate'}
+                          </p>
+                        </div>
+                        <div className="space-y-2">
+                          <label className="text-sm font-medium">Rate Year</label>
+                          <Input
+                            type="number"
+                            value={customMillRateYear}
+                            onChange={(e) => setCustomMillRateYear(parseInt(e.target.value) || new Date().getFullYear())}
+                            min={2020}
+                            max={2030}
+                            className={customMillRateYear ? 'input-filled' : ''}
+                          />
+                        </div>
+                        <div className="space-y-2 flex flex-col justify-end">
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            onClick={handleSaveMillRate}
+                            disabled={!customMillRate || upsertMillRate.isPending}
+                            className="w-full"
+                          >
+                            {upsertMillRate.isPending ? (
+                              <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                            ) : (
+                              <Save className="h-4 w-4 mr-2" />
+                            )}
+                            Save Rate
+                          </Button>
+                          <p className="text-xs text-muted-foreground text-center">
+                            Save for future {city} listings
+                          </p>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </div>
               </TabsContent>
