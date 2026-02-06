@@ -97,6 +97,7 @@ export function MarketListingsTable({ listings, onEdit, onRefresh, sortColumn, s
   const [isHovered, setIsHovered] = useState(false);
   const [selectedRowId, setSelectedRowId] = useState<string | null>(null);
   const [updatingDW, setUpdatingDW] = useState<string | null>(null);
+  const [updatingLand, setUpdatingLand] = useState<string | null>(null);
   const [verifyingId, setVerifyingId] = useState<string | null>(null);
   const [geocodingId, setGeocodingId] = useState<string | null>(null);
   const [editPinListing, setEditPinListing] = useState<MarketListing | null>(null);
@@ -258,6 +259,26 @@ export function MarketListingsTable({ listings, onEdit, onRefresh, sortColumn, s
     }
   };
 
+  // Toggle land flag
+  const handleToggleLand = async (listing: MarketListing) => {
+    setUpdatingLand(listing.id);
+    try {
+      const newValue = !listing.has_land;
+      const { error } = await supabase
+        .from('market_listings')
+        .update({ has_land: newValue, updated_at: new Date().toISOString() })
+        .eq('id', listing.id);
+
+      if (error) throw error;
+      onRefresh();
+    } catch (err) {
+      console.error('Error updating Land flag:', err);
+      toast.error('Failed to update');
+    } finally {
+      setUpdatingLand(null);
+    }
+  };
+
   // Sortable header component
   const SortableHeader = ({ column, children, className = '' }: { column: SortableColumn; children: React.ReactNode; className?: string }) => {
     const isActive = sortColumn === column;
@@ -398,6 +419,7 @@ export function MarketListingsTable({ listings, onEdit, onRefresh, sortColumn, s
             <TableHead className="text-background min-w-[180px] bg-zinc-700 dark:bg-zinc-600">Notes</TableHead>
             <TableHead className="text-background min-w-[130px] bg-zinc-700 dark:bg-zinc-600">Status</TableHead>
             <SortableHeader column="last_verified_date" className="min-w-[100px] bg-zinc-700 dark:bg-zinc-600">Verified</SortableHeader>
+            <TableHead className="text-background min-w-[60px] bg-zinc-700 dark:bg-zinc-600">Land</TableHead>
             <TableHead className="sticky right-0 z-30 min-w-[160px] bg-zinc-700 dark:bg-zinc-600 text-background shadow-[-2px_0_5px_-2px_rgba(0,0,0,0.3)]">Actions</TableHead>
           </TableRow>
         </TableHeader>
@@ -612,6 +634,26 @@ export function MarketListingsTable({ listings, onEdit, onRefresh, sortColumn, s
                   ? format(parseISO(listing.last_verified_date), 'MMM d, yyyy')
                   : <span className="text-white/80 font-medium">Never</span>
                 }
+              </TableCell>
+              
+              {/* Land Toggle */}
+              <TableCell>
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleToggleLand(listing);
+                  }}
+                  disabled={updatingLand === listing.id}
+                  className={`px-2 py-1 text-xs font-bold uppercase border-2 border-foreground transition-all disabled:opacity-50 ${
+                    listing.has_land 
+                      ? 'bg-amber-500 text-amber-950 shadow-[2px_2px_0_hsl(var(--foreground))]' 
+                      : 'bg-muted text-muted-foreground shadow-[2px_2px_0_hsl(var(--foreground))]'
+                  }`}
+                  style={{ borderRadius: 'var(--radius)' }}
+                >
+                  {listing.has_land ? 'Y' : 'N'}
+                </button>
               </TableCell>
               
               {/* Actions - Sticky with shadow left border that persists during scroll */}
