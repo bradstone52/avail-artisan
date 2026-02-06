@@ -73,7 +73,7 @@ export function useMarketIntelligence(listing: InternalListing | null | undefine
 
   // Fetch comparable market listings
   const comparablesQuery = useQuery({
-    queryKey: ['market-intelligence-comparables', listing?.id, listing?.submarket, listing?.size_sf, listing?.property_type],
+    queryKey: ['market-intelligence-comparables', listing?.id, listing?.city, listing?.size_sf, listing?.property_type],
     queryFn: async () => {
       if (!listing || !orgId) return [];
 
@@ -109,9 +109,9 @@ export function useMarketIntelligence(listing: InternalListing | null | undefine
         .order('size_sf', { ascending: false })
         .limit(20);
 
-      // Filter by submarket if available
-      if (listing.submarket) {
-        query = query.eq('submarket', listing.submarket);
+      // Filter by city
+      if (listing.city) {
+        query = query.eq('city', listing.city);
       }
 
       const { data, error } = await query;
@@ -128,7 +128,7 @@ export function useMarketIntelligence(listing: InternalListing | null | undefine
 
   // Fetch recent transactions in the same submarket
   const transactionsQuery = useQuery({
-    queryKey: ['market-intelligence-transactions', listing?.submarket, listing?.city],
+    queryKey: ['market-intelligence-transactions', listing?.city],
     queryFn: async () => {
       if (!listing || !orgId) return [];
 
@@ -158,9 +158,9 @@ export function useMarketIntelligence(listing: InternalListing | null | undefine
         .order('transaction_date', { ascending: false })
         .limit(15);
 
-      // Filter by submarket if available
-      if (listing.submarket) {
-        query = query.eq('submarket', listing.submarket);
+      // Filter by city
+      if (listing.city) {
+        query = query.eq('city', listing.city);
       }
 
       const { data, error } = await query;

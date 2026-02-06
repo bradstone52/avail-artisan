@@ -249,7 +249,7 @@ export function MarketIntelligenceSection({ listing }: MarketIntelligenceSection
         <CardHeader className="pb-2">
           <CardTitle className="flex items-center gap-2 text-lg">
             <BarChart3 className="h-5 w-5" />
-            Market Summary — {listing.submarket || listing.city}
+            Market Summary — {listing.city}
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -303,7 +303,7 @@ export function MarketIntelligenceSection({ listing }: MarketIntelligenceSection
             </Badge>
           </CardTitle>
           <p className="text-sm text-muted-foreground">
-            Similar-sized listings in {listing.submarket || 'your market'}
+            Similar-sized listings in {listing.city}
           </p>
         </CardHeader>
         <CardContent>
@@ -336,7 +336,7 @@ export function MarketIntelligenceSection({ listing }: MarketIntelligenceSection
             </Badge>
           </CardTitle>
           <p className="text-sm text-muted-foreground">
-            Deals closed in the last 24 months in {listing.submarket || 'your market'}
+            Deals closed in the last 24 months in {listing.city}
           </p>
         </CardHeader>
         <CardContent>
