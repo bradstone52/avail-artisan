@@ -306,69 +306,128 @@ export function InternalListingEditDialog({
     
     setFetchingCityData(true);
     try {
-      // Parse the address to build search patterns
+      // Parse the address using same logic as fetch-city-data edge function
       const addressParts = address
-        .replace(/,.*$/, '')
-        .replace(/\s+(Calgary|AB|Alberta).*$/i, '')
+        .replace(/,.*$/, '') // Remove everything after comma
+        .replace(/\s+(Calgary|AB|Alberta).*$/i, '') // Remove city/province
         .trim()
         .toUpperCase()
         .split(/\s+/);
 
       const streetNumber = addressParts[0];
       const QUADRANTS = ['NE', 'NW', 'SE', 'SW'];
+      const STREET_TYPES = ['ST', 'STREET', 'AVE', 'AV', 'AVENUE', 'DR', 'DRIVE', 'RD', 'ROAD', 'BLVD', 'BOULEVARD',
+        'LN', 'LANE', 'PL', 'PLACE', 'CT', 'COURT', 'WAY', 'CRES', 'CRESCENT', 'TR', 'TRAIL'];
+
       const addressQuadrant = addressParts.find((p: string) => QUADRANTS.includes(p)) || null;
-      
-      // Build search pattern
+      const streetTypeRaw = addressParts.find((p: string) => STREET_TYPES.includes(p)) || null;
+      const streetTypeAbbrev = streetTypeRaw
+        ? (streetTypeRaw === 'AVENUE' ? 'AV' : streetTypeRaw === 'AVE' ? 'AV' : streetTypeRaw === 'LANE' ? 'LN' : streetTypeRaw === 'STREET' ? 'ST' : streetTypeRaw)
+        : null;
+
+      // Many Calgary streets include a number (e.g., "43") right after the street number
       const streetNameNumber = addressParts.slice(1).find((p: string) => /^\d+$/.test(p)) || null;
-      let searchPattern = streetNumber;
-      if (streetNameNumber) {
-        searchPattern = `${streetNumber} ${streetNameNumber}`;
-        if (addressQuadrant) {
-          searchPattern += ` ${addressQuadrant}`;
-        }
+
+      // For named streets, grab the street name word
+      const streetNameWord = !streetNameNumber 
+        ? addressParts.slice(1).find((p: string) => 
+            !QUADRANTS.includes(p) && 
+            !STREET_TYPES.includes(p) && 
+            !/^\d+$/.test(p) &&
+            p.length > 0
+          ) || null
+        : null;
+
+      // Build search patterns from most-specific to least-specific
+      const searchPatterns: string[] = [];
+      
+      // Handle numbered streets (e.g., "4975 43 ST SE")
+      if (streetNumber && streetNameNumber && streetTypeAbbrev && addressQuadrant) {
+        searchPatterns.push(`${streetNumber} ${streetNameNumber} ${streetTypeAbbrev} ${addressQuadrant}`);
+      }
+      if (streetNumber && streetNameNumber && addressQuadrant) {
+        searchPatterns.push(`${streetNumber} ${streetNameNumber} ${addressQuadrant}`);
+      }
+      if (streetNumber && streetNameNumber) {
+        searchPatterns.push(`${streetNumber} ${streetNameNumber}`);
+      }
+      
+      // Handle named streets (e.g., "10 SMED LN SE")
+      if (streetNumber && streetNameWord && streetTypeAbbrev && addressQuadrant) {
+        searchPatterns.push(`${streetNumber} ${streetNameWord} ${streetTypeAbbrev} ${addressQuadrant}`);
+      }
+      if (streetNumber && streetNameWord && addressQuadrant) {
+        searchPatterns.push(`${streetNumber} ${streetNameWord} ${addressQuadrant}`);
+      }
+      if (streetNumber && streetNameWord) {
+        searchPatterns.push(`${streetNumber} ${streetNameWord}`);
+      }
+      
+      // Last resort: just the street number
+      if (streetNumber && searchPatterns.length === 0) {
+        searchPatterns.push(streetNumber);
       }
 
-      // Query City of Calgary Assessment API
+      console.log('Search patterns:', searchPatterns, 'Quadrant:', addressQuadrant);
+
+      // Query City of Calgary Assessment API - try patterns until we get results
       const ASSESSMENT_API = 'https://data.calgary.ca/resource/4bsw-nn7w.json';
-      const escapedValue = searchPattern.replace(/'/g, "''");
-      const whereClause = `address like '%${escapedValue}%'`;
-      const params = new URLSearchParams();
-      params.set('$where', whereClause);
-      params.set('$limit', '10');
       
-      const response = await fetch(`${ASSESSMENT_API}?${params.toString()}`);
-      if (!response.ok) throw new Error('Failed to fetch assessment data');
+      let assessmentData: any = null;
       
-      const data = await response.json();
+      for (const pattern of searchPatterns.slice(0, 3)) {
+        const escapedValue = pattern.replace(/'/g, "''").replace(/\\/g, '\\\\');
+        const whereClause = `address like '%${escapedValue}%'`;
+        const params = new URLSearchParams();
+        params.set('$where', whereClause);
+        params.set('$limit', '50');
+        
+        console.log('Trying pattern:', pattern);
+        
+        const response = await fetch(`${ASSESSMENT_API}?${params.toString()}`);
+        if (!response.ok) continue;
+        
+        const data = await response.json();
+        console.log(`Pattern "${pattern}" returned ${data?.length || 0} results`);
+        
+        if (!data || data.length === 0) continue;
+
+        // Filter to just this street number
+        const candidates = data.filter((d: any) => d.address?.toUpperCase().startsWith(`${streetNumber} `));
+        
+        // If we have a quadrant, require it (prevents NW/SE mix-ups)
+        const quadrantCandidates = addressQuadrant
+          ? candidates.filter((d: any) => d.address?.toUpperCase().includes(` ${addressQuadrant}`))
+          : candidates;
+
+        if (!quadrantCandidates.length) continue;
+
+        // Prefer exact street-type match if we have one
+        const typeMatch = streetTypeAbbrev
+          ? quadrantCandidates.find((d: any) => d.address?.toUpperCase().includes(` ${streetTypeAbbrev} `))
+          : null;
+
+        assessmentData = typeMatch || quadrantCandidates[0] || data[0];
+        console.log('Selected assessment:', assessmentData?.address);
+        break;
+      }
       
-      if (!data || data.length === 0) {
+      if (!assessmentData) {
         toast.error('No assessment data found for this address');
         return;
       }
 
-      // Filter to match the street number and quadrant
-      let candidates = data.filter((d: any) => d.address?.toUpperCase().startsWith(`${streetNumber} `));
-      if (addressQuadrant) {
-        candidates = candidates.filter((d: any) => d.address?.toUpperCase().includes(` ${addressQuadrant}`));
-      }
-
-      const assessmentData = candidates[0] || data[0];
+      // Parse the assessed value (can be string with commas or number)
+      const rawValue = assessmentData.assessed_value || assessmentData.current_year_total_assessment || assessmentData.total_assessed || assessmentData.nr_assessed_value;
+      const assessedValue = typeof rawValue === 'number' 
+        ? rawValue 
+        : parseInt(String(rawValue).replace(/[^0-9]/g, ''), 10);
       
-      if (assessmentData) {
-        // Parse the assessed value (can be string with commas or number)
-        const rawValue = assessmentData.assessed_value || assessmentData.current_year_total_assessment || assessmentData.total_assessed;
-        const assessedValue = typeof rawValue === 'number' 
-          ? rawValue 
-          : parseInt(String(rawValue).replace(/[^0-9]/g, ''), 10);
-        
-        if (assessedValue && !isNaN(assessedValue)) {
-          form.setValue('assessed_value', assessedValue);
-          toast.success(`City data fetched: ${assessmentData.address}`);
-        } else {
-          toast.error('Assessment value not found in city data');
-        }
+      if (assessedValue && !isNaN(assessedValue)) {
+        form.setValue('assessed_value', assessedValue);
+        toast.success(`City data fetched: ${assessmentData.address}`);
       } else {
-        toast.error('No matching assessment record found');
+        toast.error('Assessment value not found in city data');
       }
     } catch (err) {
       console.error('Error fetching city data:', err);
