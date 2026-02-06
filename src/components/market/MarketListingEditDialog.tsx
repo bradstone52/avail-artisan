@@ -153,6 +153,7 @@ export function MarketListingEditDialog({
   const [hasCranes, setHasCranes] = useState(false);
   const [cranes, setCranes] = useState('');
   const [craneTons, setCraneTons] = useState('');
+  const [craneTonValues, setCraneTonValues] = useState<string[]>([]);
   const [yard, setYard] = useState(false);
   const [yardArea, setYardArea] = useState('');
   const [crossDock, setCrossDock] = useState(false);
@@ -266,6 +267,14 @@ export function MarketListingEditDialog({
     setHasCranes(state.hasCranes || !!state.cranes || !!state.craneTons);
     setCranes(state.cranes);
     setCraneTons(state.craneTons);
+    // Parse crane ton values from comma-separated string
+    const craneCount = parseInt(state.cranes) || 0;
+    if (craneCount > 0 && state.craneTons) {
+      const parts = state.craneTons.split(',').map((s: string) => s.trim());
+      setCraneTonValues(Array.from({ length: craneCount }, (_, i) => parts[i] || ''));
+    } else {
+      setCraneTonValues(Array.from({ length: craneCount }, () => ''));
+    }
     setYard(state.yard);
     setYardArea(state.yardArea);
     setCrossDock(state.crossDock);
@@ -516,6 +525,7 @@ export function MarketListingEditDialog({
       setHasCranes(false);
       setCranes('');
       setCraneTons('');
+      setCraneTonValues([]);
       setYard(false);
       setYardArea('');
       setCrossDock(false);
@@ -567,6 +577,14 @@ export function MarketListingEditDialog({
       setCranes(listing.cranes || '');
       setCraneTons(listing.crane_tons || '');
       setHasCranes(!!listing.cranes || !!listing.crane_tons);
+      // Parse crane ton values from comma-separated string
+      const craneCount = parseInt(listing.cranes || '') || 0;
+      if (craneCount > 0 && listing.crane_tons) {
+        const parts = listing.crane_tons.split(',').map((s: string) => s.trim());
+        setCraneTonValues(Array.from({ length: craneCount }, (_, i) => parts[i] || ''));
+      } else {
+        setCraneTonValues(Array.from({ length: craneCount }, () => ''));
+      }
       setYard(listing.yard === 'Yes' || listing.yard === 'yes' || listing.yard === 'Y');
       setYardArea(listing.yard_area || '');
       setCrossDock(listing.cross_dock === 'Yes' || listing.cross_dock === 'yes' || listing.cross_dock === 'Y');
@@ -1378,31 +1396,61 @@ export function MarketListingEditDialog({
                       if (!checked) {
                         setCranes('');
                         setCraneTons('');
+                        setCraneTonValues([]);
                       }
                     }}
                   />
                   <Label htmlFor="hasCranes" className="text-sm cursor-pointer">Cranes</Label>
                 </div>
                 {hasCranes && (
-                  <div className="grid grid-cols-2 gap-4 mt-2 ml-7">
-                    <div className="space-y-1">
+                  <div className="mt-2 ml-7 space-y-3">
+                    <div className="space-y-1 max-w-[200px]">
                       <Label className="text-xs">Number of Cranes</Label>
                       <Input
+                        type="number"
+                        min="0"
+                        max="20"
                         value={cranes}
-                        onChange={(e) => setCranes(e.target.value)}
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          setCranes(val);
+                          const count = parseInt(val) || 0;
+                          const clamped = Math.min(count, 20);
+                          setCraneTonValues(prev => {
+                            const newArr = Array.from({ length: clamped }, (_, i) => prev[i] || '');
+                            return newArr;
+                          });
+                          // Sync craneTons string
+                          const newArr = Array.from({ length: clamped }, (_, i) => craneTonValues[i] || '');
+                          setCraneTons(newArr.filter(v => v).join(', '));
+                        }}
                         className={`placeholder-light ${cranes ? 'input-filled' : ''}`}
                         placeholder="e.g., 2"
                       />
                     </div>
-                    <div className="space-y-1">
-                      <Label className="text-xs">Crane Tons</Label>
-                      <Input
-                        value={craneTons}
-                        onChange={(e) => setCraneTons(e.target.value)}
-                        className={`placeholder-light ${craneTons ? 'input-filled' : ''}`}
-                        placeholder="e.g., 10T"
-                      />
-                    </div>
+                    {craneTonValues.length > 0 && (
+                      <div className="space-y-2">
+                        <Label className="text-xs text-muted-foreground">Crane Tonnage</Label>
+                        <div className="grid grid-cols-2 gap-2">
+                          {craneTonValues.map((val, idx) => (
+                            <div key={idx} className="space-y-1">
+                              <Label className="text-xs">Crane {idx + 1}</Label>
+                              <Input
+                                value={val}
+                                onChange={(e) => {
+                                  const updated = [...craneTonValues];
+                                  updated[idx] = e.target.value;
+                                  setCraneTonValues(updated);
+                                  setCraneTons(updated.filter(v => v).join(', '));
+                                }}
+                                className={`placeholder-light ${val ? 'input-filled' : ''}`}
+                                placeholder="e.g., 10T"
+                              />
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
                   </div>
                 )}
 
