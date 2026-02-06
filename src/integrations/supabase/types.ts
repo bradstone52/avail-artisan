@@ -1070,11 +1070,13 @@ export type Database = {
       }
       internal_listings: {
         Row: {
+          additional_features: string | null
           address: string
           archived_at: string | null
           archived_reason: string | null
           asking_rent_psf: number | null
           asking_sale_price: number | null
+          assessed_value: number | null
           assigned_agent_id: string | null
           brochure_link: string | null
           broker_remarks: string | null
@@ -1088,7 +1090,9 @@ export type Database = {
           description: string | null
           display_address: string | null
           dock_doors: number | null
+          drive_in_door_dimensions: Json | null
           drive_in_doors: number | null
+          estimated_annual_tax: number | null
           gross_rate: number | null
           has_land: boolean | null
           id: string
@@ -1108,6 +1112,7 @@ export type Database = {
           power: string | null
           property_type: string | null
           published_at: string | null
+          second_floor_office_sf: number | null
           secondary_agent_id: string | null
           size_sf: number | null
           status: string
@@ -1120,11 +1125,13 @@ export type Database = {
           zoning: string | null
         }
         Insert: {
+          additional_features?: string | null
           address: string
           archived_at?: string | null
           archived_reason?: string | null
           asking_rent_psf?: number | null
           asking_sale_price?: number | null
+          assessed_value?: number | null
           assigned_agent_id?: string | null
           brochure_link?: string | null
           broker_remarks?: string | null
@@ -1138,7 +1145,9 @@ export type Database = {
           description?: string | null
           display_address?: string | null
           dock_doors?: number | null
+          drive_in_door_dimensions?: Json | null
           drive_in_doors?: number | null
+          estimated_annual_tax?: number | null
           gross_rate?: number | null
           has_land?: boolean | null
           id?: string
@@ -1158,6 +1167,7 @@ export type Database = {
           power?: string | null
           property_type?: string | null
           published_at?: string | null
+          second_floor_office_sf?: number | null
           secondary_agent_id?: string | null
           size_sf?: number | null
           status?: string
@@ -1170,11 +1180,13 @@ export type Database = {
           zoning?: string | null
         }
         Update: {
+          additional_features?: string | null
           address?: string
           archived_at?: string | null
           archived_reason?: string | null
           asking_rent_psf?: number | null
           asking_sale_price?: number | null
+          assessed_value?: number | null
           assigned_agent_id?: string | null
           brochure_link?: string | null
           broker_remarks?: string | null
@@ -1188,7 +1200,9 @@ export type Database = {
           description?: string | null
           display_address?: string | null
           dock_doors?: number | null
+          drive_in_door_dimensions?: Json | null
           drive_in_doors?: number | null
+          estimated_annual_tax?: number | null
           gross_rate?: number | null
           has_land?: boolean | null
           id?: string
@@ -1208,6 +1222,7 @@ export type Database = {
           power?: string | null
           property_type?: string | null
           published_at?: string | null
+          second_floor_office_sf?: number | null
           secondary_agent_id?: string | null
           size_sf?: number | null
           status?: string

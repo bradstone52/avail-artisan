@@ -1,4 +1,4 @@
-import { useEffect, useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -38,6 +38,10 @@ import {
   LOADING_TYPES,
 } from '@/hooks/useInternalListings';
 import { useAgents } from '@/hooks/useAgents';
+import { useMillRate } from '@/hooks/useMillRate';
+import { supabase } from '@/integrations/supabase/client';
+import { Loader2 } from 'lucide-react';
+import { toast } from 'sonner';
 
 const formSchema = z.object({
   address: z.string().min(1, 'Address is required'),
@@ -49,12 +53,14 @@ const formSchema = z.object({
   size_sf: z.number().optional(),
   warehouse_sf: z.number().optional(),
   office_sf: z.number().optional(),
+  second_floor_office_sf: z.number().optional(),
   clear_height_ft: z.number().optional(),
   power: z.string().optional(),
   yard: z.string().optional(),
   loading_type: z.string().optional(),
   dock_doors: z.number().optional(),
   drive_in_doors: z.number().optional(),
+  drive_in_door_dimensions: z.array(z.string()).optional(),
   land_acres: z.number().optional(),
   has_land: z.boolean().optional(),
   deal_type: z.string().min(1, 'Deal type is required'),
@@ -64,6 +70,8 @@ const formSchema = z.object({
   taxes: z.number().optional(),
   cam: z.number().optional(),
   gross_rate: z.number().optional(),
+  assessed_value: z.number().optional(),
+  estimated_annual_tax: z.number().optional(),
   status: z.string().min(1, 'Status is required'),
   assigned_agent_id: z.string().optional(),
   secondary_agent_id: z.string().optional(),
@@ -75,6 +83,7 @@ const formSchema = z.object({
   confidential_summary: z.string().optional(),
   brochure_link: z.string().optional(),
   website_link: z.string().optional(),
+  additional_features: z.string().optional(),
 });
 
 interface InternalListingEditDialogProps {
@@ -93,7 +102,9 @@ export function InternalListingEditDialog({
   isSubmitting,
 }: InternalListingEditDialogProps) {
   const { data: allAgents = [] } = useAgents();
+  const { rate: millRate, year: millRateYear } = useMillRate();
   const isEditing = !!listing;
+  const [fetchingCityData, setFetchingCityData] = useState(false);
 
   // Filter to only show agents from ClearView (the user's own brokerage)
   const agents = allAgents.filter(
@@ -112,12 +123,14 @@ export function InternalListingEditDialog({
       size_sf: undefined,
       warehouse_sf: undefined,
       office_sf: undefined,
+      second_floor_office_sf: undefined,
       clear_height_ft: undefined,
       power: '',
       yard: '',
       loading_type: '',
       dock_doors: undefined,
       drive_in_doors: undefined,
+      drive_in_door_dimensions: [],
       land_acres: undefined,
       has_land: false,
       deal_type: 'Lease',
@@ -127,6 +140,8 @@ export function InternalListingEditDialog({
       taxes: undefined,
       cam: undefined,
       gross_rate: undefined,
+      assessed_value: undefined,
+      estimated_annual_tax: undefined,
       status: 'Active',
       assigned_agent_id: '',
       secondary_agent_id: '',
@@ -138,6 +153,7 @@ export function InternalListingEditDialog({
       confidential_summary: '',
       brochure_link: '',
       website_link: '',
+      additional_features: '',
     },
   });
 
@@ -153,12 +169,14 @@ export function InternalListingEditDialog({
         size_sf: listing.size_sf ?? undefined,
         warehouse_sf: listing.warehouse_sf ?? undefined,
         office_sf: listing.office_sf ?? undefined,
+        second_floor_office_sf: listing.second_floor_office_sf ?? undefined,
         clear_height_ft: listing.clear_height_ft ?? undefined,
         power: listing.power || '',
         yard: listing.yard || '',
         loading_type: listing.loading_type || '',
         dock_doors: listing.dock_doors ?? undefined,
         drive_in_doors: listing.drive_in_doors ?? undefined,
+        drive_in_door_dimensions: listing.drive_in_door_dimensions || [],
         land_acres: listing.land_acres ?? undefined,
         has_land: listing.has_land ?? false,
         deal_type: listing.deal_type,
@@ -168,6 +186,8 @@ export function InternalListingEditDialog({
         taxes: listing.taxes ?? undefined,
         cam: listing.cam ?? undefined,
         gross_rate: listing.gross_rate ?? undefined,
+        assessed_value: listing.assessed_value ?? undefined,
+        estimated_annual_tax: listing.estimated_annual_tax ?? undefined,
         status: listing.status,
         assigned_agent_id: listing.assigned_agent_id || '',
         secondary_agent_id: listing.secondary_agent_id || '',
@@ -179,6 +199,7 @@ export function InternalListingEditDialog({
         confidential_summary: listing.confidential_summary || '',
         brochure_link: listing.brochure_link || '',
         website_link: listing.website_link || '',
+        additional_features: listing.additional_features || '',
       });
     } else {
       form.reset({
@@ -191,12 +212,14 @@ export function InternalListingEditDialog({
         size_sf: undefined,
         warehouse_sf: undefined,
         office_sf: undefined,
+        second_floor_office_sf: undefined,
         clear_height_ft: undefined,
         power: '',
         yard: '',
         loading_type: '',
         dock_doors: undefined,
         drive_in_doors: undefined,
+        drive_in_door_dimensions: [],
         land_acres: undefined,
         has_land: false,
         deal_type: 'Lease',
@@ -206,6 +229,8 @@ export function InternalListingEditDialog({
         taxes: undefined,
         cam: undefined,
         gross_rate: undefined,
+        assessed_value: undefined,
+        estimated_annual_tax: undefined,
         status: 'Active',
         assigned_agent_id: '',
         secondary_agent_id: '',
@@ -217,6 +242,7 @@ export function InternalListingEditDialog({
         confidential_summary: '',
         brochure_link: '',
         website_link: '',
+        additional_features: '',
       });
     }
   }, [listing, form]);
@@ -225,6 +251,14 @@ export function InternalListingEditDialog({
   const askingRent = form.watch('asking_rent_psf');
   const opCosts = form.watch('op_costs');
   const dealType = form.watch('deal_type');
+  const city = form.watch('city');
+  const address = form.watch('address');
+  const driveInDoors = form.watch('drive_in_doors');
+  const driveInDoorDimensions = form.watch('drive_in_door_dimensions') || [];
+  const assessedValue = form.watch('assessed_value');
+
+  // Check if this is a Calgary property
+  const isCalgary = city?.toLowerCase().includes('calgary');
 
   // Auto-calculate gross rate when asking rent and op costs are both filled
   const calculatedGrossRate = useMemo(() => {
@@ -241,6 +275,66 @@ export function InternalListingEditDialog({
     }
   }, [calculatedGrossRate, form]);
 
+  // Auto-calculate estimated annual tax when assessed value changes
+  useEffect(() => {
+    if (assessedValue != null && assessedValue > 0) {
+      const estimatedTax = assessedValue * millRate;
+      form.setValue('estimated_annual_tax', Math.round(estimatedTax));
+    }
+  }, [assessedValue, millRate, form]);
+
+  // Update drive-in door dimensions array when count changes
+  useEffect(() => {
+    const count = driveInDoors || 0;
+    const currentDimensions = driveInDoorDimensions || [];
+    
+    if (count > currentDimensions.length) {
+      // Add empty slots
+      const newDimensions = [...currentDimensions];
+      for (let i = currentDimensions.length; i < count; i++) {
+        newDimensions.push('');
+      }
+      form.setValue('drive_in_door_dimensions', newDimensions);
+    } else if (count < currentDimensions.length) {
+      // Trim excess slots
+      form.setValue('drive_in_door_dimensions', currentDimensions.slice(0, count));
+    }
+  }, [driveInDoors, form]);
+
+  // Fetch Calgary city data for assessed value
+  const fetchCalgaryData = async () => {
+    if (!address || !isCalgary) return;
+    
+    setFetchingCityData(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('fetch-city-data', {
+        body: { address, city: 'Calgary' },
+      });
+
+      if (error) throw error;
+
+      if (data?.assessment?.assessed_value) {
+        form.setValue('assessed_value', data.assessment.assessed_value);
+        toast.success('City data fetched successfully');
+      } else {
+        toast.error('No assessment data found for this address');
+      }
+    } catch (err) {
+      console.error('Error fetching city data:', err);
+      toast.error('Failed to fetch city data');
+    } finally {
+      setFetchingCityData(false);
+    }
+  };
+
+  // Update a single door dimension
+  const updateDoorDimension = (index: number, value: string) => {
+    const current = form.getValues('drive_in_door_dimensions') || [];
+    const updated = [...current];
+    updated[index] = value;
+    form.setValue('drive_in_door_dimensions', updated);
+  };
+
   const handleSubmit = (data: z.infer<typeof formSchema>) => {
     const cleanedData: InternalListingFormData = {
       address: data.address,
@@ -254,12 +348,14 @@ export function InternalListingEditDialog({
       size_sf: data.size_sf,
       warehouse_sf: data.warehouse_sf,
       office_sf: data.office_sf,
+      second_floor_office_sf: data.second_floor_office_sf,
       clear_height_ft: data.clear_height_ft,
       power: data.power,
       yard: data.yard,
       loading_type: data.loading_type,
       dock_doors: data.dock_doors,
       drive_in_doors: data.drive_in_doors,
+      drive_in_door_dimensions: data.drive_in_door_dimensions?.filter(d => d.trim() !== ''),
       land_acres: data.land_acres,
       has_land: data.has_land,
       asking_rent_psf: data.asking_rent_psf,
@@ -268,6 +364,8 @@ export function InternalListingEditDialog({
       taxes: data.taxes,
       cam: data.cam,
       gross_rate: data.gross_rate,
+      assessed_value: data.assessed_value,
+      estimated_annual_tax: data.estimated_annual_tax,
       assigned_agent_id: data.assigned_agent_id || undefined,
       secondary_agent_id: data.secondary_agent_id || undefined,
       owner_name: data.owner_name,
@@ -278,6 +376,7 @@ export function InternalListingEditDialog({
       confidential_summary: data.confidential_summary,
       brochure_link: data.brochure_link,
       website_link: data.website_link,
+      additional_features: data.additional_features,
     };
     onSubmit(cleanedData);
   };
@@ -454,6 +553,24 @@ export function InternalListingEditDialog({
 
                   <FormField
                     control={form.control}
+                    name="second_floor_office_sf"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Second Floor Office (SF)</FormLabel>
+                        <FormControl>
+                          <FormattedNumberInput
+                            value={field.value}
+                            onChange={field.onChange}
+                            placeholder="2,500"
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
                     name="clear_height_ft"
                     render={({ field }) => (
                       <FormItem>
@@ -531,6 +648,33 @@ export function InternalListingEditDialog({
                     )}
                   />
 
+                  {/* Dynamic drive-in door dimensions */}
+                  {(driveInDoors ?? 0) > 0 && (
+                    <div className="col-span-2 space-y-3 p-4 border rounded-lg bg-muted/30">
+                      <FormLabel className="text-sm font-medium">
+                        Drive-In Door Dimensions
+                      </FormLabel>
+                      <p className="text-xs text-muted-foreground">
+                        Enter dimensions for each drive-in door (e.g., 12' x 14')
+                      </p>
+                      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                        {Array.from({ length: driveInDoors || 0 }).map((_, index) => (
+                          <div key={index} className="space-y-1">
+                            <label className="text-xs text-muted-foreground">
+                              Door {index + 1}
+                            </label>
+                            <Input
+                              value={driveInDoorDimensions[index] || ''}
+                              onChange={(e) => updateDoorDimension(index, e.target.value)}
+                              placeholder="12' x 14'"
+                              className="text-sm"
+                            />
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
                   <FormField
                     control={form.control}
                     name="power"
@@ -598,6 +742,25 @@ export function InternalListingEditDialog({
                       />
                     </div>
                   </div>
+
+                  {/* Additional Features */}
+                  <FormField
+                    control={form.control}
+                    name="additional_features"
+                    render={({ field }) => (
+                      <FormItem className="col-span-2">
+                        <FormLabel>Additional Features</FormLabel>
+                        <FormControl>
+                          <Textarea
+                            {...field}
+                            placeholder="e.g., ESFR sprinklers, LED lighting, heated warehouse, rail access..."
+                            rows={3}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
                 </div>
               </TabsContent>
 
@@ -775,6 +938,82 @@ export function InternalListingEditDialog({
                       </FormItem>
                     )}
                   />
+
+                  {/* Assessment & Tax Section */}
+                  <div className="col-span-2 border-t pt-4 mt-2">
+                    <h4 className="text-sm font-semibold mb-3">Assessment & Tax</h4>
+                    <div className="grid grid-cols-2 gap-4">
+                      <FormField
+                        control={form.control}
+                        name="assessed_value"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Assessed Value ($)</FormLabel>
+                            <div className="flex gap-2">
+                              <FormControl>
+                                <FormattedNumberInput
+                                  value={field.value}
+                                  onChange={field.onChange}
+                                  placeholder="5,000,000"
+                                />
+                              </FormControl>
+                              {isCalgary && (
+                                <Button
+                                  type="button"
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={fetchCalgaryData}
+                                  disabled={fetchingCityData || !address}
+                                  className="whitespace-nowrap"
+                                >
+                                  {fetchingCityData ? (
+                                    <Loader2 className="h-4 w-4 animate-spin" />
+                                  ) : (
+                                    'Fetch'
+                                  )}
+                                </Button>
+                              )}
+                            </div>
+                            {isCalgary && (
+                              <p className="text-xs text-muted-foreground">
+                                Click "Fetch" to pull from City of Calgary
+                              </p>
+                            )}
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+
+                      <FormField
+                        control={form.control}
+                        name="estimated_annual_tax"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Est. Annual Tax ($)</FormLabel>
+                            <FormControl>
+                              <FormattedNumberInput
+                                value={field.value}
+                                onChange={field.onChange}
+                                placeholder="Auto-calculated"
+                                disabled={isCalgary && assessedValue != null}
+                              />
+                            </FormControl>
+                            {isCalgary && assessedValue != null && (
+                              <p className="text-xs text-muted-foreground">
+                                Auto-calculated using {millRateYear} mill rate ({(millRate * 100).toFixed(2)}%)
+                              </p>
+                            )}
+                            {!isCalgary && (
+                              <p className="text-xs text-muted-foreground">
+                                Enter manually for non-Calgary properties
+                              </p>
+                            )}
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    </div>
+                  </div>
                 </div>
               </TabsContent>
 
