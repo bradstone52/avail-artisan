@@ -57,6 +57,9 @@ export interface InternalListing {
   website_link: string | null;
   has_land: boolean | null;
   additional_features: string | null;
+  has_mua: boolean | null;
+  mua_units: number | null;
+  mua_cfm_ratings: string[] | null;
   // Joined data
   assigned_agent?: { id: string; name: string } | null;
   secondary_agent?: { id: string; name: string } | null;
@@ -104,6 +107,9 @@ export interface InternalListingFormData {
   website_link?: string;
   has_land?: boolean;
   additional_features?: string;
+  has_mua?: boolean;
+  mua_units?: number;
+  mua_cfm_ratings?: string[];
 }
 
 export interface InternalListingStatusHistory {

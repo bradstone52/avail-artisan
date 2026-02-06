@@ -1095,12 +1095,15 @@ export type Database = {
           estimated_annual_tax: number | null
           gross_rate: number | null
           has_land: boolean | null
+          has_mua: boolean | null
           id: string
           land_acres: number | null
           latitude: number | null
           listing_number: string | null
           loading_type: string | null
           longitude: number | null
+          mua_cfm_ratings: Json | null
+          mua_units: number | null
           office_sf: number | null
           op_costs: number | null
           org_id: string | null
@@ -1150,12 +1153,15 @@ export type Database = {
           estimated_annual_tax?: number | null
           gross_rate?: number | null
           has_land?: boolean | null
+          has_mua?: boolean | null
           id?: string
           land_acres?: number | null
           latitude?: number | null
           listing_number?: string | null
           loading_type?: string | null
           longitude?: number | null
+          mua_cfm_ratings?: Json | null
+          mua_units?: number | null
           office_sf?: number | null
           op_costs?: number | null
           org_id?: string | null
@@ -1205,12 +1211,15 @@ export type Database = {
           estimated_annual_tax?: number | null
           gross_rate?: number | null
           has_land?: boolean | null
+          has_mua?: boolean | null
           id?: string
           land_acres?: number | null
           latitude?: number | null
           listing_number?: string | null
           loading_type?: string | null
           longitude?: number | null
+          mua_cfm_ratings?: Json | null
+          mua_units?: number | null
           office_sf?: number | null
           op_costs?: number | null
           org_id?: string | null
