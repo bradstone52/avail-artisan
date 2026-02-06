@@ -419,18 +419,19 @@ export function InternalListingEditDialog({
         return;
       }
 
-      // Parse the assessed value - Calgary API uses current_assessed_value as the primary field
-      const rawValue = assessmentData.current_assessed_value || 
-                       assessmentData.assessed_value || 
+      // Parse the assessed value - Calgary API returns values as strings like "8720000.0"
+      const rawValue = assessmentData.assessed_value || 
+                       assessmentData.current_assessed_value || 
+                       assessmentData.nr_assessed_value ||
                        assessmentData.current_year_total_assessment || 
-                       assessmentData.total_assessed || 
-                       assessmentData.nr_assessed_value;
+                       assessmentData.total_assessed;
       
       console.log('Raw assessment value:', rawValue, typeof rawValue);
       
+      // Use parseFloat to handle decimal strings like "8720000.0", then round to integer
       const assessedValue = typeof rawValue === 'number' 
-        ? rawValue 
-        : parseInt(String(rawValue).replace(/[^0-9]/g, ''), 10);
+        ? Math.round(rawValue) 
+        : Math.round(parseFloat(String(rawValue).replace(/[^0-9.]/g, '')));
       
       if (assessedValue && !isNaN(assessedValue)) {
         form.setValue('assessed_value', assessedValue);
