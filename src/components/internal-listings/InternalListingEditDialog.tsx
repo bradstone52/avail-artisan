@@ -67,6 +67,12 @@ const formSchema = z.object({
   has_mua: z.boolean().optional(),
   mua_units: z.number().optional(),
   mua_cfm_ratings: z.array(z.string()).optional(),
+  has_sprinklers: z.boolean().optional(),
+  sprinklers_esfr: z.boolean().optional(),
+  has_led_lighting: z.boolean().optional(),
+  has_rail_access: z.boolean().optional(),
+  has_heated: z.boolean().optional(),
+  has_air_conditioning: z.boolean().optional(),
   deal_type: z.string().min(1, 'Deal type is required'),
   asking_rent_psf: z.number().optional(),
   asking_sale_price: z.number().optional(),
@@ -142,6 +148,12 @@ export function InternalListingEditDialog({
       has_mua: false,
       mua_units: undefined,
       mua_cfm_ratings: [],
+      has_sprinklers: false,
+      sprinklers_esfr: false,
+      has_led_lighting: false,
+      has_rail_access: false,
+      has_heated: false,
+      has_air_conditioning: false,
       deal_type: 'Lease',
       asking_rent_psf: undefined,
       asking_sale_price: undefined,
@@ -191,6 +203,12 @@ export function InternalListingEditDialog({
         has_mua: listing.has_mua ?? false,
         mua_units: listing.mua_units ?? undefined,
         mua_cfm_ratings: (listing.mua_cfm_ratings as string[]) || [],
+        has_sprinklers: (listing as any).has_sprinklers ?? false,
+        sprinklers_esfr: (listing as any).sprinklers_esfr ?? false,
+        has_led_lighting: (listing as any).has_led_lighting ?? false,
+        has_rail_access: (listing as any).has_rail_access ?? false,
+        has_heated: (listing as any).has_heated ?? false,
+        has_air_conditioning: (listing as any).has_air_conditioning ?? false,
         deal_type: listing.deal_type,
         asking_rent_psf: listing.asking_rent_psf ?? undefined,
         asking_sale_price: listing.asking_sale_price ?? undefined,
@@ -237,6 +255,12 @@ export function InternalListingEditDialog({
         has_mua: false,
         mua_units: undefined,
         mua_cfm_ratings: [],
+        has_sprinklers: false,
+        sprinklers_esfr: false,
+        has_led_lighting: false,
+        has_rail_access: false,
+        has_heated: false,
+        has_air_conditioning: false,
         deal_type: 'Lease',
         asking_rent_psf: undefined,
         asking_sale_price: undefined,
@@ -274,6 +298,7 @@ export function InternalListingEditDialog({
   const hasMua = form.watch('has_mua');
   const muaUnits = form.watch('mua_units');
   const muaCfmRatings = form.watch('mua_cfm_ratings') || [];
+  const hasSprinklers = form.watch('has_sprinklers');
 
   // Check if this is a Calgary property
   const isCalgary = city?.toLowerCase().includes('calgary');
@@ -559,6 +584,12 @@ export function InternalListingEditDialog({
       has_mua: data.has_mua,
       mua_units: data.has_mua ? data.mua_units : undefined,
       mua_cfm_ratings: data.has_mua ? data.mua_cfm_ratings?.filter(d => d.trim() !== '') : undefined,
+      has_sprinklers: data.has_sprinklers,
+      sprinklers_esfr: data.has_sprinklers ? data.sprinklers_esfr : undefined,
+      has_led_lighting: data.has_led_lighting,
+      has_rail_access: data.has_rail_access,
+      has_heated: data.has_heated,
+      has_air_conditioning: data.has_air_conditioning,
       asking_rent_psf: data.asking_rent_psf,
       asking_sale_price: data.asking_sale_price,
       op_costs: data.op_costs,
@@ -930,9 +961,43 @@ export function InternalListingEditDialog({
                   <div className="col-span-2">
                     <FormLabel className="text-sm font-medium mb-3 block">Features</FormLabel>
                     <div className="flex flex-wrap gap-4">
+                      <div className="flex items-center gap-2">
+                        <FormField
+                          control={form.control}
+                          name="has_sprinklers"
+                          render={({ field }) => (
+                            <FormItem className="flex items-center space-x-2 space-y-0">
+                              <FormControl>
+                                <Checkbox
+                                  checked={field.value}
+                                  onCheckedChange={field.onChange}
+                                />
+                              </FormControl>
+                              <FormLabel className="font-normal cursor-pointer">Sprinklers</FormLabel>
+                            </FormItem>
+                          )}
+                        />
+                        {hasSprinklers && (
+                          <FormField
+                            control={form.control}
+                            name="sprinklers_esfr"
+                            render={({ field }) => (
+                              <FormItem className="flex items-center space-x-2 space-y-0">
+                                <FormControl>
+                                  <Checkbox
+                                    checked={field.value}
+                                    onCheckedChange={field.onChange}
+                                  />
+                                </FormControl>
+                                <FormLabel className="font-normal cursor-pointer text-muted-foreground">ESFR?</FormLabel>
+                              </FormItem>
+                            )}
+                          />
+                        )}
+                      </div>
                       <FormField
                         control={form.control}
-                        name="has_land"
+                        name="has_led_lighting"
                         render={({ field }) => (
                           <FormItem className="flex items-center space-x-2 space-y-0">
                             <FormControl>
@@ -941,7 +1006,52 @@ export function InternalListingEditDialog({
                                 onCheckedChange={field.onChange}
                               />
                             </FormControl>
-                            <FormLabel className="font-normal cursor-pointer">Land</FormLabel>
+                            <FormLabel className="font-normal cursor-pointer">LED Lighting</FormLabel>
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={form.control}
+                        name="has_rail_access"
+                        render={({ field }) => (
+                          <FormItem className="flex items-center space-x-2 space-y-0">
+                            <FormControl>
+                              <Checkbox
+                                checked={field.value}
+                                onCheckedChange={field.onChange}
+                              />
+                            </FormControl>
+                            <FormLabel className="font-normal cursor-pointer">Rail Access</FormLabel>
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={form.control}
+                        name="has_heated"
+                        render={({ field }) => (
+                          <FormItem className="flex items-center space-x-2 space-y-0">
+                            <FormControl>
+                              <Checkbox
+                                checked={field.value}
+                                onCheckedChange={field.onChange}
+                              />
+                            </FormControl>
+                            <FormLabel className="font-normal cursor-pointer">Heated</FormLabel>
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={form.control}
+                        name="has_air_conditioning"
+                        render={({ field }) => (
+                          <FormItem className="flex items-center space-x-2 space-y-0">
+                            <FormControl>
+                              <Checkbox
+                                checked={field.value}
+                                onCheckedChange={field.onChange}
+                              />
+                            </FormControl>
+                            <FormLabel className="font-normal cursor-pointer">Air Conditioning</FormLabel>
                           </FormItem>
                         )}
                       />
