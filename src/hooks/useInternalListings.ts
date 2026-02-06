@@ -19,12 +19,14 @@ export interface InternalListing {
   size_sf: number | null;
   warehouse_sf: number | null;
   office_sf: number | null;
+  second_floor_office_sf: number | null;
   clear_height_ft: number | null;
   power: string | null;
   yard: string | null;
   loading_type: string | null;
   dock_doors: number | null;
   drive_in_doors: number | null;
+  drive_in_door_dimensions: string[] | null;
   land_acres: number | null;
   latitude: number | null;
   longitude: number | null;
@@ -35,6 +37,8 @@ export interface InternalListing {
   taxes: number | null;
   cam: number | null;
   gross_rate: number | null;
+  assessed_value: number | null;
+  estimated_annual_tax: number | null;
   status: string;
   assigned_agent_id: string | null;
   secondary_agent_id: string | null;
@@ -52,6 +56,7 @@ export interface InternalListing {
   brochure_link: string | null;
   website_link: string | null;
   has_land: boolean | null;
+  additional_features: string | null;
   // Joined data
   assigned_agent?: { id: string; name: string } | null;
   secondary_agent?: { id: string; name: string } | null;
@@ -67,12 +72,14 @@ export interface InternalListingFormData {
   size_sf?: number;
   warehouse_sf?: number;
   office_sf?: number;
+  second_floor_office_sf?: number;
   clear_height_ft?: number;
   power?: string;
   yard?: string;
   loading_type?: string;
   dock_doors?: number;
   drive_in_doors?: number;
+  drive_in_door_dimensions?: string[];
   land_acres?: number;
   deal_type: string;
   asking_rent_psf?: number;
@@ -81,6 +88,8 @@ export interface InternalListingFormData {
   taxes?: number;
   cam?: number;
   gross_rate?: number;
+  assessed_value?: number;
+  estimated_annual_tax?: number;
   status: string;
   assigned_agent_id?: string;
   secondary_agent_id?: string;
@@ -94,6 +103,7 @@ export interface InternalListingFormData {
   brochure_link?: string;
   website_link?: string;
   has_land?: boolean;
+  additional_features?: string;
 }
 
 export interface InternalListingStatusHistory {
