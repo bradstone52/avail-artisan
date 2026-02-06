@@ -8,19 +8,46 @@ const corsHeaders = {
 // Process all links, but in parallel batches to avoid overwhelming servers
 const CONCURRENT_BATCH_SIZE = 10;
 
-// Patterns indicating soft 404 or error pages
+// Patterns indicating soft 404 or error pages (case-insensitive matching)
 const SOFT_404_PATTERNS = [
+  // Generic 404 patterns
   "page not found",
+  "page could not be found",
   "404 error",
+  "error 404",
   "file not found",
   "resource not found",
-  "the page you requested",
+  "content not found",
+  "listing not found",
+  "property not found",
+  // Apology/sorry patterns (common on branded 404 pages)
+  "we're sorry",
+  "we are sorry",
+  "sorry, the page",
+  "sorry, this page",
+  "oops!",
+  // Existence patterns
   "does not exist",
+  "doesn't exist",
+  "no longer exists",
   "has been removed",
+  "has been deleted",
   "no longer available",
-  "blobnotfound", // Azure blob storage
+  "is no longer available",
+  "the page you requested",
+  "the page you were looking for",
+  "this page isn't available",
+  "this page is not available",
+  // Cloud storage patterns
+  "blobnotfound",
   "the specified blob does not exist",
   "resourcenotfound",
+  "accessdenied",
+  // CRE brokerage specific patterns
+  "listing has expired",
+  "property has been leased",
+  "property has been sold",
+  "this listing is no longer active",
 ];
 
 // User agents for different scenarios
@@ -141,27 +168,67 @@ async function checkForSoft404(link: string): Promise<boolean> {
   try {
     const response = await fetch(link, {
       method: "GET",
-      headers: { "User-Agent": DEFAULT_USER_AGENT },
+      headers: { 
+        "User-Agent": DEFAULT_USER_AGENT,
+        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+      },
     });
 
-    // Only check HTML responses for soft 404s
     const contentType = response.headers.get("content-type") || "";
-    if (!contentType.includes("text/html")) {
+    
+    // For PDFs and other binary files, skip soft 404 check
+    if (contentType.includes("application/pdf") || 
+        contentType.includes("application/octet-stream") ||
+        contentType.includes("image/")) {
       return false;
     }
 
     const body = await response.text();
     const lowerBody = body.toLowerCase();
 
-    // Check for soft 404 patterns
+    // Check for soft 404 patterns in body
     for (const pattern of SOFT_404_PATTERNS) {
       if (lowerBody.includes(pattern)) {
+        console.log(`[soft-404] Detected pattern "${pattern}" in ${link}`);
+        return true;
+      }
+    }
+
+    // Check <title> tag specifically for 404 indicators
+    const titleMatch = lowerBody.match(/<title[^>]*>([^<]*)<\/title>/i);
+    if (titleMatch) {
+      const title = titleMatch[1].toLowerCase();
+      if (title.includes("404") || 
+          title.includes("not found") || 
+          title.includes("error") ||
+          title.includes("page missing")) {
+        console.log(`[soft-404] Detected 404 in title tag: "${titleMatch[1]}" for ${link}`);
+        return true;
+      }
+    }
+
+    // Heuristic: Very short HTML pages with no meaningful content might be error pages
+    // But only if they also contain some error-like language
+    if (body.length < 5000 && (
+      lowerBody.includes("sorry") || 
+      lowerBody.includes("error") ||
+      lowerBody.includes("missing")
+    )) {
+      // Double-check it's not a legitimate short page
+      const hasListingContent = lowerBody.includes("square feet") || 
+                                 lowerBody.includes("sq ft") ||
+                                 lowerBody.includes("lease rate") ||
+                                 lowerBody.includes("for sale") ||
+                                 lowerBody.includes("for lease");
+      if (!hasListingContent) {
+        console.log(`[soft-404] Short error-like page detected for ${link}`);
         return true;
       }
     }
 
     return false;
-  } catch {
+  } catch (err) {
+    console.error(`[soft-404] Error checking ${link}:`, err);
     return false;
   }
 }
