@@ -74,12 +74,12 @@ const C = {
   dark: '#333333',
   mid: '#666666',
   light: '#999999',
-  border: '#d0d0d0',
-  tableBg: '#f2f2f2',
+  border: '#cccccc',      // match deal sheet light border
+  tableBg: '#f5f5f5',     // match deal sheet/summary label cells
   white: '#ffffff',
-  accent: '#1e3a5f',   // dark navy
+  accent: '#1e3a5f',      // dark navy
   accentLight: '#e8eef5',
-  highlight: '#2563EB', // blue for pricing
+  highlight: '#2563EB',
 };
 
 // ── Styles ──────────────────────────────────────────────────────
