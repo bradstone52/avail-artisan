@@ -15,13 +15,14 @@ import {
 import { Checkbox } from '@/components/ui/checkbox';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
-import { RefreshCw, Database, Search, X, Filter, Link2, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Plus, ChevronDown, Wrench } from 'lucide-react';
+import { RefreshCw, Database, Search, X, Filter, Link2, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Plus, ChevronDown, Wrench, ClipboardCheck } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { format } from 'date-fns';
 import { MarketListingEditDialog } from '@/components/market/MarketListingEditDialog';
 import { MarketListingsTable, SortableColumn, SortDirection } from '@/components/market/MarketListingsTable';
 import { FixLinksDialog } from '@/components/market/FixLinksDialog';
 import { LogTransactionDialog } from '@/components/market/LogTransactionDialog';
+import { MonthlyUpdateCheckerDialog } from '@/components/market/MonthlyUpdateCheckerDialog';
 
 const SIZE_RANGES = [
   { label: 'All Sizes', value: 'all', min: 0, max: Infinity },
@@ -74,6 +75,7 @@ export default function MarketListings() {
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [isFixLinksDialogOpen, setIsFixLinksDialogOpen] = useState(false);
   const [transactionListing, setTransactionListing] = useState<MarketListing | null>(null);
+  const [isUpdateCheckerOpen, setIsUpdateCheckerOpen] = useState(false);
 
   // Handle column sorting
   const handleSort = useCallback((column: SortableColumn) => {
@@ -375,6 +377,15 @@ export default function MarketListings() {
             >
               <Link2 className={`w-4 h-4 mr-2 ${isValidatingLinks ? 'animate-pulse' : ''}`} />
               {isValidatingLinks ? 'Checking...' : 'Check Links'}
+            </Button>
+            <Button 
+              variant="outline"
+              size="sm"
+              className="flex-1 sm:flex-none"
+              onClick={() => setIsUpdateCheckerOpen(true)}
+            >
+              <ClipboardCheck className="w-4 h-4 mr-2" />
+              Monthly Updates
             </Button>
             <Button 
               variant="outline"
@@ -854,6 +865,13 @@ export default function MarketListings() {
             setTransactionListing(null);
             refreshListings();
           }}
+        />
+
+        {/* Monthly Update Checker Dialog */}
+        <MonthlyUpdateCheckerDialog
+          open={isUpdateCheckerOpen}
+          onOpenChange={setIsUpdateCheckerOpen}
+          listings={listings}
         />
       </div>
     </AppLayout>
