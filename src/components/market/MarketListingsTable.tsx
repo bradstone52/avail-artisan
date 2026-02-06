@@ -396,8 +396,7 @@ export function MarketListingsTable({ listings, onEdit, onRefresh, sortColumn, s
             <TableHead className="text-background text-right min-w-[90px] bg-zinc-700 dark:bg-zinc-600">Clear Ht</TableHead>
             <SortableHeader column="dock_doors" className="text-right min-w-[70px] bg-zinc-700 dark:bg-zinc-600">Docks</SortableHeader>
             <SortableHeader column="drive_in_doors" className="text-right min-w-[70px] bg-zinc-700 dark:bg-zinc-600">Drive-In</SortableHeader>
-            <SortableHeader column="power_amps" className="min-w-[90px] bg-zinc-700 dark:bg-zinc-600">Power</SortableHeader>
-            <TableHead className="text-background min-w-[80px] bg-zinc-700 dark:bg-zinc-600">Voltage</TableHead>
+            <SortableHeader column="power_amps" className="min-w-[110px] bg-zinc-700 dark:bg-zinc-600">Power</SortableHeader>
             <TableHead className="text-background min-w-[90px] bg-zinc-700 dark:bg-zinc-600">Sprinkler</TableHead>
             <TableHead className="text-background min-w-[70px] bg-zinc-700 dark:bg-zinc-600">Cranes</TableHead>
             <TableHead className="text-background min-w-[60px] bg-zinc-700 dark:bg-zinc-600">Yard</TableHead>
@@ -543,11 +542,12 @@ export function MarketListingsTable({ listings, onEdit, onRefresh, sortColumn, s
                 {listing.drive_in_doors ?? '-'}
               </TableCell>
               
-              {/* Power (Amps) */}
-              <TableCell className="text-sm">{listing.power_amps || '-'}</TableCell>
-              
-              {/* Voltage */}
-              <TableCell className="text-sm">{listing.voltage || '-'}</TableCell>
+              {/* Power (Amps / Voltage combined) */}
+              <TableCell className="text-sm">
+                {listing.power_amps || listing.voltage
+                  ? `${listing.power_amps || '–'}A / ${listing.voltage || '–'}V`
+                  : '-'}
+              </TableCell>
               
               {/* Sprinkler */}
               <TableCell className="text-sm">{listing.sprinkler || '-'}</TableCell>
