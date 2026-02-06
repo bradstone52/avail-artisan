@@ -64,6 +64,9 @@ const formSchema = z.object({
   drive_in_door_dimensions: z.array(z.string()).optional(),
   land_acres: z.number().optional(),
   has_land: z.boolean().optional(),
+  has_mua: z.boolean().optional(),
+  mua_units: z.number().optional(),
+  mua_cfm_ratings: z.array(z.string()).optional(),
   deal_type: z.string().min(1, 'Deal type is required'),
   asking_rent_psf: z.number().optional(),
   asking_sale_price: z.number().optional(),
@@ -136,6 +139,9 @@ export function InternalListingEditDialog({
       drive_in_door_dimensions: [],
       land_acres: undefined,
       has_land: false,
+      has_mua: false,
+      mua_units: undefined,
+      mua_cfm_ratings: [],
       deal_type: 'Lease',
       asking_rent_psf: undefined,
       asking_sale_price: undefined,
@@ -182,6 +188,9 @@ export function InternalListingEditDialog({
         drive_in_door_dimensions: listing.drive_in_door_dimensions || [],
         land_acres: listing.land_acres ?? undefined,
         has_land: listing.has_land ?? false,
+        has_mua: listing.has_mua ?? false,
+        mua_units: listing.mua_units ?? undefined,
+        mua_cfm_ratings: (listing.mua_cfm_ratings as string[]) || [],
         deal_type: listing.deal_type,
         asking_rent_psf: listing.asking_rent_psf ?? undefined,
         asking_sale_price: listing.asking_sale_price ?? undefined,
@@ -225,6 +234,9 @@ export function InternalListingEditDialog({
         drive_in_door_dimensions: [],
         land_acres: undefined,
         has_land: false,
+        has_mua: false,
+        mua_units: undefined,
+        mua_cfm_ratings: [],
         deal_type: 'Lease',
         asking_rent_psf: undefined,
         asking_sale_price: undefined,
@@ -259,6 +271,9 @@ export function InternalListingEditDialog({
   const driveInDoors = form.watch('drive_in_doors');
   const driveInDoorDimensions = form.watch('drive_in_door_dimensions') || [];
   const assessedValue = form.watch('assessed_value');
+  const hasMua = form.watch('has_mua');
+  const muaUnits = form.watch('mua_units');
+  const muaCfmRatings = form.watch('mua_cfm_ratings') || [];
 
   // Check if this is a Calgary property
   const isCalgary = city?.toLowerCase().includes('calgary');
@@ -336,6 +351,24 @@ export function InternalListingEditDialog({
       form.setValue('drive_in_door_dimensions', currentDimensions.slice(0, count));
     }
   }, [driveInDoors, form]);
+
+  // Update MUA CFM ratings array when unit count changes
+  useEffect(() => {
+    const count = muaUnits || 0;
+    const currentRatings = muaCfmRatings || [];
+    
+    if (count > currentRatings.length) {
+      // Add empty slots
+      const newRatings = [...currentRatings];
+      for (let i = currentRatings.length; i < count; i++) {
+        newRatings.push('');
+      }
+      form.setValue('mua_cfm_ratings', newRatings);
+    } else if (count < currentRatings.length) {
+      // Trim excess slots
+      form.setValue('mua_cfm_ratings', currentRatings.slice(0, count));
+    }
+  }, [muaUnits, form]);
 
   // Fetch Calgary city data for assessed value directly from City of Calgary Open Data API
   const fetchCalgaryData = async () => {
@@ -492,6 +525,14 @@ export function InternalListingEditDialog({
     form.setValue('drive_in_door_dimensions', updated);
   };
 
+  // Update a single MUA CFM rating
+  const updateMuaCfmRating = (index: number, value: string) => {
+    const current = form.getValues('mua_cfm_ratings') || [];
+    const updated = [...current];
+    updated[index] = value;
+    form.setValue('mua_cfm_ratings', updated);
+  };
+
   const handleSubmit = (data: z.infer<typeof formSchema>) => {
     const cleanedData: InternalListingFormData = {
       address: data.address,
@@ -515,6 +556,9 @@ export function InternalListingEditDialog({
       drive_in_door_dimensions: data.drive_in_door_dimensions?.filter(d => d.trim() !== ''),
       land_acres: data.land_acres,
       has_land: data.has_land,
+      has_mua: data.has_mua,
+      mua_units: data.has_mua ? data.mua_units : undefined,
+      mua_cfm_ratings: data.has_mua ? data.mua_cfm_ratings?.filter(d => d.trim() !== '') : undefined,
       asking_rent_psf: data.asking_rent_psf,
       asking_sale_price: data.asking_sale_price,
       op_costs: data.op_costs,
@@ -901,8 +945,73 @@ export function InternalListingEditDialog({
                           </FormItem>
                         )}
                       />
+                      <FormField
+                        control={form.control}
+                        name="has_mua"
+                        render={({ field }) => (
+                          <FormItem className="flex items-center space-x-2 space-y-0">
+                            <FormControl>
+                              <Checkbox
+                                checked={field.value}
+                                onCheckedChange={field.onChange}
+                              />
+                            </FormControl>
+                            <FormLabel className="font-normal cursor-pointer">Make Up Air</FormLabel>
+                          </FormItem>
+                        )}
+                      />
                     </div>
                   </div>
+
+                  {/* MUA Details - shown when Make Up Air is checked */}
+                  {hasMua && (
+                    <div className="col-span-2 space-y-3 p-4 border rounded-lg bg-muted/30">
+                      <FormLabel className="text-sm font-medium">
+                        Make Up Air Details
+                      </FormLabel>
+                      <div className="grid grid-cols-2 gap-4">
+                        <FormField
+                          control={form.control}
+                          name="mua_units"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel className="text-xs text-muted-foreground"># Units</FormLabel>
+                              <FormControl>
+                                <FormattedNumberInput
+                                  value={field.value}
+                                  onChange={field.onChange}
+                                  placeholder="2"
+                                />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                      </div>
+                      {(muaUnits ?? 0) > 0 && (
+                        <div className="space-y-2">
+                          <p className="text-xs text-muted-foreground">
+                            Enter CFM rating for each unit
+                          </p>
+                          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                            {Array.from({ length: muaUnits || 0 }).map((_, index) => (
+                              <div key={index} className="space-y-1">
+                                <label className="text-xs text-muted-foreground">
+                                  Unit {index + 1} CFM
+                                </label>
+                                <Input
+                                  value={muaCfmRatings[index] || ''}
+                                  onChange={(e) => updateMuaCfmRating(index, e.target.value)}
+                                  placeholder="10,000"
+                                  className="text-sm"
+                                />
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
 
                   {/* Additional Features */}
                   <FormField
