@@ -441,41 +441,40 @@ export function MarketingSection({ listing, onPhotoUpdate }: MarketingSectionPro
         }
       }
 
+      // Helper: fetch an image and re-encode it via canvas to ensure react-pdf
+      // receives a compatible JPEG data-URL (works even for WebP/AVIF sources).
+      const toCompatibleBase64 = async (url: string): Promise<string | null> => {
+        try {
+          const resp = await fetch(url);
+          if (!resp.ok) return null;
+          const blob = await resp.blob();
+          const bmp = await createImageBitmap(blob);
+          const canvas = document.createElement('canvas');
+          canvas.width = bmp.width;
+          canvas.height = bmp.height;
+          const ctx = canvas.getContext('2d');
+          if (!ctx) return null;
+          ctx.drawImage(bmp, 0, 0);
+          bmp.close();
+          return canvas.toDataURL('image/jpeg', 0.92);
+        } catch (e) {
+          console.warn('Image conversion failed for', url, e);
+          return null;
+        }
+      };
+
       // Convert hero photo to base64 for react-pdf
       let heroPhotoBase64: string | undefined;
       if (photoUrl) {
-        try {
-          const heroResp = await fetch(photoUrl);
-          if (heroResp.ok) {
-            const heroBlob = await heroResp.blob();
-            heroPhotoBase64 = await new Promise((resolve) => {
-              const reader = new FileReader();
-              reader.onloadend = () => resolve(reader.result as string);
-              reader.readAsDataURL(heroBlob);
-            });
-          }
-        } catch (e) {
-          console.warn('Could not convert hero photo to base64:', e);
-        }
+        const b64 = await toCompatibleBase64(photoUrl);
+        if (b64) heroPhotoBase64 = b64;
       }
 
       // Convert additional photos to base64 for react-pdf (avoids CORS/fetch errors)
       const photosAsBase64 = await Promise.all(
         additionalPhotos.map(async (photo) => {
-          try {
-            const resp = await fetch(photo.photo_url);
-            if (!resp.ok) return photo;
-            const blob = await resp.blob();
-            const base64: string = await new Promise((resolve) => {
-              const reader = new FileReader();
-              reader.onloadend = () => resolve(reader.result as string);
-              reader.readAsDataURL(blob);
-            });
-            return { ...photo, photo_url: base64 };
-          } catch {
-            console.warn('Could not convert photo to base64:', photo.id);
-            return photo;
-          }
+          const b64 = await toCompatibleBase64(photo.photo_url);
+          return b64 ? { ...photo, photo_url: b64 } : photo;
         })
       );
 
