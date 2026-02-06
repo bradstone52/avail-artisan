@@ -39,7 +39,6 @@ import {
 } from '@/hooks/useInternalListings';
 import { useAgents } from '@/hooks/useAgents';
 import { useMillRate } from '@/hooks/useMillRate';
-import { supabase } from '@/integrations/supabase/client';
 import { Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -301,23 +300,75 @@ export function InternalListingEditDialog({
     }
   }, [driveInDoors, form]);
 
-  // Fetch Calgary city data for assessed value
+  // Fetch Calgary city data for assessed value directly from City of Calgary Open Data API
   const fetchCalgaryData = async () => {
     if (!address || !isCalgary) return;
     
     setFetchingCityData(true);
     try {
-      const { data, error } = await supabase.functions.invoke('fetch-city-data', {
-        body: { address, city: 'Calgary' },
-      });
+      // Parse the address to build search patterns
+      const addressParts = address
+        .replace(/,.*$/, '')
+        .replace(/\s+(Calgary|AB|Alberta).*$/i, '')
+        .trim()
+        .toUpperCase()
+        .split(/\s+/);
 
-      if (error) throw error;
+      const streetNumber = addressParts[0];
+      const QUADRANTS = ['NE', 'NW', 'SE', 'SW'];
+      const addressQuadrant = addressParts.find((p: string) => QUADRANTS.includes(p)) || null;
+      
+      // Build search pattern
+      const streetNameNumber = addressParts.slice(1).find((p: string) => /^\d+$/.test(p)) || null;
+      let searchPattern = streetNumber;
+      if (streetNameNumber) {
+        searchPattern = `${streetNumber} ${streetNameNumber}`;
+        if (addressQuadrant) {
+          searchPattern += ` ${addressQuadrant}`;
+        }
+      }
 
-      if (data?.assessment?.assessed_value) {
-        form.setValue('assessed_value', data.assessment.assessed_value);
-        toast.success('City data fetched successfully');
-      } else {
+      // Query City of Calgary Assessment API
+      const ASSESSMENT_API = 'https://data.calgary.ca/resource/4bsw-nn7w.json';
+      const escapedValue = searchPattern.replace(/'/g, "''");
+      const whereClause = `address like '%${escapedValue}%'`;
+      const params = new URLSearchParams();
+      params.set('$where', whereClause);
+      params.set('$limit', '10');
+      
+      const response = await fetch(`${ASSESSMENT_API}?${params.toString()}`);
+      if (!response.ok) throw new Error('Failed to fetch assessment data');
+      
+      const data = await response.json();
+      
+      if (!data || data.length === 0) {
         toast.error('No assessment data found for this address');
+        return;
+      }
+
+      // Filter to match the street number and quadrant
+      let candidates = data.filter((d: any) => d.address?.toUpperCase().startsWith(`${streetNumber} `));
+      if (addressQuadrant) {
+        candidates = candidates.filter((d: any) => d.address?.toUpperCase().includes(` ${addressQuadrant}`));
+      }
+
+      const assessmentData = candidates[0] || data[0];
+      
+      if (assessmentData) {
+        // Parse the assessed value (can be string with commas or number)
+        const rawValue = assessmentData.assessed_value || assessmentData.current_year_total_assessment || assessmentData.total_assessed;
+        const assessedValue = typeof rawValue === 'number' 
+          ? rawValue 
+          : parseInt(String(rawValue).replace(/[^0-9]/g, ''), 10);
+        
+        if (assessedValue && !isNaN(assessedValue)) {
+          form.setValue('assessed_value', assessedValue);
+          toast.success(`City data fetched: ${assessmentData.address}`);
+        } else {
+          toast.error('Assessment value not found in city data');
+        }
+      } else {
+        toast.error('No matching assessment record found');
       }
     } catch (err) {
       console.error('Error fetching city data:', err);
