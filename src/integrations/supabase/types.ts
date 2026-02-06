@@ -101,6 +101,50 @@ export type Database = {
         }
         Relationships: []
       }
+      brokerage_update_checks: {
+        Row: {
+          brokerage_name: string
+          check_month: number
+          check_year: number
+          checked: boolean
+          checked_at: string | null
+          checked_by: string | null
+          created_at: string
+          id: string
+          org_id: string
+        }
+        Insert: {
+          brokerage_name: string
+          check_month: number
+          check_year: number
+          checked?: boolean
+          checked_at?: string | null
+          checked_by?: string | null
+          created_at?: string
+          id?: string
+          org_id: string
+        }
+        Update: {
+          brokerage_name?: string
+          check_month?: number
+          check_year?: number
+          checked?: boolean
+          checked_at?: string | null
+          checked_by?: string | null
+          created_at?: string
+          id?: string
+          org_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "brokerage_update_checks_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "orgs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       brokerages: {
         Row: {
           address: string | null
