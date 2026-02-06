@@ -441,10 +441,48 @@ export function MarketingSection({ listing, onPhotoUpdate }: MarketingSectionPro
         }
       }
 
+      // Convert hero photo to base64 for react-pdf
+      let heroPhotoBase64: string | undefined;
+      if (photoUrl) {
+        try {
+          const heroResp = await fetch(photoUrl);
+          if (heroResp.ok) {
+            const heroBlob = await heroResp.blob();
+            heroPhotoBase64 = await new Promise((resolve) => {
+              const reader = new FileReader();
+              reader.onloadend = () => resolve(reader.result as string);
+              reader.readAsDataURL(heroBlob);
+            });
+          }
+        } catch (e) {
+          console.warn('Could not convert hero photo to base64:', e);
+        }
+      }
+
+      // Convert additional photos to base64 for react-pdf (avoids CORS/fetch errors)
+      const photosAsBase64 = await Promise.all(
+        additionalPhotos.map(async (photo) => {
+          try {
+            const resp = await fetch(photo.photo_url);
+            if (!resp.ok) return photo;
+            const blob = await resp.blob();
+            const base64: string = await new Promise((resolve) => {
+              const reader = new FileReader();
+              reader.onloadend = () => resolve(reader.result as string);
+              reader.readAsDataURL(blob);
+            });
+            return { ...photo, photo_url: base64 };
+          } catch {
+            console.warn('Could not convert photo to base64:', photo.id);
+            return photo;
+          }
+        })
+      );
+
       // Use current photoUrl state (which may have been updated via upload)
       const listingWithPhoto: BrochureListingData = {
         ...listing,
-        photo_url: photoUrl,
+        photo_url: heroPhotoBase64 || photoUrl,
         latitude: coordinates.lat,
         longitude: coordinates.lng,
         drive_in_door_dimensions: (listing.drive_in_door_dimensions as (string | null)[] | null) ?? null,
@@ -457,7 +495,7 @@ export function MarketingSection({ listing, onPhotoUpdate }: MarketingSectionPro
            marketing={marketingContent}
            includeConfidential={includeConfidential}
           staticMapUrl={staticMapBase64}
-          additionalPhotos={additionalPhotos}
+          additionalPhotos={photosAsBase64}
          />
        );
        
