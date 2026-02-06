@@ -104,6 +104,7 @@ export function useMarketIntelligence(listing: InternalListing | null | undefine
         `)
         .eq('org_id', orgId)
         .in('status', ['Active', 'Pending'])
+        .gt('size_sf', 0) // Exclude listings with no size data
         .gte('size_sf', minSize)
         .lte('size_sf', maxSize)
         .order('size_sf', { ascending: false })
