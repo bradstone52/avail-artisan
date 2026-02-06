@@ -391,6 +391,7 @@ export function MarketListingsTable({ listings, onEdit, onRefresh, sortColumn, s
             <TableHead className="text-background min-w-[80px] bg-zinc-700 dark:bg-zinc-600">Type</TableHead>
             <TableHead className="text-background min-w-[60px] bg-zinc-700 dark:bg-zinc-600">DW</TableHead>
             <SortableHeader column="size_sf" className="text-right min-w-[100px] bg-zinc-700 dark:bg-zinc-600">Size (SF)</SortableHeader>
+            <TableHead className="text-background min-w-[80px] bg-zinc-700 dark:bg-zinc-600">Acres</TableHead>
             <SortableHeader column="warehouse_sf" className="text-right min-w-[110px] bg-zinc-700 dark:bg-zinc-600">Warehouse SF</SortableHeader>
             <SortableHeader column="office_sf" className="text-right min-w-[90px] bg-zinc-700 dark:bg-zinc-600">Office SF</SortableHeader>
             <TableHead className="text-background text-right min-w-[90px] bg-zinc-700 dark:bg-zinc-600">Clear Ht</TableHead>
@@ -403,7 +404,6 @@ export function MarketListingsTable({ listings, onEdit, onRefresh, sortColumn, s
             <TableHead className="text-background min-w-[90px] bg-zinc-700 dark:bg-zinc-600">Yard Area</TableHead>
             <TableHead className="text-background min-w-[80px] bg-zinc-700 dark:bg-zinc-600">X-Dock</TableHead>
             <TableHead className="text-background min-w-[90px] bg-zinc-700 dark:bg-zinc-600">Trailer</TableHead>
-            <TableHead className="text-background min-w-[80px] bg-zinc-700 dark:bg-zinc-600">Acres</TableHead>
             <TableHead className="text-background min-w-[80px] bg-zinc-700 dark:bg-zinc-600">Zoning</TableHead>
             <TableHead className="text-background min-w-[60px] bg-zinc-700 dark:bg-zinc-600">MUA</TableHead>
             <TableHead className="text-background min-w-[90px] bg-zinc-700 dark:bg-zinc-600">Ask Rate</TableHead>
@@ -514,8 +514,11 @@ export function MarketListingsTable({ listings, onEdit, onRefresh, sortColumn, s
               
               {/* Size */}
               <TableCell className="text-right font-mono text-sm">
-                {formatSF(listing.size_sf)}
+              {formatSF(listing.size_sf)}
               </TableCell>
+              
+              {/* Land Acres */}
+              <TableCell className="text-sm">{listing.land_acres || '-'}</TableCell>
               
               {/* Warehouse SF */}
               <TableCell className="text-right font-mono text-sm">
@@ -566,9 +569,6 @@ export function MarketListingsTable({ listings, onEdit, onRefresh, sortColumn, s
               
               {/* Trailer Parking */}
               <TableCell className="text-sm">{listing.trailer_parking || '-'}</TableCell>
-              
-              {/* Land Acres */}
-              <TableCell className="text-sm">{listing.land_acres || '-'}</TableCell>
               
               {/* Zoning */}
               <TableCell className="text-sm">{listing.zoning || '-'}</TableCell>
