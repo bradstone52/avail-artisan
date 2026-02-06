@@ -71,7 +71,6 @@ const formSchema = z.object({
   sprinklers_esfr: z.boolean().optional(),
   has_led_lighting: z.boolean().optional(),
   has_rail_access: z.boolean().optional(),
-  has_heated: z.boolean().optional(),
   has_air_conditioning: z.boolean().optional(),
   deal_type: z.string().min(1, 'Deal type is required'),
   asking_rent_psf: z.number().optional(),
@@ -152,7 +151,6 @@ export function InternalListingEditDialog({
       sprinklers_esfr: false,
       has_led_lighting: false,
       has_rail_access: false,
-      has_heated: false,
       has_air_conditioning: false,
       deal_type: 'Lease',
       asking_rent_psf: undefined,
@@ -207,7 +205,6 @@ export function InternalListingEditDialog({
         sprinklers_esfr: (listing as any).sprinklers_esfr ?? false,
         has_led_lighting: (listing as any).has_led_lighting ?? false,
         has_rail_access: (listing as any).has_rail_access ?? false,
-        has_heated: (listing as any).has_heated ?? false,
         has_air_conditioning: (listing as any).has_air_conditioning ?? false,
         deal_type: listing.deal_type,
         asking_rent_psf: listing.asking_rent_psf ?? undefined,
@@ -259,7 +256,6 @@ export function InternalListingEditDialog({
         sprinklers_esfr: false,
         has_led_lighting: false,
         has_rail_access: false,
-        has_heated: false,
         has_air_conditioning: false,
         deal_type: 'Lease',
         asking_rent_psf: undefined,
@@ -588,7 +584,6 @@ export function InternalListingEditDialog({
       sprinklers_esfr: data.has_sprinklers ? data.sprinklers_esfr : undefined,
       has_led_lighting: data.has_led_lighting,
       has_rail_access: data.has_rail_access,
-      has_heated: data.has_heated,
       has_air_conditioning: data.has_air_conditioning,
       asking_rent_psf: data.asking_rent_psf,
       asking_sale_price: data.asking_sale_price,
@@ -1022,21 +1017,6 @@ export function InternalListingEditDialog({
                               />
                             </FormControl>
                             <FormLabel className="font-normal cursor-pointer">Rail Access</FormLabel>
-                          </FormItem>
-                        )}
-                      />
-                      <FormField
-                        control={form.control}
-                        name="has_heated"
-                        render={({ field }) => (
-                          <FormItem className="flex items-center space-x-2 space-y-0">
-                            <FormControl>
-                              <Checkbox
-                                checked={field.value}
-                                onCheckedChange={field.onChange}
-                              />
-                            </FormControl>
-                            <FormLabel className="font-normal cursor-pointer">Heated</FormLabel>
                           </FormItem>
                         )}
                       />

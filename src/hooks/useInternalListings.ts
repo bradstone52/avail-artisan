@@ -64,7 +64,6 @@ export interface InternalListing {
   sprinklers_esfr: boolean | null;
   has_led_lighting: boolean | null;
   has_rail_access: boolean | null;
-  has_heated: boolean | null;
   has_air_conditioning: boolean | null;
   // Joined data
   assigned_agent?: { id: string; name: string } | null;
@@ -120,7 +119,6 @@ export interface InternalListingFormData {
   sprinklers_esfr?: boolean;
   has_led_lighting?: boolean;
   has_rail_access?: boolean;
-  has_heated?: boolean;
   has_air_conditioning?: boolean;
 }
 
