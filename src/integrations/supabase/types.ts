@@ -1094,8 +1094,13 @@ export type Database = {
           drive_in_doors: number | null
           estimated_annual_tax: number | null
           gross_rate: number | null
+          has_air_conditioning: boolean | null
+          has_heated: boolean | null
           has_land: boolean | null
+          has_led_lighting: boolean | null
           has_mua: boolean | null
+          has_rail_access: boolean | null
+          has_sprinklers: boolean | null
           id: string
           land_acres: number | null
           latitude: number | null
@@ -1118,6 +1123,7 @@ export type Database = {
           second_floor_office_sf: number | null
           secondary_agent_id: string | null
           size_sf: number | null
+          sprinklers_esfr: boolean | null
           status: string
           submarket: string
           taxes: number | null
@@ -1152,8 +1158,13 @@ export type Database = {
           drive_in_doors?: number | null
           estimated_annual_tax?: number | null
           gross_rate?: number | null
+          has_air_conditioning?: boolean | null
+          has_heated?: boolean | null
           has_land?: boolean | null
+          has_led_lighting?: boolean | null
           has_mua?: boolean | null
+          has_rail_access?: boolean | null
+          has_sprinklers?: boolean | null
           id?: string
           land_acres?: number | null
           latitude?: number | null
@@ -1176,6 +1187,7 @@ export type Database = {
           second_floor_office_sf?: number | null
           secondary_agent_id?: string | null
           size_sf?: number | null
+          sprinklers_esfr?: boolean | null
           status?: string
           submarket?: string
           taxes?: number | null
@@ -1210,8 +1222,13 @@ export type Database = {
           drive_in_doors?: number | null
           estimated_annual_tax?: number | null
           gross_rate?: number | null
+          has_air_conditioning?: boolean | null
+          has_heated?: boolean | null
           has_land?: boolean | null
+          has_led_lighting?: boolean | null
           has_mua?: boolean | null
+          has_rail_access?: boolean | null
+          has_sprinklers?: boolean | null
           id?: string
           land_acres?: number | null
           latitude?: number | null
@@ -1234,6 +1251,7 @@ export type Database = {
           second_floor_office_sf?: number | null
           secondary_agent_id?: string | null
           size_sf?: number | null
+          sprinklers_esfr?: boolean | null
           status?: string
           submarket?: string
           taxes?: number | null

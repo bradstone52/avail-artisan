@@ -60,6 +60,12 @@ export interface InternalListing {
   has_mua: boolean | null;
   mua_units: number | null;
   mua_cfm_ratings: string[] | null;
+  has_sprinklers: boolean | null;
+  sprinklers_esfr: boolean | null;
+  has_led_lighting: boolean | null;
+  has_rail_access: boolean | null;
+  has_heated: boolean | null;
+  has_air_conditioning: boolean | null;
   // Joined data
   assigned_agent?: { id: string; name: string } | null;
   secondary_agent?: { id: string; name: string } | null;
@@ -110,6 +116,12 @@ export interface InternalListingFormData {
   has_mua?: boolean;
   mua_units?: number;
   mua_cfm_ratings?: string[];
+  has_sprinklers?: boolean;
+  sprinklers_esfr?: boolean;
+  has_led_lighting?: boolean;
+  has_rail_access?: boolean;
+  has_heated?: boolean;
+  has_air_conditioning?: boolean;
 }
 
 export interface InternalListingStatusHistory {
