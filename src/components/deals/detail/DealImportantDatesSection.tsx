@@ -71,7 +71,7 @@ export function DealImportantDatesSection({
 
   conditions.forEach((c, index) => {
     if (c.due_date) {
-      const date = new Date(c.due_date);
+      const date = new Date(c.due_date + 'T00:00:00');
       importantDates.push({
         id: c.id,
         date,
@@ -86,7 +86,7 @@ export function DealImportantDatesSection({
 
   deposits.forEach((d) => {
     if (d.due_date) {
-      const date = new Date(d.due_date);
+      const date = new Date(d.due_date + 'T00:00:00');
       importantDates.push({
         id: d.id,
         date,
@@ -101,7 +101,7 @@ export function DealImportantDatesSection({
 
   actions.forEach((a) => {
     if (a.due_date && !a.date_met) {
-      const date = new Date(a.due_date);
+      const date = new Date(a.due_date + 'T00:00:00');
       importantDates.push({
         id: a.id,
         date,
@@ -113,7 +113,7 @@ export function DealImportantDatesSection({
   });
 
   if (deal.close_date) {
-    const date = new Date(deal.close_date);
+    const date = new Date(deal.close_date + 'T00:00:00');
     importantDates.push({
       id: 'closing',
       date,
