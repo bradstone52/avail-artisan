@@ -35,6 +35,18 @@ const REQUIRED_DOCUMENT_NAMES = [
   'Real Property Report',
   'ESA Phase 1',
   'ESA Phase 2',
+  'Purchase Agreement',
+  'Amendment',
+  'Waiver',
+  'Environmental Report',
+  'Building Inspection',
+  'Appraisal',
+  'Survey',
+  'Lease Agreement',
+  'Letter of Intent',
+  'Deposit Receipt',
+  'Closing Statement',
+  'Commission Agreement',
 ];
 
 export function DocumentNameCombobox({ 
