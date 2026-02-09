@@ -256,23 +256,22 @@ export function DealImportantDatesSection({
               No important dates. Add conditions, deposits, or dates to track important deadlines.
             </p>
           ) : (
-            <div className="space-y-2">
+            <div className="divide-y divide-border">
               {importantDates.map((d) => (
                 <div 
                   key={d.id} 
-                  className={`flex items-center text-sm p-2 rounded ${
-                    d.isSatisfied ? 'bg-muted/30 line-through opacity-60' :
+                  className={`flex items-center text-sm px-3 py-2.5 ${
+                    d.isSatisfied ? 'bg-green-50 dark:bg-green-950/20' :
                     d.isPast ? 'bg-destructive/10 text-destructive' : ''
                   }`}
                 >
                   <div className="flex items-center gap-2 flex-1 min-w-0">
                     {d.isPast && !d.isSatisfied && <AlertCircle className="w-4 h-4 flex-shrink-0" />}
                     <span className="truncate flex-1">{d.label}</span>
-                    <span className="text-muted-foreground mx-2 flex-shrink-0">—</span>
-                    <span className="font-medium flex-shrink-0">{format(d.date, 'MMM d, yyyy')}</span>
                   </div>
+                  <span className="font-medium flex-shrink-0 tabular-nums ml-4">{format(d.date, 'MMM d, yyyy')}</span>
                   {canToggleOrDelete(d) && (
-                    <div className="flex items-center gap-1 ml-2 flex-shrink-0">
+                    <div className="flex items-center gap-1 ml-3 flex-shrink-0">
                       <Button
                         variant="ghost"
                         size="icon"
