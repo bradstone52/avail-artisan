@@ -1,32 +1,15 @@
-import { useState, useRef, useMemo } from 'react';
+import { useState, useRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { DocumentNameCombobox } from '@/components/internal-listings/DocumentNameCombobox';
 import { FileText, Upload, Trash2, Download, File, Plus } from 'lucide-react';
 import { format } from 'date-fns';
 import { supabase } from '@/integrations/supabase/client';
 import type { DealDocument } from '@/hooks/useDealDocuments';
 
-const DOCUMENT_TYPES = [
-  'Purchase Agreement',
-  'Amendment',
-  'Waiver',
-  'Title',
-  'Real Property Report',
-  'Environmental Report',
-  'Building Inspection',
-  'Appraisal',
-  'Survey',
-  'Lease Agreement',
-  'Letter of Intent',
-  'Deposit Receipt',
-  'Closing Statement',
-  'Commission Agreement',
-  'Other',
-] as const;
 
 function generateDocumentName(docType: string, address: string): string {
   const cleanAddress = address.replace(/[^a-zA-Z0-9 ]/g, '').replace(/\s+/g, '_');
@@ -184,16 +167,11 @@ export function DealDocumentsCard({
           <div className="space-y-4 py-4">
             <div className="space-y-2">
               <Label>Document Type</Label>
-              <Select value={documentType} onValueChange={handleDocumentTypeChange}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select document type..." />
-                </SelectTrigger>
-                <SelectContent>
-                  {DOCUMENT_TYPES.map((type) => (
-                    <SelectItem key={type} value={type}>{type}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <DocumentNameCombobox
+                value={documentType}
+                onChange={handleDocumentTypeChange}
+                placeholder="Select or add document type..."
+              />
             </div>
             <div className="space-y-2">
               <Label>Document Name</Label>
