@@ -27,12 +27,14 @@ export function DealEditDialog({ open, onOpenChange, deal }: DealEditDialogProps
   
   const [dealNumber, setDealNumber] = useState(deal.deal_number || '');
   const [status, setStatus] = useState(deal.status);
+  const [closeDate, setCloseDate] = useState(deal.close_date || '');
   const [notes, setNotes] = useState(deal.notes || '');
 
   // Sync form state when deal changes
   useEffect(() => {
     setDealNumber(deal.deal_number || '');
     setStatus(deal.status);
+    setCloseDate(deal.close_date || '');
     setNotes(deal.notes || '');
   }, [deal]);
 
@@ -42,6 +44,7 @@ export function DealEditDialog({ open, onOpenChange, deal }: DealEditDialogProps
         id: deal.id,
         deal_number: dealNumber || undefined,
         status: status as any,
+        close_date: closeDate || null,
         notes: notes || undefined,
         // Keep all other fields unchanged
         deal_type: deal.deal_type as any,
@@ -85,6 +88,16 @@ export function DealEditDialog({ open, onOpenChange, deal }: DealEditDialogProps
                 ))}
               </SelectContent>
             </Select>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="close_date">Close Date</Label>
+            <Input
+              id="close_date"
+              type="date"
+              value={closeDate}
+              onChange={(e) => setCloseDate(e.target.value)}
+            />
           </div>
 
           <div className="space-y-2">
