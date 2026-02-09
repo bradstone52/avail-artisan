@@ -18,6 +18,18 @@ interface DealSummaryAction {
   action: string;
 }
 
+interface DealSummaryCondition {
+  description: string;
+  due_date?: string | null;
+  is_satisfied: boolean;
+}
+
+interface DealSummaryImportantDate {
+  description: string;
+  due_date?: string | null;
+  is_completed: boolean;
+}
+
 interface DealSummaryPDFProps {
   vendor: string;
   purchaser: string;
@@ -29,6 +41,8 @@ interface DealSummaryPDFProps {
   balanceOnClosing: number;
   closingDate?: string | null;
   actions: DealSummaryAction[];
+  conditions?: DealSummaryCondition[];
+  importantDates?: DealSummaryImportantDate[];
   contacts: { name: string; email?: string; phone?: string }[];
   logoBase64?: string;
 }
@@ -144,6 +158,24 @@ const styles = StyleSheet.create({
   actingPartyCol: { width: '20%' },
   actionCol: { width: '40%' },
 
+  // CONDITIONS / IMPORTANT DATES TABLE: Three columns
+  conditionsTable: {
+    width: '100%',
+    borderWidth: 1,
+    borderColor: '#000',
+    borderStyle: 'solid',
+    marginTop: 20,
+  },
+  conditionsTitle: {
+    fontSize: 11,
+    fontWeight: 'bold',
+    marginTop: 20,
+    marginBottom: 4,
+  },
+  condDescCol: { width: '50%' },
+  condDateCol: { width: '30%' },
+  condStatusCol: { width: '20%' },
+
   // FOOTER: Yellow/orange background, fixed to bottom
   contactsSection: {
     position: 'absolute',
@@ -217,13 +249,17 @@ export function DealSummaryPDF({
   balanceOnClosing,
   closingDate,
   actions,
+  conditions = [],
+  importantDates = [],
   contacts,
 }: DealSummaryPDFProps) {
   // Filter out empty deposits
   const validDeposits = deposits.filter(d => d.amount > 0);
   // Filter out empty actions
   const validActions = actions.filter(a => a.action || a.due_date);
-  
+  // Filter conditions and dates
+  const validConditions = conditions.filter(c => c.description);
+  const validDates = importantDates.filter(d => d.description);
   // Count rows to determine which is last
   const baseRows = 8; // Vendor, Purchaser, Address, Description, Effective Date, Purchase Price, Balance, Closing Date
   const totalRows = baseRows + validDeposits.length;
@@ -334,6 +370,66 @@ export function DealSummaryPDF({
               </View>
             ))}
           </View>
+        )}
+
+        {/* === CONDITIONS TABLE (only if conditions exist) === */}
+        {validConditions.length > 0 && (
+          <>
+            <Text style={styles.conditionsTitle}>Conditions</Text>
+            <View style={styles.conditionsTable}>
+              <View style={styles.actionsHeaderRow}>
+                <Text style={[styles.actionsCellHeader, styles.condDescCol]}>Description</Text>
+                <Text style={[styles.actionsCellHeader, styles.condDateCol]}>Due Date</Text>
+                <Text style={[styles.actionsCellHeader, styles.condStatusCol, { borderRightWidth: 0 }]}>Status</Text>
+              </View>
+              {validConditions.map((cond, index) => (
+                <View
+                  style={index === validConditions.length - 1 ? styles.actionsRowLast : styles.actionsRow}
+                  key={index}
+                >
+                  <Text style={[styles.actionsCell, styles.condDescCol, { textAlign: 'left' }]}>
+                    {cond.description}
+                  </Text>
+                  <Text style={[styles.actionsCell, styles.condDateCol]}>
+                    {cond.due_date ? formatDate(cond.due_date) : ' '}
+                  </Text>
+                  <Text style={[styles.actionsCellLast, styles.condStatusCol]}>
+                    {cond.is_satisfied ? 'Satisfied' : 'Pending'}
+                  </Text>
+                </View>
+              ))}
+            </View>
+          </>
+        )}
+
+        {/* === IMPORTANT DATES TABLE (only if dates exist) === */}
+        {validDates.length > 0 && (
+          <>
+            <Text style={styles.conditionsTitle}>Important Dates</Text>
+            <View style={styles.conditionsTable}>
+              <View style={styles.actionsHeaderRow}>
+                <Text style={[styles.actionsCellHeader, styles.condDescCol]}>Description</Text>
+                <Text style={[styles.actionsCellHeader, styles.condDateCol]}>Due Date</Text>
+                <Text style={[styles.actionsCellHeader, styles.condStatusCol, { borderRightWidth: 0 }]}>Status</Text>
+              </View>
+              {validDates.map((date, index) => (
+                <View
+                  style={index === validDates.length - 1 ? styles.actionsRowLast : styles.actionsRow}
+                  key={index}
+                >
+                  <Text style={[styles.actionsCell, styles.condDescCol, { textAlign: 'left' }]}>
+                    {date.description}
+                  </Text>
+                  <Text style={[styles.actionsCell, styles.condDateCol]}>
+                    {date.due_date ? formatDate(date.due_date) : ' '}
+                  </Text>
+                  <Text style={[styles.actionsCellLast, styles.condStatusCol]}>
+                    {date.is_completed ? 'Completed' : 'Pending'}
+                  </Text>
+                </View>
+              ))}
+            </View>
+          </>
         )}
 
         {/* === FOOTER: Contact Information (fixed to bottom) === */}
