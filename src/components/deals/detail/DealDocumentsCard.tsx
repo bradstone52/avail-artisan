@@ -1,38 +1,77 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { FileText, Upload, Trash2, Download, File, Plus } from 'lucide-react';
 import { format } from 'date-fns';
 import { supabase } from '@/integrations/supabase/client';
 import type { DealDocument } from '@/hooks/useDealDocuments';
+
+const DOCUMENT_TYPES = [
+  'Purchase Agreement',
+  'Amendment',
+  'Waiver',
+  'Title',
+  'Real Property Report',
+  'Environmental Report',
+  'Building Inspection',
+  'Appraisal',
+  'Survey',
+  'Lease Agreement',
+  'Letter of Intent',
+  'Deposit Receipt',
+  'Closing Statement',
+  'Commission Agreement',
+  'Other',
+] as const;
+
+function generateDocumentName(docType: string, address: string): string {
+  const cleanAddress = address.replace(/[^a-zA-Z0-9 ]/g, '').replace(/\s+/g, '_');
+  const dateStr = format(new Date(), 'ddMMMyyyy').toUpperCase();
+  const cleanType = docType.replace(/\s+/g, '_');
+  return `${cleanType}_${cleanAddress}_${dateStr}`;
+}
 
 interface DealDocumentsCardProps {
   documents: DealDocument[];
   onUpload: (file: File, name: string) => Promise<void>;
   onDelete: (doc: DealDocument) => Promise<void>;
   isUploading: boolean;
+  dealAddress?: string;
 }
 
 export function DealDocumentsCard({ 
   documents, 
   onUpload, 
   onDelete,
-  isUploading 
+  isUploading,
+  dealAddress = '',
 }: DealDocumentsCardProps) {
   const [uploadOpen, setUploadOpen] = useState(false);
   const [fileName, setFileName] = useState('');
+  const [documentType, setDocumentType] = useState('');
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleDocumentTypeChange = (type: string) => {
+    setDocumentType(type);
+    if (type && dealAddress) {
+      setFileName(generateDocumentName(type, dealAddress));
+    }
+  };
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
       setSelectedFile(file);
-      const nameWithoutExt = file.name.replace(/\.[^/.]+$/, '');
-      setFileName(nameWithoutExt);
+      // Only auto-populate name from filename if no document type selected
+      if (!documentType) {
+        const nameWithoutExt = file.name.replace(/\.[^/.]+$/, '');
+        setFileName(nameWithoutExt);
+      }
     }
   };
 
@@ -41,9 +80,22 @@ export function DealDocumentsCard({
     await onUpload(selectedFile, fileName);
     setSelectedFile(null);
     setFileName('');
+    setDocumentType('');
     setUploadOpen(false);
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
+    }
+  };
+
+  const handleOpenChange = (open: boolean) => {
+    setUploadOpen(open);
+    if (!open) {
+      setSelectedFile(null);
+      setFileName('');
+      setDocumentType('');
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
     }
   };
 
@@ -124,12 +176,25 @@ export function DealDocumentsCard({
         </CardContent>
       </Card>
 
-      <Dialog open={uploadOpen} onOpenChange={setUploadOpen}>
+      <Dialog open={uploadOpen} onOpenChange={handleOpenChange}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Upload Document</DialogTitle>
           </DialogHeader>
           <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label>Document Type</Label>
+              <Select value={documentType} onValueChange={handleDocumentTypeChange}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select document type..." />
+                </SelectTrigger>
+                <SelectContent>
+                  {DOCUMENT_TYPES.map((type) => (
+                    <SelectItem key={type} value={type}>{type}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
             <div className="space-y-2">
               <Label>Document Name</Label>
               <Input
@@ -148,7 +213,7 @@ export function DealDocumentsCard({
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setUploadOpen(false)}>
+            <Button variant="outline" onClick={() => handleOpenChange(false)}>
               Cancel
             </Button>
             <Button 

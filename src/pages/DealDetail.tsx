@@ -23,8 +23,8 @@ export default function DealDetail() {
   const navigate = useNavigate();
   const { data: deal, isLoading } = useDeal(id);
   const { documents, uploadDocument, deleteDocument, isUploading } = useDealDocuments(id);
-  const { conditions } = useDealConditions(id);
-  const { deposits } = useDealDeposits(id);
+  const { conditions, addCondition, updateCondition, deleteCondition } = useDealConditions(id);
+  const { deposits, addDeposit, updateDeposit, deleteDeposit } = useDealDeposits(id);
   const { actions } = useDealSummaryActions(id);
   const deleteDeal = useDeleteDeal();
   
@@ -115,7 +115,18 @@ export default function DealDetail() {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <div className="space-y-6">
             <DealViewCard deal={deal} onEdit={() => setEditOpen(true)} />
-            <DealImportantDatesSection deal={deal} conditions={conditions} deposits={deposits} actions={actions} />
+            <DealImportantDatesSection 
+              deal={deal} 
+              conditions={conditions} 
+              deposits={deposits} 
+              actions={actions}
+              onAddCondition={addCondition}
+              onUpdateCondition={updateCondition}
+              onDeleteCondition={deleteCondition}
+              onAddDeposit={addDeposit}
+              onUpdateDeposit={updateDeposit}
+              onDeleteDeposit={deleteDeposit}
+            />
           </div>
           <div className="space-y-6">
             <DealDocumentsCard 
@@ -123,6 +134,7 @@ export default function DealDetail() {
               onUpload={uploadDocument} 
               onDelete={deleteDocument}
               isUploading={isUploading}
+              dealAddress={deal.address}
             />
             <DealFinancialSummaryCard deal={deal} />
           </div>
