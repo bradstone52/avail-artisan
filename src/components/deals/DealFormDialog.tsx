@@ -167,9 +167,10 @@ export function DealFormDialog({ open, onOpenChange, deal }: DealFormDialogProps
     e.preventDefault();
     
     try {
-      // Extract size_sf from extended form data
       const { size_sf, ...dealData } = formData;
-      const submitData = { ...dealData, size_sf } as DealFormData & { size_sf?: number };
+      // size_sf is integer in DB — round to nearest whole number if present
+      const roundedSize = size_sf != null ? Math.round(size_sf) : undefined;
+      const submitData = { ...dealData, size_sf: roundedSize } as DealFormData & { size_sf?: number };
       
       if (isEditing && deal) {
         await updateDeal.mutateAsync({ id: deal.id, ...submitData });
