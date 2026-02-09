@@ -7,6 +7,7 @@ import { useDealDocuments } from '@/hooks/useDealDocuments';
 import { useDealConditions } from '@/hooks/useDealConditions';
 import { useDealDeposits } from '@/hooks/useDealDeposits';
 import { useDealSummaryActions } from '@/hooks/useDealSummaryActions';
+import { useDealImportantDates } from '@/hooks/useDealImportantDates';
 import { DealViewCard } from '@/components/deals/detail/DealViewCard';
 import { DealImportantDatesSection } from '@/components/deals/detail/DealImportantDatesSection';
 import { DealDocumentsCard } from '@/components/deals/detail/DealDocumentsCard';
@@ -26,6 +27,7 @@ export default function DealDetail() {
   const { conditions, addCondition, updateCondition, deleteCondition } = useDealConditions(id);
   const { deposits, addDeposit, updateDeposit, deleteDeposit } = useDealDeposits(id);
   const { actions } = useDealSummaryActions(id);
+  const { importantDates: genericDates, addDate: addGenericDate, updateDate: updateGenericDate, deleteDate: deleteGenericDate } = useDealImportantDates(id);
   const deleteDeal = useDeleteDeal();
   
   const [editOpen, setEditOpen] = useState(false);
@@ -120,12 +122,16 @@ export default function DealDetail() {
               conditions={conditions} 
               deposits={deposits} 
               actions={actions}
+              genericDates={genericDates}
               onAddCondition={addCondition}
               onUpdateCondition={updateCondition}
               onDeleteCondition={deleteCondition}
               onAddDeposit={addDeposit}
               onUpdateDeposit={updateDeposit}
               onDeleteDeposit={deleteDeposit}
+              onAddGenericDate={addGenericDate}
+              onUpdateGenericDate={updateGenericDate}
+              onDeleteGenericDate={deleteGenericDate}
             />
           </div>
           <div className="space-y-6">

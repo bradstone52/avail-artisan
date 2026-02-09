@@ -306,6 +306,41 @@ export type Database = {
           },
         ]
       }
+      deal_important_dates: {
+        Row: {
+          created_at: string
+          deal_id: string
+          description: string
+          due_date: string | null
+          id: string
+          is_completed: boolean
+        }
+        Insert: {
+          created_at?: string
+          deal_id: string
+          description: string
+          due_date?: string | null
+          id?: string
+          is_completed?: boolean
+        }
+        Update: {
+          created_at?: string
+          deal_id?: string
+          description?: string
+          due_date?: string | null
+          id?: string
+          is_completed?: boolean
+        }
+        Relationships: [
+          {
+            foreignKeyName: "deal_important_dates_deal_id_fkey"
+            columns: ["deal_id"]
+            isOneToOne: false
+            referencedRelation: "deals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       deal_summary_actions: {
         Row: {
           acting_party: string | null

@@ -4,13 +4,13 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Calendar, AlertCircle, Plus, Trash2, Check } from 'lucide-react';
+import { Calendar, AlertCircle, Plus, Trash2, Check, CalendarPlus } from 'lucide-react';
 import { format, isBefore } from 'date-fns';
 import type { Deal } from '@/types/database';
 import type { DealCondition } from '@/hooks/useDealConditions';
 import type { DealDeposit } from '@/hooks/useDealDeposits';
 import type { DealSummaryAction } from '@/hooks/useDealSummaryActions';
+import type { DealImportantDate } from '@/hooks/useDealImportantDates';
 import { FormattedNumberInput } from '@/components/common/FormattedNumberInput';
 
 interface DealImportantDatesSectionProps {
@@ -18,20 +18,25 @@ interface DealImportantDatesSectionProps {
   conditions: DealCondition[];
   deposits: DealDeposit[];
   actions?: DealSummaryAction[];
+  genericDates?: DealImportantDate[];
   onAddCondition?: (condition: { description: string; due_date?: string }) => Promise<void>;
   onUpdateCondition?: (id: string, updates: Partial<DealCondition>) => Promise<void>;
   onDeleteCondition?: (id: string) => Promise<void>;
   onAddDeposit?: (deposit: { amount: number; held_by?: string; due_date?: string }) => Promise<void>;
   onUpdateDeposit?: (id: string, updates: Partial<DealDeposit>) => Promise<void>;
   onDeleteDeposit?: (id: string) => Promise<void>;
+  onAddGenericDate?: (item: { description: string; due_date?: string }) => Promise<void>;
+  onUpdateGenericDate?: (id: string, updates: Partial<DealImportantDate>) => Promise<void>;
+  onDeleteGenericDate?: (id: string) => Promise<void>;
 }
 
-type AddType = 'condition' | 'deposit' | null;
+type AddType = 'condition' | 'deposit' | 'date' | null;
 
 export function DealImportantDatesSection({ 
-  deal, conditions, deposits, actions = [],
+  deal, conditions, deposits, actions = [], genericDates = [],
   onAddCondition, onUpdateCondition, onDeleteCondition,
   onAddDeposit, onUpdateDeposit, onDeleteDeposit,
+  onAddGenericDate, onUpdateGenericDate, onDeleteGenericDate,
 }: DealImportantDatesSectionProps) {
   const today = new Date();
   const [addType, setAddType] = useState<AddType>(null);
@@ -45,6 +50,10 @@ export function DealImportantDatesSection({
   const [depHeldBy, setDepHeldBy] = useState('');
   const [depDueDate, setDepDueDate] = useState('');
 
+  // Generic date form state
+  const [genDescription, setGenDescription] = useState('');
+  const [genDueDate, setGenDueDate] = useState('');
+
   const resetForm = () => {
     setAddType(null);
     setCondDescription('');
@@ -52,6 +61,8 @@ export function DealImportantDatesSection({
     setDepAmount(null);
     setDepHeldBy('');
     setDepDueDate('');
+    setGenDescription('');
+    setGenDueDate('');
   };
 
   const handleAddCondition = async () => {
@@ -66,8 +77,15 @@ export function DealImportantDatesSection({
     resetForm();
   };
 
+  const handleAddGenericDate = async () => {
+    if (!onAddGenericDate || !genDescription) return;
+    await onAddGenericDate({ description: genDescription, due_date: genDueDate || undefined });
+    resetForm();
+  };
+
   // Gather all important dates
-  const importantDates: { id: string; date: Date; label: string; type: 'condition' | 'deposit' | 'closing' | 'action'; isPast: boolean; sourceId?: string; isSatisfied?: boolean }[] = [];
+  type DateItem = { id: string; date: Date; label: string; type: 'condition' | 'deposit' | 'closing' | 'action' | 'generic'; isPast: boolean; sourceId?: string; isSatisfied?: boolean };
+  const importantDates: DateItem[] = [];
 
   conditions.forEach((c, index) => {
     if (c.due_date) {
@@ -112,6 +130,21 @@ export function DealImportantDatesSection({
     }
   });
 
+  genericDates.forEach((g) => {
+    if (g.due_date) {
+      const date = new Date(g.due_date + 'T00:00:00');
+      importantDates.push({
+        id: g.id,
+        date,
+        label: g.description,
+        type: 'generic',
+        isPast: isBefore(date, today) && !g.is_completed,
+        sourceId: g.id,
+        isSatisfied: g.is_completed,
+      });
+    }
+  });
+
   if (deal.close_date) {
     const date = new Date(deal.close_date + 'T00:00:00');
     importantDates.push({
@@ -125,21 +158,28 @@ export function DealImportantDatesSection({
 
   importantDates.sort((a, b) => a.date.getTime() - b.date.getTime());
 
-  const handleToggleSatisfied = async (item: typeof importantDates[0]) => {
+  const handleToggleSatisfied = async (item: DateItem) => {
     if (item.type === 'condition' && item.sourceId && onUpdateCondition) {
       await onUpdateCondition(item.sourceId, { is_satisfied: !item.isSatisfied });
     } else if (item.type === 'deposit' && item.sourceId && onUpdateDeposit) {
       await onUpdateDeposit(item.sourceId, { received: !item.isSatisfied });
+    } else if (item.type === 'generic' && item.sourceId && onUpdateGenericDate) {
+      await onUpdateGenericDate(item.sourceId, { is_completed: !item.isSatisfied });
     }
   };
 
-  const handleDelete = async (item: typeof importantDates[0]) => {
+  const handleDelete = async (item: DateItem) => {
     if (item.type === 'condition' && item.sourceId && onDeleteCondition) {
       await onDeleteCondition(item.sourceId);
     } else if (item.type === 'deposit' && item.sourceId && onDeleteDeposit) {
       await onDeleteDeposit(item.sourceId);
+    } else if (item.type === 'generic' && item.sourceId && onDeleteGenericDate) {
+      await onDeleteGenericDate(item.sourceId);
     }
   };
+
+  const canToggleOrDelete = (d: DateItem) => 
+    (d.type === 'condition' || d.type === 'deposit' || d.type === 'generic') && d.sourceId;
 
   return (
     <>
@@ -158,12 +198,16 @@ export function DealImportantDatesSection({
               <Plus className="w-4 h-4 mr-1" />
               Deposit
             </Button>
+            <Button size="sm" variant="outline" onClick={() => setAddType('date')}>
+              <CalendarPlus className="w-4 h-4 mr-1" />
+              Date
+            </Button>
           </div>
         </CardHeader>
         <CardContent>
           {importantDates.length === 0 ? (
             <p className="text-sm text-muted-foreground text-center py-4">
-              No important dates. Add conditions or deposits to track important deadlines.
+              No important dates. Add conditions, deposits, or dates to track important deadlines.
             </p>
           ) : (
             <div className="space-y-2">
@@ -181,13 +225,13 @@ export function DealImportantDatesSection({
                     <span className="text-muted-foreground mx-2 flex-shrink-0">—</span>
                     <span className="font-medium flex-shrink-0">{format(d.date, 'MMM d, yyyy')}</span>
                   </div>
-                  {(d.type === 'condition' || d.type === 'deposit') && d.sourceId && (
+                  {canToggleOrDelete(d) && (
                     <div className="flex items-center gap-1 ml-2 flex-shrink-0">
                       <Button
                         variant="ghost"
                         size="icon"
                         className="h-7 w-7"
-                        title={d.isSatisfied ? 'Mark as pending' : 'Mark as satisfied'}
+                        title={d.isSatisfied ? 'Mark as pending' : 'Mark as completed'}
                         onClick={() => handleToggleSatisfied(d)}
                       >
                         <Check className={`w-4 h-4 ${d.isSatisfied ? 'text-green-600' : 'text-muted-foreground'}`} />
@@ -275,6 +319,37 @@ export function DealImportantDatesSection({
           <DialogFooter>
             <Button variant="outline" onClick={resetForm}>Cancel</Button>
             <Button onClick={handleAddDeposit} disabled={!depAmount}>Add Deposit</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Add Generic Date Dialog */}
+      <Dialog open={addType === 'date'} onOpenChange={(open) => !open && resetForm()}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Add Important Date</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label>Description</Label>
+              <Input
+                value={genDescription}
+                onChange={(e) => setGenDescription(e.target.value)}
+                placeholder="e.g. Environmental Report Due, Zoning Approval..."
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Due Date</Label>
+              <Input
+                type="date"
+                value={genDueDate}
+                onChange={(e) => setGenDueDate(e.target.value)}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={resetForm}>Cancel</Button>
+            <Button onClick={handleAddGenericDate} disabled={!genDescription}>Add Date</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
