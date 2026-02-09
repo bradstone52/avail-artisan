@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
-import { Calendar, AlertCircle, Plus, Trash2, Check, CalendarPlus } from 'lucide-react';
+import { Calendar, AlertCircle, Plus, Trash2, Check, CalendarPlus, Pencil } from 'lucide-react';
 import { format, isBefore } from 'date-fns';
 import type { Deal } from '@/types/database';
 import type { DealCondition } from '@/hooks/useDealConditions';
@@ -54,6 +54,15 @@ export function DealImportantDatesSection({
   const [genDescription, setGenDescription] = useState('');
   const [genDueDate, setGenDueDate] = useState('');
 
+  type DateItem = { id: string; date: Date; label: string; type: 'condition' | 'deposit' | 'closing' | 'action' | 'generic'; isPast: boolean; sourceId?: string; isSatisfied?: boolean };
+
+  // Edit state
+  const [editingItem, setEditingItem] = useState<DateItem | null>(null);
+  const [editDescription, setEditDescription] = useState('');
+  const [editDueDate, setEditDueDate] = useState('');
+  const [editAmount, setEditAmount] = useState<number | null>(null);
+  const [editHeldBy, setEditHeldBy] = useState('');
+
   const resetForm = () => {
     setAddType(null);
     setCondDescription('');
@@ -83,8 +92,45 @@ export function DealImportantDatesSection({
     resetForm();
   };
 
+  const openEdit = (item: DateItem) => {
+    setEditingItem(item);
+    if (item.type === 'condition') {
+      const cond = conditions.find(c => c.id === item.sourceId);
+      setEditDescription(cond?.description || '');
+      setEditDueDate(cond?.due_date || '');
+    } else if (item.type === 'deposit') {
+      const dep = deposits.find(d => d.id === item.sourceId);
+      setEditAmount(dep?.amount ?? null);
+      setEditHeldBy(dep?.held_by || '');
+      setEditDueDate(dep?.due_date || '');
+    } else if (item.type === 'generic') {
+      const gen = genericDates.find(g => g.id === item.sourceId);
+      setEditDescription(gen?.description || '');
+      setEditDueDate(gen?.due_date || '');
+    }
+  };
+
+  const resetEdit = () => {
+    setEditingItem(null);
+    setEditDescription('');
+    setEditDueDate('');
+    setEditAmount(null);
+    setEditHeldBy('');
+  };
+
+  const handleSaveEdit = async () => {
+    if (!editingItem?.sourceId) return;
+    if (editingItem.type === 'condition' && onUpdateCondition) {
+      await onUpdateCondition(editingItem.sourceId, { description: editDescription, due_date: editDueDate || null });
+    } else if (editingItem.type === 'deposit' && onUpdateDeposit) {
+      await onUpdateDeposit(editingItem.sourceId, { amount: editAmount ?? 0, held_by: editHeldBy || null, due_date: editDueDate || null });
+    } else if (editingItem.type === 'generic' && onUpdateGenericDate) {
+      await onUpdateGenericDate(editingItem.sourceId, { description: editDescription, due_date: editDueDate || null });
+    }
+    resetEdit();
+  };
+
   // Gather all important dates
-  type DateItem = { id: string; date: Date; label: string; type: 'condition' | 'deposit' | 'closing' | 'action' | 'generic'; isPast: boolean; sourceId?: string; isSatisfied?: boolean };
   const importantDates: DateItem[] = [];
 
   conditions.forEach((c, index) => {
@@ -231,6 +277,15 @@ export function DealImportantDatesSection({
                         variant="ghost"
                         size="icon"
                         className="h-7 w-7"
+                        title="Edit"
+                        onClick={() => openEdit(d)}
+                      >
+                        <Pencil className="w-3.5 h-3.5" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-7 w-7"
                         title={d.isSatisfied ? 'Mark as pending' : 'Mark as completed'}
                         onClick={() => handleToggleSatisfied(d)}
                       >
@@ -350,6 +405,59 @@ export function DealImportantDatesSection({
           <DialogFooter>
             <Button variant="outline" onClick={resetForm}>Cancel</Button>
             <Button onClick={handleAddGenericDate} disabled={!genDescription}>Add Date</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Dialog */}
+      <Dialog open={!!editingItem} onOpenChange={(open) => !open && resetEdit()}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>
+              Edit {editingItem?.type === 'condition' ? 'Condition' : editingItem?.type === 'deposit' ? 'Deposit' : 'Important Date'}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            {editingItem?.type === 'deposit' ? (
+              <>
+                <div className="space-y-2">
+                  <Label>Amount ($)</Label>
+                  <FormattedNumberInput
+                    value={editAmount}
+                    onChange={setEditAmount}
+                    placeholder="0"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Held By</Label>
+                  <Input
+                    value={editHeldBy}
+                    onChange={(e) => setEditHeldBy(e.target.value)}
+                    placeholder="e.g. Seller's Brokerage"
+                  />
+                </div>
+              </>
+            ) : (
+              <div className="space-y-2">
+                <Label>Description</Label>
+                <Input
+                  value={editDescription}
+                  onChange={(e) => setEditDescription(e.target.value)}
+                />
+              </div>
+            )}
+            <div className="space-y-2">
+              <Label>Due Date</Label>
+              <Input
+                type="date"
+                value={editDueDate}
+                onChange={(e) => setEditDueDate(e.target.value)}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={resetEdit}>Cancel</Button>
+            <Button onClick={handleSaveEdit}>Save</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
