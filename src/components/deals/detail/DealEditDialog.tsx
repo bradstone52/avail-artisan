@@ -28,6 +28,7 @@ export function DealEditDialog({ open, onOpenChange, deal }: DealEditDialogProps
   const [dealNumber, setDealNumber] = useState(deal.deal_number || '');
   const [status, setStatus] = useState(deal.status);
   const [closeDate, setCloseDate] = useState(deal.close_date || '');
+  const [effectiveDate, setEffectiveDate] = useState((deal as any).effective_date || '');
   const [sellerName, setSellerName] = useState(deal.seller_name || '');
   const [buyerName, setBuyerName] = useState(deal.buyer_name || '');
   const [dealValue, setDealValue] = useState(deal.deal_value?.toString() || '');
@@ -38,6 +39,7 @@ export function DealEditDialog({ open, onOpenChange, deal }: DealEditDialogProps
     setDealNumber(deal.deal_number || '');
     setStatus(deal.status);
     setCloseDate(deal.close_date || '');
+    setEffectiveDate((deal as any).effective_date || '');
     setSellerName(deal.seller_name || '');
     setBuyerName(deal.buyer_name || '');
     setDealValue(deal.deal_value?.toString() || '');
@@ -51,6 +53,7 @@ export function DealEditDialog({ open, onOpenChange, deal }: DealEditDialogProps
         deal_number: dealNumber || undefined,
         status: status as any,
         close_date: closeDate || null,
+        effective_date: effectiveDate || null,
         seller_name: sellerName || null,
         buyer_name: buyerName || null,
         deal_value: dealValue ? parseFloat(dealValue.replace(/,/g, '')) : null,
@@ -106,6 +109,16 @@ export function DealEditDialog({ open, onOpenChange, deal }: DealEditDialogProps
               type="date"
               value={closeDate}
               onChange={(e) => setCloseDate(e.target.value)}
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="effective_date">Effective Date</Label>
+            <Input
+              id="effective_date"
+              type="date"
+              value={effectiveDate}
+              onChange={(e) => setEffectiveDate(e.target.value)}
             />
           </div>
 
