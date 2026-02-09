@@ -23,7 +23,7 @@ export default function DealDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { data: deal, isLoading } = useDeal(id);
-  const { documents, uploadDocument, deleteDocument, isUploading } = useDealDocuments(id);
+  const { documents, uploadDocument, deleteDocument, renameDocument, isUploading } = useDealDocuments(id);
   const { conditions, addCondition, updateCondition, deleteCondition } = useDealConditions(id);
   const { deposits, addDeposit, updateDeposit, deleteDeposit } = useDealDeposits(id);
   const { actions } = useDealSummaryActions(id);
@@ -139,6 +139,7 @@ export default function DealDetail() {
               documents={documents} 
               onUpload={uploadDocument} 
               onDelete={deleteDocument}
+              onRename={renameDocument}
               isUploading={isUploading}
               dealAddress={deal.address}
             />

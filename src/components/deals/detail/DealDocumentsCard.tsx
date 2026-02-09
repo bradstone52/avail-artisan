@@ -5,7 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { DocumentNameCombobox } from '@/components/internal-listings/DocumentNameCombobox';
-import { FileText, Upload, Trash2, Download, File, Plus } from 'lucide-react';
+import { FileText, Upload, Trash2, Download, File, Plus, Pencil, Check, X } from 'lucide-react';
 import { format } from 'date-fns';
 import { supabase } from '@/integrations/supabase/client';
 import type { DealDocument } from '@/hooks/useDealDocuments';
@@ -22,6 +22,7 @@ interface DealDocumentsCardProps {
   documents: DealDocument[];
   onUpload: (file: File, name: string) => Promise<void>;
   onDelete: (doc: DealDocument) => Promise<void>;
+  onRename?: (doc: DealDocument, newName: string) => Promise<void>;
   isUploading: boolean;
   dealAddress?: string;
 }
@@ -30,6 +31,7 @@ export function DealDocumentsCard({
   documents, 
   onUpload, 
   onDelete,
+  onRename,
   isUploading,
   dealAddress = '',
 }: DealDocumentsCardProps) {
@@ -38,6 +40,8 @@ export function DealDocumentsCard({
   const [documentType, setDocumentType] = useState('');
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [editingDocId, setEditingDocId] = useState<string | null>(null);
+  const [editingName, setEditingName] = useState('');
 
   const handleDocumentTypeChange = (type: string) => {
     setDocumentType(type);
@@ -120,34 +124,56 @@ export function DealDocumentsCard({
                   key={doc.id} 
                   className="flex items-center justify-between p-3 border rounded-lg hover:bg-muted/50"
                 >
-                  <div className="flex items-center gap-3">
-                    <File className="w-5 h-5 text-muted-foreground" />
-                    <div>
-                      <p className="font-medium text-sm">{doc.name}</p>
-                      <p className="text-xs text-muted-foreground">
-                        {format(new Date(doc.uploaded_at), 'MMM d, yyyy')}
-                        {doc.file_size && ` • ${formatFileSize(doc.file_size)}`}
-                      </p>
+                  <div className="flex items-center gap-3 flex-1 min-w-0">
+                    <File className="w-5 h-5 text-muted-foreground shrink-0" />
+                    <div className="flex-1 min-w-0">
+                      {editingDocId === doc.id ? (
+                        <div className="flex items-center gap-1">
+                          <Input
+                            value={editingName}
+                            onChange={(e) => setEditingName(e.target.value)}
+                            className="h-7 text-sm"
+                            autoFocus
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter') {
+                                onRename?.(doc, editingName);
+                                setEditingDocId(null);
+                              } else if (e.key === 'Escape') {
+                                setEditingDocId(null);
+                              }
+                            }}
+                          />
+                          <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0" onClick={() => { onRename?.(doc, editingName); setEditingDocId(null); }}>
+                            <Check className="w-3.5 h-3.5" />
+                          </Button>
+                          <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0" onClick={() => setEditingDocId(null)}>
+                            <X className="w-3.5 h-3.5" />
+                          </Button>
+                        </div>
+                      ) : (
+                        <>
+                          <p className="font-medium text-sm truncate">{doc.name}</p>
+                          <p className="text-xs text-muted-foreground">
+                            {format(new Date(doc.uploaded_at), 'MMM d, yyyy')}
+                            {doc.file_size && ` • ${formatFileSize(doc.file_size)}`}
+                          </p>
+                        </>
+                      )}
                     </div>
                   </div>
-                  <div className="flex items-center gap-1">
-                    <Button 
-                      variant="ghost" 
-                      size="icon"
-                      className="h-8 w-8"
-                      onClick={() => handleDownload(doc)}
-                    >
-                      <Download className="w-4 h-4" />
-                    </Button>
-                    <Button 
-                      variant="ghost" 
-                      size="icon"
-                      className="h-8 w-8 text-destructive hover:text-destructive"
-                      onClick={() => onDelete(doc)}
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </Button>
-                  </div>
+                  {editingDocId !== doc.id && (
+                    <div className="flex items-center gap-1 shrink-0">
+                      <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => { setEditingDocId(doc.id); setEditingName(doc.name); }}>
+                        <Pencil className="w-4 h-4" />
+                      </Button>
+                      <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleDownload(doc)}>
+                        <Download className="w-4 h-4" />
+                      </Button>
+                      <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive" onClick={() => onDelete(doc)}>
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
+                    </div>
+                  )}
                 </div>
               ))}
             </div>

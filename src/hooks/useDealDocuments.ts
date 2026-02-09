@@ -96,11 +96,29 @@ export function useDealDocuments(dealId: string | undefined) {
     }
   };
 
+  const renameDocument = async (doc: DealDocument, newName: string) => {
+    try {
+      const { error } = await supabase
+        .from('deal_documents')
+        .update({ name: newName })
+        .eq('id', doc.id);
+
+      if (error) throw error;
+
+      queryClient.invalidateQueries({ queryKey: ['deal_documents', dealId] });
+      toast.success('Document renamed');
+    } catch (error) {
+      console.error('Error renaming document:', error);
+      toast.error('Failed to rename document');
+    }
+  };
+
   return {
     documents: query.data || [],
     isLoading: query.isLoading,
     isUploading,
     uploadDocument,
     deleteDocument,
+    renameDocument,
   };
 }
