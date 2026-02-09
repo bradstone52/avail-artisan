@@ -162,7 +162,7 @@ export function GenerateDealSummaryDialog({ open, onOpenChange, deal }: Generate
           amount: d.amount || 0,
           amountDisplay: d.amount ? formatNumberWithCommas(d.amount) : '',
           payableTo: d.held_by || '',
-          dueDate: d.due_date ? new Date(d.due_date) : undefined,
+          dueDate: d.due_date ? new Date(d.due_date + 'T00:00:00') : undefined,
           dueHour: '4',
           dueMinute: '00',
           duePeriod: 'PM',
@@ -175,11 +175,11 @@ export function GenerateDealSummaryDialog({ open, onOpenChange, deal }: Generate
       if (existingActions && existingActions.length > 0) {
         setActions(existingActions.map(a => ({
           id: crypto.randomUUID(),
-          dueDate: a.due_date ? new Date(a.due_date) : undefined,
+          dueDate: a.due_date ? new Date(a.due_date + 'T00:00:00') : undefined,
           dueHour: a.due_time ? a.due_time.split(':')[0]?.replace(/^0/, '') || '4' : '4',
           dueMinute: a.due_time ? a.due_time.split(':')[1]?.split(' ')[0] || '00' : '00',
           duePeriod: a.due_time?.includes('AM') ? 'AM' : 'PM',
-          dateMet: a.date_met ? new Date(a.date_met) : undefined,
+          dateMet: a.date_met ? new Date(a.date_met + 'T00:00:00') : undefined,
           actingParty: a.acting_party || '',
           description: a.description || '',
         })));
