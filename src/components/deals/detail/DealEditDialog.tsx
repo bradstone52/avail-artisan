@@ -28,6 +28,9 @@ export function DealEditDialog({ open, onOpenChange, deal }: DealEditDialogProps
   const [dealNumber, setDealNumber] = useState(deal.deal_number || '');
   const [status, setStatus] = useState(deal.status);
   const [closeDate, setCloseDate] = useState(deal.close_date || '');
+  const [sellerName, setSellerName] = useState(deal.seller_name || '');
+  const [buyerName, setBuyerName] = useState(deal.buyer_name || '');
+  const [dealValue, setDealValue] = useState(deal.deal_value?.toString() || '');
   const [notes, setNotes] = useState(deal.notes || '');
 
   // Sync form state when deal changes
@@ -35,6 +38,9 @@ export function DealEditDialog({ open, onOpenChange, deal }: DealEditDialogProps
     setDealNumber(deal.deal_number || '');
     setStatus(deal.status);
     setCloseDate(deal.close_date || '');
+    setSellerName(deal.seller_name || '');
+    setBuyerName(deal.buyer_name || '');
+    setDealValue(deal.deal_value?.toString() || '');
     setNotes(deal.notes || '');
   }, [deal]);
 
@@ -45,6 +51,9 @@ export function DealEditDialog({ open, onOpenChange, deal }: DealEditDialogProps
         deal_number: dealNumber || undefined,
         status: status as any,
         close_date: closeDate || null,
+        seller_name: sellerName || null,
+        buyer_name: buyerName || null,
+        deal_value: dealValue ? parseFloat(dealValue.replace(/,/g, '')) : null,
         notes: notes || undefined,
         // Keep all other fields unchanged
         deal_type: deal.deal_type as any,
@@ -97,6 +106,38 @@ export function DealEditDialog({ open, onOpenChange, deal }: DealEditDialogProps
               type="date"
               value={closeDate}
               onChange={(e) => setCloseDate(e.target.value)}
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="seller_name">Vendor</Label>
+            <Input
+              id="seller_name"
+              value={sellerName}
+              onChange={(e) => setSellerName(e.target.value)}
+              placeholder="e.g., Clearview Commercial Realty Inc."
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="buyer_name">Purchaser</Label>
+            <Input
+              id="buyer_name"
+              value={buyerName}
+              onChange={(e) => setBuyerName(e.target.value)}
+              placeholder="Buyer / Purchaser name"
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="deal_value">Deal Value ($)</Label>
+            <Input
+              id="deal_value"
+              value={dealValue}
+              onChange={(e) => setDealValue(e.target.value)}
+              placeholder="0.00"
+              type="number"
+              step="0.01"
             />
           </div>
 

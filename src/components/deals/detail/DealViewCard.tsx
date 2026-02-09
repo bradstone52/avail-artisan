@@ -31,6 +31,16 @@ export function DealViewCard({ deal, onEdit }: DealViewCardProps) {
     return num.toLocaleString();
   };
 
+  const formatCurrency = (value: number | null | undefined) => {
+    if (!value) return '—';
+    return new Intl.NumberFormat('en-CA', {
+      style: 'currency',
+      currency: 'CAD',
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    }).format(value);
+  };
+
   // Fetch linked property if listing_id exists
   const { data: linkedProperty } = useQuery({
     queryKey: ['linked-property', deal.listing_id],
@@ -151,6 +161,21 @@ export function DealViewCard({ deal, onEdit }: DealViewCardProps) {
               <p className="font-medium">{deal.deal_number}</p>
             </div>
           )}
+
+          <div>
+            <p className="text-sm text-muted-foreground mb-1">Vendor</p>
+            <p className="font-medium">{deal.seller_name || '—'}</p>
+          </div>
+          
+          <div>
+            <p className="text-sm text-muted-foreground mb-1">Purchaser</p>
+            <p className="font-medium">{deal.buyer_name || '—'}</p>
+          </div>
+          
+          <div>
+            <p className="text-sm text-muted-foreground mb-1">Deal Value</p>
+            <p className="font-medium">{formatCurrency(deal.deal_value)}</p>
+          </div>
         </div>
         
         {linkedProperty && (

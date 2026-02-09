@@ -157,13 +157,15 @@ export interface DealFormData {
   address: string;
   city: string;
   submarket: string;
-  deal_value?: number;
+  deal_value?: number | null;
   commission_percent?: number;
-  close_date?: string;
+  close_date?: string | null;
   status: DealStatus;
   listing_id?: string;
   property_id?: string;
   notes?: string;
+  seller_name?: string | null;
+  buyer_name?: string | null;
 }
 
 export interface BrokerageFormData {
