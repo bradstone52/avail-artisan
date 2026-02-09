@@ -127,7 +127,7 @@ export function DealViewCard({ deal, onEdit }: DealViewCardProps) {
           <div>
             <p className="text-sm text-muted-foreground mb-1">Close Date</p>
             <p className="font-medium">
-              {deal.close_date ? format(new Date(deal.close_date), 'MMM d, yyyy') : '—'}
+              {deal.close_date ? format(new Date(deal.close_date + 'T00:00:00'), 'MMM d, yyyy') : '—'}
             </p>
           </div>
           
