@@ -190,7 +190,7 @@ const formatCurrency = (value: number | null | undefined): string => {
 const formatDate = (date: string | null | undefined): string => {
   if (!date) return '';
   try {
-    return new Date(date).toLocaleDateString('en-CA', {
+    return new Date(date + (date.includes('T') ? '' : 'T00:00:00')).toLocaleDateString('en-CA', {
       year: 'numeric',
       month: 'long',
       day: 'numeric',
