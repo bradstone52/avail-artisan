@@ -36,6 +36,8 @@ import { useQueryClient } from '@tanstack/react-query';
 import { DealSummaryPDF } from '@/components/documents/DealSummaryPDF';
 import { useDealDeposits } from '@/hooks/useDealDeposits';
 import { useDealSummaryActions } from '@/hooks/useDealSummaryActions';
+import { useDealConditions } from '@/hooks/useDealConditions';
+import { useDealImportantDates } from '@/hooks/useDealImportantDates';
 import type { Deal } from '@/types/database';
 
 interface GenerateDealSummaryDialogProps {
@@ -71,6 +73,8 @@ export function GenerateDealSummaryDialog({ open, onOpenChange, deal }: Generate
   const queryClient = useQueryClient();
   const { deposits: existingDeposits } = useDealDeposits(deal.id);
   const { actions: existingActions, saveActions } = useDealSummaryActions(deal.id);
+  const { conditions: existingConditions } = useDealConditions(deal.id);
+  const { importantDates: existingImportantDates } = useDealImportantDates(deal.id);
   const [generating, setGenerating] = useState(false);
 
   // Basic Info state
@@ -297,6 +301,16 @@ export function GenerateDealSummaryDialog({ open, onOpenChange, deal }: Generate
           action: a.description,
         })),
         balanceOnClosing,
+        conditions: (existingConditions || []).map(c => ({
+          description: c.description,
+          due_date: c.due_date,
+          is_satisfied: c.is_satisfied,
+        })),
+        importantDates: (existingImportantDates || []).map(d => ({
+          description: d.description,
+          due_date: d.due_date,
+          is_completed: d.is_completed,
+        })),
         contacts: [{ name: 'Clearview Commercial Realty Inc.' }], // Default contact for footer
       };
 
