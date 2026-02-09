@@ -28,9 +28,9 @@ export function ListingCombobox({ value, onChange, className }: ListingComboboxP
   const [inputValue, setInputValue] = useState('');
   const { listings, loading } = useMarketListings();
 
-  // Filter to only active listings
+  // Filter to active and under contract listings
   const activeListings = useMemo(() => {
-    return listings.filter(l => l.status === 'Active');
+    return listings.filter(l => l.status === 'Active' || l.status === 'Under Contract');
   }, [listings]);
 
   // Find selected listing
@@ -117,10 +117,10 @@ export function ListingCombobox({ value, onChange, className }: ListingComboboxP
             ) : (
               <>
                 <CommandEmpty className="py-2 px-4 text-sm text-muted-foreground">
-                  No active listings found.
+                  No active or under contract listings found.
                 </CommandEmpty>
                 {filteredListings.length > 0 && (
-                  <CommandGroup heading="Active Listings">
+                  <CommandGroup heading="Active & Under Contract Listings">
                     {filteredListings.map((listing) => (
                       <CommandItem
                         key={listing.id}
