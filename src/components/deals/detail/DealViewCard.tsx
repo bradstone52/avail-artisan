@@ -176,6 +176,13 @@ export function DealViewCard({ deal, onEdit }: DealViewCardProps) {
             <p className="text-sm text-muted-foreground mb-1">Deal Value</p>
             <p className="font-medium">{formatCurrency(deal.deal_value)}</p>
           </div>
+          
+          <div>
+            <p className="text-sm text-muted-foreground mb-1">Effective Date</p>
+            <p className="font-medium">
+              {(deal as any).effective_date ? format(new Date((deal as any).effective_date + 'T00:00:00'), 'MMM d, yyyy') : '—'}
+            </p>
+          </div>
         </div>
         
         {linkedProperty && (

@@ -147,7 +147,7 @@ export function GenerateDealSummaryDialog({ open, onOpenChange, deal }: Generate
       }
       setPropertyDescription(description);
       
-      setEffectiveDate(undefined);
+      setEffectiveDate((deal as any).effective_date ? new Date((deal as any).effective_date) : undefined);
       // Transfer closing date from deal (set by Deal Sheet)
       setClosingDate(deal.close_date ? new Date(deal.close_date) : undefined);
       // Transfer deal value from deal (set by Deal Sheet) to Purchase Price

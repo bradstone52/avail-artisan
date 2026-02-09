@@ -160,6 +160,7 @@ export interface DealFormData {
   deal_value?: number | null;
   commission_percent?: number;
   close_date?: string | null;
+  effective_date?: string | null;
   status: DealStatus;
   listing_id?: string;
   property_id?: string;

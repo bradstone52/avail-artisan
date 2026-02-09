@@ -403,6 +403,7 @@ export type Database = {
           deal_value: number | null
           deposit_amount: number | null
           deposit_due_date: string | null
+          effective_date: string | null
           gst_rate: number | null
           id: string
           lease_value: number | null
@@ -442,6 +443,7 @@ export type Database = {
           deal_value?: number | null
           deposit_amount?: number | null
           deposit_due_date?: string | null
+          effective_date?: string | null
           gst_rate?: number | null
           id?: string
           lease_value?: number | null
@@ -481,6 +483,7 @@ export type Database = {
           deal_value?: number | null
           deposit_amount?: number | null
           deposit_due_date?: string | null
+          effective_date?: string | null
           gst_rate?: number | null
           id?: string
           lease_value?: number | null
