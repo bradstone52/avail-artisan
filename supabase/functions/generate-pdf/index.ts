@@ -381,10 +381,8 @@ function buildPdfHtml(issue: any, listings: any[], opts?: { includeDetails?: boo
   // Log cover image for debugging
   console.log(`[generate-pdf] Cover image URL: ${coverImageUrl || '(none - section will be hidden)'}`);
 
-  // Format month/year for title
-  const monthYear = generatedDate.toLocaleDateString("en-US", { month: "long", year: "numeric" });
-
-  const title = issue.title || `Large-Format Distribution Availability — ${monthYear}`;
+  // Use the title as provided (which contains the correct month)
+  const title = issue.title || `Large-Format Distribution Availability`;
   const market = issue.market || "Calgary Region";
   const sizeThreshold = issue.size_threshold ? Number(issue.size_threshold).toLocaleString() : "100,000";
   const sizeThresholdMaxStr = sizeThresholdMax.toLocaleString();
