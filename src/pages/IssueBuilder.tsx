@@ -37,7 +37,7 @@ export default function IssueBuilder() {
   const DEFAULT_COVER_IMAGE = "https://vouzfwrumlhmtmgglsti.supabase.co/storage/v1/object/public/cover-images/6e06384f-66ad-414f-bfb4-3d519cac090a/cover-1768534872718.png";
 
   const [settings, setSettings] = useState<IssueSettings>({
-    title: "",
+    title: `Large-Format Distribution Availability — ${format(new Date(), "MMMM yyyy")}`,
     market: "Calgary Region",
     sizeThreshold: 100000,
     sizeThresholdMax: 500000,
