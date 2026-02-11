@@ -888,10 +888,10 @@ tbody tr:last-child td {
     />
   ` : ``}
   <div class="cover-content${coverImageUrl ? `` : ` no-image`}">
-    <div class="cover-brand">ClearView Commercial Realty Inc.</div>
+    <div class="cover-brand">${esc(issue.brokerage_name || "ClearView Commercial Realty Inc.")}</div>
     
-    <h1 class="cover-title">Large-Format Distribution Availabilities —<br/>January 2026, Calgary &amp; Area</h1>
-    <p class="cover-subtitle">Curated snapshot of logistics-capable space in Calgary and surrounding areas</p>
+    <h1 class="cover-title">${esc(title)}, ${esc(market)} &amp; Area</h1>
+    <p class="cover-subtitle">Curated snapshot of logistics-capable space in ${esc(market)} and surrounding areas</p>
     
     <div class="cover-count">
       <strong>${total}</strong>
