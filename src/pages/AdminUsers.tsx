@@ -23,10 +23,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Shield, Users, Loader2, ShieldAlert, Zap, RefreshCw, Mail, KeyRound } from 'lucide-react';
+import { Shield, Users, Loader2, ShieldAlert, Zap, RefreshCw, Mail, KeyRound, UserMinus } from 'lucide-react';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { InviteManagement } from '@/components/admin/InviteManagement';
+import { ConfirmDialog } from '@/components/common/ConfirmDialog';
 
 interface UserWithRole {
   id: string;
@@ -46,6 +47,8 @@ export default function AdminUsers() {
   const [loading, setLoading] = useState(true);
   const [updating, setUpdating] = useState<string | null>(null);
   const [resettingMfa, setResettingMfa] = useState<string | null>(null);
+  const [removingUser, setRemovingUser] = useState<string | null>(null);
+  const [confirmRemoveUser, setConfirmRemoveUser] = useState<UserWithRole | null>(null);
   const [activeTab, setActiveTab] = useState('users');
 
   useEffect(() => {
@@ -202,7 +205,35 @@ export default function AdminUsers() {
     }
   };
 
-  const getRoleBadge = (role: string | null) => {
+  const handleRemoveUser = async () => {
+    if (!confirmRemoveUser || !org?.id) return;
+    
+    setRemovingUser(confirmRemoveUser.id);
+    setConfirmRemoveUser(null);
+    try {
+      // Remove from user_roles first
+      await supabase.from('user_roles').delete().eq('user_id', confirmRemoveUser.id);
+      
+      // Remove from org_members
+      const { error } = await supabase
+        .from('org_members')
+        .delete()
+        .eq('user_id', confirmRemoveUser.id)
+        .eq('org_id', org.id);
+
+      if (error) throw error;
+
+      toast.success(`${confirmRemoveUser.email} has been removed from the organization`);
+      fetchUsers();
+    } catch (error) {
+      console.error('Error removing user:', error);
+      toast.error('Failed to remove user');
+    } finally {
+      setRemovingUser(null);
+    }
+  };
+
+
     switch (role) {
       case 'admin':
         return (
@@ -384,6 +415,22 @@ export default function AdminUsers() {
                               <KeyRound className="w-4 h-4" />
                             )}
                           </Button>
+                          {user.id !== currentUser?.id && (
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => setConfirmRemoveUser(user)}
+                              disabled={removingUser === user.id}
+                              title="Remove user"
+                              className="text-destructive hover:text-destructive"
+                            >
+                              {removingUser === user.id ? (
+                                <Loader2 className="w-4 h-4 animate-spin" />
+                              ) : (
+                                <UserMinus className="w-4 h-4" />
+                              )}
+                            </Button>
+                          )}
                         </div>
                       </TableCell>
                     </TableRow>
@@ -397,6 +444,16 @@ export default function AdminUsers() {
             <InviteManagement />
           </TabsContent>
         </Tabs>
+
+        <ConfirmDialog
+          open={!!confirmRemoveUser}
+          onOpenChange={(open) => !open && setConfirmRemoveUser(null)}
+          title="Remove User"
+          description={`Are you sure you want to remove ${confirmRemoveUser?.email} from the organization? They will lose access to all data.`}
+          confirmLabel="Remove"
+          variant="destructive"
+          onConfirm={handleRemoveUser}
+        />
       </div>
     </AppLayout>
   );
