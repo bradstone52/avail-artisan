@@ -233,7 +233,7 @@ export default function AdminUsers() {
     }
   };
 
-
+  const getRoleBadge = (role: string | null) => {
     switch (role) {
       case 'admin':
         return (
