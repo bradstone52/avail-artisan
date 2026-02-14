@@ -67,7 +67,7 @@ export function StatusDropdown({ listing, onStatusChanged, onLogTransaction }: S
   return (
     <>
       <Select value={listing.status} onValueChange={handleStatusChange} disabled={isUpdating}>
-        <SelectTrigger className="w-[140px] h-8 text-xs">
+        <SelectTrigger className="w-[170px] h-8 text-xs overflow-hidden">
           {isUpdating ? (
             <Loader2 className="w-3 h-3 animate-spin" />
           ) : (
