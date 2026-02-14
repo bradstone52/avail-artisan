@@ -145,6 +145,7 @@ export function MarketListingEditDialog({
   const [clearHeight, setClearHeight] = useState('');
   const [dockDoors, setDockDoors] = useState('');
   const [driveInDoors, setDriveInDoors] = useState('');
+  const [driveInDoorDimensions, setDriveInDoorDimensions] = useState<string[]>([]);
   const [buildingDepth, setBuildingDepth] = useState('');
   const [powerAmps, setPowerAmps] = useState('');
   const [voltage, setVoltage] = useState('');
@@ -200,6 +201,7 @@ export function MarketListingEditDialog({
     clearHeight,
     dockDoors,
     driveInDoors,
+    driveInDoorDimensions,
     buildingDepth,
     powerAmps,
     voltage,
@@ -223,7 +225,7 @@ export function MarketListingEditDialog({
     listingId, address, building, unit, displayAddress, displayAddressManuallyEdited, city, submarket,
     sizeSf, status, listingType, askingRate, opCosts, propertyTax, condoFees, salePrice, availabilityDate,
     subleaseExp, landlord, brokerSource, brochureLink, websiteLink, notesPublic, internalNote, warehouseSf,
-    officeSf, clearHeight, dockDoors, driveInDoors, buildingDepth, powerAmps, voltage, sprinkler,
+    officeSf, clearHeight, dockDoors, driveInDoors, driveInDoorDimensions, buildingDepth, powerAmps, voltage, sprinkler,
     hasSprinklers, hasCranes, cranes, craneTons, yard, yardArea, crossDock, trailerParking, landAcres, zoning,
     mua, muaValue, hasLand, grossRate, isDistributionWarehouse,
   ]);
@@ -260,6 +262,7 @@ export function MarketListingEditDialog({
     setClearHeight(state.clearHeight);
     setDockDoors(state.dockDoors);
     setDriveInDoors(state.driveInDoors);
+    setDriveInDoorDimensions(state.driveInDoorDimensions || []);
     setBuildingDepth(state.buildingDepth || '');
     setPowerAmps(state.powerAmps);
     setVoltage(state.voltage);
@@ -315,7 +318,27 @@ export function MarketListingEditDialog({
     }
   }, [calculatedGrossRate, grossRate]);
 
-  // Clear stored draft
+  // Update drive-in door dimensions array when count changes
+  useEffect(() => {
+    const count = parseInt(driveInDoors) || 0;
+    if (count > driveInDoorDimensions.length) {
+      const newDims = [...driveInDoorDimensions];
+      for (let i = driveInDoorDimensions.length; i < count; i++) {
+        newDims.push('');
+      }
+      setDriveInDoorDimensions(newDims);
+    } else if (count < driveInDoorDimensions.length) {
+      setDriveInDoorDimensions(driveInDoorDimensions.slice(0, count));
+    }
+  }, [driveInDoors]);
+
+  // Update a single door dimension
+  const updateDoorDimension = (index: number, value: string) => {
+    const updated = [...driveInDoorDimensions];
+    updated[index] = value;
+    setDriveInDoorDimensions(updated);
+  };
+
   const clearDraft = useCallback(() => {
     try {
       localStorage.removeItem(FORM_STORAGE_KEY);
@@ -519,6 +542,7 @@ export function MarketListingEditDialog({
       setClearHeight('');
       setDockDoors('');
       setDriveInDoors('');
+      setDriveInDoorDimensions([]);
       setBuildingDepth('');
       setPowerAmps('');
       setVoltage('');
@@ -572,6 +596,7 @@ export function MarketListingEditDialog({
       setClearHeight(listing.clear_height_ft?.toString() || '');
       setDockDoors(listing.dock_doors?.toString() || '');
       setDriveInDoors(listing.drive_in_doors?.toString() || '');
+      setDriveInDoorDimensions(Array.isArray((listing as any).drive_in_door_dimensions) ? (listing as any).drive_in_door_dimensions : []);
       setBuildingDepth(listing.building_depth || '');
       setPowerAmps(listing.power_amps || '');
       setVoltage(listing.voltage || '');
@@ -694,6 +719,7 @@ export function MarketListingEditDialog({
           clear_height_ft: clearHeight ? parseFloat(clearHeight) : null,
           dock_doors: dockDoors ? parseInt(dockDoors) : null,
           drive_in_doors: driveInDoors ? parseInt(driveInDoors) : null,
+          drive_in_door_dimensions: driveInDoorDimensions.filter(d => d.trim() !== ''),
           building_depth: buildingDepth || null,
           power_amps: powerAmps || null,
           voltage: voltage || null,
@@ -826,6 +852,7 @@ export function MarketListingEditDialog({
           clear_height_ft: clearHeight ? parseFloat(clearHeight) : null,
           dock_doors: dockDoors ? parseInt(dockDoors) : null,
           drive_in_doors: driveInDoors ? parseInt(driveInDoors) : null,
+          drive_in_door_dimensions: driveInDoorDimensions.filter(d => d.trim() !== ''),
           building_depth: buildingDepth || null,
           power_amps: powerAmps || null,
           voltage: voltage || null,
@@ -1307,6 +1334,33 @@ export function MarketListingEditDialog({
                       placeholder="e.g., 2"
                     />
                   </div>
+
+                  {/* Dynamic drive-in door dimensions */}
+                  {(parseInt(driveInDoors) || 0) > 0 && (
+                    <div className="col-span-2 space-y-3 p-4 border rounded-lg bg-muted/30">
+                      <Label className="text-sm font-medium">
+                        Drive-In Door Dimensions
+                      </Label>
+                      <p className="text-xs text-muted-foreground">
+                        Enter dimensions for each drive-in door (e.g., 12' x 14')
+                      </p>
+                      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                        {Array.from({ length: parseInt(driveInDoors) || 0 }).map((_, index) => (
+                          <div key={index} className="space-y-1">
+                            <label className="text-xs text-muted-foreground">
+                              Door {index + 1}
+                            </label>
+                            <Input
+                              value={driveInDoorDimensions[index] || ''}
+                              onChange={(e) => updateDoorDimension(index, e.target.value)}
+                              placeholder="12' x 14'"
+                              className="text-sm"
+                            />
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
 
                   {/* Trailer Parking */}
                   <div className="space-y-1">
