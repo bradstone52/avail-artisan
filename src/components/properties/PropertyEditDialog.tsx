@@ -102,6 +102,7 @@ export function PropertyEditDialog({
   const [clearHeightFt, setClearHeightFt] = useState('');
   const [dockDoors, setDockDoors] = useState('');
   const [driveInDoors, setDriveInDoors] = useState('');
+  const [driveInDoorDimensions, setDriveInDoorDimensions] = useState<string[]>([]);
   // Multiple photos
   const [photos, setPhotos] = useState<PhotoItem[]>([]);
   const [notes, setNotes] = useState('');
@@ -124,6 +125,27 @@ export function PropertyEditDialog({
     } else if (value !== address) {
       setDisplayAddressManuallyEdited(true);
     }
+  };
+
+  // Update drive-in door dimensions array when count changes
+  useEffect(() => {
+    const count = parseInt(parseFormattedNumber(driveInDoors)) || 0;
+    if (count > driveInDoorDimensions.length) {
+      const newDims = [...driveInDoorDimensions];
+      for (let i = driveInDoorDimensions.length; i < count; i++) {
+        newDims.push('');
+      }
+      setDriveInDoorDimensions(newDims);
+    } else if (count < driveInDoorDimensions.length) {
+      setDriveInDoorDimensions(driveInDoorDimensions.slice(0, count));
+    }
+  }, [driveInDoors]);
+
+  // Update a single door dimension
+  const updateDoorDimension = (index: number, value: string) => {
+    const updated = [...driveInDoorDimensions];
+    updated[index] = value;
+    setDriveInDoorDimensions(updated);
   };
 
   // Handle photo upload
@@ -214,6 +236,7 @@ export function PropertyEditDialog({
       setClearHeightFt(property.clear_height_ft?.toString() || '');
       setDockDoors(property.dock_doors?.toString() || '');
       setDriveInDoors(property.drive_in_doors?.toString() || '');
+      setDriveInDoorDimensions(Array.isArray((property as any).drive_in_door_dimensions) ? (property as any).drive_in_door_dimensions : []);
       if (property.photos && property.photos.length > 0) {
         setPhotos(property.photos.map(p => ({
           id: p.id,
@@ -251,6 +274,7 @@ export function PropertyEditDialog({
       setClearHeightFt('');
       setDockDoors('');
       setDriveInDoors('');
+      setDriveInDoorDimensions([]);
       setPhotos([]);
       setNotes('');
       setInternalNotes('');
@@ -282,6 +306,7 @@ export function PropertyEditDialog({
         clear_height_ft: clearHeightFt ? parseFloat(clearHeightFt) : null,
         dock_doors: dockDoors ? parseInt(parseFormattedNumber(dockDoors)) : null,
         drive_in_doors: driveInDoors ? parseInt(parseFormattedNumber(driveInDoors)) : null,
+        drive_in_door_dimensions: driveInDoorDimensions.filter(d => d.trim() !== ''),
         photo_url: photos.filter(p => !p.toDelete)[0]?.photo_url || null,
         notes: notes.trim() || null,
         internal_notes: internalNotes.trim() || null,
@@ -511,6 +536,33 @@ export function PropertyEditDialog({
                   className={driveInDoors ? 'input-filled' : ''}
                 />
               </div>
+
+              {/* Dynamic drive-in door dimensions */}
+              {(parseInt(parseFormattedNumber(driveInDoors)) || 0) > 0 && (
+                <div className="col-span-2 space-y-3 p-4 border rounded-lg bg-muted/30">
+                  <Label className="text-sm font-medium">
+                    Drive-In Door Dimensions
+                  </Label>
+                  <p className="text-xs text-muted-foreground">
+                    Enter dimensions for each drive-in door (e.g., 12' x 14')
+                  </p>
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                    {Array.from({ length: parseInt(parseFormattedNumber(driveInDoors)) || 0 }).map((_, index) => (
+                      <div key={index} className="space-y-1">
+                        <label className="text-xs text-muted-foreground">
+                          Door {index + 1}
+                        </label>
+                        <Input
+                          value={driveInDoorDimensions[index] || ''}
+                          onChange={(e) => updateDoorDimension(index, e.target.value)}
+                          placeholder="12' x 14'"
+                          className="text-sm"
+                        />
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
           </TabsContent>
 

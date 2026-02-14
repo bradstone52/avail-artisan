@@ -19,6 +19,7 @@ export interface Property {
   clear_height_ft: number | null;
   dock_doors: number | null;
   drive_in_doors: number | null;
+  drive_in_door_dimensions: string[] | null | any;
   assessed_value: number | null;
   property_tax_annual: number | null;
   photo_url: string | null;

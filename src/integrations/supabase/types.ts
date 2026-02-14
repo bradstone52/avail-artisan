@@ -1801,6 +1801,7 @@ export type Database = {
           cross_dock: string | null
           display_address: string | null
           dock_doors: number | null
+          drive_in_door_dimensions: Json | null
           drive_in_doors: number | null
           geocode_source: string | null
           geocoded_at: string | null
@@ -1860,6 +1861,7 @@ export type Database = {
           cross_dock?: string | null
           display_address?: string | null
           dock_doors?: number | null
+          drive_in_door_dimensions?: Json | null
           drive_in_doors?: number | null
           geocode_source?: string | null
           geocoded_at?: string | null
@@ -1919,6 +1921,7 @@ export type Database = {
           cross_dock?: string | null
           display_address?: string | null
           dock_doors?: number | null
+          drive_in_door_dimensions?: Json | null
           drive_in_doors?: number | null
           geocode_source?: string | null
           geocoded_at?: string | null
@@ -2327,6 +2330,7 @@ export type Database = {
           created_by: string | null
           display_address: string | null
           dock_doors: number | null
+          drive_in_door_dimensions: Json | null
           drive_in_doors: number | null
           geocode_source: string | null
           geocoded_at: string | null
@@ -2366,6 +2370,7 @@ export type Database = {
           created_by?: string | null
           display_address?: string | null
           dock_doors?: number | null
+          drive_in_door_dimensions?: Json | null
           drive_in_doors?: number | null
           geocode_source?: string | null
           geocoded_at?: string | null
@@ -2405,6 +2410,7 @@ export type Database = {
           created_by?: string | null
           display_address?: string | null
           dock_doors?: number | null
+          drive_in_door_dimensions?: Json | null
           drive_in_doors?: number | null
           geocode_source?: string | null
           geocoded_at?: string | null
