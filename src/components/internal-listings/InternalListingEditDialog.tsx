@@ -30,6 +30,7 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { FormattedNumberInput } from '@/components/common/FormattedNumberInput';
 import { CityCombobox } from '@/components/common/CityCombobox';
+import { DoorDimensionCombobox } from '@/components/common/DoorDimensionCombobox';
 import {
   InternalListing,
   InternalListingFormData,
@@ -894,11 +895,9 @@ export function InternalListingEditDialog({
                             <label className="text-xs text-muted-foreground">
                               Door {index + 1}
                             </label>
-                            <Input
+                            <DoorDimensionCombobox
                               value={driveInDoorDimensions[index] || ''}
-                              onChange={(e) => updateDoorDimension(index, e.target.value)}
-                              placeholder="12' x 14'"
-                              className="text-sm"
+                              onChange={(val) => updateDoorDimension(index, val)}
                             />
                           </div>
                         ))}
