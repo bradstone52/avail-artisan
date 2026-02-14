@@ -164,7 +164,7 @@ Deno.serve(async (req) => {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        from: "ClearView <onboarding@resend.dev>",
+        from: "ClearView <listings@logistics-space.net>",
         to: adminEmails,
         subject: `📋 ${staleCount} Stale Listing${staleCount === 1 ? "" : "s"} — Daily Report`,
         html: emailHtml,
