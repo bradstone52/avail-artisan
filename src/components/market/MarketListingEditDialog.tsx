@@ -1378,9 +1378,10 @@ export function MarketListingEditDialog({
                     <Label className="text-xs">Power Amps</Label>
                     <Input
                       value={powerAmps}
-                      onChange={(e) => setPowerAmps(e.target.value)}
+                      onChange={(e) => handleFormattedNumberChange(e.target.value, setPowerAmps)}
+                      onBlur={(e) => handleFormattedNumberBlur(e.target.value, setPowerAmps)}
                       className={`placeholder-light ${powerAmps ? 'input-filled' : ''}`}
-                      placeholder="e.g., 2000"
+                      placeholder="e.g., 2,000"
                     />
                   </div>
 
