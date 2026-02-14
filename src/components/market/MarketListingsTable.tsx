@@ -98,6 +98,7 @@ export function MarketListingsTable({ listings, onEdit, onRefresh, sortColumn, s
   const [selectedRowId, setSelectedRowId] = useState<string | null>(null);
   const [updatingDW, setUpdatingDW] = useState<string | null>(null);
   const [updatingLand, setUpdatingLand] = useState<string | null>(null);
+  const [updatingQuad, setUpdatingQuad] = useState<string | null>(null);
   const [verifyingId, setVerifyingId] = useState<string | null>(null);
   const [geocodingId, setGeocodingId] = useState<string | null>(null);
   const [editPinListing, setEditPinListing] = useState<MarketListing | null>(null);
@@ -259,6 +260,29 @@ export function MarketListingsTable({ listings, onEdit, onRefresh, sortColumn, s
     }
   };
 
+  // Cycle Calgary Quad: null → NE → NW → SE → SW → null
+  const QUAD_CYCLE = [null, 'NE', 'NW', 'SE', 'SW'] as const;
+  const handleCycleQuad = async (listing: MarketListing) => {
+    setUpdatingQuad(listing.id);
+    try {
+      const currentIdx = QUAD_CYCLE.indexOf(listing.calgary_quad as any);
+      const nextIdx = (currentIdx + 1) % QUAD_CYCLE.length;
+      const newValue = QUAD_CYCLE[nextIdx];
+      const { error } = await supabase
+        .from('market_listings')
+        .update({ calgary_quad: newValue, updated_at: new Date().toISOString() })
+        .eq('id', listing.id);
+
+      if (error) throw error;
+      onRefresh();
+    } catch (err) {
+      console.error('Error updating Calgary Quad:', err);
+      toast.error('Failed to update');
+    } finally {
+      setUpdatingQuad(null);
+    }
+  };
+
   // Toggle land flag
   const handleToggleLand = async (listing: MarketListing) => {
     setUpdatingLand(listing.id);
@@ -389,6 +413,7 @@ export function MarketListingsTable({ listings, onEdit, onRefresh, sortColumn, s
             <TableHead className="text-background min-w-[130px] bg-zinc-700 dark:bg-zinc-600">Submarket</TableHead>
             <TableHead className="text-background min-w-[100px] bg-zinc-700 dark:bg-zinc-600">City</TableHead>
             <TableHead className="text-background min-w-[80px] bg-zinc-700 dark:bg-zinc-600">Type</TableHead>
+            <TableHead className="text-background min-w-[70px] bg-zinc-700 dark:bg-zinc-600">Calg. Quad.</TableHead>
             <TableHead className="text-background min-w-[60px] bg-zinc-700 dark:bg-zinc-600">DW</TableHead>
             <SortableHeader column="size_sf" className="text-right min-w-[100px] bg-zinc-700 dark:bg-zinc-600">Size (SF)</SortableHeader>
             <TableHead className="text-background min-w-[80px] bg-zinc-700 dark:bg-zinc-600">Acres</TableHead>
@@ -491,6 +516,26 @@ export function MarketListingsTable({ listings, onEdit, onRefresh, sortColumn, s
               
               {/* Type */}
               <TableCell className="text-sm">{listing.listing_type || '-'}</TableCell>
+              
+              {/* Calgary Quad */}
+              <TableCell>
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleCycleQuad(listing);
+                  }}
+                  disabled={updatingQuad === listing.id}
+                  className={`px-2 py-1 text-xs font-bold uppercase border-2 border-foreground transition-all disabled:opacity-50 ${
+                    listing.calgary_quad 
+                      ? 'bg-primary text-primary-foreground shadow-[2px_2px_0_hsl(var(--foreground))]' 
+                      : 'bg-muted text-muted-foreground shadow-[2px_2px_0_hsl(var(--foreground))]'
+                  }`}
+                  style={{ borderRadius: 'var(--radius)' }}
+                >
+                  {listing.calgary_quad || '-'}
+                </button>
+              </TableCell>
               
               {/* Distribution Warehouse */}
               <TableCell>

@@ -1791,6 +1791,7 @@ export type Database = {
           brochure_search_url: string | null
           broker_source: string | null
           building_depth: string | null
+          calgary_quad: string | null
           city: string
           clear_height_ft: number | null
           condo_fees: string | null
@@ -1849,6 +1850,7 @@ export type Database = {
           brochure_search_url?: string | null
           broker_source?: string | null
           building_depth?: string | null
+          calgary_quad?: string | null
           city?: string
           clear_height_ft?: number | null
           condo_fees?: string | null
@@ -1907,6 +1909,7 @@ export type Database = {
           brochure_search_url?: string | null
           broker_source?: string | null
           building_depth?: string | null
+          calgary_quad?: string | null
           city?: string
           clear_height_ft?: number | null
           condo_fees?: string | null

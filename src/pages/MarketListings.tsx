@@ -61,6 +61,7 @@ export default function MarketListings() {
   const [driveInFilter, setDriveInFilter] = useState<string>('all');
   const [staleFilter, setStaleFilter] = useState<string>('all');
   const [landOnlyFilter, setLandOnlyFilter] = useState<string>('all');
+  const [calgaryQuadFilter, setCalgaryQuadFilter] = useState<string>('all');
 
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
@@ -222,11 +223,16 @@ export default function MarketListings() {
         if (landOnlyFilter === 'no' && hasLand) return false;
       }
 
+      // Calgary Quad filter
+      if (calgaryQuadFilter !== 'all') {
+        if (listing.calgary_quad !== calgaryQuadFilter) return false;
+      }
+
       return true;
     });
-  }, [listings, searchQuery, submarketFilter, cityFilter, statusFilter, sizeFilter, distWarehouseFilter, brokerFilter, listingTypeFilter, landlordFilter, docksFilter, driveInFilter, staleFilter, landOnlyFilter]);
+  }, [listings, searchQuery, submarketFilter, cityFilter, statusFilter, sizeFilter, distWarehouseFilter, brokerFilter, listingTypeFilter, landlordFilter, docksFilter, driveInFilter, staleFilter, landOnlyFilter, calgaryQuadFilter]);
 
-  const hasActiveFilters = searchQuery || submarketFilter.length > 0 || cityFilter !== 'all' || statusFilter !== 'all' || sizeFilter !== 'all' || distWarehouseFilter !== 'all' || brokerFilter !== 'all' || listingTypeFilter !== 'all' || landlordFilter !== 'all' || docksFilter !== 'all' || driveInFilter !== 'all' || staleFilter !== 'all' || landOnlyFilter !== 'all';
+  const hasActiveFilters = searchQuery || submarketFilter.length > 0 || cityFilter !== 'all' || statusFilter !== 'all' || sizeFilter !== 'all' || distWarehouseFilter !== 'all' || brokerFilter !== 'all' || listingTypeFilter !== 'all' || landlordFilter !== 'all' || docksFilter !== 'all' || driveInFilter !== 'all' || staleFilter !== 'all' || landOnlyFilter !== 'all' || calgaryQuadFilter !== 'all';
 
   // Sort filtered listings
   const sortedListings = useMemo(() => {
@@ -315,6 +321,7 @@ export default function MarketListings() {
     setDriveInFilter('all');
     setStaleFilter('all');
     setLandOnlyFilter('all');
+    setCalgaryQuadFilter('all');
     setCurrentPage(1);
   };
 
@@ -722,6 +729,23 @@ export default function MarketListings() {
                       <SelectItem value="all">All</SelectItem>
                       <SelectItem value="yes">Has Drive-In</SelectItem>
                       <SelectItem value="no">No Drive-In</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {/* Calgary Quad */}
+                <div>
+                  <Label className="text-xs text-muted-foreground mb-1.5 block">Calgary Quad.</Label>
+                  <Select value={calgaryQuadFilter} onValueChange={setCalgaryQuadFilter}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="All" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All</SelectItem>
+                      <SelectItem value="NE">NE</SelectItem>
+                      <SelectItem value="NW">NW</SelectItem>
+                      <SelectItem value="SE">SE</SelectItem>
+                      <SelectItem value="SW">SW</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
