@@ -34,7 +34,7 @@ serve(async (req) => {
     // Query Calgary's Parcel Address dataset using Socrata SODA API
     // Dataset: https://data.calgary.ca/Base-Maps/Parcel-Address/s8b3-j88p
     // Note: The geometry column in this dataset is called 'location' not 'the_geom'
-    const soqlQuery = `$where=within_circle(location, ${latitude}, ${longitude}, ${radiusMeters})&$limit=50`;
+    const soqlQuery = `$where=within_circle(location, ${latitude}, ${longitude}, ${radiusMeters})&$order=distance_in_meters(location, 'POINT(${longitude} ${latitude})')&$limit=200`;
     const url = `https://data.calgary.ca/resource/s8b3-j88p.json?${soqlQuery}`;
 
     console.log(`[search-calgary-parcels] Fetching: ${url}`);
