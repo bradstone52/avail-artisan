@@ -2,9 +2,13 @@ import * as React from "react";
 
 import { cn } from "@/lib/utils";
 
-const Table = React.forwardRef<HTMLTableElement, React.HTMLAttributes<HTMLTableElement>>(
-  ({ className, ...props }, ref) => (
-    <div className="relative w-full overflow-auto border-2 border-foreground shadow-[4px_4px_0_hsl(var(--foreground))]" style={{ borderRadius: "var(--radius)" }}>
+interface TableProps extends React.HTMLAttributes<HTMLTableElement> {
+  stickyHeader?: boolean;
+}
+
+const Table = React.forwardRef<HTMLTableElement, TableProps>(
+  ({ className, stickyHeader, ...props }, ref) => (
+    <div className={cn("relative w-full overflow-auto border-2 border-foreground shadow-[4px_4px_0_hsl(var(--foreground))]", stickyHeader && "max-h-[75vh]")} style={{ borderRadius: "var(--radius)" }}>
       <table
         ref={ref}
         className={cn("w-full caption-bottom text-sm", className)}
