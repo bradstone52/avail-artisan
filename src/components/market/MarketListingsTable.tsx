@@ -527,8 +527,8 @@ export function MarketListingsTable({ listings, onEdit, onRefresh, sortColumn, s
                   }}
                   disabled={updatingQuad === listing.id}
                   className={`px-2 py-1 text-xs font-bold uppercase border-2 border-foreground transition-all disabled:opacity-50 shadow-[2px_2px_0_hsl(var(--foreground))] ${
-                    listing.calgary_quad === 'NE' ? 'bg-fuchsia-500 text-white'
-                    : listing.calgary_quad === 'SE' ? 'bg-green-400 text-black'
+                    listing.calgary_quad === 'NE' ? 'bg-orange-400 text-black'
+                    : listing.calgary_quad === 'SE' ? 'bg-lime-400 text-black'
                     : listing.calgary_quad === 'NW' ? 'bg-cyan-400 text-black'
                     : listing.calgary_quad === 'SW' ? 'bg-yellow-300 text-black'
                     : 'bg-muted text-muted-foreground'
