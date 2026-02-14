@@ -302,7 +302,7 @@ export function MarketListingEditDialog({
     const opCostsNum = parseNumeric(opCosts);
     
     if (askingNum !== null && opCostsNum !== null) {
-      return `$${(askingNum + opCostsNum).toFixed(2)}`;
+      return (askingNum + opCostsNum).toFixed(2);
     }
     return null;
   }, [askingRate, opCosts]);
@@ -1486,32 +1486,53 @@ export function MarketListingEditDialog({
               <div className="grid grid-cols-3 gap-4">
                 <div className="space-y-1">
                   <Label className="text-xs">Asking Rate (PSF)</Label>
-                  <Input
-                    value={askingRate}
-                    onChange={(e) => setAskingRate(e.target.value)}
-                    className={`placeholder-light ${askingRate ? 'input-filled' : ''}`}
-                    placeholder="e.g., $12.50"
-                  />
+                  <div className="relative">
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">$</span>
+                    <Input
+                      value={askingRate.replace(/^\$/, '')}
+                      onChange={(e) => setAskingRate(e.target.value.replace(/^\$/, ''))}
+                      onBlur={() => {
+                        const clean = askingRate.replace(/[^0-9.]/g, '');
+                        if (clean) setAskingRate(clean);
+                      }}
+                      className={`pl-7 placeholder-light ${askingRate ? 'input-filled' : ''}`}
+                      placeholder="e.g., 12.50"
+                    />
+                  </div>
                 </div>
 
                 <div className="space-y-1">
                   <Label className="text-xs">Op Costs</Label>
-                  <Input
-                    value={opCosts}
-                    onChange={(e) => setOpCosts(e.target.value)}
-                    className={`placeholder-light ${opCosts ? 'input-filled' : ''}`}
-                    placeholder="e.g., $4.50"
-                  />
+                  <div className="relative">
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">$</span>
+                    <Input
+                      value={opCosts.replace(/^\$/, '')}
+                      onChange={(e) => setOpCosts(e.target.value.replace(/^\$/, ''))}
+                      onBlur={() => {
+                        const clean = opCosts.replace(/[^0-9.]/g, '');
+                        if (clean) setOpCosts(clean);
+                      }}
+                      className={`pl-7 placeholder-light ${opCosts ? 'input-filled' : ''}`}
+                      placeholder="e.g., 4.50"
+                    />
+                  </div>
                 </div>
 
                 <div className="space-y-1">
                   <Label className="text-xs">Gross Rate</Label>
-                  <Input
-                    value={grossRate}
-                    onChange={(e) => setGrossRate(e.target.value)}
-                    className={`placeholder-light ${grossRate ? 'input-filled' : ''}`}
-                    placeholder="Auto-calc or enter"
-                  />
+                  <div className="relative">
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">$</span>
+                    <Input
+                      value={grossRate.replace(/^\$/, '')}
+                      onChange={(e) => setGrossRate(e.target.value.replace(/^\$/, ''))}
+                      onBlur={() => {
+                        const clean = grossRate.replace(/[^0-9.]/g, '');
+                        if (clean) setGrossRate(clean);
+                      }}
+                      className={`pl-7 placeholder-light ${grossRate ? 'input-filled' : ''}`}
+                      placeholder="Auto-calc or enter"
+                    />
+                  </div>
                 </div>
               </div>
 
@@ -1519,35 +1540,45 @@ export function MarketListingEditDialog({
               {(listingType === 'Sale' || listingType === 'Sale/Lease') && (
                 <div className="grid grid-cols-4 items-center gap-4">
                   <Label className="text-right">Sale Price</Label>
-                  <Input
-                    value={salePrice}
-                    onChange={(e) => setSalePrice(e.target.value)}
-                    className={`col-span-3 placeholder-light ${salePrice ? 'input-filled' : ''}`}
-                    placeholder="e.g., $5,000,000"
-                  />
+                  <div className="col-span-3 relative">
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">$</span>
+                    <Input
+                      value={salePrice.replace(/^\$/, '')}
+                      onChange={(e) => handleFormattedNumberChange(e.target.value.replace(/^\$/, ''), setSalePrice)}
+                      onBlur={(e) => handleFormattedNumberBlur(e.target.value, setSalePrice)}
+                      className={`pl-7 placeholder-light ${salePrice ? 'input-filled' : ''}`}
+                      placeholder="e.g., 5,000,000"
+                    />
+                  </div>
                 </div>
               )}
 
               {/* Taxes */}
               <div className="grid grid-cols-4 items-center gap-4">
                 <Label className="text-right">Taxes</Label>
-                <Input
-                  value={propertyTax}
-                  onChange={(e) => setPropertyTax(e.target.value)}
-                  className={`col-span-3 placeholder-light ${propertyTax ? 'input-filled' : ''}`}
-                  placeholder="e.g., $3.50/SF"
-                />
+                <div className="col-span-3 relative">
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">$</span>
+                  <Input
+                    value={propertyTax.replace(/^\$/, '')}
+                    onChange={(e) => setPropertyTax(e.target.value.replace(/^\$/, ''))}
+                    className={`pl-7 placeholder-light ${propertyTax ? 'input-filled' : ''}`}
+                    placeholder="e.g., 3.50/SF"
+                  />
+                </div>
               </div>
 
               {/* Condo Fees */}
               <div className="grid grid-cols-4 items-center gap-4">
                 <Label className="text-right">Condo Fees</Label>
-                <Input
-                  value={condoFees}
-                  onChange={(e) => setCondoFees(e.target.value)}
-                  className={`col-span-3 placeholder-light ${condoFees ? 'input-filled' : ''}`}
-                  placeholder="e.g., $2.00/SF"
-                />
+                <div className="col-span-3 relative">
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">$</span>
+                  <Input
+                    value={condoFees.replace(/^\$/, '')}
+                    onChange={(e) => setCondoFees(e.target.value.replace(/^\$/, ''))}
+                    className={`pl-7 placeholder-light ${condoFees ? 'input-filled' : ''}`}
+                    placeholder="e.g., 2.00/SF"
+                  />
+                </div>
               </div>
 
               {/* Sublease Expiry - only show if listing type is Sublease */}
