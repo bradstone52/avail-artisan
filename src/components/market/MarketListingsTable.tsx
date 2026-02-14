@@ -383,9 +383,9 @@ export function MarketListingsTable({ listings, onEdit, onRefresh, sortColumn, s
         </div>
       )}
       <Table className="min-w-[3000px]" stickyHeader>
-        <TableHeader className="sticky top-0 z-10">
+        <TableHeader className="sticky top-0 z-40">
           <TableRow className="bg-foreground">
-            <TableHead className="sticky left-0 top-0 z-30 min-w-[180px] bg-zinc-700 dark:bg-zinc-600 text-background shadow-[2px_0_5px_-2px_rgba(0,0,0,0.3)]">Address</TableHead>
+            <TableHead className="sticky left-0 top-0 z-50 min-w-[180px] bg-zinc-700 dark:bg-zinc-600 text-background shadow-[2px_0_5px_-2px_rgba(0,0,0,0.3)]">Address</TableHead>
             <TableHead className="text-background min-w-[130px] bg-zinc-700 dark:bg-zinc-600">Submarket</TableHead>
             <TableHead className="text-background min-w-[100px] bg-zinc-700 dark:bg-zinc-600">City</TableHead>
             <TableHead className="text-background min-w-[80px] bg-zinc-700 dark:bg-zinc-600">Type</TableHead>
@@ -418,7 +418,7 @@ export function MarketListingsTable({ listings, onEdit, onRefresh, sortColumn, s
             <TableHead className="text-background min-w-[130px] bg-zinc-700 dark:bg-zinc-600">Status</TableHead>
             <SortableHeader column="last_verified_date" className="min-w-[100px] bg-zinc-700 dark:bg-zinc-600">Verified</SortableHeader>
             <TableHead className="text-background min-w-[60px] bg-zinc-700 dark:bg-zinc-600">Land</TableHead>
-            <TableHead className="sticky right-0 top-0 z-30 min-w-[160px] bg-zinc-700 dark:bg-zinc-600 text-background shadow-[-2px_0_5px_-2px_rgba(0,0,0,0.3)]">Actions</TableHead>
+            <TableHead className="sticky right-0 top-0 z-50 min-w-[160px] bg-zinc-700 dark:bg-zinc-600 text-background shadow-[-2px_0_5px_-2px_rgba(0,0,0,0.3)]">Actions</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
