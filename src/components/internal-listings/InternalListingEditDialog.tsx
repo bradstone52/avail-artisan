@@ -30,7 +30,7 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { FormattedNumberInput } from '@/components/common/FormattedNumberInput';
 import { CityCombobox } from '@/components/common/CityCombobox';
-import { DoorDimensionCombobox } from '@/components/common/DoorDimensionCombobox';
+import { DoorDimensionCombobox, DoorDimensionProvider } from '@/components/common/DoorDimensionCombobox';
 import {
   InternalListing,
   InternalListingFormData,
@@ -882,6 +882,7 @@ export function InternalListingEditDialog({
 
                   {/* Dynamic drive-in door dimensions */}
                   {(driveInDoors ?? 0) > 0 && (
+                    <DoorDimensionProvider>
                     <div className="col-span-2 space-y-3 p-4 border rounded-lg bg-muted/30">
                       <FormLabel className="text-sm font-medium">
                         Drive-In Door Dimensions
@@ -903,6 +904,7 @@ export function InternalListingEditDialog({
                         ))}
                       </div>
                     </div>
+                    </DoorDimensionProvider>
                   )}
 
                   <FormField

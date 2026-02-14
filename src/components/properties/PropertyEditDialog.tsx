@@ -23,7 +23,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 import { CityCombobox } from '@/components/common/CityCombobox';
-import { DoorDimensionCombobox } from '@/components/common/DoorDimensionCombobox';
+import { DoorDimensionCombobox, DoorDimensionProvider } from '@/components/common/DoorDimensionCombobox';
 
 interface PropertyEditDialogProps {
   property: PropertyWithLinks | null;
@@ -540,6 +540,7 @@ export function PropertyEditDialog({
 
               {/* Dynamic drive-in door dimensions */}
               {(parseInt(parseFormattedNumber(driveInDoors)) || 0) > 0 && (
+                <DoorDimensionProvider>
                 <div className="col-span-2 space-y-3 p-4 border rounded-lg bg-muted/30">
                   <Label className="text-sm font-medium">
                     Drive-In Door Dimensions
@@ -561,6 +562,7 @@ export function PropertyEditDialog({
                     ))}
                   </div>
                 </div>
+                </DoorDimensionProvider>
               )}
             </div>
           </TabsContent>
