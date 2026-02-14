@@ -1257,9 +1257,9 @@ export function MarketListingEditDialog({
                   <div className="space-y-1">
                     <Label className="text-xs">Ceiling Height (ft)</Label>
                     <Input
-                      type="number"
                       value={clearHeight}
-                      onChange={(e) => setClearHeight(e.target.value)}
+                      onChange={(e) => handleFormattedNumberChange(e.target.value, setClearHeight)}
+                      onBlur={(e) => handleFormattedNumberBlur(e.target.value, setClearHeight)}
                       className={`placeholder-light ${clearHeight ? 'input-filled' : ''}`}
                       placeholder="e.g., 32"
                     />
@@ -1288,9 +1288,9 @@ export function MarketListingEditDialog({
                   <div className="space-y-1">
                     <Label className="text-xs">Dock Doors</Label>
                     <Input
-                      type="number"
                       value={dockDoors}
-                      onChange={(e) => setDockDoors(e.target.value)}
+                      onChange={(e) => handleFormattedNumberChange(e.target.value, setDockDoors)}
+                      onBlur={(e) => handleFormattedNumberBlur(e.target.value, setDockDoors)}
                       className={`placeholder-light ${dockDoors ? 'input-filled' : ''}`}
                       placeholder="e.g., 12"
                     />
@@ -1300,9 +1300,9 @@ export function MarketListingEditDialog({
                   <div className="space-y-1">
                     <Label className="text-xs">Drive-In Doors</Label>
                     <Input
-                      type="number"
                       value={driveInDoors}
-                      onChange={(e) => setDriveInDoors(e.target.value)}
+                      onChange={(e) => handleFormattedNumberChange(e.target.value, setDriveInDoors)}
+                      onBlur={(e) => handleFormattedNumberBlur(e.target.value, setDriveInDoors)}
                       className={`placeholder-light ${driveInDoors ? 'input-filled' : ''}`}
                       placeholder="e.g., 2"
                     />
