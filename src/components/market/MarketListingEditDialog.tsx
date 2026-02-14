@@ -38,7 +38,7 @@ import { Separator } from '@/components/ui/separator';
 import { BrokerageCombobox } from './BrokerageCombobox';
 import { LandlordCombobox } from './LandlordCombobox';
 import { CityCombobox } from '@/components/common/CityCombobox';
-import { DoorDimensionCombobox } from '@/components/common/DoorDimensionCombobox';
+import { DoorDimensionCombobox, DoorDimensionProvider } from '@/components/common/DoorDimensionCombobox';
 import { useOrg } from '@/hooks/useOrg';
 import { useAuth } from '@/contexts/AuthContext';
 import { cn } from '@/lib/utils';
@@ -1338,6 +1338,7 @@ export function MarketListingEditDialog({
 
                   {/* Dynamic drive-in door dimensions */}
                   {(parseInt(driveInDoors) || 0) > 0 && (
+                    <DoorDimensionProvider>
                     <div className="col-span-2 space-y-3 p-4 border rounded-lg bg-muted/30">
                       <Label className="text-sm font-medium">
                         Drive-In Door Dimensions
@@ -1359,6 +1360,7 @@ export function MarketListingEditDialog({
                         ))}
                       </div>
                     </div>
+                    </DoorDimensionProvider>
                   )}
 
                   {/* Trailer Parking */}
