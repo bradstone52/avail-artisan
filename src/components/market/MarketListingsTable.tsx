@@ -382,7 +382,7 @@ export function MarketListingsTable({ listings, onEdit, onRefresh, sortColumn, s
           ⌨️ ← → SCROLL
         </div>
       )}
-      <Table className="min-w-[3000px]">
+      <Table className="min-w-[3000px]" stickyHeader>
         <TableHeader className="sticky top-0 z-10">
           <TableRow className="bg-foreground">
             <TableHead className="sticky left-0 z-30 min-w-[180px] bg-zinc-700 dark:bg-zinc-600 text-background shadow-[2px_0_5px_-2px_rgba(0,0,0,0.3)]">Address</TableHead>
