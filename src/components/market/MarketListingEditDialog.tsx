@@ -38,6 +38,7 @@ import { Separator } from '@/components/ui/separator';
 import { BrokerageCombobox } from './BrokerageCombobox';
 import { LandlordCombobox } from './LandlordCombobox';
 import { CityCombobox } from '@/components/common/CityCombobox';
+import { DoorDimensionCombobox } from '@/components/common/DoorDimensionCombobox';
 import { useOrg } from '@/hooks/useOrg';
 import { useAuth } from '@/contexts/AuthContext';
 import { cn } from '@/lib/utils';
@@ -1350,11 +1351,9 @@ export function MarketListingEditDialog({
                             <label className="text-xs text-muted-foreground">
                               Door {index + 1}
                             </label>
-                            <Input
+                            <DoorDimensionCombobox
                               value={driveInDoorDimensions[index] || ''}
-                              onChange={(e) => updateDoorDimension(index, e.target.value)}
-                              placeholder="12' x 14'"
-                              className="text-sm"
+                              onChange={(val) => updateDoorDimension(index, val)}
                             />
                           </div>
                         ))}
