@@ -23,7 +23,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Shield, Users, Loader2, ShieldAlert, Zap, RefreshCw, Mail, KeyRound, UserMinus } from 'lucide-react';
+import { Shield, Users, Loader2, ShieldAlert, Zap, RefreshCw, Mail, KeyRound, UserMinus, Send } from 'lucide-react';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { InviteManagement } from '@/components/admin/InviteManagement';
@@ -50,6 +50,7 @@ export default function AdminUsers() {
   const [removingUser, setRemovingUser] = useState<string | null>(null);
   const [confirmRemoveUser, setConfirmRemoveUser] = useState<UserWithRole | null>(null);
   const [activeTab, setActiveTab] = useState('users');
+  const [sendingReport, setSendingReport] = useState(false);
 
   useEffect(() => {
     if (!roleLoading && !isAdmin) {
@@ -233,6 +234,42 @@ export default function AdminUsers() {
     }
   };
 
+  const handleSendStaleReport = async () => {
+    setSendingReport(true);
+    try {
+      const { data: sessionData } = await supabase.auth.getSession();
+      const accessToken = sessionData?.session?.access_token;
+
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/stale-listings-report`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${accessToken}`,
+          },
+        }
+      );
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(result.error || 'Failed to send report');
+      }
+
+      if (result.staleCount === 0) {
+        toast.info('No stale listings found. No email sent.');
+      } else {
+        toast.success(`Stale listings report sent! ${result.staleCount} stale listing(s) reported to ${result.emailsSent} admin(s).`);
+      }
+    } catch (error) {
+      console.error('Error sending stale report:', error);
+      toast.error(error instanceof Error ? error.message : 'Failed to send report');
+    } finally {
+      setSendingReport(false);
+    }
+  };
+
   const getRoleBadge = (role: string | null) => {
     switch (role) {
       case 'admin':
@@ -279,14 +316,30 @@ export default function AdminUsers() {
     <AppLayout>
       <div className="p-6 lg:p-8 max-w-5xl mx-auto">
         {/* Header */}
-        <div className="flex items-center gap-3 mb-8">
-          <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center">
-            <Users className="w-6 h-6 text-primary" />
+        <div className="flex items-center justify-between mb-8">
+          <div className="flex items-center gap-3">
+            <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center">
+              <Users className="w-6 h-6 text-primary" />
+            </div>
+            <div>
+              <h1 className="text-2xl font-display font-bold">Admin Settings</h1>
+              <p className="text-muted-foreground">Manage users and roles</p>
+            </div>
           </div>
-          <div>
-            <h1 className="text-2xl font-display font-bold">Admin Settings</h1>
-            <p className="text-muted-foreground">Manage users and roles</p>
-          </div>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleSendStaleReport}
+            disabled={sendingReport}
+            className="gap-2"
+          >
+            {sendingReport ? (
+              <Loader2 className="w-4 h-4 animate-spin" />
+            ) : (
+              <Send className="w-4 h-4" />
+            )}
+            Send Stale Report
+          </Button>
         </div>
 
         <Tabs value={activeTab} onValueChange={setActiveTab}>
