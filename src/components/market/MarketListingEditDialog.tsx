@@ -1147,22 +1147,29 @@ export function MarketListingEditDialog({
 
               {/* Calgary Quad */}
               <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="calgaryQuad" className="text-right">
+                <Label className="text-right">
                   Calgary Quad.
                 </Label>
                 <div className="col-span-3">
-                  <Select value={calgaryQuad || 'none'} onValueChange={(v) => setCalgaryQuad(v === 'none' ? '' : v)}>
-                    <SelectTrigger className={calgaryQuad ? 'input-filled' : ''}>
-                      <SelectValue placeholder="Select quadrant" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="none">None</SelectItem>
-                      <SelectItem value="NE">NE</SelectItem>
-                      <SelectItem value="NW">NW</SelectItem>
-                      <SelectItem value="SE">SE</SelectItem>
-                      <SelectItem value="SW">SW</SelectItem>
-                    </SelectContent>
-                  </Select>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const cycle = ['', 'NE', 'NW', 'SE', 'SW'];
+                      const currentIdx = cycle.indexOf(calgaryQuad);
+                      const nextIdx = (currentIdx + 1) % cycle.length;
+                      setCalgaryQuad(cycle[nextIdx]);
+                    }}
+                    className={`px-3 py-2 text-sm font-bold uppercase border-2 border-foreground transition-all shadow-[2px_2px_0_hsl(var(--foreground))] hover:translate-x-[-1px] hover:translate-y-[-1px] hover:shadow-[3px_3px_0_hsl(var(--foreground))] ${
+                      calgaryQuad === 'NE' ? 'bg-orange-400 text-black'
+                      : calgaryQuad === 'SE' ? 'bg-lime-400 text-black'
+                      : calgaryQuad === 'NW' ? 'bg-cyan-400 text-black'
+                      : calgaryQuad === 'SW' ? 'bg-yellow-300 text-black'
+                      : 'bg-muted text-muted-foreground'
+                    }`}
+                    style={{ borderRadius: 'var(--radius)' }}
+                  >
+                    {calgaryQuad || '-'}
+                  </button>
                 </div>
               </div>
 
