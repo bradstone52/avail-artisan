@@ -261,7 +261,7 @@ export function MarketListingsTable({ listings, onEdit, onRefresh, sortColumn, s
   };
 
   // Cycle Calgary Quad: null → NE → NW → SE → SW → null
-  const QUAD_CYCLE = [null, 'NE', 'NW', 'SE', 'SW'] as const;
+  const QUAD_CYCLE = [null, 'NE', 'SE', 'NW', 'SW'] as const;
   const handleCycleQuad = async (listing: MarketListing) => {
     setUpdatingQuad(listing.id);
     try {
