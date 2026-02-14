@@ -164,6 +164,7 @@ export function MarketListingEditDialog({
   const [muaValue, setMuaValue] = useState('');
   const [hasLand, setHasLand] = useState(false);
   const [isDistributionWarehouse, setIsDistributionWarehouse] = useState(false);
+  const [calgaryQuad, setCalgaryQuad] = useState('');
   // Track if we've initialized form from storage to avoid re-init on re-renders
   const hasInitializedRef = useRef(false);
   const formSessionIdRef = useRef<string | null>(null);
@@ -497,6 +498,7 @@ export function MarketListingEditDialog({
       setSizeSf('');
       setStatus('Active');
       setListingType('');
+      setCalgaryQuad('');
       setAskingRate('');
       setOpCosts('');
       setPropertyTax('');
@@ -549,6 +551,7 @@ export function MarketListingEditDialog({
       setSizeSf(listing.size_sf?.toString() || '');
       setStatus(listing.status || 'Active');
       setListingType(listing.listing_type || '');
+      setCalgaryQuad((listing as any).calgary_quad || '');
       setAskingRate(listing.asking_rate_psf || '');
       setOpCosts(listing.op_costs || '');
       setPropertyTax(listing.property_tax || '');
@@ -705,6 +708,7 @@ export function MarketListingEditDialog({
           zoning: zoning || null,
           mua: mua ? (muaValue || 'Yes') : 'No',
           is_distribution_warehouse: isDistributionWarehouse,
+          calgary_quad: calgaryQuad || null,
           user_id: user.id,
           org_id: org.id,
           last_verified_date: new Date().toISOString().split('T')[0], // Auto-verify on create
@@ -836,6 +840,7 @@ export function MarketListingEditDialog({
           zoning: zoning || null,
           mua: mua ? (muaValue || 'Yes') : 'No',
           is_distribution_warehouse: isDistributionWarehouse,
+          calgary_quad: calgaryQuad || null,
           updated_at: new Date().toISOString(),
           last_verified_date: new Date().toISOString().split('T')[0], // Auto-verify on update
           ...geocodeReset,
@@ -1135,6 +1140,27 @@ export function MarketListingEditDialog({
                           {opt.label}
                         </SelectItem>
                       ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              {/* Calgary Quad */}
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="calgaryQuad" className="text-right">
+                  Calgary Quad.
+                </Label>
+                <div className="col-span-3">
+                  <Select value={calgaryQuad || 'none'} onValueChange={(v) => setCalgaryQuad(v === 'none' ? '' : v)}>
+                    <SelectTrigger className={calgaryQuad ? 'input-filled' : ''}>
+                      <SelectValue placeholder="Select quadrant" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">None</SelectItem>
+                      <SelectItem value="NE">NE</SelectItem>
+                      <SelectItem value="NW">NW</SelectItem>
+                      <SelectItem value="SE">SE</SelectItem>
+                      <SelectItem value="SW">SW</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
