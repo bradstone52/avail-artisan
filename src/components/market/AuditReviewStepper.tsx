@@ -512,6 +512,31 @@ function NewInPdfCard({ pdfListing }: { pdfListing: PdfExtractedListing }) {
       <p className="text-xs text-muted-foreground italic">
         The brochure link often contains more detail — further investigation recommended after adding.
       </p>
+
+      {/* Quick actions row */}
+      <div className="flex items-center gap-2 flex-wrap">
+        {pdfListing.brochure_link && (
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => window.open(pdfListing.brochure_link!, '_blank')}
+          >
+            <ExternalLink className="h-3.5 w-3.5 mr-1" />
+            View Brochure
+          </Button>
+        )}
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => {
+            const query = `${pdfListing.address} ${pdfListing.city || 'Calgary'} brochure`.trim();
+            window.open(`https://www.google.com/search?q=${encodeURIComponent(query)}`, '_blank');
+          }}
+        >
+          <Search className="h-3.5 w-3.5 mr-1" />
+          Find Brochure
+        </Button>
+      </div>
     </div>
   );
 }
