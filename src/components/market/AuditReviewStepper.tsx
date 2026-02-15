@@ -18,10 +18,8 @@ import {
   Pencil,
   ExternalLink,
   Search,
-  Loader2,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
 export interface PdfExtractedListing {
@@ -401,40 +399,9 @@ export function AuditReviewStepper({
 // --- Sub-components ---
 
 function FindBrochureButton({ listing }: { listing: MarketListing }) {
-  const [searching, setSearching] = useState(false);
-
-  const handleFindBrochure = async () => {
-    setSearching(true);
-    try {
-      const { data, error } = await supabase.functions.invoke('find-brochure', {
-        body: {
-          listingId: listing.id,
-          address: listing.address,
-          city: listing.city || 'Calgary',
-          broker: listing.broker_source || '',
-          existingUrl: listing.brochure_link || listing.link || '',
-        },
-      });
-
-      if (error) throw error;
-
-      if (data?.success) {
-        toast.success('Brochure found!', {
-          description: 'Link saved to listing.',
-          action: {
-            label: 'Open',
-            onClick: () => window.open(data.link, '_blank'),
-          },
-        });
-      } else {
-        toast.info(data?.message || 'No brochure found. Try manual search.');
-      }
-    } catch (err) {
-      console.error('Find brochure error:', err);
-      toast.error('Search failed. Try again later.');
-    } finally {
-      setSearching(false);
-    }
+  const handleFindBrochure = () => {
+    const query = `${listing.address} ${listing.city || 'Calgary'} ${listing.broker_source || ''} industrial property brochure filetype:pdf`.trim();
+    window.open(`https://www.google.com/search?q=${encodeURIComponent(query)}`, '_blank');
   };
 
   return (
@@ -442,14 +409,9 @@ function FindBrochureButton({ listing }: { listing: MarketListing }) {
       variant="outline"
       size="sm"
       onClick={handleFindBrochure}
-      disabled={searching}
     >
-      {searching ? (
-        <Loader2 className="h-3.5 w-3.5 mr-1 animate-spin" />
-      ) : (
-        <Search className="h-3.5 w-3.5 mr-1" />
-      )}
-      {searching ? 'Searching…' : 'Find Brochure'}
+      <Search className="h-3.5 w-3.5 mr-1" />
+      Find Brochure
     </Button>
   );
 }
