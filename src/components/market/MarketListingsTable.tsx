@@ -110,11 +110,14 @@ export function MarketListingsTable({ listings, onEdit, onRefresh, sortColumn, s
     const fetchProperties = async () => {
       const { data } = await supabase
         .from('properties')
-        .select('id, address');
+        .select('id, address, display_address');
       if (data) {
         const map: Record<string, string> = {};
         for (const p of data) {
           map[p.address.trim().toLowerCase()] = p.id;
+          if (p.display_address) {
+            map[p.display_address.trim().toLowerCase()] = p.id;
+          }
         }
         setPropertyMap(map);
       }

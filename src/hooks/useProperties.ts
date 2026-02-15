@@ -624,11 +624,21 @@ export function usePropertyDetail(propertyId: string | undefined) {
         });
       }
 
-      // Find auto-matches by address
-      const { data: autoMatches } = await supabase
+      // Find auto-matches by address OR display_address
+      const normalizedAddr = propertyData.address?.trim().toLowerCase();
+      const normalizedDisplay = propertyData.display_address?.trim().toLowerCase();
+      
+      const { data: allMl } = await supabase
         .from('market_listings')
-        .select('id, listing_id, address, status, size_sf, link')
-        .ilike('address', propertyData.address);
+        .select('id, listing_id, address, status, size_sf, link');
+      
+      const autoMatches = (allMl || []).filter(ml => {
+        const mlAddr = ml.address?.trim().toLowerCase();
+        return mlAddr && (
+          (normalizedAddr && mlAddr === normalizedAddr) ||
+          (normalizedDisplay && mlAddr === normalizedDisplay)
+        );
+      });
 
       const autoLinked = (autoMatches || [])
         .filter(ml => !linkedListings.some(ll => ll.id === ml.id))
