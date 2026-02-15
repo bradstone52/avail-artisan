@@ -1,5 +1,4 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -26,7 +25,6 @@ serve(async (req) => {
       throw new Error("LOVABLE_API_KEY is not configured");
     }
 
-    // Parse form data
     const formData = await req.formData();
     const file = formData.get("file") as File;
 
@@ -49,37 +47,52 @@ serve(async (req) => {
     const base64 = btoa(binary);
 
     const systemPrompt = `You are an expert at reading commercial real estate brokerage PDF documents.
-Your task is to extract the street address of every UNIQUE property listing in the document.
+Your task is to extract every property listing ROW from every table in the document.
 
 IMPORTANT RULES:
 1. Look at EVERY page, including title pages, lease pages, sale pages, and land pages.
-2. Each TABLE ROW is one listing. Extract one address per row.
-3. If a listing has multiple bays/units at the same address (e.g. "4800 104 Avenue SE" with bays 109, 113, 125, 129), that is ONE address — extract the street address ONCE.
-4. Many listings appear in BOTH the "For Lease" AND "For Sale" sections — extract each unique address only ONCE.
-5. Strip prefixes like "Conditionally Sold", "Conditionally Leased", "New Listing", "End Cap Unit Available", "Sublease" — just return the clean address.
-6. Include unit numbers if they identify a distinct listing (e.g. "Unit 206 2340 Pegasus Way NE" is separate from "Unit 123 2340 Pegasus Way NE").
+2. Each TABLE ROW is one listing. Extract one entry per row.
+3. If a listing has multiple bays/units at the same address (e.g. "4800 104 Avenue SE" with bays 109, 113, 125, 129), that is ONE listing row — extract the street address ONCE for that row.
+4. If the SAME address appears in BOTH the "For Lease" section AND the "For Sale" section, extract it TWICE — once for each section with the appropriate listing_type.
+5. Strip prefixes like "Conditionally Sold", "Conditionally Leased", "New Listing", "End Cap Unit Available", "Sublease" from the address — but note the listing type.
+6. Include unit numbers if they identify a distinct listing row (e.g. "Unit 206 2340 Pegasus Way NE" is separate from "Unit 123 2340 Pegasus Way NE").
 7. For land listings, include the name/description as written (e.g. "Eastridge Logistics Park Airdrie", "285060 Township Road 244").
 8. For out-of-town listings, include the city (e.g. "585 41 Street North Lethbridge, AB").
 9. For named developments without a street address, use the name (e.g. "Midway Industrial Park Crossfield", "Noble Business Park Mountain View County").
-10. Do NOT skip any listing. Check every table row on every page.
+10. Do NOT skip any listing row. Check every table row on every page.
 
-Return a JSON object with a single key "addresses" containing an array of unique address strings.`;
+LISTING TYPE RULES:
+- Use "Lease" for standard for-lease listings
+- Use "Sublease" if the comments mention sublease or the listing is marked as a sublease
+- Use "Sale" for for-sale listings
+- Use "Land Lease" for land-only lease listings
+- Use "Land Sale" for land-only sale listings
+- The section headers tell you the type: "For Lease", "For Sale", "Land ... For Sale", "Land ... For Lease"
+
+You should return one entry per table row. The total count should match the number of table rows across all pages.`;
 
     const extractionTool = {
       type: "function",
       function: {
-        name: "extract_addresses",
-        description: "Extract all street addresses from the brokerage PDF",
+        name: "extract_listings",
+        description: "Extract all listing rows from the brokerage PDF with their addresses and listing types",
         parameters: {
           type: "object",
           properties: {
-            addresses: {
+            listings: {
               type: "array",
-              description: "Array of street addresses found in the PDF",
-              items: { type: "string" },
+              description: "Array of listing entries found in the PDF, one per table row",
+              items: {
+                type: "object",
+                properties: {
+                  address: { type: "string", description: "The street address or property name" },
+                  listing_type: { type: "string", enum: ["Lease", "Sublease", "Sale", "Land Lease", "Land Sale"], description: "The type of listing" },
+                },
+                required: ["address", "listing_type"],
+              },
             },
           },
-          required: ["addresses"],
+          required: ["listings"],
           additionalProperties: false,
         },
       },
@@ -100,13 +113,13 @@ Return a JSON object with a single key "addresses" containing an array of unique
           {
             role: "user",
             content: [
-              { type: "text", text: "Extract every unique property address from this brokerage PDF. Each table row is one listing. If the same address appears in both 'For Lease' and 'For Sale' sections, include it only once. If a single address has multiple bays listed, count it as one address." },
+              { type: "text", text: "Extract every listing row from this brokerage PDF. Each table row is one listing. If the same address appears in both 'For Lease' and 'For Sale' sections, include it twice with the appropriate listing_type. Include the listing type for each entry." },
               { type: "image_url", image_url: { url: `data:application/pdf;base64,${base64}` } },
             ],
           },
         ],
         tools: [extractionTool],
-        tool_choice: { type: "function", function: { name: "extract_addresses" } },
+        tool_choice: { type: "function", function: { name: "extract_listings" } },
         temperature: 0,
         max_tokens: 16000,
       }),
@@ -129,52 +142,28 @@ Return a JSON object with a single key "addresses" containing an array of unique
     const toolCall = choice?.message?.tool_calls?.[0];
     const toolArgs = toolCall?.function?.arguments;
 
-    let rawAddresses: string[] = [];
+    let listings: { address: string; listing_type: string }[] = [];
 
     if (toolArgs) {
       const parsed = JSON.parse(toolArgs);
-      rawAddresses = parsed.addresses || [];
+      listings = parsed.listings || [];
     } else {
       // Fallback: try parsing content
       const content = choice?.message?.content || "";
-      const match = content.match(/\{[\s\S]*"addresses"[\s\S]*\}/);
+      const match = content.match(/\{[\s\S]*"listings"[\s\S]*\}/);
       if (match) {
         const parsed = JSON.parse(match[0]);
-        rawAddresses = parsed.addresses || [];
+        listings = parsed.listings || [];
       }
     }
 
-    // Deduplicate by normalizing addresses
-    const normalize = (addr: string) =>
-      addr.toLowerCase()
-        .replace(/[.,#\-–—]/g, ' ')
-        .replace(/\s+/g, ' ')
-        .replace(/\b(street|st)\b/g, 'st')
-        .replace(/\b(avenue|ave)\b/g, 'ave')
-        .replace(/\b(road|rd)\b/g, 'rd')
-        .replace(/\b(drive|dr)\b/g, 'dr')
-        .replace(/\b(boulevard|blvd)\b/g, 'blvd')
-        .replace(/\b(crescent|cres)\b/g, 'cres')
-        .replace(/\b(northeast|n\.?e\.?)\b/g, 'ne')
-        .replace(/\b(northwest|n\.?w\.?)\b/g, 'nw')
-        .replace(/\b(southeast|s\.?e\.?)\b/g, 'se')
-        .replace(/\b(southwest|s\.?w\.?)\b/g, 'sw')
-        .trim();
+    // Also extract flat addresses array for backward compatibility
+    const addresses = listings.map(l => l.address);
 
-    const seen = new Set<string>();
-    const addresses: string[] = [];
-    for (const addr of rawAddresses) {
-      const key = normalize(addr);
-      if (!seen.has(key)) {
-        seen.add(key);
-        addresses.push(addr);
-      }
-    }
-
-    console.log(`Extracted ${rawAddresses.length} raw, ${addresses.length} unique addresses from PDF`);
+    console.log(`Extracted ${listings.length} listing rows from PDF`);
 
     return new Response(
-      JSON.stringify({ success: true, addresses }),
+      JSON.stringify({ success: true, listings, addresses }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (error) {
