@@ -621,12 +621,18 @@ function PaginationDots({
           const isActive = pos === currentFilteredPos;
           const action = actions[idx];
           return (
-            <button
-              key={idx}
-              ref={isActive ? activeRef : undefined}
-              onClick={() => onSelect(idx)}
-              className={cn(
-                'flex-shrink-0 rounded-full transition-all duration-200',
+            <div key={idx} className="flex flex-col items-center gap-0.5 flex-shrink-0">
+              <span className={cn(
+                'text-[9px] font-bold leading-none transition-opacity',
+                isActive ? 'opacity-100 text-foreground' : 'opacity-0'
+              )}>
+                {pos + 1}
+              </span>
+              <button
+                ref={isActive ? activeRef : undefined}
+                onClick={() => onSelect(idx)}
+                className={cn(
+                  'rounded-full transition-all duration-200',
                 isActive ? 'w-6 h-2.5' : 'w-2.5 h-2.5',
                 isActive && action === null && 'bg-primary',
                 isActive && action === 'confirmed' && 'bg-green-500',
@@ -641,7 +647,8 @@ function PaginationDots({
                 !isActive && action === 'added' && 'bg-green-500/60',
                 !isActive && action === 'flagged' && 'bg-destructive/60'
               )}
-            />
+              />
+            </div>
           );
         })}
       </div>
