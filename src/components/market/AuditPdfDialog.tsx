@@ -92,6 +92,31 @@ export function AuditPdfDialog({
       .replace(/\b(southwest|s\.w\.)\b/g, 'sw')
       .trim();
 
+  // Extract key tokens (numbers + directional) for fuzzy matching
+  const extractKeyTokens = (addr: string) => {
+    const normalized = normalizeAddress(addr);
+    // Extract all numbers and directional quadrants
+    const tokens = normalized.match(/\b(\d+|ne|nw|se|sw|st|ave|dr|rd|blvd|cres)\b/g);
+    return tokens ? tokens.join(' ') : normalized;
+  };
+
+  const addressesMatch = (dbAddr: string, pdfAddr: string) => {
+    const normDb = normalizeAddress(dbAddr);
+    const normPdf = normalizeAddress(pdfAddr);
+    
+    // Direct substring match
+    if (normDb.includes(normPdf) || normPdf.includes(normDb)) return true;
+    
+    // Key-token match: if all significant tokens from one appear in the other
+    const dbTokens = extractKeyTokens(dbAddr).split(' ');
+    const pdfTokens = extractKeyTokens(pdfAddr).split(' ');
+    
+    const dbInPdf = dbTokens.every(t => pdfTokens.includes(t));
+    const pdfInDb = pdfTokens.every(t => dbTokens.includes(t));
+    
+    return dbInPdf || pdfInDb;
+  };
+
   const handleProcess = async () => {
     if (!files.length || !selectedValue) return;
     if (!session?.access_token) {
@@ -115,23 +140,19 @@ export function AuditPdfDialog({
 
       const extractedListings: PdfListing[] = data.listings || [];
 
-      // Normalize extracted addresses for comparison
-      const normalizedExtracted = extractedListings.map(l => normalizeAddress(l.address));
-
       // Compare against scope listings
       const matchedIds: string[] = [];
       const missing: MarketListing[] = [];
 
       for (const listing of scopeListings) {
-        const listingAddr = normalizeAddress(listing.address || '');
-        const displayAddr = listing.display_address ? normalizeAddress(listing.display_address) : '';
+        const listingAddr = listing.address || '';
+        const displayAddr = listing.display_address || '';
 
-        // Check if any extracted address contains the listing address or vice versa
-        const found = normalizedExtracted.some(
+        // Check if any extracted address matches the listing address
+        const found = extractedListings.some(
           (ext) =>
-            ext.includes(listingAddr) ||
-            listingAddr.includes(ext) ||
-            (displayAddr && (ext.includes(displayAddr) || displayAddr.includes(ext)))
+            addressesMatch(listingAddr, ext.address) ||
+            (displayAddr && addressesMatch(displayAddr, ext.address))
         );
 
         if (found) {
