@@ -105,6 +105,7 @@ export interface LinkedListing {
   size_sf: number;
   link_type: string;
   link?: string | null;
+  brochure_link?: string | null;
 }
 
 export interface PropertyTransaction {
@@ -607,7 +608,7 @@ export function usePropertyDetail(propertyId: string | undefined) {
       if (linkedIds.length > 0) {
         const { data: mlData } = await supabase
           .from('market_listings')
-          .select('id, listing_id, address, status, size_sf, link')
+          .select('id, listing_id, address, status, size_sf, link, brochure_link')
           .in('id', linkedIds);
         
         linkedListings = (mlData || []).map(ml => {
@@ -619,6 +620,7 @@ export function usePropertyDetail(propertyId: string | undefined) {
             status: ml.status,
             size_sf: ml.size_sf,
             link: ml.link,
+            brochure_link: ml.brochure_link,
             link_type: link?.link_type || 'manual'
           };
         });
@@ -630,7 +632,7 @@ export function usePropertyDetail(propertyId: string | undefined) {
       
       const { data: allMl } = await supabase
         .from('market_listings')
-        .select('id, listing_id, address, status, size_sf, link');
+        .select('id, listing_id, address, status, size_sf, link, brochure_link');
       
       const autoMatches = (allMl || []).filter(ml => {
         const mlAddr = ml.address?.trim().toLowerCase();
@@ -649,6 +651,7 @@ export function usePropertyDetail(propertyId: string | undefined) {
           status: ml.status,
           size_sf: ml.size_sf,
           link: ml.link,
+          brochure_link: ml.brochure_link,
           link_type: 'auto'
         }));
 
