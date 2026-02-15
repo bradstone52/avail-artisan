@@ -322,7 +322,7 @@ export default function PropertyDetail() {
   const handleDownloadAllBrochures = async () => {
     if (!property || !property.linked_listings) return;
     
-    const listingsWithBrochures = property.linked_listings.filter(l => l.link);
+    const listingsWithBrochures = property.linked_listings.filter(l => l.brochure_link || l.link);
     if (listingsWithBrochures.length === 0) {
       toast({
         title: 'No brochures to save',
@@ -343,7 +343,7 @@ export default function PropertyDetail() {
             propertyId: property.id, 
             marketListingId: listing.id,
             listingId: listing.listing_id,
-            brochureUrl: listing.link!
+            brochureUrl: (listing.brochure_link || listing.link)!
           }
         });
         
