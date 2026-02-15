@@ -26,7 +26,7 @@ import {
 import { StatusDropdown } from '@/components/market/StatusDropdown';
 import { EditMarketPinDialog } from '@/components/market/EditMarketPinDialog';
 import { LogTransactionDialog } from '@/components/market/LogTransactionDialog';
-import { ExternalLink, MapPin, MapPinOff, Hand, Pencil, Receipt, RotateCcw, ArrowUp, ArrowDown, ArrowUpDown, CheckCircle } from 'lucide-react';
+import { ExternalLink, MapPin, MapPinOff, Hand, Pencil, Receipt, RotateCcw, ArrowUp, ArrowDown, ArrowUpDown, CheckCircle, Building2 } from 'lucide-react';
 import { format, differenceInDays, parseISO } from 'date-fns';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -103,6 +103,24 @@ export function MarketListingsTable({ listings, onEdit, onRefresh, sortColumn, s
   const [geocodingId, setGeocodingId] = useState<string | null>(null);
   const [editPinListing, setEditPinListing] = useState<MarketListing | null>(null);
   const [transactionListing, setTransactionListing] = useState<MarketListing | null>(null);
+  const [propertyMap, setPropertyMap] = useState<Record<string, string>>({});
+
+  // Fetch properties to build address → id map
+  useEffect(() => {
+    const fetchProperties = async () => {
+      const { data } = await supabase
+        .from('properties')
+        .select('id, address');
+      if (data) {
+        const map: Record<string, string> = {};
+        for (const p of data) {
+          map[p.address.trim().toLowerCase()] = p.id;
+        }
+        setPropertyMap(map);
+      }
+    };
+    fetchProperties();
+  }, [listings.length]); // Re-fetch when listings change (new property may have been created)
 
   // Persist horizontal scroll so returning to the tab (or any remount) doesn't snap back to the left.
   // Note: the actual scrollable element is created inside the shadcn <Table /> wrapper.
@@ -829,6 +847,32 @@ export function MarketListingsTable({ listings, onEdit, onRefresh, sortColumn, s
                     </TooltipTrigger>
                     <TooltipContent>Log Transaction</TooltipContent>
                   </Tooltip>
+                  
+                  {/* Property Link */}
+                  {(() => {
+                    const propertyId = propertyMap[listing.address.trim().toLowerCase()];
+                    return (
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          {propertyId ? (
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-7 w-7"
+                              onClick={(e) => { e.stopPropagation(); navigate(`/properties/${propertyId}`); }}
+                            >
+                              <Building2 className="h-3.5 w-3.5" />
+                            </Button>
+                          ) : (
+                            <span className="inline-flex items-center justify-center h-7 w-7 text-muted-foreground">
+                              <Building2 className="h-3.5 w-3.5 opacity-30" />
+                            </span>
+                          )}
+                        </TooltipTrigger>
+                        <TooltipContent>{propertyId ? 'View Property' : 'No Property'}</TooltipContent>
+                      </Tooltip>
+                    );
+                  })()}
                 </div>
               </TableCell>
             </TableRow>

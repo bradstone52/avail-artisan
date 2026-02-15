@@ -374,6 +374,16 @@ export function MarketListingEditDialog({
     setter(formatNumberWithCommas(value));
   };
 
+  // Format PSF-style fields to 2 decimal places on blur (e.g., "12" → "12.00")
+  const handlePsfBlur = (value: string, setter: (val: string) => void) => {
+    const clean = value.replace(/[^0-9.]/g, '');
+    if (!clean) return;
+    const num = parseFloat(clean);
+    if (!isNaN(num)) {
+      setter(num.toFixed(2));
+    }
+  };
+
   // Generate combined display address from address + building + unit
   const generateDisplayAddress = useCallback((addr: string, bldg: string, unt: string) => {
     const parts = [addr];
@@ -1580,10 +1590,7 @@ export function MarketListingEditDialog({
                     <Input
                       value={askingRate.replace(/^\$/, '')}
                       onChange={(e) => setAskingRate(e.target.value.replace(/^\$/, ''))}
-                      onBlur={() => {
-                        const clean = askingRate.replace(/[^0-9.]/g, '');
-                        if (clean) setAskingRate(clean);
-                      }}
+                      onBlur={() => handlePsfBlur(askingRate, setAskingRate)}
                       className={`pl-7 placeholder-light ${askingRate ? 'input-filled' : ''}`}
                       placeholder="e.g., 12.50"
                     />
@@ -1597,10 +1604,7 @@ export function MarketListingEditDialog({
                     <Input
                       value={opCosts.replace(/^\$/, '')}
                       onChange={(e) => setOpCosts(e.target.value.replace(/^\$/, ''))}
-                      onBlur={() => {
-                        const clean = opCosts.replace(/[^0-9.]/g, '');
-                        if (clean) setOpCosts(clean);
-                      }}
+                      onBlur={() => handlePsfBlur(opCosts, setOpCosts)}
                       className={`pl-7 placeholder-light ${opCosts ? 'input-filled' : ''}`}
                       placeholder="e.g., 4.50"
                     />
@@ -1614,10 +1618,7 @@ export function MarketListingEditDialog({
                     <Input
                       value={grossRate.replace(/^\$/, '')}
                       onChange={(e) => setGrossRate(e.target.value.replace(/^\$/, ''))}
-                      onBlur={() => {
-                        const clean = grossRate.replace(/[^0-9.]/g, '');
-                        if (clean) setGrossRate(clean);
-                      }}
+                      onBlur={() => handlePsfBlur(grossRate, setGrossRate)}
                       className={`pl-7 placeholder-light ${grossRate ? 'input-filled' : ''}`}
                       placeholder="Auto-calc or enter"
                     />
@@ -1650,8 +1651,9 @@ export function MarketListingEditDialog({
                   <Input
                     value={propertyTax.replace(/^\$/, '')}
                     onChange={(e) => setPropertyTax(e.target.value.replace(/^\$/, ''))}
+                    onBlur={() => handlePsfBlur(propertyTax, setPropertyTax)}
                     className={`pl-7 placeholder-light ${propertyTax ? 'input-filled' : ''}`}
-                    placeholder="e.g., 3.50/SF"
+                    placeholder="e.g., 3.50"
                   />
                 </div>
               </div>
@@ -1664,8 +1666,9 @@ export function MarketListingEditDialog({
                   <Input
                     value={condoFees.replace(/^\$/, '')}
                     onChange={(e) => setCondoFees(e.target.value.replace(/^\$/, ''))}
+                    onBlur={() => handlePsfBlur(condoFees, setCondoFees)}
                     className={`pl-7 placeholder-light ${condoFees ? 'input-filled' : ''}`}
-                    placeholder="e.g., 2.00/SF"
+                    placeholder="e.g., 2.00"
                   />
                 </div>
               </div>
