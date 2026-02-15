@@ -99,42 +99,62 @@ You should return one entry per table row. The total count should match the numb
     };
 
     const gatewayUrl = "https://ai.gateway.lovable.dev/v1/chat/completions";
+    const models = ["google/gemini-2.5-flash", "google/gemini-2.5-flash-lite", "openai/gpt-5-mini"];
 
-    const aiResponse = await fetch(gatewayUrl, {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${lovableApiKey}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "google/gemini-2.5-flash",
-        messages: [
-          { role: "system", content: systemPrompt },
-          {
-            role: "user",
-            content: [
-              { type: "text", text: "Extract every listing row from this brokerage PDF. Each table row is one listing. If the same address appears in both 'For Lease' and 'For Sale' sections, include it twice with the appropriate listing_type. Include the listing type for each entry." },
-              { type: "image_url", image_url: { url: `data:application/pdf;base64,${base64}` } },
-            ],
-          },
-        ],
-        tools: [extractionTool],
-        tool_choice: { type: "function", function: { name: "extract_listings" } },
-        temperature: 0,
-        max_tokens: 16000,
-      }),
+    const requestBody = (model: string) => JSON.stringify({
+      model,
+      messages: [
+        { role: "system", content: systemPrompt },
+        {
+          role: "user",
+          content: [
+            { type: "text", text: "Extract every listing row from this brokerage PDF. Each table row is one listing. If the same address appears in both 'For Lease' and 'For Sale' sections, include it twice with the appropriate listing_type. Include the listing type for each entry." },
+            { type: "image_url", image_url: { url: `data:application/pdf;base64,${base64}` } },
+          ],
+        },
+      ],
+      tools: [extractionTool],
+      tool_choice: { type: "function", function: { name: "extract_listings" } },
+      temperature: 0,
+      max_tokens: 16000,
     });
 
-    if (!aiResponse.ok) {
-      const errorText = await aiResponse.text();
-      console.error("AI Gateway error:", aiResponse.status, errorText);
-      if (aiResponse.status === 429) {
+    let aiResponse: Response | null = null;
+    for (const model of models) {
+      console.log(`Trying model: ${model}`);
+      const resp = await fetch(gatewayUrl, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${lovableApiKey}`,
+          "Content-Type": "application/json",
+        },
+        body: requestBody(model),
+      });
+
+      if (resp.ok) {
+        aiResponse = resp;
+        console.log(`Success with model: ${model}`);
+        break;
+      }
+
+      const errorText = await resp.text();
+      console.error(`Model ${model} failed: ${resp.status} ${errorText}`);
+
+      if (resp.status === 429) {
         return new Response(JSON.stringify({ error: "Rate limit exceeded. Please try again later." }), {
           status: 429,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
-      throw new Error(`AI extraction failed: ${errorText}`);
+
+      // Try next model on 503/5xx errors
+      if (resp.status < 500) {
+        throw new Error(`AI extraction failed: ${errorText}`);
+      }
+    }
+
+    if (!aiResponse) {
+      throw new Error("All AI models are currently unavailable. Please try again later.");
     }
 
     const aiData = await aiResponse.json();
