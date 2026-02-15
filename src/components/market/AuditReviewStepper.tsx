@@ -400,7 +400,7 @@ export function AuditReviewStepper({
 
 function FindBrochureButton({ listing }: { listing: MarketListing }) {
   const handleFindBrochure = () => {
-    const query = `${listing.address} ${listing.city || 'Calgary'} ${listing.broker_source || ''} industrial property brochure filetype:pdf`.trim();
+    const query = `${listing.address} ${listing.city || 'Calgary'} ${listing.broker_source || ''} brochure`.trim();
     window.open(`https://www.google.com/search?q=${encodeURIComponent(query)}`, '_blank');
   };
 
