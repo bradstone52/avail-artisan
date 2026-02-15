@@ -936,7 +936,7 @@ export default function MarketListings() {
         <AuditPdfDialog
           open={isAuditPdfOpen}
           onOpenChange={setIsAuditPdfOpen}
-          listings={listings.filter(l => l.status === 'Active')}
+          listings={listings.filter(l => l.status === 'Active' || l.status === 'Under Contract')}
           uniqueBrokers={uniqueBrokers}
           uniqueLandlords={uniqueLandlords}
           onFlagListings={(ids) => setFlaggedListingIds(ids)}
