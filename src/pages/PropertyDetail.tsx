@@ -31,7 +31,8 @@ import {
   Receipt,
   Users,
   Pencil,
-  Upload
+  Upload,
+  X
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { TenantsSection } from '@/components/properties/TenantsSection';
@@ -1107,11 +1108,68 @@ export default function PropertyDetail() {
             </Card>
           </TabsContent>
 
-          {/* Photos Tab */}
+           {/* Photos Tab */}
           <TabsContent value="photos" className="space-y-4">
             <Card>
-              <CardHeader>
+              <CardHeader className="flex flex-row items-center justify-between">
                 <CardTitle>Property Photos</CardTitle>
+                <label>
+                  <input
+                    type="file"
+                    multiple
+                    accept="image/jpeg,image/png,image/webp"
+                    className="hidden"
+                    onChange={async (e) => {
+                      const files = e.target.files;
+                      if (!files || files.length === 0 || !property) return;
+                      
+                      let uploaded = 0;
+                      for (const file of Array.from(files)) {
+                        if (file.size > 10 * 1024 * 1024) {
+                          toast({ title: 'File too large', description: `${file.name} exceeds 10MB`, variant: 'destructive' });
+                          continue;
+                        }
+                        try {
+                          const fileExt = file.name.split('.').pop();
+                          const fileName = `${property.id}/${Date.now()}-${Math.random().toString(36).slice(2)}.${fileExt}`;
+                          const { error: uploadError } = await supabase.storage
+                            .from('property-photos')
+                            .upload(fileName, file, { upsert: true });
+                          if (uploadError) throw uploadError;
+                          
+                          const { data: { publicUrl } } = supabase.storage
+                            .from('property-photos')
+                            .getPublicUrl(fileName);
+                          
+                          const maxSort = (property.photos || []).reduce((max, p) => Math.max(max, p.sort_order), 0) + uploaded;
+                          const { error: dbError } = await supabase
+                            .from('property_photos')
+                            .insert({
+                              property_id: property.id,
+                              photo_url: publicUrl,
+                              sort_order: maxSort + 1,
+                            });
+                          if (dbError) throw dbError;
+                          uploaded++;
+                        } catch (err: any) {
+                          console.error('Photo upload error:', err);
+                          toast({ title: 'Upload failed', description: err.message, variant: 'destructive' });
+                        }
+                      }
+                      if (uploaded > 0) {
+                        toast({ title: `${uploaded} photo${uploaded > 1 ? 's' : ''} uploaded` });
+                        refetch();
+                      }
+                      e.target.value = '';
+                    }}
+                  />
+                  <Button variant="outline" size="sm" asChild>
+                    <span>
+                      <Upload className="w-4 h-4 mr-2" />
+                      Upload Photos
+                    </span>
+                  </Button>
+                </label>
               </CardHeader>
               <CardContent>
                 {property.photos && property.photos.length > 0 ? (
@@ -1124,6 +1182,26 @@ export default function PropertyDetail() {
                           className="w-full h-48 object-cover rounded-lg cursor-pointer hover:opacity-90 transition-opacity"
                           onClick={() => window.open(photo.photo_url, '_blank')}
                         />
+                        <Button
+                          variant="destructive"
+                          size="icon"
+                          className="absolute top-2 right-2 w-7 h-7 opacity-0 group-hover:opacity-100 transition-opacity"
+                          onClick={async () => {
+                            try {
+                              const { error } = await supabase
+                                .from('property_photos')
+                                .delete()
+                                .eq('id', photo.id);
+                              if (error) throw error;
+                              toast({ title: 'Photo deleted' });
+                              refetch();
+                            } catch (err: any) {
+                              toast({ title: 'Error', description: err.message, variant: 'destructive' });
+                            }
+                          }}
+                        >
+                          <X className="w-4 h-4" />
+                        </Button>
                         {photo.caption && (
                           <p className="text-xs text-muted-foreground mt-1">{photo.caption}</p>
                         )}
@@ -1133,7 +1211,7 @@ export default function PropertyDetail() {
                 ) : (
                   <div className="text-center py-8 text-muted-foreground">
                     <Image className="h-12 w-12 mx-auto mb-2 opacity-50" />
-                    <p>No photos uploaded yet.</p>
+                    <p>No photos uploaded yet. Click "Upload Photos" to add images.</p>
                   </div>
                 )}
               </CardContent>
