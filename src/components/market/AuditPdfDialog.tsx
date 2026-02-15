@@ -24,8 +24,13 @@ interface AuditPdfDialogProps {
 
 type MatchField = 'broker_source' | 'landlord';
 
+interface PdfListing {
+  address: string;
+  listing_type: string;
+}
+
 interface AuditResult {
-  extractedAddresses: string[];
+  extractedListings: PdfListing[];
   matchedListingIds: string[];
   missingListings: MarketListing[];
 }
@@ -106,10 +111,10 @@ export function AuditPdfDialog({
       if (error) throw new Error(error.message || 'Upload failed');
       if (data?.error) throw new Error(data.error);
 
-      const extractedAddresses: string[] = data.addresses || [];
+      const extractedListings: PdfListing[] = data.listings || [];
 
       // Normalize extracted addresses for comparison
-      const normalizedExtracted = extractedAddresses.map(normalizeAddress);
+      const normalizedExtracted = extractedListings.map(l => normalizeAddress(l.address));
 
       // Compare against scope listings
       const matchedIds: string[] = [];
@@ -135,14 +140,14 @@ export function AuditPdfDialog({
       }
 
       const auditResult: AuditResult = {
-        extractedAddresses,
+        extractedListings,
         matchedListingIds: matchedIds,
         missingListings: missing,
       };
 
       setResult(auditResult);
       toast.success(
-        `Found ${extractedAddresses.length} addresses in PDF. ${missing.length} listings not found.`
+        `Found ${extractedListings.length} listings in PDF. ${missing.length} listings not found.`
       );
     } catch (err) {
       console.error('Audit error:', err);
@@ -270,12 +275,24 @@ export function AuditPdfDialog({
           )}
 
           {/* Results */}
-          {result && (
+          {result && (() => {
+            const typeCounts: Record<string, number> = {};
+            result.extractedListings.forEach(l => {
+              typeCounts[l.listing_type] = (typeCounts[l.listing_type] || 0) + 1;
+            });
+            return (
             <div className="space-y-4 border-t pt-4">
-              <div className="flex items-center gap-4">
+              <div className="flex items-center gap-4 flex-wrap">
                 <Badge variant="outline" className="text-sm">
-                  {result.extractedAddresses.length} addresses in PDF
+                  {result.extractedListings.length} listings in PDF
                 </Badge>
+                {Object.entries(typeCounts).map(([type, count]) => (
+                  <Badge key={type} variant="secondary" className="text-xs">
+                    {type}: {count}
+                  </Badge>
+                ))}
+              </div>
+              <div className="flex items-center gap-4">
                 <Badge variant="outline" className="text-sm text-green-600 border-green-600">
                   <CheckCircle2 className="w-3 h-3 mr-1" />
                   {result.matchedListingIds.length} matched
@@ -330,7 +347,8 @@ export function AuditPdfDialog({
                 </div>
               )}
             </div>
-          )}
+            );
+          })()}
         </div>
       </DialogContent>
     </Dialog>
