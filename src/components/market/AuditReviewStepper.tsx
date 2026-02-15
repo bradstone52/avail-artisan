@@ -15,6 +15,8 @@ import {
   SkipForward,
   RefreshCw,
   Building2,
+  Pencil,
+  ExternalLink,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -26,6 +28,7 @@ export interface PdfExtractedListing {
   city?: string | null;
   submarket?: string | null;
   landlord?: string | null;
+  brochure_link?: string | null;
 }
 
 export interface MatchedPair {
@@ -52,6 +55,7 @@ interface AuditReviewStepperProps {
   onConfirmAndUpdate: (dbListing: MarketListing, pdfData: PdfExtractedListing) => void;
   onAddNewListing: (pdfListing: PdfExtractedListing) => void;
   onFlagMissing: (ids: string[]) => void;
+  onEditListing?: (listing: MarketListing) => void;
   onClose: () => void;
 }
 
@@ -64,6 +68,7 @@ export function AuditReviewStepper({
   onConfirmAndUpdate,
   onAddNewListing,
   onFlagMissing,
+  onEditListing,
   onClose,
 }: AuditReviewStepperProps) {
   // Build the review queue
@@ -289,7 +294,7 @@ export function AuditReviewStepper({
 
             {/* Content based on type */}
             {currentItem.type === 'matched' && currentItem.matchedPair && (
-              <MatchedReviewCard pair={currentItem.matchedPair} />
+              <MatchedReviewCard pair={currentItem.matchedPair} onEdit={onEditListing} />
             )}
 
             {currentItem.type === 'new_in_pdf' && currentItem.pdfListing && (
@@ -297,7 +302,7 @@ export function AuditReviewStepper({
             )}
 
             {currentItem.type === 'missing_from_pdf' && currentItem.dbListing && (
-              <MissingFromPdfCard dbListing={currentItem.dbListing} />
+              <MissingFromPdfCard dbListing={currentItem.dbListing} onEdit={onEditListing} />
             )}
 
             {/* Action Buttons */}
@@ -391,45 +396,72 @@ export function AuditReviewStepper({
 
 // --- Sub-components ---
 
-function MatchedReviewCard({ pair }: { pair: MatchedPair }) {
+function MatchedReviewCard({ pair, onEdit }: { pair: MatchedPair; onEdit?: (listing: MarketListing) => void }) {
   const { pdfListing, dbListing } = pair;
+  const brochureLink = pdfListing.brochure_link || dbListing.brochure_link || dbListing.link;
   return (
-    <div className="grid grid-cols-2 gap-4">
-      {/* PDF Side */}
-      <div className="border-2 border-foreground rounded-md p-4 space-y-2" style={{ borderRadius: 'var(--radius)' }}>
-        <div className="flex items-center gap-2 mb-3">
-          <Badge className="bg-amber-500 text-white text-xs">PDF</Badge>
-          <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Extracted</span>
+    <div className="space-y-3">
+      <div className="grid grid-cols-2 gap-4">
+        {/* PDF Side */}
+        <div className="border-2 border-foreground rounded-md p-4 space-y-2" style={{ borderRadius: 'var(--radius)' }}>
+          <div className="flex items-center gap-2 mb-3">
+            <Badge className="bg-amber-500 text-white text-xs">PDF</Badge>
+            <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Extracted</span>
+          </div>
+          <div>
+            <p className="text-sm font-bold">{pdfListing.address}</p>
+          </div>
+          <div className="grid grid-cols-2 gap-2 text-xs">
+            <Field label="Type" value={pdfListing.listing_type} />
+            <Field label="Size" value={pdfListing.size_sf ? `${pdfListing.size_sf.toLocaleString()} SF` : null} />
+            <Field label="Rate" value={pdfListing.asking_rate} />
+            <Field label="City" value={pdfListing.city} />
+            <Field label="Landlord" value={pdfListing.landlord} />
+          </div>
         </div>
-        <div>
-          <p className="text-sm font-bold">{pdfListing.address}</p>
-        </div>
-        <div className="grid grid-cols-2 gap-2 text-xs">
-          <Field label="Type" value={pdfListing.listing_type} />
-          <Field label="Size" value={pdfListing.size_sf ? `${pdfListing.size_sf.toLocaleString()} SF` : null} />
-          <Field label="Rate" value={pdfListing.asking_rate} />
-          <Field label="City" value={pdfListing.city} />
-          <Field label="Landlord" value={pdfListing.landlord} />
+
+        {/* DB Side */}
+        <div className="border-2 border-foreground rounded-md p-4 space-y-2" style={{ borderRadius: 'var(--radius)' }}>
+          <div className="flex items-center gap-2 mb-3">
+            <Badge className="bg-blue-600 text-white text-xs">Database</Badge>
+            <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Current</span>
+          </div>
+          <div>
+            <p className="text-sm font-bold">{dbListing.display_address || dbListing.address}</p>
+          </div>
+          <div className="grid grid-cols-2 gap-2 text-xs">
+            <Field label="Type" value={dbListing.listing_type} />
+            <Field label="Size" value={dbListing.size_sf ? `${dbListing.size_sf.toLocaleString()} SF` : null} />
+            <Field label="Rate" value={dbListing.asking_rate_psf} />
+            <Field label="City" value={dbListing.city} />
+            <Field label="Landlord" value={dbListing.landlord} />
+            <Field label="Status" value={dbListing.status} />
+          </div>
         </div>
       </div>
 
-      {/* DB Side */}
-      <div className="border-2 border-foreground rounded-md p-4 space-y-2" style={{ borderRadius: 'var(--radius)' }}>
-        <div className="flex items-center gap-2 mb-3">
-          <Badge className="bg-blue-600 text-white text-xs">Database</Badge>
-          <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Current</span>
-        </div>
-        <div>
-          <p className="text-sm font-bold">{dbListing.display_address || dbListing.address}</p>
-        </div>
-        <div className="grid grid-cols-2 gap-2 text-xs">
-          <Field label="Type" value={dbListing.listing_type} />
-          <Field label="Size" value={dbListing.size_sf ? `${dbListing.size_sf.toLocaleString()} SF` : null} />
-          <Field label="Rate" value={dbListing.asking_rate_psf} />
-          <Field label="City" value={dbListing.city} />
-          <Field label="Landlord" value={dbListing.landlord} />
-          <Field label="Status" value={dbListing.status} />
-        </div>
+      {/* Quick actions row */}
+      <div className="flex items-center gap-2 flex-wrap">
+        {brochureLink && (
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => window.open(brochureLink, '_blank')}
+          >
+            <ExternalLink className="h-3.5 w-3.5 mr-1" />
+            View Brochure
+          </Button>
+        )}
+        {onEdit && (
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => onEdit(dbListing)}
+          >
+            <Pencil className="h-3.5 w-3.5 mr-1" />
+            Edit Listing
+          </Button>
+        )}
       </div>
     </div>
   );
@@ -463,26 +495,53 @@ function NewInPdfCard({ pdfListing }: { pdfListing: PdfExtractedListing }) {
   );
 }
 
-function MissingFromPdfCard({ dbListing }: { dbListing: MarketListing }) {
+function MissingFromPdfCard({ dbListing, onEdit }: { dbListing: MarketListing; onEdit?: (listing: MarketListing) => void }) {
+  const brochureLink = dbListing.brochure_link || dbListing.link;
   return (
-    <div className="border-2 border-destructive rounded-md p-4 space-y-3" style={{ borderRadius: 'var(--radius)' }}>
-      <div className="flex items-center gap-2 mb-2">
-        <Badge variant="destructive" className="text-xs">Missing</Badge>
-        <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-          In Database — Not Found in PDF
-        </span>
+    <div className="space-y-3">
+      <div className="border-2 border-destructive rounded-md p-4 space-y-3" style={{ borderRadius: 'var(--radius)' }}>
+        <div className="flex items-center gap-2 mb-2">
+          <Badge variant="destructive" className="text-xs">Missing</Badge>
+          <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+            In Database — Not Found in PDF
+          </span>
+        </div>
+        <div className="flex items-center gap-2">
+          <Building2 className="h-5 w-5 text-muted-foreground" />
+          <p className="text-lg font-bold">{dbListing.display_address || dbListing.address}</p>
+        </div>
+        <div className="grid grid-cols-3 gap-3 text-sm">
+          <Field label="Listing Type" value={dbListing.listing_type} />
+          <Field label="Size" value={dbListing.size_sf ? `${dbListing.size_sf.toLocaleString()} SF` : null} />
+          <Field label="Rate" value={dbListing.asking_rate_psf} />
+          <Field label="City" value={dbListing.city} />
+          <Field label="Status" value={dbListing.status} />
+          <Field label="Broker" value={dbListing.broker_source} />
+        </div>
       </div>
-      <div className="flex items-center gap-2">
-        <Building2 className="h-5 w-5 text-muted-foreground" />
-        <p className="text-lg font-bold">{dbListing.display_address || dbListing.address}</p>
-      </div>
-      <div className="grid grid-cols-3 gap-3 text-sm">
-        <Field label="Listing Type" value={dbListing.listing_type} />
-        <Field label="Size" value={dbListing.size_sf ? `${dbListing.size_sf.toLocaleString()} SF` : null} />
-        <Field label="Rate" value={dbListing.asking_rate_psf} />
-        <Field label="City" value={dbListing.city} />
-        <Field label="Status" value={dbListing.status} />
-        <Field label="Broker" value={dbListing.broker_source} />
+
+      {/* Quick actions row */}
+      <div className="flex items-center gap-2 flex-wrap">
+        {brochureLink && (
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => window.open(brochureLink, '_blank')}
+          >
+            <ExternalLink className="h-3.5 w-3.5 mr-1" />
+            View Brochure
+          </Button>
+        )}
+        {onEdit && (
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => onEdit(dbListing)}
+          >
+            <Pencil className="h-3.5 w-3.5 mr-1" />
+            Edit Listing
+          </Button>
+        )}
       </div>
     </div>
   );

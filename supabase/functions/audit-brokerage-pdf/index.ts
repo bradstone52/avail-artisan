@@ -74,6 +74,7 @@ EXTRACTION RULES for additional fields:
 - Extract the asking rate/price if shown (lease rate PSF or sale price)
 - Extract the city/submarket if identifiable
 - Extract the landlord name if shown in the table
+- Extract any brochure or listing URL/link if shown in the table or associated with the listing row
 - If a field is not visible or not applicable, use null
 
 You should return one entry per table row. The total count should match the number of table rows across all pages.`;
@@ -99,6 +100,7 @@ You should return one entry per table row. The total count should match the numb
                   city: { type: ["string", "null"], description: "City name if identifiable, or null" },
                   submarket: { type: ["string", "null"], description: "Submarket/area name if shown, or null" },
                   landlord: { type: ["string", "null"], description: "Landlord/owner name if shown in the table, or null" },
+                  brochure_link: { type: ["string", "null"], description: "URL/link to the property brochure or listing page if shown in the PDF, or null" },
                 },
                 required: ["address", "listing_type"],
               },
@@ -174,7 +176,7 @@ You should return one entry per table row. The total count should match the numb
     const toolCall = choice?.message?.tool_calls?.[0];
     const toolArgs = toolCall?.function?.arguments;
 
-    let listings: { address: string; listing_type: string; size_sf?: number | null; asking_rate?: string | null; city?: string | null; submarket?: string | null; landlord?: string | null }[] = [];
+    let listings: { address: string; listing_type: string; size_sf?: number | null; asking_rate?: string | null; city?: string | null; submarket?: string | null; landlord?: string | null; brochure_link?: string | null }[] = [];
 
     if (toolArgs) {
       const parsed = JSON.parse(toolArgs);
