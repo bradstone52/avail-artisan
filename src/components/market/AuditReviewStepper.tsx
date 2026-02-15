@@ -605,11 +605,8 @@ function PaginationDots({
   const activeRef = useRef<HTMLButtonElement>(null);
 
   useEffect(() => {
-    if (activeRef.current && scrollRef.current) {
-      const container = scrollRef.current;
-      const el = activeRef.current;
-      const left = el.offsetLeft - container.offsetWidth / 2 + el.offsetWidth / 2;
-      container.scrollTo({ left, behavior: 'smooth' });
+    if (activeRef.current) {
+      activeRef.current.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
     }
   }, [currentFilteredPos]);
 
