@@ -923,11 +923,13 @@ export default function PropertyDetail() {
                           <Button
                             variant="outline"
                             size="sm"
-                            onClick={() => {
-                              const { data } = supabase.storage
+                            onClick={async () => {
+                              const { data, error } = await supabase.storage
                                 .from('property-brochures')
-                                .getPublicUrl(brochure.storage_path);
-                              window.open(data.publicUrl, '_blank');
+                                .createSignedUrl(brochure.storage_path, 3600);
+                              if (data?.signedUrl) {
+                                window.open(data.signedUrl, '_blank');
+                              }
                             }}
                           >
                             <Download className="h-4 w-4 mr-1" />
