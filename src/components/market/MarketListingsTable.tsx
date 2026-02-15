@@ -786,9 +786,9 @@ export function MarketListingsTable({ listings, onEdit, onRefresh, sortColumn, s
                   {/* Link */}
                   <Tooltip>
                     <TooltipTrigger asChild>
-                      {listing.link ? (
+                      {(listing.brochure_link || listing.link) ? (
                         <a 
-                          href={listing.link} 
+                          href={(listing.brochure_link || listing.link)!} 
                           target="_blank" 
                           rel="noopener noreferrer"
                           className="inline-flex items-center justify-center h-7 w-7 text-primary hover:text-primary/80 hover:bg-muted rounded-sm"
@@ -802,7 +802,7 @@ export function MarketListingsTable({ listings, onEdit, onRefresh, sortColumn, s
                         </span>
                       )}
                     </TooltipTrigger>
-                    <TooltipContent>{listing.link ? 'Open Link' : 'No Link'}</TooltipContent>
+                    <TooltipContent>{(listing.brochure_link || listing.link) ? 'Open Link' : 'No Link'}</TooltipContent>
                   </Tooltip>
                   
                   {/* Verify */}
