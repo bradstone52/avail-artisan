@@ -30,8 +30,8 @@ export function StatusDropdown({ listing, onStatusChanged, onLogTransaction }: S
   const handleStatusChange = async (newStatus: string) => {
     if (newStatus === listing.status) return;
 
-    // If changing to "Sold/Leased" status, open log transaction dialog
-    if (newStatus === 'Sold/Leased') {
+    // If changing to "Sold/Leased" or "Unknown/Removed" status, open log transaction dialog
+    if (newStatus === 'Sold/Leased' || newStatus === 'Unknown/Removed') {
       onLogTransaction?.(listing);
       return;
     }
