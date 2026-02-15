@@ -69,13 +69,20 @@ LISTING TYPE RULES:
 - Use "Land Sale" for land-only sale listings
 - The section headers tell you the type: "For Lease", "For Sale", "Land ... For Sale", "Land ... For Lease"
 
+EXTRACTION RULES for additional fields:
+- Extract the total building size in SF if shown (e.g. "50,000" -> 50000)
+- Extract the asking rate/price if shown (lease rate PSF or sale price)
+- Extract the city/submarket if identifiable
+- Extract the landlord name if shown in the table
+- If a field is not visible or not applicable, use null
+
 You should return one entry per table row. The total count should match the number of table rows across all pages.`;
 
     const extractionTool = {
       type: "function",
       function: {
         name: "extract_listings",
-        description: "Extract all listing rows from the brokerage PDF with their addresses and listing types",
+        description: "Extract all listing rows from the brokerage PDF with their addresses, types, and available details",
         parameters: {
           type: "object",
           properties: {
@@ -87,6 +94,11 @@ You should return one entry per table row. The total count should match the numb
                 properties: {
                   address: { type: "string", description: "The street address or property name" },
                   listing_type: { type: "string", enum: ["Lease", "Sublease", "Sale", "Land Lease", "Land Sale"], description: "The type of listing" },
+                  size_sf: { type: ["number", "null"], description: "Total building size in square feet, or null if not shown" },
+                  asking_rate: { type: ["string", "null"], description: "Asking lease rate PSF or sale price as shown in the PDF, or null" },
+                  city: { type: ["string", "null"], description: "City name if identifiable, or null" },
+                  submarket: { type: ["string", "null"], description: "Submarket/area name if shown, or null" },
+                  landlord: { type: ["string", "null"], description: "Landlord/owner name if shown in the table, or null" },
                 },
                 required: ["address", "listing_type"],
               },
@@ -108,7 +120,7 @@ You should return one entry per table row. The total count should match the numb
         {
           role: "user",
           content: [
-            { type: "text", text: "Extract every listing row from this brokerage PDF. Each table row is one listing. If the same address appears in both 'For Lease' and 'For Sale' sections, include it twice with the appropriate listing_type. Include the listing type for each entry." },
+            { type: "text", text: "Extract every listing row from this brokerage PDF. Each table row is one listing. If the same address appears in both 'For Lease' and 'For Sale' sections, include it twice with the appropriate listing_type. Include all available fields (size, rate, city, landlord) for each entry." },
             { type: "image_url", image_url: { url: `data:application/pdf;base64,${base64}` } },
           ],
         },
@@ -162,7 +174,7 @@ You should return one entry per table row. The total count should match the numb
     const toolCall = choice?.message?.tool_calls?.[0];
     const toolArgs = toolCall?.function?.arguments;
 
-    let listings: { address: string; listing_type: string }[] = [];
+    let listings: { address: string; listing_type: string; size_sf?: number | null; asking_rate?: string | null; city?: string | null; submarket?: string | null; landlord?: string | null }[] = [];
 
     if (toolArgs) {
       const parsed = JSON.parse(toolArgs);

@@ -940,6 +940,72 @@ export default function MarketListings() {
           uniqueBrokers={uniqueBrokers}
           uniqueLandlords={uniqueLandlords}
           onFlagListings={(ids) => setFlaggedListingIds(ids)}
+          onAddNewListing={(pdfListing, brokerSource) => {
+            // Write prefill data to localStorage so the create dialog picks it up
+            const FORM_STORAGE_KEY = 'market-listing-form-draft';
+            const prefill = {
+              sessionId: 'create',
+              mode: 'create',
+              timestamp: Date.now(),
+              state: {
+                listingId: '',
+                address: pdfListing.address || '',
+                building: '',
+                unit: '',
+                displayAddress: pdfListing.address || '',
+                displayAddressManuallyEdited: false,
+                city: pdfListing.city || '',
+                submarket: pdfListing.submarket || '',
+                sizeSf: pdfListing.size_sf ? pdfListing.size_sf.toLocaleString() : '',
+                status: 'Active',
+                listingType: pdfListing.listing_type || '',
+                askingRate: pdfListing.asking_rate || '',
+                opCosts: '',
+                propertyTax: '',
+                condoFees: '',
+                salePrice: '',
+                grossRate: '',
+                availabilityDate: '',
+                subleaseExp: '',
+                landlord: pdfListing.landlord || '',
+                brokerSource: brokerSource || '',
+                brochureLink: '',
+                websiteLink: '',
+                notesPublic: '',
+                internalNote: '',
+                warehouseSf: '',
+                officeSf: '',
+                clearHeight: '',
+                dockDoors: '',
+                driveInDoors: '',
+                driveInDoorDimensions: [],
+                buildingDepth: '',
+                powerAmps: '',
+                voltage: '',
+                sprinkler: '',
+                hasSprinklers: false,
+                hasCranes: false,
+                cranes: '',
+                craneTons: '',
+                yard: false,
+                yardArea: '',
+                crossDock: false,
+                trailerParking: '',
+                landAcres: '',
+                zoning: '',
+                mua: false,
+                muaValue: '',
+                hasLand: pdfListing.listing_type?.includes('Land') || false,
+                isDistributionWarehouse: false,
+                calgaryQuad: '',
+              },
+            };
+            try {
+              localStorage.setItem(FORM_STORAGE_KEY, JSON.stringify(prefill));
+            } catch (e) { /* ignore */ }
+            setIsCreateDialogOpen(true);
+          }}
+          onRefreshListings={refreshListings}
         />
       </div>
     </AppLayout>
