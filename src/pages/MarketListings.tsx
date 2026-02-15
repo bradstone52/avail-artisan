@@ -1006,6 +1006,9 @@ export default function MarketListings() {
             setIsCreateDialogOpen(true);
           }}
           onRefreshListings={refreshListings}
+          onEditListing={(listing) => {
+            setEditingListing(listing);
+          }}
         />
       </div>
     </AppLayout>
