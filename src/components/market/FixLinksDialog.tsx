@@ -79,7 +79,7 @@ export function FixLinksDialog({ open, onOpenChange, listings, onListingUpdated 
     // don't append it again.
     const muniPart = municipality && !addressLower.includes(muniLower) ? municipality : '';
 
-    const query = [address, muniPart, 'industrial real estate brochure']
+    const query = [address, muniPart, listing.broker_source || '', 'brochure']
       .filter(Boolean)
       .join(' ') + siteFilter;
 
