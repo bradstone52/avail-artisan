@@ -77,6 +77,8 @@ export function AuditPdfDialog({
     addr
       .toLowerCase()
       .replace(/[.,#]/g, '')
+      // Normalize dashes, en-dashes, em-dashes, and & to a space
+      .replace(/[–—\-&]/g, ' ')
       .replace(/\s+/g, ' ')
       .replace(/\b(street|st)\b/g, 'st')
       .replace(/\b(avenue|ave)\b/g, 'ave')
