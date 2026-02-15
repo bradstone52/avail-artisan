@@ -17,8 +17,12 @@ import {
   Building2,
   Pencil,
   ExternalLink,
+  Search,
+  Loader2,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
 
 export interface PdfExtractedListing {
   address: string;
@@ -396,6 +400,60 @@ export function AuditReviewStepper({
 
 // --- Sub-components ---
 
+function FindBrochureButton({ listing }: { listing: MarketListing }) {
+  const [searching, setSearching] = useState(false);
+
+  const handleFindBrochure = async () => {
+    setSearching(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('find-brochure', {
+        body: {
+          listingId: listing.id,
+          address: listing.address,
+          city: listing.city || 'Calgary',
+          broker: listing.broker_source || '',
+          existingUrl: listing.brochure_link || listing.link || '',
+        },
+      });
+
+      if (error) throw error;
+
+      if (data?.success) {
+        toast.success('Brochure found!', {
+          description: 'Link saved to listing.',
+          action: {
+            label: 'Open',
+            onClick: () => window.open(data.link, '_blank'),
+          },
+        });
+      } else {
+        toast.info(data?.message || 'No brochure found. Try manual search.');
+      }
+    } catch (err) {
+      console.error('Find brochure error:', err);
+      toast.error('Search failed. Try again later.');
+    } finally {
+      setSearching(false);
+    }
+  };
+
+  return (
+    <Button
+      variant="outline"
+      size="sm"
+      onClick={handleFindBrochure}
+      disabled={searching}
+    >
+      {searching ? (
+        <Loader2 className="h-3.5 w-3.5 mr-1 animate-spin" />
+      ) : (
+        <Search className="h-3.5 w-3.5 mr-1" />
+      )}
+      {searching ? 'Searching…' : 'Find Brochure'}
+    </Button>
+  );
+}
+
 function MatchedReviewCard({ pair, onEdit }: { pair: MatchedPair; onEdit?: (listing: MarketListing) => void }) {
   const { pdfListing, dbListing } = pair;
   const brochureLink = pdfListing.brochure_link || dbListing.brochure_link || dbListing.link;
@@ -452,6 +510,7 @@ function MatchedReviewCard({ pair, onEdit }: { pair: MatchedPair; onEdit?: (list
             View Brochure
           </Button>
         )}
+        <FindBrochureButton listing={dbListing} />
         {onEdit && (
           <Button
             variant="outline"
@@ -532,6 +591,7 @@ function MissingFromPdfCard({ dbListing, onEdit }: { dbListing: MarketListing; o
             View Brochure
           </Button>
         )}
+        <FindBrochureButton listing={dbListing} />
         {onEdit && (
           <Button
             variant="outline"
