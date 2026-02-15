@@ -171,7 +171,7 @@ export function useProperties() {
       if (linkedListingIds.length > 0) {
         const { data: marketListings } = await supabase
           .from('market_listings')
-          .select('id, listing_id, address, status, size_sf, link')
+          .select('id, listing_id, address, status, size_sf, link, brochure_link')
           .in('id', linkedListingIds);
         
         marketListingsMap = (marketListings || []).reduce((acc, ml) => {
@@ -183,7 +183,7 @@ export function useProperties() {
       // Also find auto-matches by address
       const { data: allMarketListings } = await supabase
         .from('market_listings')
-        .select('id, listing_id, address, status, size_sf, link');
+        .select('id, listing_id, address, status, size_sf, link, brochure_link');
 
       // Build properties with their linked listings
       const propertiesWithLinks: PropertyWithLinks[] = (propertiesData || []).map(property => {
@@ -199,6 +199,7 @@ export function useProperties() {
               status: ml.status,
               size_sf: ml.size_sf,
               link: ml.link,
+              brochure_link: ml.brochure_link,
               link_type: link.link_type
             } : null;
           })
@@ -226,6 +227,7 @@ export function useProperties() {
             status: ml.status,
             size_sf: ml.size_sf,
             link: ml.link,
+            brochure_link: ml.brochure_link,
             link_type: 'auto'
           }));
 

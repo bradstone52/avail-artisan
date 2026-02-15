@@ -261,7 +261,7 @@ export default function Properties() {
         if (!property.linked_listings) continue;
 
         for (const listing of property.linked_listings) {
-          if (!listing.link) continue;
+          if (!listing.brochure_link && !listing.link) continue;
 
           try {
             const { data, error } = await supabase.functions.invoke('download-brochure', {
@@ -269,7 +269,7 @@ export default function Properties() {
                 propertyId: property.id,
                 marketListingId: listing.id,
                 listingId: listing.listing_id,
-                brochureUrl: listing.link
+                brochureUrl: (listing.brochure_link || listing.link)!
               }
             });
 
