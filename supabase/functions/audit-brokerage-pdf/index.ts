@@ -49,12 +49,21 @@ serve(async (req) => {
     const base64 = btoa(binary);
 
     const systemPrompt = `You are an expert at reading commercial real estate brokerage PDF documents.
-Your task is to extract ONLY the street addresses of all property listings in the document.
+Your task is to extract the street addresses of ALL property listings in the document.
+
+IMPORTANT RULES:
+1. Look at EVERY page, including title pages, lease pages, sale pages, and land pages.
+2. Addresses appear in the "Building Name / Address" column of tables, but also in image overlays, headers, and photo captions on each page.
+3. Many listings appear TWICE in these documents (once under "For Lease", once under "For Sale") — extract the address each time it appears. Duplicates are OK.
+4. Include addresses even if they have prefixes like "Conditionally Sold", "Conditionally Leased", "End Cap Unit Available", etc. — just extract the address part.
+5. Include unit numbers if present (e.g. "Unit 206 2916 5 Avenue NE").
+6. For land listings, include the legal description or address as written (e.g. "285060 Township Road 244").
+7. For out-of-town listings, include the full address with city (e.g. "585 41 Street North Lethbridge").
+8. Do NOT skip any listing. Count every single row in every table on every page.
+9. Each page typically has 1-4 listings shown with photos alongside the table data.
+
 Return a JSON object with a single key "addresses" containing an array of strings.
-Each string should be the street address as written in the document (e.g. "2827 18 Street NE").
-Do NOT include city, province, or postal code — just the street address.
-If you see unit numbers or suites, include them.
-Extract ALL addresses you can find. Be thorough.`;
+Each string should be the address as written in the document.`;
 
     const extractionTool = {
       type: "function",
@@ -85,13 +94,13 @@ Extract ALL addresses you can find. Be thorough.`;
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: "google/gemini-3-flash-preview",
+        model: "google/gemini-2.5-flash",
         messages: [
           { role: "system", content: systemPrompt },
           {
             role: "user",
             content: [
-              { type: "text", text: "Extract all property street addresses from this brokerage PDF." },
+              { type: "text", text: "Extract ALL property addresses from every page of this brokerage PDF. Be exhaustive — check every table row, every image caption, every page header. Many listings appear on both the 'For Lease' and 'For Sale' sections." },
               { type: "image_url", image_url: { url: `data:application/pdf;base64,${base64}` } },
             ],
           },
@@ -99,7 +108,7 @@ Extract ALL addresses you can find. Be thorough.`;
         tools: [extractionTool],
         tool_choice: { type: "function", function: { name: "extract_addresses" } },
         temperature: 0,
-        max_tokens: 8000,
+        max_tokens: 16000,
       }),
     });
 
