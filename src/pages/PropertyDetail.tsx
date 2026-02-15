@@ -792,12 +792,12 @@ export default function PropertyDetail() {
                           )}
                         </div>
                         <div className="flex items-center gap-2">
-                          {listing.link && (
+                          {(listing.brochure_link || listing.link) && (
                             <>
                               <Button
                                 variant="outline"
                                 size="sm"
-                                onClick={() => window.open(listing.link!, '_blank')}
+                                onClick={() => window.open((listing.brochure_link || listing.link)!, '_blank')}
                               >
                                 <ExternalLink className="h-4 w-4 mr-1" />
                                 View Brochure
@@ -805,7 +805,7 @@ export default function PropertyDetail() {
                               <Button
                                 variant="secondary"
                                 size="sm"
-                                onClick={() => handleDownloadBrochure(listing.listing_id, listing.id, listing.link!)}
+                                onClick={() => handleDownloadBrochure(listing.listing_id, listing.id, (listing.brochure_link || listing.link)!)}
                                 disabled={downloadingBrochure === listing.listing_id}
                               >
                                 {downloadingBrochure === listing.listing_id ? (
