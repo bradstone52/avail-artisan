@@ -1,8 +1,7 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useRef, useEffect } from 'react';
 import { MarketListing } from '@/hooks/useMarketListings';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
 import { Progress } from '@/components/ui/progress';
 import {
@@ -366,27 +365,13 @@ export function AuditReviewStepper({
           </Button>
         </div>
 
-        {/* Thumbnail dots */}
-        <ScrollArea className="max-w-[300px]">
-          <div className="flex gap-1">
-            {filteredIndices.map((idx, pos) => (
-              <button
-                key={idx}
-                onClick={() => setCurrentIndex(idx)}
-                className={cn(
-                  'h-3 w-3 rounded-full border transition-colors flex-shrink-0',
-                  pos === currentFilteredPos && 'ring-2 ring-primary ring-offset-1',
-                  actions[idx] === null && 'bg-muted border-muted-foreground/30',
-                  actions[idx] === 'confirmed' && 'bg-green-500 border-green-600',
-                  actions[idx] === 'confirmed_updated' && 'bg-blue-500 border-blue-600',
-                  actions[idx] === 'skipped' && 'bg-muted-foreground/30 border-muted-foreground/50',
-                  actions[idx] === 'added' && 'bg-green-500 border-green-600',
-                  actions[idx] === 'flagged' && 'bg-destructive border-destructive'
-                )}
-              />
-            ))}
-          </div>
-        </ScrollArea>
+        {/* Pagination indicator */}
+        <PaginationDots
+          filteredIndices={filteredIndices}
+          currentFilteredPos={currentFilteredPos}
+          actions={actions}
+          onSelect={setCurrentIndex}
+        />
 
         <Button onClick={handleFinish}>
           Finish Review
@@ -601,6 +586,68 @@ function Field({ label, value }: { label: string; value: string | null | undefin
       <p className={cn('font-semibold', !value && 'text-muted-foreground/50 italic')}>
         {value || '—'}
       </p>
+    </div>
+  );
+}
+
+function PaginationDots({
+  filteredIndices,
+  currentFilteredPos,
+  actions,
+  onSelect,
+}: {
+  filteredIndices: number[];
+  currentFilteredPos: number;
+  actions: ReviewAction[];
+  onSelect: (idx: number) => void;
+}) {
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const activeRef = useRef<HTMLButtonElement>(null);
+
+  useEffect(() => {
+    if (activeRef.current && scrollRef.current) {
+      const container = scrollRef.current;
+      const el = activeRef.current;
+      const left = el.offsetLeft - container.offsetWidth / 2 + el.offsetWidth / 2;
+      container.scrollTo({ left, behavior: 'smooth' });
+    }
+  }, [currentFilteredPos]);
+
+  return (
+    <div
+      ref={scrollRef}
+      className="max-w-[280px] overflow-x-auto scrollbar-none"
+      style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+    >
+      <div className="flex gap-1.5 py-1 px-0.5">
+        {filteredIndices.map((idx, pos) => {
+          const isActive = pos === currentFilteredPos;
+          const action = actions[idx];
+          return (
+            <button
+              key={idx}
+              ref={isActive ? activeRef : undefined}
+              onClick={() => onSelect(idx)}
+              className={cn(
+                'flex-shrink-0 rounded-full transition-all duration-200',
+                isActive ? 'w-6 h-2.5' : 'w-2.5 h-2.5',
+                isActive && action === null && 'bg-primary',
+                isActive && action === 'confirmed' && 'bg-green-500',
+                isActive && action === 'confirmed_updated' && 'bg-blue-500',
+                isActive && action === 'skipped' && 'bg-muted-foreground',
+                isActive && action === 'added' && 'bg-green-500',
+                isActive && action === 'flagged' && 'bg-destructive',
+                !isActive && action === null && 'bg-muted-foreground/25',
+                !isActive && action === 'confirmed' && 'bg-green-500/60',
+                !isActive && action === 'confirmed_updated' && 'bg-blue-500/60',
+                !isActive && action === 'skipped' && 'bg-muted-foreground/30',
+                !isActive && action === 'added' && 'bg-green-500/60',
+                !isActive && action === 'flagged' && 'bg-destructive/60'
+              )}
+            />
+          );
+        })}
+      </div>
     </div>
   );
 }
