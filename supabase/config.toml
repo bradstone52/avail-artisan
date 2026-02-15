@@ -47,3 +47,6 @@ verify_jwt = false
 
 [functions.stale-listings-report]
 verify_jwt = false
+
+[functions.audit-brokerage-pdf]
+verify_jwt = false

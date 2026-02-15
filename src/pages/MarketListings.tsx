@@ -15,7 +15,7 @@ import {
 import { Checkbox } from '@/components/ui/checkbox';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
-import { RefreshCw, Database, Search, X, Filter, Link2, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Plus, ChevronDown, Wrench, ClipboardCheck } from 'lucide-react';
+import { RefreshCw, Database, Search, X, Filter, Link2, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Plus, ChevronDown, Wrench, ClipboardCheck, FileSearch, AlertTriangle } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { format } from 'date-fns';
 import { MarketListingEditDialog } from '@/components/market/MarketListingEditDialog';
@@ -23,6 +23,7 @@ import { MarketListingsTable, SortableColumn, SortDirection } from '@/components
 import { FixLinksDialog } from '@/components/market/FixLinksDialog';
 import { LogTransactionDialog } from '@/components/market/LogTransactionDialog';
 import { MonthlyUpdateCheckerDialog } from '@/components/market/MonthlyUpdateCheckerDialog';
+import { AuditPdfDialog } from '@/components/market/AuditPdfDialog';
 
 const SIZE_RANGES = [
   { label: 'All Sizes', value: 'all', min: 0, max: Infinity },
@@ -77,6 +78,8 @@ export default function MarketListings() {
   const [isFixLinksDialogOpen, setIsFixLinksDialogOpen] = useState(false);
   const [transactionListing, setTransactionListing] = useState<MarketListing | null>(null);
   const [isUpdateCheckerOpen, setIsUpdateCheckerOpen] = useState(false);
+  const [isAuditPdfOpen, setIsAuditPdfOpen] = useState(false);
+  const [flaggedListingIds, setFlaggedListingIds] = useState<string[]>([]);
 
   // Handle column sorting
   const handleSort = useCallback((column: SortableColumn) => {
@@ -228,9 +231,14 @@ export default function MarketListings() {
         if (listing.calgary_quad !== calgaryQuadFilter) return false;
       }
 
+      // Flagged (not in PDF) filter
+      if (flaggedListingIds.length > 0 && !flaggedListingIds.includes(listing.id)) {
+        return false;
+      }
+
       return true;
     });
-  }, [listings, searchQuery, submarketFilter, cityFilter, statusFilter, sizeFilter, distWarehouseFilter, brokerFilter, listingTypeFilter, landlordFilter, docksFilter, driveInFilter, staleFilter, landOnlyFilter, calgaryQuadFilter]);
+  }, [listings, searchQuery, submarketFilter, cityFilter, statusFilter, sizeFilter, distWarehouseFilter, brokerFilter, listingTypeFilter, landlordFilter, docksFilter, driveInFilter, staleFilter, landOnlyFilter, calgaryQuadFilter, flaggedListingIds]);
 
   const hasActiveFilters = searchQuery || submarketFilter.length > 0 || cityFilter !== 'all' || statusFilter !== 'all' || sizeFilter !== 'all' || distWarehouseFilter !== 'all' || brokerFilter !== 'all' || listingTypeFilter !== 'all' || landlordFilter !== 'all' || docksFilter !== 'all' || driveInFilter !== 'all' || staleFilter !== 'all' || landOnlyFilter !== 'all' || calgaryQuadFilter !== 'all';
 
@@ -322,6 +330,7 @@ export default function MarketListings() {
     setStaleFilter('all');
     setLandOnlyFilter('all');
     setCalgaryQuadFilter('all');
+    setFlaggedListingIds([]);
     setCurrentPage(1);
   };
 
@@ -400,6 +409,15 @@ export default function MarketListings() {
               variant="outline"
               size="sm"
               className="flex-1 sm:flex-none"
+              onClick={() => setIsAuditPdfOpen(true)}
+            >
+              <FileSearch className="w-4 h-4 mr-2" />
+              Audit PDF
+            </Button>
+            <Button 
+              variant="outline"
+              size="sm"
+              className="flex-1 sm:flex-none"
               onClick={refreshListings}
             >
               <RefreshCw className="w-4 h-4 mr-2" />
@@ -469,6 +487,20 @@ export default function MarketListings() {
             </CardContent>
           </Card>
         </div>
+
+        {/* Flagged Listings Banner */}
+        {flaggedListingIds.length > 0 && (
+          <div className="mb-4 flex items-center gap-3 p-3 bg-destructive/10 border border-destructive/20 rounded-lg">
+            <AlertTriangle className="w-5 h-5 text-destructive shrink-0" />
+            <p className="text-sm font-medium flex-1">
+              Showing <span className="text-destructive font-bold">{flaggedListingIds.length}</span> listings not found in the uploaded PDF
+            </p>
+            <Button variant="outline" size="sm" onClick={() => setFlaggedListingIds([])}>
+              <X className="w-3 h-3 mr-1" />
+              Clear Flag
+            </Button>
+          </div>
+        )}
 
         {/* Filters */}
         {listings.length > 0 && (
@@ -898,6 +930,16 @@ export default function MarketListings() {
           open={isUpdateCheckerOpen}
           onOpenChange={setIsUpdateCheckerOpen}
           listings={listings}
+        />
+
+        {/* Audit PDF Dialog */}
+        <AuditPdfDialog
+          open={isAuditPdfOpen}
+          onOpenChange={setIsAuditPdfOpen}
+          listings={listings.filter(l => l.status === 'Active')}
+          uniqueBrokers={uniqueBrokers}
+          uniqueLandlords={uniqueLandlords}
+          onFlagListings={(ids) => setFlaggedListingIds(ids)}
         />
       </div>
     </AppLayout>
