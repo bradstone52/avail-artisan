@@ -234,7 +234,7 @@ export function AuditPdfDialog({
     // Just confirm — update last_verified_date
     supabase
       .from('market_listings')
-      .update({ last_verified_date: new Date().toISOString().split('T')[0] })
+      .update({ last_verified_date: `${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, '0')}-${String(new Date().getDate()).padStart(2, '0')}` })
       .eq('id', dbListing.id)
       .then(({ error }) => {
         if (error) console.error('Failed to update verified date:', error);
@@ -243,7 +243,7 @@ export function AuditPdfDialog({
 
   const handleConfirmAndUpdate = async (dbListing: MarketListing, pdfData: PdfExtractedListing) => {
     const updates: Record<string, unknown> = {
-      last_verified_date: new Date().toISOString().split('T')[0],
+      last_verified_date: `${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, '0')}-${String(new Date().getDate()).padStart(2, '0')}`,
       updated_at: new Date().toISOString(),
     };
     if (pdfData.size_sf && pdfData.size_sf !== dbListing.size_sf) {
