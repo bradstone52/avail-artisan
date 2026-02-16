@@ -53,6 +53,7 @@ interface AuditReviewStepperProps {
   matchedPairs: MatchedPair[];
   newInPdf: PdfExtractedListing[];
   missingFromPdf: MarketListing[];
+  scopeListings?: MarketListing[];
   brokerSource: string;
   onConfirm: (dbListing: MarketListing) => void;
   onConfirmAndUpdate: (dbListing: MarketListing, pdfData: PdfExtractedListing) => void;
@@ -66,6 +67,7 @@ export function AuditReviewStepper({
   matchedPairs,
   newInPdf,
   missingFromPdf,
+  scopeListings,
   brokerSource,
   onConfirm,
   onConfirmAndUpdate,
@@ -297,7 +299,7 @@ export function AuditReviewStepper({
 
             {/* Content based on type */}
             {currentItem.type === 'matched' && currentItem.matchedPair && (
-              <MatchedReviewCard pair={currentItem.matchedPair} onEdit={onEditListing} />
+              <MatchedReviewCard pair={currentItem.matchedPair} onEdit={onEditListing} scopeListings={scopeListings} />
             )}
 
             {currentItem.type === 'new_in_pdf' && currentItem.pdfListing && (
@@ -415,9 +417,24 @@ function FindBrochureButton({ listing }: { listing: MarketListing }) {
   );
 }
 
-function MatchedReviewCard({ pair, onEdit }: { pair: MatchedPair; onEdit?: (listing: MarketListing) => void }) {
+function MatchedReviewCard({ pair, onEdit, scopeListings }: { pair: MatchedPair; onEdit?: (listing: MarketListing) => void; scopeListings?: MarketListing[] }) {
   const { pdfListing, dbListing } = pair;
   const brochureLink = pdfListing.brochure_link || dbListing.brochure_link || dbListing.link;
+
+  // Find sibling listings at the same address (different listing type or ID)
+  const siblings = useMemo(() => {
+    if (!scopeListings) return [];
+    const normAddr = (a: string) => a.toLowerCase().replace(/[.,#\-–—&]/g, ' ').replace(/\s+/g, ' ').trim();
+    const dbAddr = normAddr(dbListing.address || '');
+    const dbDisplay = dbListing.display_address ? normAddr(dbListing.display_address) : '';
+    return scopeListings.filter(l => {
+      if (l.id === dbListing.id) return false;
+      const lAddr = normAddr(l.address || '');
+      const lDisplay = l.display_address ? normAddr(l.display_address) : '';
+      return lAddr === dbAddr || (dbDisplay && lAddr === dbDisplay) || (lDisplay && lDisplay === dbAddr);
+    });
+  }, [scopeListings, dbListing]);
+
   return (
     <div className="space-y-3">
       <div className="grid grid-cols-2 gap-4">
@@ -440,22 +457,40 @@ function MatchedReviewCard({ pair, onEdit }: { pair: MatchedPair; onEdit?: (list
         </div>
 
         {/* DB Side */}
-        <div className="border-2 border-foreground rounded-md p-4 space-y-2" style={{ borderRadius: 'var(--radius)' }}>
-          <div className="flex items-center gap-2 mb-3">
-            <Badge className="bg-blue-600 text-white text-xs">Database</Badge>
-            <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Current</span>
+        <div className="space-y-3">
+          <div className="border-2 border-foreground rounded-md p-4 space-y-2" style={{ borderRadius: 'var(--radius)' }}>
+            <div className="flex items-center gap-2 mb-3">
+              <Badge className="bg-blue-600 text-white text-xs">Database</Badge>
+              <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Current</span>
+            </div>
+            <div>
+              <p className="text-sm font-bold">{dbListing.display_address || dbListing.address}</p>
+            </div>
+            <div className="grid grid-cols-2 gap-2 text-xs">
+              <Field label="Type" value={dbListing.listing_type} />
+              <Field label="Size" value={dbListing.size_sf ? `${dbListing.size_sf.toLocaleString()} SF` : null} />
+              <Field label="Rate" value={dbListing.asking_rate_psf} />
+              <Field label="City" value={dbListing.city} />
+              <Field label="Landlord" value={dbListing.landlord} />
+              <Field label="Status" value={dbListing.status} />
+            </div>
           </div>
-          <div>
-            <p className="text-sm font-bold">{dbListing.display_address || dbListing.address}</p>
-          </div>
-          <div className="grid grid-cols-2 gap-2 text-xs">
-            <Field label="Type" value={dbListing.listing_type} />
-            <Field label="Size" value={dbListing.size_sf ? `${dbListing.size_sf.toLocaleString()} SF` : null} />
-            <Field label="Rate" value={dbListing.asking_rate_psf} />
-            <Field label="City" value={dbListing.city} />
-            <Field label="Landlord" value={dbListing.landlord} />
-            <Field label="Status" value={dbListing.status} />
-          </div>
+
+          {/* Sibling listings at same address */}
+          {siblings.map(sibling => (
+            <div key={sibling.id} className="border rounded-md p-3 space-y-2 bg-muted/30">
+              <div className="flex items-center gap-2">
+                <Badge variant="outline" className="text-xs">Also at this address</Badge>
+                <span className="text-xs font-semibold text-muted-foreground">{sibling.listing_type || 'Unknown type'}</span>
+              </div>
+              <p className="text-sm font-bold">{sibling.display_address || sibling.address}</p>
+              <div className="grid grid-cols-3 gap-2 text-xs">
+                <Field label="Size" value={sibling.size_sf ? `${sibling.size_sf.toLocaleString()} SF` : null} />
+                <Field label="Rate" value={sibling.asking_rate_psf} />
+                <Field label="Status" value={sibling.status} />
+              </div>
+            </div>
+          ))}
         </div>
       </div>
 

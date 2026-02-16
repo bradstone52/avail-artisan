@@ -335,6 +335,7 @@ export function AuditPdfDialog({
             matchedPairs={result.matchedPairs}
             newInPdf={result.newInPdf}
             missingFromPdf={result.missingListings}
+            scopeListings={scopeListings}
             brokerSource={selectedValue}
             onConfirm={handleConfirm}
             onConfirmAndUpdate={handleConfirmAndUpdate}
