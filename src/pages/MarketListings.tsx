@@ -943,12 +943,19 @@ export default function MarketListings() {
           onAddNewListing={(pdfListing, brokerSource) => {
             // Write prefill data to localStorage so the create dialog picks it up
             const FORM_STORAGE_KEY = 'market-listing-form-draft';
+            // Generate a unique listing ID for the new listing
+            const now = new Date();
+            const year = now.getFullYear();
+            const month = String(now.getMonth() + 1).padStart(2, '0');
+            const day = String(now.getDate()).padStart(2, '0');
+            const random = Math.random().toString(36).substring(2, 6).toUpperCase();
+            const newListingId = `ML-${year}${month}${day}-${random}`;
             const prefill = {
               sessionId: 'create',
               mode: 'create',
               timestamp: Date.now(),
               state: {
-                listingId: '',
+                listingId: newListingId,
                 address: pdfListing.address || '',
                 building: '',
                 unit: '',
