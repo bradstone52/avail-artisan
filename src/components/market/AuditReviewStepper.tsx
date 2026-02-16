@@ -31,6 +31,7 @@ export interface PdfExtractedListing {
   landlord?: string | null;
   brochure_link?: string | null;
   existsInDbUnderDifferentScope?: boolean;
+  existsInDbSameScope?: boolean;
 }
 
 export interface MatchedPair {
@@ -476,13 +477,23 @@ function MatchedReviewCard({ pair, onEdit }: { pair: MatchedPair; onEdit?: (list
 
 function NewInPdfCard({ pdfListing }: { pdfListing: PdfExtractedListing }) {
   return (
-    <div className={cn("border-2 rounded-md p-4 space-y-3", pdfListing.existsInDbUnderDifferentScope ? 'border-amber-500' : 'border-green-600')} style={{ borderRadius: 'var(--radius)' }}>
+    <div className={cn("border-2 rounded-md p-4 space-y-3", 
+      pdfListing.existsInDbUnderDifferentScope ? 'border-amber-500' : 
+      pdfListing.existsInDbSameScope ? 'border-blue-500' : 'border-green-600'
+    )} style={{ borderRadius: 'var(--radius)' }}>
       <div className="flex items-center gap-2 mb-2 flex-wrap">
         {pdfListing.existsInDbUnderDifferentScope ? (
           <>
             <Badge className="bg-amber-500 text-white text-xs">Exists</Badge>
             <span className="text-xs font-bold uppercase tracking-wider text-amber-600">
               Already in Database — Different Broker/Landlord
+            </span>
+          </>
+        ) : pdfListing.existsInDbSameScope ? (
+          <>
+            <Badge className="bg-blue-500 text-white text-xs">Duplicate</Badge>
+            <span className="text-xs font-bold uppercase tracking-wider text-blue-600">
+              Already Matched — Possible Additional Unit
             </span>
           </>
         ) : (

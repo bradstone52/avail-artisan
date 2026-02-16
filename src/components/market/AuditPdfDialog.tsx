@@ -174,14 +174,24 @@ export function AuditPdfDialog({
       }
 
       // PDF records not matched to any scoped DB listing = potentially new
-      // But also cross-check against ALL listings (not just scoped) to catch entries
-      // that exist under a different broker/landlord
+      // Cross-check against ALL listings to catch entries that exist under a different broker/landlord
+      // But distinguish between same-scope duplicates and truly different-scope matches
       const newInPdf = extractedListings.filter((_, i) => !matchedPdfIndices.has(i)).map(pdfItem => {
-        const existsElsewhere = listings.some(l => 
+        const matchInScope = scopeListings.some(l => 
           addressesMatch(l.address || '', pdfItem.address) ||
           (l.display_address && addressesMatch(l.display_address, pdfItem.address))
         );
-        return { ...pdfItem, existsInDbUnderDifferentScope: existsElsewhere };
+        const matchOutsideScope = !matchInScope && listings.some(l => {
+          const inScope = scopeListings.some(sl => sl.id === l.id);
+          if (inScope) return false;
+          return addressesMatch(l.address || '', pdfItem.address) ||
+            (l.display_address && addressesMatch(l.display_address, pdfItem.address));
+        });
+        return { 
+          ...pdfItem, 
+          existsInDbUnderDifferentScope: matchOutsideScope,
+          existsInDbSameScope: matchInScope,
+        };
       });
 
       const auditResult: AuditResult = {
