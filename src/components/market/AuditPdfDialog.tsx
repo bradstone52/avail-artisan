@@ -147,33 +147,72 @@ export function AuditPdfDialog({
       // Compare against scope listings: build matched pairs, missing, and new
       const matchedPairs: MatchedPair[] = [];
       const missing: MarketListing[] = [];
-      const matchedPdfIndices = new Set<number>();
 
-      for (const listing of scopeListings) {
+      // First pass: find all address matches between DB listings and PDF listings
+      const dbToPdfCandidates: Map<number, number[]> = new Map(); // dbIndex -> pdfIndices
+      const pdfToDbCandidates: Map<number, number[]> = new Map(); // pdfIndex -> dbIndices
+
+      for (let di = 0; di < scopeListings.length; di++) {
+        const listing = scopeListings[di];
         const listingAddr = listing.address || '';
         const displayAddr = listing.display_address || '';
+        const candidates: number[] = [];
 
-        let matchedPdfIdx = -1;
-        for (let i = 0; i < extractedListings.length; i++) {
+        for (let pi = 0; pi < extractedListings.length; pi++) {
           if (
-            addressesMatch(listingAddr, extractedListings[i].address) ||
-            (displayAddr && addressesMatch(displayAddr, extractedListings[i].address))
+            addressesMatch(listingAddr, extractedListings[pi].address) ||
+            (displayAddr && addressesMatch(displayAddr, extractedListings[pi].address))
           ) {
-            matchedPdfIdx = i;
-            break;
+            candidates.push(pi);
+            if (!pdfToDbCandidates.has(pi)) pdfToDbCandidates.set(pi, []);
+            pdfToDbCandidates.get(pi)!.push(di);
           }
         }
+        dbToPdfCandidates.set(di, candidates);
+      }
 
-        if (matchedPdfIdx >= 0) {
+      // Second pass: resolve matches, preferring listing_type alignment
+      const assignedPdf = new Set<number>();
+      const assignedDb = new Set<number>();
+
+      // Helper to normalize listing type for comparison
+      const normalizeType = (t?: string | null) => (t || '').toLowerCase().trim();
+
+      // First, assign type-matched pairs (strongest signal)
+      for (let di = 0; di < scopeListings.length; di++) {
+        const candidates = dbToPdfCandidates.get(di) || [];
+        const dbType = normalizeType(scopeListings[di].listing_type);
+        const typeMatch = candidates.find(
+          pi => !assignedPdf.has(pi) && normalizeType(extractedListings[pi].listing_type) === dbType
+        );
+        if (typeMatch !== undefined) {
           matchedPairs.push({
-            pdfListing: extractedListings[matchedPdfIdx],
-            dbListing: listing,
+            pdfListing: extractedListings[typeMatch],
+            dbListing: scopeListings[di],
           });
-          matchedPdfIndices.add(matchedPdfIdx);
-        } else {
-          missing.push(listing);
+          assignedPdf.add(typeMatch);
+          assignedDb.add(di);
         }
       }
+
+      // Then, assign remaining address-only matches (no type preference)
+      for (let di = 0; di < scopeListings.length; di++) {
+        if (assignedDb.has(di)) continue;
+        const candidates = dbToPdfCandidates.get(di) || [];
+        const fallback = candidates.find(pi => !assignedPdf.has(pi));
+        if (fallback !== undefined) {
+          matchedPairs.push({
+            pdfListing: extractedListings[fallback],
+            dbListing: scopeListings[di],
+          });
+          assignedPdf.add(fallback);
+          assignedDb.add(di);
+        } else {
+          missing.push(scopeListings[di]);
+        }
+      }
+
+      const matchedPdfIndices = assignedPdf;
 
       // PDF records not matched to any scoped DB listing = potentially new
       // Cross-check against ALL listings to catch entries that exist under a different broker/landlord
