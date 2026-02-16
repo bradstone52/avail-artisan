@@ -234,7 +234,7 @@ export function MarketListingEditDialog({
 
   // Apply form state from storage
   const applyFormState = useCallback((state: ReturnType<typeof getFormState>) => {
-    setListingId(state.listingId);
+    setListingId(state.listingId || generateListingId());
     setAddress(state.address);
     setBuilding(state.building || '');
     setUnit(state.unit || '');
