@@ -106,10 +106,15 @@ export function AuditPdfDialog({
   const addressesMatch = (dbAddr: string, pdfAddr: string) => {
     const normDb = normalizeAddress(dbAddr);
     const normPdf = normalizeAddress(pdfAddr);
+    // Direct substring match
     if (normDb.includes(normPdf) || normPdf.includes(normDb)) return true;
-    const dbTokens = extractKeyTokens(dbAddr).split(' ');
-    const pdfTokens = extractKeyTokens(pdfAddr).split(' ');
-    return dbTokens.every(t => pdfTokens.includes(t)) || pdfTokens.every(t => dbTokens.includes(t));
+    // Token-based match: require BOTH directions to match (stricter)
+    const dbTokens = extractKeyTokens(dbAddr).split(' ').filter(Boolean);
+    const pdfTokens = extractKeyTokens(pdfAddr).split(' ').filter(Boolean);
+    // Need at least 2 tokens to compare meaningfully
+    if (dbTokens.length < 2 || pdfTokens.length < 2) return false;
+    // Both sets must match each other (bidirectional)
+    return dbTokens.every(t => pdfTokens.includes(t)) && pdfTokens.every(t => dbTokens.includes(t));
   };
 
   const handleProcess = async () => {
