@@ -140,7 +140,9 @@ export function AuditPdfDialog({
       if (error) throw new Error(error.message || 'Upload failed');
       if (data?.error) throw new Error(data.error);
 
-      const extractedListings: PdfExtractedListing[] = data.listings || [];
+      const rawListings: PdfExtractedListing[] = data.listings || [];
+      // Only track listings >= 8,000 SF
+      const extractedListings = rawListings.filter(l => !l.size_sf || l.size_sf >= 8000);
 
       // Compare against scope listings: build matched pairs, missing, and new
       const matchedPairs: MatchedPair[] = [];
