@@ -195,10 +195,11 @@ export function AuditPdfDialog({
         }
       }
 
-      // Then, assign remaining address-only matches (no type preference)
+      // Then, assign remaining address-only matches (prefer unassigned PDF, but allow reuse)
       for (let di = 0; di < scopeListings.length; di++) {
         if (assignedDb.has(di)) continue;
         const candidates = dbToPdfCandidates.get(di) || [];
+        // Prefer an unassigned PDF entry first
         const fallback = candidates.find(pi => !assignedPdf.has(pi));
         if (fallback !== undefined) {
           matchedPairs.push({
@@ -206,6 +207,14 @@ export function AuditPdfDialog({
             dbListing: scopeListings[di],
           });
           assignedPdf.add(fallback);
+          assignedDb.add(di);
+        } else if (candidates.length > 0) {
+          // Address exists in PDF but all PDF entries already claimed by siblings —
+          // still match (shared address), don't mark as missing
+          matchedPairs.push({
+            pdfListing: extractedListings[candidates[0]],
+            dbListing: scopeListings[di],
+          });
           assignedDb.add(di);
         } else {
           missing.push(scopeListings[di]);
