@@ -286,8 +286,8 @@ CRITICAL INSTRUCTIONS:
     ];
 
     let aiResponse = await makeAiRequest({
-      // Default to the recommended fast model; tool-calling here is much more reliable than raw JSON.
-      model: "google/gemini-3-flash-preview",
+      // Use the strongest model for best extraction accuracy on dense PDFs.
+      model: "google/gemini-2.5-pro",
       messages: toolMessages,
       tools: [extractionTool],
       tool_choice: { type: "function", function: { name: "extract_listings" } },
