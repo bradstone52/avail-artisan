@@ -342,7 +342,7 @@ export function AuditWebsiteDialog({
           </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-4">
+        <div className="space-y-4 overflow-hidden">
           {/* Landlord Selection */}
           <div className="space-y-2">
             <Label>Landlord</Label>
