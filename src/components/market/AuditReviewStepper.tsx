@@ -599,9 +599,25 @@ function MatchedReviewCard({ pair, onEdit, scopeListings }: { pair: MatchedPair;
               >
                 {isSiblingExpanded ? (
                   <>
-                    <div className="flex items-center gap-2 mb-3">
-                      <Badge variant="outline" className="text-xs">Also at this address</Badge>
-                      <span className="text-xs font-semibold text-muted-foreground">{sibling.listing_type || 'Unknown type'}</span>
+                    <div className="flex items-center justify-between gap-2 mb-3">
+                      <div className="flex items-center gap-2">
+                        <Badge variant="outline" className="text-xs">Also at this address</Badge>
+                        <span className="text-xs font-semibold text-muted-foreground">{sibling.listing_type || 'Unknown type'}</span>
+                      </div>
+                      {onEdit && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="h-7 text-xs"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onEdit(sibling);
+                          }}
+                        >
+                          <Pencil className="h-3 w-3 mr-1" />
+                          Edit
+                        </Button>
+                      )}
                     </div>
                     <div>
                       <p className="text-sm font-bold">{sibling.display_address || sibling.address}</p>
