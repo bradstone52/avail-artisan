@@ -129,7 +129,13 @@ export function AuditWebsiteDialog({
       if (data?.error) throw new Error(data.error);
 
       const rawListings: PdfExtractedListing[] = data.listings || [];
-      const extractedListings = rawListings.filter((l) => !l.size_sf || l.size_sf >= 8000);
+      const extractedListings = rawListings.filter((l) => {
+        // Only include listings >= 8000 SF (or unknown size) AND in Calgary or Rocky View County
+        const sizeOk = !l.size_sf || l.size_sf >= 8000;
+        const cityLower = (l.city || '').toLowerCase().trim();
+        const cityOk = !cityLower || cityLower === 'calgary' || cityLower === 'rocky view county' || cityLower === 'rocky view';
+        return sizeOk && cityOk;
+      });
 
       // Matching logic (same as AuditPdfDialog)
       const matchedPairs: MatchedPair[] = [];
