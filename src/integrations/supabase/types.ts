@@ -105,6 +105,7 @@ export type Database = {
         Row: {
           brokerage_name: string
           check_month: number
+          check_type: string
           check_year: number
           checked: boolean
           checked_at: string | null
@@ -116,6 +117,7 @@ export type Database = {
         Insert: {
           brokerage_name: string
           check_month: number
+          check_type?: string
           check_year: number
           checked?: boolean
           checked_at?: string | null
@@ -127,6 +129,7 @@ export type Database = {
         Update: {
           brokerage_name?: string
           check_month?: number
+          check_type?: string
           check_year?: number
           checked?: boolean
           checked_at?: string | null
