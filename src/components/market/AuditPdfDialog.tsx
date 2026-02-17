@@ -339,7 +339,7 @@ export function AuditPdfDialog({
   if (showStepper && result) {
     return (
       <Dialog open={open} onOpenChange={handleClose}>
-        <DialogContent className="max-w-4xl h-[85vh] p-0 flex flex-col overflow-hidden" onInteractOutside={(e) => e.preventDefault()}>
+        <DialogContent className="max-w-4xl h-[92vh] p-0 flex flex-col overflow-hidden" onInteractOutside={(e) => e.preventDefault()}>
           <AuditReviewStepper
             matchedPairs={result.matchedPairs}
             newInPdf={result.newInPdf}
