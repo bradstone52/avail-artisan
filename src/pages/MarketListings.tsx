@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback } from 'react';
+import { useState, useMemo, useCallback, useRef } from 'react';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { useMarketListings, MarketListing } from '@/hooks/useMarketListings';
 import { Button } from '@/components/ui/button';
@@ -80,6 +80,7 @@ export default function MarketListings() {
   const [isUpdateCheckerOpen, setIsUpdateCheckerOpen] = useState(false);
   const [isAuditPdfOpen, setIsAuditPdfOpen] = useState(false);
   const [flaggedListingIds, setFlaggedListingIds] = useState<string[]>([]);
+  const auditEditCallbackRef = useRef<((listingId: string) => void) | null>(null);
 
   // Handle column sorting
   const handleSort = useCallback((column: SortableColumn) => {
@@ -890,7 +891,13 @@ export default function MarketListings() {
           onOpenChange={(open) => {
             if (!open) setEditingListing(null);
           }}
-          onSaved={refreshListings}
+          onSaved={() => {
+            refreshListings();
+            // Notify audit stepper if the edit was triggered from there
+            if (editingListing && auditEditCallbackRef.current) {
+              auditEditCallbackRef.current(editingListing.id);
+            }
+          }}
           mode="edit"
           onLogTransaction={(listing) => setTransactionListing(listing)}
         />
@@ -1015,6 +1022,9 @@ export default function MarketListings() {
           onRefreshListings={refreshListings}
           onEditListing={(listing) => {
             setEditingListing(listing);
+          }}
+          onRegisterEditCallback={(cb) => {
+            auditEditCallbackRef.current = cb;
           }}
         />
       </div>
