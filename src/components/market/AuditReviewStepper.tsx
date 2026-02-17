@@ -461,6 +461,18 @@ function isLeaseType(type?: string | null) {
   return t.includes('lease') || t.includes('sublease') || (!t.includes('sale'));
 }
 
+function formatCurrencyValue(value?: string | null): string | null {
+  if (!value) return null;
+  const num = parseFloat(value.replace(/[^0-9.\-]/g, ''));
+  if (isNaN(num)) return value;
+  return new Intl.NumberFormat('en-CA', {
+    style: 'currency',
+    currency: 'CAD',
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  }).format(num);
+}
+
 function PricingFields({ listingType, askingRate, salePrice }: {
   listingType?: string | null;
   askingRate?: string | null;
@@ -471,8 +483,8 @@ function PricingFields({ listingType, askingRate, salePrice }: {
 
   return (
     <>
-      {showLease && <Field label="Asking Rate" value={askingRate} />}
-      {showSale && <Field label="Sale Price" value={salePrice || askingRate} />}
+      {showLease && <Field label="Asking Rate" value={formatCurrencyValue(askingRate)} />}
+      {showSale && <Field label="Sale Price" value={formatCurrencyValue(salePrice || askingRate)} />}
     </>
   );
 }
