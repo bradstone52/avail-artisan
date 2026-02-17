@@ -134,13 +134,20 @@ export function AuditWebsiteDialog({
       const citiesFound = [...new Set(rawListings.map((l) => l.city || 'null'))];
       console.log('Cities found in crawl:', citiesFound);
 
-      const allowedCities = ['calgary', 'city of calgary', 'rocky view county', 'county of rocky view', 'rocky view', 'balzac', 'airdrie', 'chestermere', 'cochrane', 'okotoks', 'crossfield', 'strathmore', 'high river', 'carstairs', 'didsbury', 'olds', 'innisfail', 'penhold', 'red deer'];
+      const allowedCities = ['calgary', 'city of calgary', 'rocky view county', 'county of rocky view', 'rocky view', 'balzac', 'airdrie', 'chestermere', 'cochrane', 'okotoks', 'crossfield', 'strathmore', 'high river'];
+
+      const normalizeCityForFilter = (raw: string) => {
+        // Strip province/state suffixes like ", Alberta", ", AB", ", British Columbia"
+        return raw.toLowerCase().trim().replace(/,?\s*(alberta|ab|british columbia|bc|saskatchewan|sk|ontario|on|manitoba|mb)$/i, '').trim();
+      };
+
       const extractedListings = rawListings.filter((l) => {
         const sizeOk = !l.size_sf || l.size_sf >= 8000;
-        const cityLower = (l.city || '').toLowerCase().trim();
-        // Allow through if no city specified OR city is in allowed list
-        const cityOk = !cityLower || allowedCities.includes(cityLower);
-        if (!cityOk) console.log(`Filtered out listing "${l.address}" with city "${l.city}"`);
+        const cityRaw = l.city || '';
+        if (!cityRaw.trim()) return sizeOk; // no city = allow through
+        const cityNorm = normalizeCityForFilter(cityRaw);
+        const cityOk = allowedCities.includes(cityNorm);
+        if (!cityOk) console.log(`Filtered out listing "${l.address}" with city "${l.city}" (normalized: "${cityNorm}")`);
         return sizeOk && cityOk;
       });
 
