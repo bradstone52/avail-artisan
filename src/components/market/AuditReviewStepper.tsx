@@ -1,5 +1,6 @@
-import { useState, useMemo, useRef, useEffect } from 'react';
+import { useState, useMemo, useRef, useEffect, useCallback } from 'react';
 import { MarketListing } from '@/hooks/useMarketListings';
+import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
@@ -60,6 +61,7 @@ interface AuditReviewStepperProps {
   onAddNewListing: (pdfListing: PdfExtractedListing) => void;
   onFlagMissing: (ids: string[]) => void;
   onEditListing?: (listing: MarketListing) => void;
+  onRegisterEditCallback?: (cb: (listingId: string) => void) => void;
   onClose: () => void;
 }
 
@@ -74,10 +76,11 @@ export function AuditReviewStepper({
   onAddNewListing,
   onFlagMissing,
   onEditListing,
+  onRegisterEditCallback,
   onClose,
 }: AuditReviewStepperProps) {
-  // Build the review queue
-  const items = useMemo<ReviewItem[]>(() => {
+  // Build the review queue — use state so we can update DB listings after edits
+  const [items, setItems] = useState<ReviewItem[]>(() => {
     const result: ReviewItem[] = [];
     matchedPairs.forEach((pair) => {
       result.push({ type: 'matched', matchedPair: pair, action: null });
@@ -89,7 +92,35 @@ export function AuditReviewStepper({
       result.push({ type: 'missing_from_pdf', dbListing: db, action: null });
     });
     return result;
-  }, [matchedPairs, newInPdf, missingFromPdf]);
+  });
+
+  const refreshDbListing = useCallback(async (listingId: string) => {
+    const { data, error } = await supabase
+      .from('market_listings')
+      .select('*')
+      .eq('id', listingId)
+      .single();
+    if (error || !data) return;
+    const updated = data as unknown as MarketListing;
+    setItems(prev => prev.map(item => {
+      if (item.type === 'matched' && item.matchedPair?.dbListing.id === listingId) {
+        return { ...item, matchedPair: { ...item.matchedPair, dbListing: updated } };
+      }
+      if (item.type === 'missing_from_pdf' && item.dbListing?.id === listingId) {
+        return { ...item, dbListing: updated };
+      }
+      return item;
+    }));
+  }, []);
+
+  // Register the refresh callback with the parent so it can notify us after edits
+  useEffect(() => {
+    onRegisterEditCallback?.(refreshDbListing);
+  }, [onRegisterEditCallback, refreshDbListing]);
+
+  const handleEditListing = useCallback((listing: MarketListing) => {
+    onEditListing?.(listing);
+  }, [onEditListing]);
 
   const [actions, setActions] = useState<ReviewAction[]>(() => items.map(() => null));
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -299,7 +330,7 @@ export function AuditReviewStepper({
 
             {/* Content based on type */}
             {currentItem.type === 'matched' && currentItem.matchedPair && (
-              <MatchedReviewCard pair={currentItem.matchedPair} onEdit={onEditListing} scopeListings={scopeListings} />
+              <MatchedReviewCard pair={currentItem.matchedPair} onEdit={handleEditListing} scopeListings={scopeListings} />
             )}
 
             {currentItem.type === 'new_in_pdf' && currentItem.pdfListing && (
@@ -307,7 +338,7 @@ export function AuditReviewStepper({
             )}
 
             {currentItem.type === 'missing_from_pdf' && currentItem.dbListing && (
-              <MissingFromPdfCard dbListing={currentItem.dbListing} onEdit={onEditListing} />
+              <MissingFromPdfCard dbListing={currentItem.dbListing} onEdit={handleEditListing} />
             )}
 
             {/* Action Buttons */}

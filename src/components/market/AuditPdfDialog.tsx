@@ -24,6 +24,7 @@ interface AuditPdfDialogProps {
   onAddNewListing?: (prefillData: PdfExtractedListing, brokerSource: string) => void;
   onRefreshListings?: () => void;
   onEditListing?: (listing: MarketListing) => void;
+  onRegisterEditCallback?: (cb: (listingId: string) => void) => void;
 }
 
 type MatchField = 'broker_source' | 'landlord';
@@ -45,6 +46,7 @@ export function AuditPdfDialog({
   onAddNewListing,
   onRefreshListings,
   onEditListing,
+  onRegisterEditCallback,
 }: AuditPdfDialogProps) {
   const { session } = useAuth();
   const [matchField, setMatchField] = useState<MatchField>('broker_source');
@@ -351,6 +353,7 @@ export function AuditPdfDialog({
             onAddNewListing={handleAddNewListing}
             onFlagMissing={handleStepperFlagMissing}
             onEditListing={onEditListing}
+            onRegisterEditCallback={onRegisterEditCallback}
             onClose={handleStepperClose}
           />
         </DialogContent>
