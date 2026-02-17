@@ -113,7 +113,7 @@ You should return one entry per table row. The total count should match the numb
     };
 
     const gatewayUrl = "https://ai.gateway.lovable.dev/v1/chat/completions";
-    const models = ["google/gemini-2.5-flash", "google/gemini-2.5-flash-lite", "openai/gpt-5-mini"];
+    const models = ["google/gemini-2.5-pro", "google/gemini-2.5-flash", "openai/gpt-5-mini"];
 
     const requestBody = (model: string) => JSON.stringify({
       model,
