@@ -848,7 +848,7 @@ export function MarketListingsTable({ listings, onEdit, onRefresh, sortColumn, s
                         <Receipt className="h-3.5 w-3.5" />
                       </Button>
                     </TooltipTrigger>
-                    <TooltipContent className="z-[60]">Log Transaction</TooltipContent>
+                    <TooltipContent>Log Transaction</TooltipContent>
                   </Tooltip>
                   
                   {/* Property Link */}
