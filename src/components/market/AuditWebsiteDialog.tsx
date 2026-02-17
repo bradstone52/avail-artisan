@@ -394,13 +394,13 @@ export function AuditWebsiteDialog({
                   </Button>
                 </div>
               ) : (
-                <div className="flex items-center gap-1.5 text-sm min-w-0">
+                <div className="flex items-center gap-1.5 text-sm min-w-0 overflow-hidden">
                   <Globe className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
                   <a
                     href={selectedWebsite.website_url}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="text-primary hover:underline truncate min-w-0"
+                    className="text-primary hover:underline truncate min-w-0 flex-1"
                   >
                     {selectedWebsite.website_url}
                   </a>
