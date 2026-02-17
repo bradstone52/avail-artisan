@@ -129,11 +129,18 @@ export function AuditWebsiteDialog({
       if (data?.error) throw new Error(data.error);
 
       const rawListings: PdfExtractedListing[] = data.listings || [];
-      const allowedCities = ['calgary', 'city of calgary', 'rocky view county', 'county of rocky view', 'rocky view'];
+
+      // Log cities for debugging
+      const citiesFound = [...new Set(rawListings.map((l) => l.city || 'null'))];
+      console.log('Cities found in crawl:', citiesFound);
+
+      const allowedCities = ['calgary', 'city of calgary', 'rocky view county', 'county of rocky view', 'rocky view', 'balzac', 'airdrie', 'chestermere', 'cochrane', 'okotoks', 'crossfield', 'strathmore', 'high river', 'carstairs', 'didsbury', 'olds', 'innisfail', 'penhold', 'red deer'];
       const extractedListings = rawListings.filter((l) => {
         const sizeOk = !l.size_sf || l.size_sf >= 8000;
         const cityLower = (l.city || '').toLowerCase().trim();
+        // Allow through if no city specified OR city is in allowed list
         const cityOk = !cityLower || allowedCities.includes(cityLower);
+        if (!cityOk) console.log(`Filtered out listing "${l.address}" with city "${l.city}"`);
         return sizeOk && cityOk;
       });
 
