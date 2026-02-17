@@ -6,7 +6,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
-import { Globe, Plus, Trash2, Loader2, ListChecks, CheckCircle2, AlertTriangle } from 'lucide-react';
+import { Globe, Plus, Trash2, Loader2, ListChecks, CheckCircle2, AlertTriangle, Pencil } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
@@ -51,6 +51,7 @@ export function AuditWebsiteDialog({
   const [isProcessing, setIsProcessing] = useState(false);
   const [result, setResult] = useState<AuditResult | null>(null);
   const [showStepper, setShowStepper] = useState(false);
+  const [editingWebsiteUrl, setEditingWebsiteUrl] = useState<string | null>(null);
 
   // New website form
   const [showAddForm, setShowAddForm] = useState(false);
@@ -293,6 +294,7 @@ export function AuditWebsiteDialog({
       setSelectedLandlord('');
       setShowStepper(false);
       setShowAddForm(false);
+      setEditingWebsiteUrl(null);
     }
     onOpenChange(open);
   };
@@ -359,27 +361,68 @@ export function AuditWebsiteDialog({
           </div>
 
           {selectedWebsite && (
-            <div className="flex items-center gap-2 text-sm">
-              <Globe className="w-3.5 h-3.5 text-muted-foreground" />
-              <a
-                href={selectedWebsite.website_url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-primary hover:underline truncate"
-              >
-                {selectedWebsite.website_url}
-              </a>
-              <Button
-                variant="ghost"
-                size="sm"
-                className="h-6 w-6 p-0 text-destructive"
-                onClick={() => {
-                  deleteWebsite(selectedWebsite.id);
-                  setSelectedLandlord('');
-                }}
-              >
-                <Trash2 className="h-3.5 w-3.5" />
-              </Button>
+            <div className="space-y-2">
+              {editingWebsiteUrl !== null ? (
+                <div className="flex items-center gap-2">
+                  <Input
+                    value={editingWebsiteUrl}
+                    onChange={(e) => setEditingWebsiteUrl(e.target.value)}
+                    className="text-sm h-8 flex-1"
+                    placeholder="https://..."
+                    autoFocus
+                  />
+                  <Button
+                    size="sm"
+                    className="h-8"
+                    onClick={async () => {
+                      if (editingWebsiteUrl.trim()) {
+                        await updateWebsite(selectedWebsite.id, { website_url: editingWebsiteUrl.trim() });
+                        setEditingWebsiteUrl(null);
+                      }
+                    }}
+                  >
+                    Save
+                  </Button>
+                  <Button size="sm" variant="ghost" className="h-8" onClick={() => setEditingWebsiteUrl(null)}>
+                    Cancel
+                  </Button>
+                </div>
+              ) : (
+                <div className="flex items-center gap-1.5 text-sm min-w-0">
+                  <Globe className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
+                  <a
+                    href={selectedWebsite.website_url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-primary hover:underline truncate min-w-0"
+                  >
+                    {selectedWebsite.website_url}
+                  </a>
+                  <div className="flex items-center gap-0.5 shrink-0">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-6 w-6 p-0"
+                      onClick={() => setEditingWebsiteUrl(selectedWebsite.website_url)}
+                      title="Edit URL"
+                    >
+                      <Pencil className="h-3 w-3" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-6 w-6 p-0 text-destructive"
+                      onClick={() => {
+                        deleteWebsite(selectedWebsite.id);
+                        setSelectedLandlord('');
+                      }}
+                      title="Remove website"
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </Button>
+                  </div>
+                </div>
+              )}
             </div>
           )}
 
