@@ -448,6 +448,35 @@ function FindBrochureButton({ listing }: { listing: MarketListing }) {
   );
 }
 
+// Helper to determine pricing fields based on listing type
+function isSaleType(type?: string | null) {
+  if (!type) return false;
+  const t = type.toLowerCase();
+  return t.includes('sale');
+}
+
+function isLeaseType(type?: string | null) {
+  if (!type) return true;
+  const t = type.toLowerCase();
+  return t.includes('lease') || t.includes('sublease') || (!t.includes('sale'));
+}
+
+function PricingFields({ listingType, askingRate, salePrice }: {
+  listingType?: string | null;
+  askingRate?: string | null;
+  salePrice?: string | null;
+}) {
+  const showLease = isLeaseType(listingType);
+  const showSale = isSaleType(listingType);
+
+  return (
+    <>
+      {showLease && <Field label="Asking Rate" value={askingRate} />}
+      {showSale && <Field label="Sale Price" value={salePrice || askingRate} />}
+    </>
+  );
+}
+
 function MatchedReviewCard({ pair, onEdit, scopeListings }: { pair: MatchedPair; onEdit?: (listing: MarketListing) => void; scopeListings?: MarketListing[] }) {
   const { pdfListing, dbListing } = pair;
   const brochureLink = pdfListing.brochure_link || dbListing.brochure_link || dbListing.link;
@@ -493,7 +522,7 @@ function MatchedReviewCard({ pair, onEdit, scopeListings }: { pair: MatchedPair;
           <div className="grid grid-cols-2 gap-2 text-xs">
             <Field label="Type" value={pdfListing.listing_type} />
             <Field label="Size" value={pdfListing.size_sf ? `${pdfListing.size_sf.toLocaleString()} SF` : null} />
-            <Field label="Rate" value={pdfListing.asking_rate} />
+            <PricingFields listingType={pdfListing.listing_type} askingRate={pdfListing.asking_rate} salePrice={null} />
             <Field label="City" value={pdfListing.city} />
             <Field label="Landlord" value={pdfListing.landlord} />
           </div>
@@ -533,7 +562,7 @@ function MatchedReviewCard({ pair, onEdit, scopeListings }: { pair: MatchedPair;
                 <div className="grid grid-cols-2 gap-2 text-xs">
                   <Field label="Type" value={dbListing.listing_type} />
                   <Field label="Size" value={dbListing.size_sf ? `${dbListing.size_sf.toLocaleString()} SF` : null} />
-                  <Field label="Rate" value={dbListing.asking_rate_psf} />
+                  <PricingFields listingType={dbListing.listing_type} askingRate={dbListing.asking_rate_psf} salePrice={dbListing.sale_price} />
                   <Field label="City" value={dbListing.city} />
                   <Field label="Landlord" value={dbListing.landlord} />
                   <Field label="Status" value={dbListing.status} />
@@ -568,7 +597,7 @@ function MatchedReviewCard({ pair, onEdit, scopeListings }: { pair: MatchedPair;
                     <div className="grid grid-cols-2 gap-2 text-xs">
                       <Field label="Type" value={sibling.listing_type} />
                       <Field label="Size" value={sibling.size_sf ? `${sibling.size_sf.toLocaleString()} SF` : null} />
-                      <Field label="Rate" value={sibling.asking_rate_psf} />
+                      <PricingFields listingType={sibling.listing_type} askingRate={sibling.asking_rate_psf} salePrice={sibling.sale_price} />
                       <Field label="City" value={sibling.city} />
                       <Field label="Landlord" value={sibling.landlord} />
                       <Field label="Status" value={sibling.status} />
@@ -658,7 +687,7 @@ function NewInPdfCard({ pdfListing }: { pdfListing: PdfExtractedListing }) {
       <div className="grid grid-cols-3 gap-3 text-sm">
         <Field label="Listing Type" value={pdfListing.listing_type} />
         <Field label="Size" value={pdfListing.size_sf ? `${pdfListing.size_sf.toLocaleString()} SF` : null} />
-        <Field label="Asking Rate" value={pdfListing.asking_rate} />
+        <PricingFields listingType={pdfListing.listing_type} askingRate={pdfListing.asking_rate} salePrice={null} />
         <Field label="City" value={pdfListing.city} />
         <Field label="Submarket" value={pdfListing.submarket} />
         <Field label="Landlord" value={pdfListing.landlord} />
@@ -713,7 +742,7 @@ function MissingFromPdfCard({ dbListing, onEdit }: { dbListing: MarketListing; o
         <div className="grid grid-cols-3 gap-3 text-sm">
           <Field label="Listing Type" value={dbListing.listing_type} />
           <Field label="Size" value={dbListing.size_sf ? `${dbListing.size_sf.toLocaleString()} SF` : null} />
-          <Field label="Rate" value={dbListing.asking_rate_psf} />
+          <PricingFields listingType={dbListing.listing_type} askingRate={dbListing.asking_rate_psf} salePrice={dbListing.sale_price} />
           <Field label="City" value={dbListing.city} />
           <Field label="Status" value={dbListing.status} />
           <Field label="Broker" value={dbListing.broker_source} />
