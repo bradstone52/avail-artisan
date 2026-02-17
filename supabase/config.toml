@@ -50,3 +50,6 @@ verify_jwt = false
 
 [functions.audit-brokerage-pdf]
 verify_jwt = false
+
+[functions.audit-landlord-website]
+verify_jwt = false
