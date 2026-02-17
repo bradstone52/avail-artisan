@@ -13,6 +13,7 @@ interface BrokerageUpdateCheck {
   checked_at: string | null;
   checked_by: string | null;
   created_at: string;
+  check_type: string;
 }
 
 export function useBrokerageUpdateChecks(brokerageNames: string[]) {
@@ -44,7 +45,7 @@ export function useBrokerageUpdateChecks(brokerageNames: string[]) {
   });
 
   const toggleCheck = useMutation({
-    mutationFn: async ({ brokerageName, checked }: { brokerageName: string; checked: boolean }) => {
+    mutationFn: async ({ brokerageName, checked, checkType = 'brokerage' }: { brokerageName: string; checked: boolean; checkType?: string }) => {
       if (!orgId || !user) throw new Error('Not authenticated');
 
       if (checked) {
@@ -58,17 +59,18 @@ export function useBrokerageUpdateChecks(brokerageNames: string[]) {
             checked: true,
             checked_at: new Date().toISOString(),
             checked_by: user.id,
-          }, { onConflict: 'org_id,brokerage_name,check_month,check_year' });
+            check_type: checkType,
+          }, { onConflict: 'org_id,brokerage_name,check_month,check_year,check_type' });
         if (error) throw error;
       } else {
-        // Uncheck: delete the row
         const { error } = await supabase
           .from('brokerage_update_checks')
           .delete()
           .eq('org_id', orgId)
           .eq('brokerage_name', brokerageName)
           .eq('check_month', currentMonth)
-          .eq('check_year', currentYear);
+          .eq('check_year', currentYear)
+          .eq('check_type', checkType);
         if (error) throw error;
       }
     },
@@ -77,12 +79,22 @@ export function useBrokerageUpdateChecks(brokerageNames: string[]) {
     },
   });
 
-  // Build a map of brokerage name -> checked status
-  const checkMap = new Map(checks.map(c => [c.brokerage_name, c.checked]));
+  // Build maps for brokerage and landlord checks
+  const brokerageCheckMap = new Map(
+    checks.filter(c => (c.check_type || 'brokerage') === 'brokerage').map(c => [c.brokerage_name, c.checked])
+  );
+  const landlordCheckMap = new Map(
+    checks.filter(c => c.check_type === 'landlord').map(c => [c.brokerage_name, c.checked])
+  );
+
+  // Keep backward compat
+  const checkMap = brokerageCheckMap;
 
   return {
     checks,
     checkMap,
+    brokerageCheckMap,
+    landlordCheckMap,
     isLoading,
     toggleCheck,
     currentMonth,
