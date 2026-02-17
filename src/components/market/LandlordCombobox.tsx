@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
-import { Check, ChevronsUpDown, Plus } from 'lucide-react';
+import { Check, ChevronsUpDown, Plus, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import {
@@ -120,6 +120,18 @@ export function LandlordCombobox({ value, onChange, className }: LandlordCombobo
             <CommandEmpty className="py-2 px-4 text-sm text-muted-foreground">
               No landlords found.
             </CommandEmpty>
+            {value && (
+              <CommandGroup>
+                <CommandItem
+                  onSelect={() => handleSelect('')}
+                  className="text-destructive"
+                >
+                  <X className="mr-2 h-4 w-4" />
+                  Clear selection
+                </CommandItem>
+              </CommandGroup>
+            )}
+            {value && filteredLandlords.length > 0 && <CommandSeparator />}
             {filteredLandlords.length > 0 && (
               <CommandGroup heading="Landlords">
                 {filteredLandlords.map((landlord) => (
