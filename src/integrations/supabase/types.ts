@@ -1609,6 +1609,50 @@ export type Database = {
         }
         Relationships: []
       }
+      landlord_websites: {
+        Row: {
+          created_at: string
+          created_by: string
+          id: string
+          landlord_name: string
+          last_crawled_at: string | null
+          notes: string | null
+          org_id: string
+          updated_at: string
+          website_url: string
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          id?: string
+          landlord_name: string
+          last_crawled_at?: string | null
+          notes?: string | null
+          org_id: string
+          updated_at?: string
+          website_url: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          id?: string
+          landlord_name?: string
+          last_crawled_at?: string | null
+          notes?: string | null
+          org_id?: string
+          updated_at?: string
+          website_url?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "landlord_websites_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "orgs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       listings: {
         Row: {
           address: string

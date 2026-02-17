@@ -15,7 +15,7 @@ import {
 import { Checkbox } from '@/components/ui/checkbox';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
-import { RefreshCw, Database, Search, X, Filter, Link2, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Plus, ChevronDown, Wrench, ClipboardCheck, FileSearch, AlertTriangle } from 'lucide-react';
+import { RefreshCw, Database, Search, X, Filter, Link2, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Plus, ChevronDown, Wrench, ClipboardCheck, FileSearch, AlertTriangle, Globe } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { format } from 'date-fns';
 import { MarketListingEditDialog } from '@/components/market/MarketListingEditDialog';
@@ -24,6 +24,7 @@ import { FixLinksDialog } from '@/components/market/FixLinksDialog';
 import { LogTransactionDialog } from '@/components/market/LogTransactionDialog';
 import { MonthlyUpdateCheckerDialog } from '@/components/market/MonthlyUpdateCheckerDialog';
 import { AuditPdfDialog } from '@/components/market/AuditPdfDialog';
+import { AuditWebsiteDialog } from '@/components/market/AuditWebsiteDialog';
 
 const SIZE_RANGES = [
   { label: 'All Sizes', value: 'all', min: 0, max: Infinity },
@@ -79,6 +80,7 @@ export default function MarketListings() {
   const [transactionListing, setTransactionListing] = useState<MarketListing | null>(null);
   const [isUpdateCheckerOpen, setIsUpdateCheckerOpen] = useState(false);
   const [isAuditPdfOpen, setIsAuditPdfOpen] = useState(false);
+  const [isAuditWebsiteOpen, setIsAuditWebsiteOpen] = useState(false);
   const [flaggedListingIds, setFlaggedListingIds] = useState<string[]>([]);
   const auditEditCallbackRef = useRef<((listingId: string) => void) | null>(null);
 
@@ -414,6 +416,15 @@ export default function MarketListings() {
             >
               <FileSearch className="w-4 h-4 mr-2" />
               Audit PDF
+            </Button>
+            <Button 
+              variant="outline"
+              size="sm"
+              className="flex-1 sm:flex-none"
+              onClick={() => setIsAuditWebsiteOpen(true)}
+            >
+              <Globe className="w-4 h-4 mr-2" />
+              Audit Website
             </Button>
             <Button 
               variant="outline"
@@ -1010,6 +1021,92 @@ export default function MarketListings() {
                 mua: false,
                 muaValue: '',
                 hasLand: pdfListing.listing_type?.includes('Land') || false,
+                isDistributionWarehouse: false,
+                calgaryQuad: '',
+              },
+            };
+            try {
+              localStorage.setItem(FORM_STORAGE_KEY, JSON.stringify(prefill));
+            } catch (e) { /* ignore */ }
+            setIsCreateDialogOpen(true);
+          }}
+          onRefreshListings={refreshListings}
+          onEditListing={(listing) => {
+            setEditingListing(listing);
+          }}
+          onRegisterEditCallback={(cb) => {
+            auditEditCallbackRef.current = cb;
+          }}
+        />
+
+        {/* Audit Website Dialog */}
+        <AuditWebsiteDialog
+          open={isAuditWebsiteOpen}
+          onOpenChange={setIsAuditWebsiteOpen}
+          listings={listings.filter(l => l.status === 'Active' || l.status === 'Under Contract')}
+          uniqueLandlords={uniqueLandlords}
+          onFlagListings={(ids) => setFlaggedListingIds(ids)}
+          onAddNewListing={(webListing, landlordName) => {
+            const FORM_STORAGE_KEY = 'market-listing-form-draft';
+            const now = new Date();
+            const year = now.getFullYear();
+            const month = String(now.getMonth() + 1).padStart(2, '0');
+            const day = String(now.getDate()).padStart(2, '0');
+            const random = Math.random().toString(36).substring(2, 6).toUpperCase();
+            const newListingId = `ML-${year}${month}${day}-${random}`;
+            const prefill = {
+              sessionId: 'create',
+              mode: 'create',
+              timestamp: Date.now(),
+              state: {
+                listingId: newListingId,
+                address: webListing.address || '',
+                building: '',
+                unit: '',
+                displayAddress: webListing.address || '',
+                displayAddressManuallyEdited: false,
+                city: webListing.city || '',
+                submarket: webListing.submarket || '',
+                sizeSf: webListing.size_sf ? webListing.size_sf.toLocaleString() : '',
+                status: 'Active',
+                listingType: webListing.listing_type || '',
+                askingRate: webListing.asking_rate || '',
+                opCosts: '',
+                propertyTax: '',
+                condoFees: '',
+                salePrice: '',
+                grossRate: '',
+                availabilityDate: '',
+                subleaseExp: '',
+                landlord: landlordName || '',
+                brokerSource: '',
+                brochureLink: webListing.brochure_link || '',
+                websiteLink: '',
+                notesPublic: '',
+                internalNote: '',
+                warehouseSf: '',
+                officeSf: '',
+                clearHeight: '',
+                dockDoors: '',
+                driveInDoors: '',
+                driveInDoorDimensions: [],
+                buildingDepth: '',
+                powerAmps: '',
+                voltage: '',
+                sprinkler: '',
+                hasSprinklers: false,
+                hasCranes: false,
+                cranes: '',
+                craneTons: '',
+                yard: false,
+                yardArea: '',
+                crossDock: false,
+                trailerParking: '',
+                landAcres: '',
+                zoning: '',
+                mua: false,
+                muaValue: '',
+                hasLand: webListing.listing_type?.includes('Land') || false,
                 isDistributionWarehouse: false,
                 calgaryQuad: '',
               },
