@@ -118,15 +118,35 @@ export function AuditWebsiteDialog({
     setShowStepper(false);
 
     try {
-      const { data, error } = await supabase.functions.invoke('audit-landlord-website', {
-        body: {
+      // Use raw fetch with a long timeout — crawl + scrape + AI extraction can take 3+ minutes
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 5 * 60 * 1000); // 5 min
+
+      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+      const supabaseAnonKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+
+      const response = await fetch(`${supabaseUrl}/functions/v1/audit-landlord-website`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.access_token}`,
+          'apikey': supabaseAnonKey,
+        },
+        body: JSON.stringify({
           url: selectedWebsite.website_url,
           landlord_name: selectedLandlord,
-        },
+        }),
+        signal: controller.signal,
       });
 
-      if (error) throw new Error(error.message || 'Crawl failed');
-      if (data?.error) throw new Error(data.error);
+      clearTimeout(timeoutId);
+
+      if (!response.ok) {
+        const errBody = await response.json().catch(() => ({}));
+        throw new Error(errBody.error || `Request failed with status ${response.status}`);
+      }
+
+      const data = await response.json();
 
       const rawListings: PdfExtractedListing[] = data.listings || [];
 
