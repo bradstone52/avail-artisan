@@ -1876,6 +1876,7 @@ export type Database = {
           power_amps: string | null
           property_tax: string | null
           sale_price: string | null
+          shop_sf: number | null
           size_sf: number
           sprinkler: string | null
           status: string
@@ -1937,6 +1938,7 @@ export type Database = {
           power_amps?: string | null
           property_tax?: string | null
           sale_price?: string | null
+          shop_sf?: number | null
           size_sf?: number
           sprinkler?: string | null
           status?: string
@@ -1998,6 +2000,7 @@ export type Database = {
           power_amps?: string | null
           property_tax?: string | null
           sale_price?: string | null
+          shop_sf?: number | null
           size_sf?: number
           sprinkler?: string | null
           status?: string
