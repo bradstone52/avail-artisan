@@ -75,7 +75,7 @@ const navigation: NavigationEntry[] = [
 ];
 
 const adminNavigation = [
-  { name: 'User Management', href: '/admin/users', icon: Users },
+  { name: 'Management', href: '/admin/users', icon: Users },
   { name: 'PDF Import', href: '/pdf-import', icon: FilePlus },
 ];
 
