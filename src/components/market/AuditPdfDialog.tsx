@@ -377,7 +377,7 @@ export function AuditPdfDialog({
 
         <div className="space-y-4">
           {/* Upload & Config — collapsible after results */}
-          <Accordion type="single" collapsible value={result ? undefined : 'upload'} defaultValue="upload">
+          <Accordion type="single" collapsible value={result ? '' : 'upload'}>
             <AccordionItem value="upload" className="border rounded-md">
               <AccordionTrigger className="px-3 py-2 text-sm hover:no-underline">
                 {result ? 'Run Another Audit' : 'Upload & Configure'}
