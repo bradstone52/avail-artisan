@@ -3242,6 +3242,19 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      can_access_deal: {
+        Args: {
+          _deal_cv_agent_id: string
+          _deal_la1: string
+          _deal_la2: string
+          _deal_org_id: string
+          _deal_sa1: string
+          _deal_sa2: string
+          _deal_user_id: string
+          _user_id: string
+        }
+        Returns: boolean
+      }
       can_run_sync: { Args: { _user_id: string }; Returns: boolean }
       check_invite_rate_limit: {
         Args: { _ip_address: string }
@@ -3251,6 +3264,10 @@ export type Database = {
       generate_invite_code: { Args: never; Returns: string }
       generate_invite_code_v2: { Args: never; Returns: string }
       get_user_org_ids: { Args: { _user_id: string }; Returns: string[] }
+      has_deal_access: {
+        Args: { _deal_id: string; _user_id: string }
+        Returns: boolean
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
