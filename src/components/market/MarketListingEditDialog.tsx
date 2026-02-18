@@ -1109,6 +1109,20 @@ export function MarketListingEditDialog({
                 />
               </div>
 
+              {/* Development Name */}
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="developmentName" className="text-right text-muted-foreground text-xs">
+                  Development Name
+                </Label>
+                <Input
+                  id="developmentName"
+                  value={developmentName}
+                  onChange={(e) => setDevelopmentName(e.target.value)}
+                  className={`col-span-3 placeholder-light text-sm ${developmentName ? 'input-filled' : ''}`}
+                  placeholder="e.g., StoneGate Industrial"
+                />
+              </div>
+
               {/* City */}
               <div className="grid grid-cols-4 items-center gap-4">
                 <Label htmlFor="city" className="text-right">
@@ -1730,19 +1744,6 @@ export function MarketListingEditDialog({
                 </div>
               </div>
 
-              {/* Development Name */}
-              <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="developmentName" className="text-right">
-                  Development
-                </Label>
-                <Input
-                  id="developmentName"
-                  value={developmentName}
-                  onChange={(e) => setDevelopmentName(e.target.value)}
-                  className={`col-span-3 placeholder-light ${developmentName ? 'input-filled' : ''}`}
-                  placeholder="e.g., StoneGate Industrial"
-                />
-              </div>
 
               {/* Brochure/Website Link */}
               <div className="grid grid-cols-4 items-center gap-4">
