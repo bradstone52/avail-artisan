@@ -151,7 +151,25 @@ export function AuditPdfDialog({
       const matchedPairs: MatchedPair[] = [];
       const missing: MarketListing[] = [];
 
-      // First pass: find all address matches between DB listings and PDF listings
+      // Helper to find development siblings for a PDF listing
+      const findDevSiblings = (pdfItem: PdfExtractedListing): string[] => {
+        const devName = pdfItem.development_name?.toLowerCase().trim();
+        if (!devName || devName.length <= 3) return [];
+        return scopeListings
+          .filter(l => {
+            const listingDevName = (l as any).development_name;
+            if (listingDevName) {
+              return listingDevName.toLowerCase().trim() === devName;
+            }
+            // Fallback: check address and display_address for development name
+            const fields = [l.address, l.display_address]
+              .filter(Boolean).map(f => f!.toLowerCase());
+            return fields.some(f => f.includes(devName));
+          })
+          .map(l => l.id);
+      };
+
+      // First pass: find all address AND development name matches between DB listings and PDF listings
       const dbToPdfCandidates: Map<number, number[]> = new Map(); // dbIndex -> pdfIndices
       const pdfToDbCandidates: Map<number, number[]> = new Map(); // pdfIndex -> dbIndices
 
@@ -159,13 +177,23 @@ export function AuditPdfDialog({
         const listing = scopeListings[di];
         const listingAddr = listing.address || '';
         const displayAddr = listing.display_address || '';
+        const listingDevName = ((listing as any).development_name || '').toLowerCase().trim();
         const candidates: number[] = [];
 
         for (let pi = 0; pi < extractedListings.length; pi++) {
-          if (
-            addressesMatch(listingAddr, extractedListings[pi].address) ||
-            (displayAddr && addressesMatch(displayAddr, extractedListings[pi].address))
-          ) {
+          const pdfAddr = extractedListings[pi].address;
+          const pdfDevName = (extractedListings[pi].development_name || '').toLowerCase().trim();
+
+          const addrMatch =
+            addressesMatch(listingAddr, pdfAddr) ||
+            (displayAddr && addressesMatch(displayAddr, pdfAddr));
+
+          // Also match by development name
+          const devMatch =
+            (listingDevName && listingDevName.length > 3 && pdfDevName && pdfDevName === listingDevName) ||
+            (listingDevName && listingDevName.length > 3 && normalizeAddress(pdfAddr) === normalizeAddress(listingDevName));
+
+          if (addrMatch || devMatch) {
             candidates.push(pi);
             if (!pdfToDbCandidates.has(pi)) pdfToDbCandidates.set(pi, []);
             pdfToDbCandidates.get(pi)!.push(di);
@@ -189,9 +217,11 @@ export function AuditPdfDialog({
           pi => !assignedPdf.has(pi) && normalizeType(extractedListings[pi].listing_type) === dbType
         );
         if (typeMatch !== undefined) {
+          const devSibIds = findDevSiblings(extractedListings[typeMatch]);
           matchedPairs.push({
             pdfListing: extractedListings[typeMatch],
             dbListing: scopeListings[di],
+            developmentSiblingIds: devSibIds.length > 0 ? devSibIds : undefined,
           });
           assignedPdf.add(typeMatch);
           assignedDb.add(di);
@@ -205,21 +235,41 @@ export function AuditPdfDialog({
         // Prefer an unassigned PDF entry first
         const fallback = candidates.find(pi => !assignedPdf.has(pi));
         if (fallback !== undefined) {
+          const devSibIds = findDevSiblings(extractedListings[fallback]);
           matchedPairs.push({
             pdfListing: extractedListings[fallback],
             dbListing: scopeListings[di],
+            developmentSiblingIds: devSibIds.length > 0 ? devSibIds : undefined,
           });
           assignedPdf.add(fallback);
           assignedDb.add(di);
         } else if (candidates.length > 0) {
-          // Address exists in PDF but all PDF entries already claimed by siblings —
+          // Address/dev exists in PDF but all PDF entries already claimed by siblings —
           // still match (shared address), don't mark as missing
+          const devSibIds = findDevSiblings(extractedListings[candidates[0]]);
           matchedPairs.push({
             pdfListing: extractedListings[candidates[0]],
             dbListing: scopeListings[di],
+            developmentSiblingIds: devSibIds.length > 0 ? devSibIds : undefined,
           });
           assignedDb.add(di);
         } else {
+          // Before marking as missing, check if this DB listing shares a development name
+          // with any PDF listing (even already-assigned ones) — development listings can be many-to-one
+          const listingDevName = ((scopeListings[di] as any).development_name || '').toLowerCase().trim();
+          if (listingDevName && listingDevName.length > 3) {
+            const devMatchPi = extractedListings.findIndex(pdf => {
+              const pdfDevName = (pdf.development_name || '').toLowerCase().trim();
+              const pdfAddrNorm = normalizeAddress(pdf.address);
+              return pdfDevName === listingDevName || pdfAddrNorm === normalizeAddress(listingDevName);
+            });
+            if (devMatchPi !== -1) {
+              const devSibIds = findDevSiblings(extractedListings[devMatchPi]);
+              matchedPairs.push({ pdfListing: extractedListings[devMatchPi], dbListing: scopeListings[di], developmentSiblingIds: devSibIds.length > 0 ? devSibIds : undefined });
+              assignedDb.add(di);
+              continue;
+            }
+          }
           missing.push(scopeListings[di]);
         }
       }
@@ -230,23 +280,30 @@ export function AuditPdfDialog({
       // Cross-check against ALL listings to catch entries that exist under a different broker/landlord
       // But distinguish between same-scope duplicates and truly different-scope matches
       const newInPdf = extractedListings.filter((_, i) => !matchedPdfIndices.has(i)).map(pdfItem => {
-        const matchInScope = scopeListings.some(l => 
-          addressesMatch(l.address || '', pdfItem.address) ||
-          (l.display_address && addressesMatch(l.display_address, pdfItem.address))
-        );
+        const pdfDevName = (pdfItem.development_name || '').toLowerCase().trim();
+        const pdfAddrNorm = normalizeAddress(pdfItem.address);
+
+        const listingMatchesPdf = (l: MarketListing) => {
+          if (addressesMatch(l.address || '', pdfItem.address) ||
+            (l.display_address && addressesMatch(l.display_address, pdfItem.address))) return true;
+          const lDevName = ((l as any).development_name || '').toLowerCase().trim();
+          if (lDevName && lDevName.length > 3) {
+            if (pdfDevName && pdfDevName === lDevName) return true;
+            if (pdfAddrNorm === normalizeAddress(lDevName)) return true;
+          }
+          return false;
+        };
+
+        const matchInScope = scopeListings.some(listingMatchesPdf);
         const outsideScopeMatches = !matchInScope ? listings.filter(l => {
           const inScope = scopeListings.some(sl => sl.id === l.id);
           if (inScope) return false;
-          return addressesMatch(l.address || '', pdfItem.address) ||
-            (l.display_address && addressesMatch(l.display_address, pdfItem.address));
+          return listingMatchesPdf(l);
         }) : [];
         const matchOutsideScope = outsideScopeMatches.length > 0;
 
         // Also collect in-scope matches for display
-        const inScopeMatches = matchInScope ? scopeListings.filter(l =>
-          addressesMatch(l.address || '', pdfItem.address) ||
-          (l.display_address && addressesMatch(l.display_address, pdfItem.address))
-        ) : [];
+        const inScopeMatches = matchInScope ? scopeListings.filter(listingMatchesPdf) : [];
 
         const existingDbMatches = [...outsideScopeMatches, ...inScopeMatches].map(l => ({
           id: l.id,
@@ -265,10 +322,14 @@ export function AuditPdfDialog({
           link: l.link,
         }));
 
+        // Check for development name siblings
+        const devSiblingIds = findDevSiblings(pdfItem);
+
         return { 
           ...pdfItem, 
           existsInDbUnderDifferentScope: matchOutsideScope,
           existsInDbSameScope: matchInScope,
+          developmentSiblingIds: devSiblingIds.length > 0 ? devSiblingIds : undefined,
           existingDbMatches: existingDbMatches.length > 0 ? existingDbMatches : undefined,
         };
       });
