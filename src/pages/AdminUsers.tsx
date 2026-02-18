@@ -52,6 +52,7 @@ export default function AdminUsers() {
   const [activeTab, setActiveTab] = useState('users');
   const [sendingReport, setSendingReport] = useState(false);
   const [runningBackup, setRunningBackup] = useState(false);
+  const [backupResult, setBackupResult] = useState<any>(null);
 
   useEffect(() => {
     if (!roleLoading && !isAdmin) {
@@ -513,45 +514,99 @@ export default function AdminUsers() {
                 <p className="text-sm text-muted-foreground mb-4">
                   Export all database tables to JSON and store in the data-backups bucket. This runs automatically every night at 12:00 AM MST.
                 </p>
-                <Button
-                  variant="outline"
-                  onClick={async () => {
-                    setRunningBackup(true);
-                    try {
-                      const { data: sessionData } = await supabase.auth.getSession();
-                      const accessToken = sessionData?.session?.access_token;
-                      const response = await fetch(
-                        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/export-backup`,
-                        {
-                          method: 'POST',
-                          headers: {
-                            'Content-Type': 'application/json',
-                            'Authorization': `Bearer ${accessToken}`,
-                          },
+                <div className="flex items-center gap-3 mb-4">
+                  <Button
+                    variant="outline"
+                    onClick={async () => {
+                      setRunningBackup(true);
+                      setBackupResult(null);
+                      try {
+                        const { data: sessionData } = await supabase.auth.getSession();
+                        const accessToken = sessionData?.session?.access_token;
+                        const response = await fetch(
+                          `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/export-backup`,
+                          {
+                            method: 'POST',
+                            headers: {
+                              'Content-Type': 'application/json',
+                              'Authorization': `Bearer ${accessToken}`,
+                            },
+                          }
+                        );
+                        const result = await response.json();
+                        if (!response.ok) {
+                          throw new Error(result.error || 'Backup failed');
                         }
-                      );
-                      const result = await response.json();
-                      if (!response.ok) {
-                        throw new Error(result.error || 'Backup failed');
+                        setBackupResult(result);
+                        toast.success(`Backup complete! ${result.total_rows} rows across ${result.total_tables} tables.`);
+                      } catch (error) {
+                        console.error('Backup error:', error);
+                        toast.error(error instanceof Error ? error.message : 'Backup failed');
+                      } finally {
+                        setRunningBackup(false);
                       }
-                      toast.success(`Backup complete! ${result.total_rows} rows across ${result.total_tables} tables saved to ${result.backup_folder}.`);
-                    } catch (error) {
-                      console.error('Backup error:', error);
-                      toast.error(error instanceof Error ? error.message : 'Backup failed');
-                    } finally {
-                      setRunningBackup(false);
-                    }
-                  }}
-                  disabled={runningBackup}
-                  className="gap-2"
-                >
-                  {runningBackup ? (
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                  ) : (
-                    <HardDrive className="w-4 h-4" />
-                  )}
-                  Run Backup Now
-                </Button>
+                    }}
+                    disabled={runningBackup}
+                    className="gap-2"
+                  >
+                    {runningBackup ? (
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                    ) : (
+                      <HardDrive className="w-4 h-4" />
+                    )}
+                    Run Backup Now
+                  </Button>
+                </div>
+
+                {backupResult && (
+                  <div className="border border-border rounded-lg overflow-hidden">
+                    <div className="bg-muted/30 px-4 py-3 flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <Badge variant="default" className="bg-green-600 text-white">Success</Badge>
+                        <span className="text-sm font-medium">{backupResult.backup_folder}</span>
+                      </div>
+                      <span className="text-sm text-muted-foreground">
+                        {backupResult.total_rows.toLocaleString()} rows · {backupResult.total_tables} tables
+                      </span>
+                    </div>
+                    <div className="max-h-64 overflow-y-auto">
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead>Table</TableHead>
+                            <TableHead className="text-right">Rows</TableHead>
+                            <TableHead className="text-right">Status</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {backupResult.details.map((d: any) => (
+                            <TableRow key={d.table}>
+                              <TableCell className="font-mono text-xs">{d.table}</TableCell>
+                              <TableCell className="text-right">{d.rows.toLocaleString()}</TableCell>
+                              <TableCell className="text-right">
+                                {d.status === 'ok' ? (
+                                  <Badge variant="outline" className="text-green-600 border-green-600">OK</Badge>
+                                ) : d.status === 'empty' ? (
+                                  <Badge variant="outline" className="text-muted-foreground">Empty</Badge>
+                                ) : (
+                                  <Badge variant="destructive">Error</Badge>
+                                )}
+                              </TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    </div>
+                    {backupResult.errors && backupResult.errors.length > 0 && (
+                      <div className="px-4 py-3 bg-destructive/10 border-t border-border">
+                        <p className="text-sm font-bold text-destructive mb-1">Errors:</p>
+                        {backupResult.errors.map((e: any, i: number) => (
+                          <p key={i} className="text-xs text-destructive">{e.table}: {e.error}</p>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
             </div>
           </TabsContent>
