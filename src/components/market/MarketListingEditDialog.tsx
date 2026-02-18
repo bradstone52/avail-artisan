@@ -142,6 +142,7 @@ export function MarketListingEditDialog({
 
   // Building specs
   const [warehouseSf, setWarehouseSf] = useState('');
+  const [shopSf, setShopSf] = useState('');
   const [officeSf, setOfficeSf] = useState('');
   const [clearHeight, setClearHeight] = useState('');
   const [dockDoors, setDockDoors] = useState('');
@@ -199,6 +200,7 @@ export function MarketListingEditDialog({
     notesPublic,
     internalNote,
     warehouseSf,
+    shopSf,
     officeSf,
     clearHeight,
     dockDoors,
@@ -228,7 +230,7 @@ export function MarketListingEditDialog({
     listingId, address, building, unit, displayAddress, displayAddressManuallyEdited, city, submarket,
     sizeSf, status, listingType, askingRate, opCosts, propertyTax, condoFees, salePrice, availabilityDate,
     subleaseExp, landlord, brokerSource, brochureLink, websiteLink, notesPublic, internalNote, warehouseSf,
-    officeSf, clearHeight, dockDoors, driveInDoors, driveInDoorDimensions, buildingDepth, powerAmps, voltage, sprinkler,
+    shopSf, officeSf, clearHeight, dockDoors, driveInDoors, driveInDoorDimensions, buildingDepth, powerAmps, voltage, sprinkler,
     hasSprinklers, hasCranes, cranes, craneTons, yard, yardArea, crossDock, trailerParking, landAcres, zoning,
     mua, muaValue, hasLand, grossRate, isDistributionWarehouse, developmentName,
   ]);
@@ -261,6 +263,7 @@ export function MarketListingEditDialog({
     setNotesPublic(state.notesPublic);
     setInternalNote(state.internalNote);
     setWarehouseSf(state.warehouseSf);
+    setShopSf((state as any).shopSf || '');
     setOfficeSf(state.officeSf);
     setClearHeight(state.clearHeight);
     setDockDoors(state.dockDoors);
@@ -550,6 +553,7 @@ export function MarketListingEditDialog({
       setNotesPublic('');
       setInternalNote('');
       setWarehouseSf('');
+      setShopSf('');
       setOfficeSf('');
       setHasLand(false);
       setGrossRate('');
@@ -605,6 +609,7 @@ export function MarketListingEditDialog({
       setNotesPublic(listing.notes_public || '');
       setInternalNote(listing.internal_note || '');
       setWarehouseSf(listing.warehouse_sf?.toString() || '');
+      setShopSf((listing as any).shop_sf?.toString() || '');
       setOfficeSf(listing.office_sf?.toString() || '');
       setHasLand((listing as any).has_land || false);
       setGrossRate((listing as any).gross_rate || '');
@@ -731,6 +736,7 @@ export function MarketListingEditDialog({
           notes_public: notesPublic || null,
           internal_note: internalNote || null,
           warehouse_sf: warehouseSf ? parseInt(warehouseSf.replace(/,/g, '')) : null,
+          shop_sf: shopSf ? parseInt(shopSf.replace(/,/g, '')) : null,
           office_sf: officeSf ? parseInt(officeSf.replace(/,/g, '')) : null,
           clear_height_ft: clearHeight ? parseFloat(clearHeight) : null,
           dock_doors: dockDoors ? parseInt(dockDoors) : null,
@@ -848,6 +854,7 @@ export function MarketListingEditDialog({
           submarket: needsReGeocode && city === 'Calgary' ? 'Pending' : submarket.trim(),
           size_sf: parseInt(sizeSf.replace(/,/g, '')) || 0,
           warehouse_sf: warehouseSf ? parseInt(warehouseSf.replace(/,/g, '')) : null,
+          shop_sf: shopSf ? parseInt(shopSf.replace(/,/g, '')) : null,
           office_sf: officeSf ? parseInt(officeSf.replace(/,/g, '')) : null,
           status,
           listing_type: listingType || null,
@@ -1297,6 +1304,18 @@ export function MarketListingEditDialog({
                       onBlur={(e) => handleFormattedNumberBlur(e.target.value, setWarehouseSf)}
                       className={`placeholder-light ${warehouseSf ? 'input-filled' : ''}`}
                       placeholder="e.g., 120,000"
+                    />
+                  </div>
+
+                  {/* Shop SF */}
+                  <div className="space-y-1">
+                    <Label className="text-xs">Shop SF</Label>
+                    <Input
+                      value={shopSf}
+                      onChange={(e) => handleFormattedNumberChange(e.target.value, setShopSf)}
+                      onBlur={(e) => handleFormattedNumberBlur(e.target.value, setShopSf)}
+                      className={`placeholder-light ${shopSf ? 'input-filled' : ''}`}
+                      placeholder="e.g., 10,000"
                     />
                   </div>
 

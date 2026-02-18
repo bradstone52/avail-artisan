@@ -1,0 +1,1 @@
+ALTER TABLE public.market_listings ADD COLUMN shop_sf integer DEFAULT NULL;
