@@ -149,7 +149,8 @@ export default function MarketListings() {
           listing.listing_id?.toLowerCase().includes(query) ||
           listing.submarket?.toLowerCase().includes(query) ||
           listing.landlord?.toLowerCase().includes(query) ||
-          listing.broker_source?.toLowerCase().includes(query);
+          listing.broker_source?.toLowerCase().includes(query) ||
+          (listing as any).development_name?.toLowerCase().includes(query);
         if (!matchesSearch) return false;
       }
 
@@ -540,7 +541,7 @@ export default function MarketListings() {
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                     <Input
                       id="search"
-                      placeholder="Address, ID, landlord..."
+                      placeholder="Address, ID, landlord, development..."
                       value={searchQuery}
                       onChange={(e) => setSearchQuery(e.target.value)}
                       className="pl-9 pr-8"
