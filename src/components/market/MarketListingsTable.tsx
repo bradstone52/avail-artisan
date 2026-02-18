@@ -468,6 +468,7 @@ export function MarketListingsTable({ listings, onEdit, onRefresh, sortColumn, s
             <TableHead className="text-background min-w-[80px] bg-zinc-700 dark:bg-zinc-600">Acres</TableHead>
             <SortableHeader column="warehouse_sf" className="text-right min-w-[110px] bg-zinc-700 dark:bg-zinc-600">Warehouse SF</SortableHeader>
             <SortableHeader column="office_sf" className="text-right min-w-[90px] bg-zinc-700 dark:bg-zinc-600">Office SF</SortableHeader>
+            <TableHead className="text-background text-right min-w-[90px] bg-zinc-700 dark:bg-zinc-600">Shop SF</TableHead>
             <TableHead className="text-background text-right min-w-[90px] bg-zinc-700 dark:bg-zinc-600">Clear Ht</TableHead>
             <SortableHeader column="dock_doors" className="text-right min-w-[70px] bg-zinc-700 dark:bg-zinc-600">Docks</SortableHeader>
             <SortableHeader column="drive_in_doors" className="text-right min-w-[70px] bg-zinc-700 dark:bg-zinc-600">Drive-In</SortableHeader>
@@ -625,6 +626,11 @@ export function MarketListingsTable({ listings, onEdit, onRefresh, sortColumn, s
               {/* Office SF */}
               <TableCell className="text-right font-mono text-sm">
                 {listing.office_sf ? listing.office_sf.toLocaleString() : '-'}
+              </TableCell>
+              
+              {/* Shop SF */}
+              <TableCell className="text-right font-mono text-sm">
+                {listing.shop_sf ? listing.shop_sf.toLocaleString() : '-'}
               </TableCell>
               
               {/* Clear Height */}
