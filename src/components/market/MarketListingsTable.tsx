@@ -460,7 +460,6 @@ export function MarketListingsTable({ listings, onEdit, onRefresh, sortColumn, s
           <TableRow className="bg-foreground">
             <TableHead className="sticky left-0 top-0 z-50 min-w-[180px] bg-zinc-700 dark:bg-zinc-600 text-background shadow-[2px_0_5px_-2px_rgba(0,0,0,0.3)]">Address</TableHead>
             <TableHead className="text-background min-w-[130px] bg-zinc-700 dark:bg-zinc-600">Submarket</TableHead>
-            <TableHead className="text-background min-w-[130px] bg-zinc-700 dark:bg-zinc-600">Dev. Name</TableHead>
             <TableHead className="text-background min-w-[100px] bg-zinc-700 dark:bg-zinc-600">City</TableHead>
             <TableHead className="text-background min-w-[80px] bg-zinc-700 dark:bg-zinc-600">Type</TableHead>
             <TableHead className="text-background min-w-[70px] bg-zinc-700 dark:bg-zinc-600">Calg. Quad.</TableHead>
@@ -561,9 +560,6 @@ export function MarketListingsTable({ listings, onEdit, onRefresh, sortColumn, s
               
               {/* Submarket */}
               <TableCell className="text-sm">{formatSubmarket(listing.submarket)}</TableCell>
-              
-              {/* Development Name */}
-              <TableCell className="text-sm">{listing.development_name || '-'}</TableCell>
               
               {/* City */}
               <TableCell className="text-sm">{listing.city || '-'}</TableCell>
