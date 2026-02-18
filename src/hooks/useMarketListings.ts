@@ -14,6 +14,7 @@ export interface MarketListing {
   size_sf: number;
   warehouse_sf: number | null;
   office_sf: number | null;
+  shop_sf: number | null;
   clear_height_ft: number | null;
   dock_doors: number | null;
   drive_in_doors: number | null;
