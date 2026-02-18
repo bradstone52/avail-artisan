@@ -360,18 +360,16 @@ export function AuditReviewStepper({
                     <RefreshCw className="h-4 w-4 mr-1" />
                     Confirm & Update from {sourceLabel}
                   </Button>
-                  {currentItem.matchedPair && currentItem.matchedPair.pdfListing.listing_type !== currentItem.matchedPair.dbListing.listing_type && (
-                    <Button onClick={() => {
-                      if (currentItem.matchedPair) {
-                        onAddNewListing(currentItem.matchedPair.pdfListing);
-                        setAction(currentIndex, 'added');
-                        goToNext();
-                      }
-                    }} size="sm" variant="outline" className="border-blue-600 text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-950">
-                      <Plus className="h-4 w-4 mr-1" />
-                      Add as New Listing
-                    </Button>
-                  )}
+                  <Button onClick={() => {
+                    if (currentItem.matchedPair) {
+                      onAddNewListing(currentItem.matchedPair.pdfListing);
+                      setAction(currentIndex, 'added');
+                      goToNext();
+                    }
+                  }} size="sm" variant="outline" className="border-blue-600 text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-950">
+                    <Plus className="h-4 w-4 mr-1" />
+                    Add as New Listing
+                  </Button>
                 </>
               )}
               {currentItem.type === 'new_in_pdf' && (
