@@ -23,7 +23,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Shield, Users, Loader2, ShieldAlert, Zap, RefreshCw, Mail, KeyRound, UserMinus, Send } from 'lucide-react';
+import { Shield, Users, Loader2, ShieldAlert, Zap, RefreshCw, Mail, KeyRound, UserMinus, Send, Database, HardDrive } from 'lucide-react';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { InviteManagement } from '@/components/admin/InviteManagement';
@@ -51,6 +51,7 @@ export default function AdminUsers() {
   const [confirmRemoveUser, setConfirmRemoveUser] = useState<UserWithRole | null>(null);
   const [activeTab, setActiveTab] = useState('users');
   const [sendingReport, setSendingReport] = useState(false);
+  const [runningBackup, setRunningBackup] = useState(false);
 
   useEffect(() => {
     if (!roleLoading && !isAdmin) {
@@ -316,30 +317,14 @@ export default function AdminUsers() {
     <AppLayout>
       <div className="p-6 lg:p-8 max-w-5xl mx-auto">
         {/* Header */}
-        <div className="flex items-center justify-between mb-8">
-          <div className="flex items-center gap-3">
-            <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center">
-              <Users className="w-6 h-6 text-primary" />
-            </div>
-            <div>
-              <h1 className="text-2xl font-display font-bold">Admin Settings</h1>
-              <p className="text-muted-foreground">Manage users and roles</p>
-            </div>
+        <div className="flex items-center gap-3 mb-8">
+          <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center">
+            <Users className="w-6 h-6 text-primary" />
           </div>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handleSendStaleReport}
-            disabled={sendingReport}
-            className="gap-2"
-          >
-            {sendingReport ? (
-              <Loader2 className="w-4 h-4 animate-spin" />
-            ) : (
-              <Send className="w-4 h-4" />
-            )}
-            Send Stale Report
-          </Button>
+          <div>
+            <h1 className="text-2xl font-display font-bold">Admin Settings</h1>
+            <p className="text-muted-foreground">Manage users, invites, and database</p>
+          </div>
         </div>
 
         <Tabs value={activeTab} onValueChange={setActiveTab}>
@@ -351,6 +336,10 @@ export default function AdminUsers() {
             <TabsTrigger value="invites" className="flex items-center gap-2">
               <Mail className="w-4 h-4" />
               Invites
+            </TabsTrigger>
+            <TabsTrigger value="database" className="flex items-center gap-2">
+              <Database className="w-4 h-4" />
+              Database Management
             </TabsTrigger>
           </TabsList>
 
@@ -495,6 +484,76 @@ export default function AdminUsers() {
 
           <TabsContent value="invites">
             <InviteManagement />
+          </TabsContent>
+
+          <TabsContent value="database">
+            <div className="space-y-6">
+              <div className="bg-card border border-border rounded-xl p-6">
+                <h3 className="text-lg font-bold mb-1">Stale Listings Report</h3>
+                <p className="text-sm text-muted-foreground mb-4">
+                  Send an email report of active market listings not verified in the last 30 days. This runs automatically daily at 1:00 AM MST.
+                </p>
+                <Button
+                  variant="outline"
+                  onClick={handleSendStaleReport}
+                  disabled={sendingReport}
+                  className="gap-2"
+                >
+                  {sendingReport ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <Send className="w-4 h-4" />
+                  )}
+                  Send Stale Report Now
+                </Button>
+              </div>
+
+              <div className="bg-card border border-border rounded-xl p-6">
+                <h3 className="text-lg font-bold mb-1">Database Backup</h3>
+                <p className="text-sm text-muted-foreground mb-4">
+                  Export all database tables to JSON and store in the data-backups bucket. This runs automatically every night at 12:00 AM MST.
+                </p>
+                <Button
+                  variant="outline"
+                  onClick={async () => {
+                    setRunningBackup(true);
+                    try {
+                      const { data: sessionData } = await supabase.auth.getSession();
+                      const accessToken = sessionData?.session?.access_token;
+                      const response = await fetch(
+                        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/export-backup`,
+                        {
+                          method: 'POST',
+                          headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${accessToken}`,
+                          },
+                        }
+                      );
+                      const result = await response.json();
+                      if (!response.ok) {
+                        throw new Error(result.error || 'Backup failed');
+                      }
+                      toast.success(`Backup complete! ${result.total_rows} rows across ${result.total_tables} tables saved to ${result.backup_folder}.`);
+                    } catch (error) {
+                      console.error('Backup error:', error);
+                      toast.error(error instanceof Error ? error.message : 'Backup failed');
+                    } finally {
+                      setRunningBackup(false);
+                    }
+                  }}
+                  disabled={runningBackup}
+                  className="gap-2"
+                >
+                  {runningBackup ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <HardDrive className="w-4 h-4" />
+                  )}
+                  Run Backup Now
+                </Button>
+              </div>
+            </div>
           </TabsContent>
         </Tabs>
 
