@@ -6,7 +6,8 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-// Point-in-ring algorithm (ray casting)
+// ── ArcGIS polygon helpers ──────────────────────────────────────────────────
+
 function pointInRing(pt: [number, number], ring: number[][]): boolean {
   const x = pt[0], y = pt[1];
   let inside = false;
@@ -39,12 +40,8 @@ function pointInAnyPolygon(pt: [number, number], polygons: number[][][][]): bool
 interface GeoJSONFeature {
   type: string;
   properties: Record<string, unknown>;
-  geometry: {
-    type: string;
-    coordinates: number[][][] | number[][][][];
-  };
+  geometry: { type: string; coordinates: number[][][] | number[][][][]; };
 }
-
 interface GeoJSONFeatureCollection {
   type: string;
   features: GeoJSONFeature[];
@@ -70,12 +67,9 @@ function geojsonToPolys(gj: GeoJSONFeatureCollection): number[][][][] {
   for (const f of (gj.features || [])) {
     const g = f.geometry;
     if (!g) continue;
-    if (g.type === 'Polygon') {
-      polys.push(g.coordinates as number[][][]);
-    } else if (g.type === 'MultiPolygon') {
-      for (const p of g.coordinates as number[][][][]) {
-        polys.push(p);
-      }
+    if (g.type === 'Polygon') polys.push(g.coordinates as number[][][]);
+    else if (g.type === 'MultiPolygon') {
+      for (const p of g.coordinates as number[][][][]) polys.push(p);
     }
   }
   return polys;
@@ -124,6 +118,114 @@ async function fetchCityBoundary(): Promise<number[][][][]> {
   return cachedCityPolys;
 }
 
+// ── City of Calgary Assessment API fallback ─────────────────────────────────
+
+const ASSESSMENT_API = 'https://data.calgary.ca/resource/4bsw-nn7w.json';
+
+/**
+ * Returns true if the ArcGIS result looks like a sector code (e.g. "10b", "03")
+ * rather than a real community name (e.g. "Starfield", "Foothills Industrial").
+ */
+function looksLikeCodeName(name: string): boolean {
+  if (!name) return true;
+  // Matches things like "10b", "03", "2a", etc.
+  return /^[0-9]+[a-z]?$/i.test(name.trim());
+}
+
+/**
+ * Use the City of Calgary assessment API to look up the community name
+ * for a given address. This is the same approach used by fetch-city-data.
+ */
+async function lookupCommunityFromCityApi(address: string): Promise<string | null> {
+  try {
+    const parts = address
+      .replace(/,.*$/, '')
+      .replace(/\s+(Calgary|AB|Alberta).*$/i, '')
+      .trim()
+      .toUpperCase()
+      .split(/\s+/);
+
+    const streetNumber = parts[0];
+    if (!streetNumber || !/^\d+$/.test(streetNumber)) return null;
+
+    const QUADRANTS = ['NE', 'NW', 'SE', 'SW'];
+    const STREET_TYPES = ['ST', 'STREET', 'AVE', 'AV', 'AVENUE', 'DR', 'DRIVE', 'RD', 'ROAD',
+      'BLVD', 'BOULEVARD', 'LN', 'LANE', 'PL', 'PLACE', 'CT', 'COURT', 'WAY', 'CRES',
+      'CRESCENT', 'TR', 'TRAIL'];
+
+    const quadrant = parts.find(p => QUADRANTS.includes(p)) || null;
+    const streetTypeRaw = parts.find(p => STREET_TYPES.includes(p)) || null;
+    const streetTypeAbbrev = streetTypeRaw
+      ? (streetTypeRaw === 'AVENUE' || streetTypeRaw === 'AVE' ? 'AV' : streetTypeRaw === 'LANE' ? 'LN' : streetTypeRaw)
+      : null;
+    const streetNameNumber = parts.slice(1).find(p => /^\d+$/.test(p)) || null;
+    const streetNameWord = !streetNameNumber
+      ? parts.slice(1).find(p => !QUADRANTS.includes(p) && !STREET_TYPES.includes(p) && !/^\d+$/.test(p) && p.length > 0) || null
+      : null;
+
+    // Build search patterns
+    const searchPatterns: string[] = [];
+    if (streetNumber && streetNameNumber && streetTypeAbbrev && quadrant) {
+      searchPatterns.push(`${streetNumber} ${streetNameNumber} ${streetTypeAbbrev} ${quadrant}`);
+    }
+    if (streetNumber && streetNameNumber && quadrant) {
+      searchPatterns.push(`${streetNumber} ${streetNameNumber} ${quadrant}`);
+    }
+    if (streetNumber && streetNameWord && streetTypeAbbrev && quadrant) {
+      searchPatterns.push(`${streetNumber} ${streetNameWord} ${streetTypeAbbrev} ${quadrant}`);
+    }
+    if (streetNumber && streetNameWord && quadrant) {
+      searchPatterns.push(`${streetNumber} ${streetNameWord} ${quadrant}`);
+    }
+
+    if (searchPatterns.length === 0) return null;
+
+    for (const pattern of searchPatterns.slice(0, 2)) {
+      const escapedValue = pattern.replace(/'/g, "''");
+      const whereClause = `address like '%${escapedValue}%'`;
+      const params = new URLSearchParams();
+      params.set('$where', whereClause);
+      params.set('$limit', '5');
+      const url = `${ASSESSMENT_API}?${params.toString()}`;
+
+      console.log(`[City API Fallback] Trying: ${url}`);
+      const resp = await fetch(url);
+      if (!resp.ok) { await resp.text(); continue; }
+
+      const data = await resp.json();
+      if (!data || data.length === 0) continue;
+
+      // Filter to matching street number + quadrant
+      const candidates = data.filter((d: Record<string, unknown>) => {
+        const addr = String(d.address || '').toUpperCase();
+        const matchesStreetNum = addr.startsWith(`${streetNumber} `);
+        const matchesQuadrant = quadrant ? addr.includes(` ${quadrant}`) : true;
+        return matchesStreetNum && matchesQuadrant;
+      });
+
+      if (candidates.length === 0) continue;
+
+      // Extract community_name
+      const record = candidates[0];
+      const communityName = String(
+        record.community_name || record.comm_name || record.community || ''
+      ).trim();
+
+      if (communityName) {
+        console.log(`[City API Fallback] Found community: "${communityName}" for "${pattern}"`);
+        return communityName;
+      }
+    }
+
+    return null;
+  } catch (error) {
+    console.error('[City API Fallback] Error:', error);
+    return null;
+  }
+}
+
+// ── Main handler ────────────────────────────────────────────────────────────
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -150,7 +252,7 @@ serve(async (req) => {
       });
     }
 
-    const { lat, lng } = await req.json();
+    const { lat, lng, address } = await req.json();
     if (typeof lat !== 'number' || typeof lng !== 'number') {
       return new Response(JSON.stringify({ error: 'lat and lng are required numbers' }), {
         status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
@@ -159,7 +261,7 @@ serve(async (req) => {
 
     const pt: [number, number] = [lng, lat];
 
-    // Check if inside Calgary city boundary
+    // 1. Check if inside Calgary city boundary
     const cityPolys = await fetchCityBoundary();
     const insideCity = pointInAnyPolygon(pt, cityPolys);
 
@@ -167,22 +269,46 @@ serve(async (req) => {
       return new Response(JSON.stringify({
         submarket: null,
         insideCity: false,
+        source: null,
         message: 'Coordinates are outside Calgary city limits'
       }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       });
     }
 
-    // Find community
-    const communities = await fetchCommunityBoundaries();
-    const feature = findContainingFeature(pt, communities);
-    const submarket = feature
-      ? String(feature.properties?.[COMMUNITY_NAME_FIELD] || '').trim() || 'No community match'
-      : 'No community match';
+    // 2. Try ArcGIS community boundary lookup
+    let submarket: string | null = null;
+    let source: 'arcgis' | 'city_api' = 'arcgis';
+
+    try {
+      const communities = await fetchCommunityBoundaries();
+      const feature = findContainingFeature(pt, communities);
+      if (feature) {
+        submarket = String(feature.properties?.[COMMUNITY_NAME_FIELD] || '').trim() || null;
+      }
+    } catch (err) {
+      console.error('[Lookup] ArcGIS error:', err);
+    }
+
+    // 3. If ArcGIS returned a code-like name (e.g. "10b") or nothing, fall back to City API
+    if (!submarket || looksLikeCodeName(submarket)) {
+      console.log(`[Lookup] ArcGIS result "${submarket}" looks like a code — trying City API fallback`);
+      
+      if (address && typeof address === 'string') {
+        const cityResult = await lookupCommunityFromCityApi(address);
+        if (cityResult) {
+          submarket = cityResult;
+          source = 'city_api';
+        }
+      } else {
+        console.log('[Lookup] No address provided for City API fallback');
+      }
+    }
 
     return new Response(JSON.stringify({
-      submarket,
+      submarket: submarket || null,
       insideCity: true,
+      source,
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' }
     });
