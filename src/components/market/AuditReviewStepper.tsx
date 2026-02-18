@@ -59,6 +59,7 @@ interface AuditReviewStepperProps {
   missingFromPdf: MarketListing[];
   scopeListings?: MarketListing[];
   brokerSource: string;
+  sourceType?: 'pdf' | 'website';
   onConfirm: (dbListing: MarketListing) => void;
   onConfirmAndUpdate: (dbListing: MarketListing, pdfData: PdfExtractedListing) => void;
   onAddNewListing: (pdfListing: PdfExtractedListing) => void;
@@ -74,6 +75,7 @@ export function AuditReviewStepper({
   missingFromPdf,
   scopeListings,
   brokerSource,
+  sourceType = 'pdf',
   onConfirm,
   onConfirmAndUpdate,
   onAddNewListing,
@@ -82,6 +84,7 @@ export function AuditReviewStepper({
   onRegisterEditCallback,
   onClose,
 }: AuditReviewStepperProps) {
+  const sourceLabel = sourceType === 'website' ? 'Website' : 'PDF';
   // Build the review queue — use state so we can update DB listings after edits
   const [items, setItems] = useState<ReviewItem[]>(() => {
     const result: ReviewItem[] = [];
@@ -275,7 +278,7 @@ export function AuditReviewStepper({
           )}
         >
           <Plus className="h-3.5 w-3.5" />
-          New in PDF
+          New on {sourceLabel}
           <Badge variant="outline" className="text-xs ml-1 border-green-600 text-green-600">
             {getActionCountForTab('new_in_pdf')}/{newCount}
           </Badge>
@@ -337,11 +340,11 @@ export function AuditReviewStepper({
             )}
 
             {currentItem.type === 'new_in_pdf' && currentItem.pdfListing && (
-              <NewInPdfCard pdfListing={currentItem.pdfListing} />
+              <NewInPdfCard pdfListing={currentItem.pdfListing} sourceLabel={sourceLabel} />
             )}
 
             {currentItem.type === 'missing_from_pdf' && currentItem.dbListing && (
-              <MissingFromPdfCard dbListing={currentItem.dbListing} onEdit={handleEditListing} />
+              <MissingFromPdfCard dbListing={currentItem.dbListing} onEdit={handleEditListing} sourceLabel={sourceLabel} />
             )}
 
             {/* Action Buttons */}
@@ -355,7 +358,7 @@ export function AuditReviewStepper({
                   </Button>
                   <Button onClick={handleConfirmAndUpdate} size="sm">
                     <RefreshCw className="h-4 w-4 mr-1" />
-                    Confirm & Update from PDF
+                    Confirm & Update from {sourceLabel}
                   </Button>
                   {currentItem.matchedPair && currentItem.matchedPair.pdfListing.listing_type !== currentItem.matchedPair.dbListing.listing_type && (
                     <Button onClick={() => {
@@ -704,7 +707,7 @@ function MatchedReviewCard({ pair, onEdit, scopeListings }: { pair: MatchedPair;
   );
 }
 
-function NewInPdfCard({ pdfListing }: { pdfListing: PdfExtractedListing }) {
+function NewInPdfCard({ pdfListing, sourceLabel = 'PDF' }: { pdfListing: PdfExtractedListing; sourceLabel?: string }) {
   return (
     <div className={cn("border-2 rounded-md p-4 space-y-3", 
       pdfListing.existsInDbUnderDifferentScope ? 'border-amber-500' : 
@@ -729,7 +732,7 @@ function NewInPdfCard({ pdfListing }: { pdfListing: PdfExtractedListing }) {
           <>
             <Badge className="bg-green-600 text-white text-xs">New</Badge>
             <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-              Found in PDF — Not in Database
+              Found on {sourceLabel} — Not in Database
             </span>
           </>
         )}
@@ -779,7 +782,7 @@ function NewInPdfCard({ pdfListing }: { pdfListing: PdfExtractedListing }) {
   );
 }
 
-function MissingFromPdfCard({ dbListing, onEdit }: { dbListing: MarketListing; onEdit?: (listing: MarketListing) => void }) {
+function MissingFromPdfCard({ dbListing, onEdit, sourceLabel = 'PDF' }: { dbListing: MarketListing; onEdit?: (listing: MarketListing) => void; sourceLabel?: string }) {
   const brochureLink = dbListing.brochure_link || dbListing.link;
   return (
     <div className="space-y-3">
@@ -787,7 +790,7 @@ function MissingFromPdfCard({ dbListing, onEdit }: { dbListing: MarketListing; o
         <div className="flex items-center gap-2 mb-2">
           <Badge variant="destructive" className="text-xs">Missing</Badge>
           <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-            In Database — Not Found in PDF
+            In Database — Not Found on {sourceLabel}
           </span>
         </div>
         <div className="flex items-center gap-2">

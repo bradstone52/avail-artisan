@@ -89,7 +89,7 @@ export function AuditPdfDialog({
       .replace(/\s+/g, ' ')
       .replace(/(\d+)(st|nd|rd|th)\b/g, '$1')
       .replace(/\b(street|st)\b/g, 'st')
-      .replace(/\b(avenue|ave)\b/g, 'ave')
+      .replace(/\b(avenue|ave|av)\b/g, 'ave')
       .replace(/\b(drive|dr)\b/g, 'dr')
       .replace(/\b(road|rd)\b/g, 'rd')
       .replace(/\b(boulevard|blvd)\b/g, 'blvd')

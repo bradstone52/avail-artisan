@@ -80,7 +80,7 @@ export function AuditWebsiteDialog({
       .replace(/\s+/g, ' ')
       .replace(/(\d+)(st|nd|rd|th)\b/g, '$1')
       .replace(/\b(street|st)\b/g, 'st')
-      .replace(/\b(avenue|ave)\b/g, 'ave')
+      .replace(/\b(avenue|ave|av)\b/g, 'ave')
       .replace(/\b(drive|dr)\b/g, 'dr')
       .replace(/\b(road|rd)\b/g, 'rd')
       .replace(/\b(boulevard|blvd)\b/g, 'blvd')
@@ -180,13 +180,24 @@ export function AuditWebsiteDialog({
         const listing = scopeListings[di];
         const listingAddr = listing.address || '';
         const displayAddr = listing.display_address || '';
+        const listingDevName = ((listing as any).development_name || '').toLowerCase().trim();
         const candidates: number[] = [];
 
         for (let pi = 0; pi < extractedListings.length; pi++) {
-          if (
-            addressesMatch(listingAddr, extractedListings[pi].address) ||
-            (displayAddr && addressesMatch(displayAddr, extractedListings[pi].address))
-          ) {
+          const webAddr = extractedListings[pi].address;
+          const webDevName = (extractedListings[pi].development_name || '').toLowerCase().trim();
+          
+          const addrMatch = 
+            addressesMatch(listingAddr, webAddr) ||
+            (displayAddr && addressesMatch(displayAddr, webAddr));
+          
+          // Also match by development name: if the web listing's address IS a development name
+          // that matches the DB listing's development_name
+          const devMatch = 
+            (listingDevName && listingDevName.length > 3 && webDevName && webDevName === listingDevName) ||
+            (listingDevName && listingDevName.length > 3 && normalizeAddress(webAddr) === normalizeAddress(listingDevName));
+          
+          if (addrMatch || devMatch) {
             candidates.push(pi);
             if (!pdfToDbCandidates.has(pi)) pdfToDbCandidates.set(pi, []);
             pdfToDbCandidates.get(pi)!.push(di);
@@ -234,20 +245,36 @@ export function AuditWebsiteDialog({
       const newInPdf = extractedListings
         .filter((_, i) => !assignedPdf.has(i))
         .map((webItem) => {
+          const webDevName = (webItem.development_name || '').toLowerCase().trim();
+          const webAddrNorm = normalizeAddress(webItem.address);
+          
           const matchInScope = scopeListings.some(
-            (l) =>
-              addressesMatch(l.address || '', webItem.address) ||
-              (l.display_address && addressesMatch(l.display_address, webItem.address))
+            (l) => {
+              // Address match
+              if (addressesMatch(l.address || '', webItem.address) ||
+                (l.display_address && addressesMatch(l.display_address, webItem.address))) return true;
+              // Development name match
+              const lDevName = ((l as any).development_name || '').toLowerCase().trim();
+              if (lDevName && lDevName.length > 3) {
+                if (webDevName && webDevName === lDevName) return true;
+                if (webAddrNorm === normalizeAddress(lDevName)) return true;
+              }
+              return false;
+            }
           );
           const matchOutsideScope =
             !matchInScope &&
             listings.some((l) => {
               const inScope = scopeListings.some((sl) => sl.id === l.id);
               if (inScope) return false;
-              return (
-                addressesMatch(l.address || '', webItem.address) ||
-                (l.display_address && addressesMatch(l.display_address, webItem.address))
-              );
+              if (addressesMatch(l.address || '', webItem.address) ||
+                (l.display_address && addressesMatch(l.display_address, webItem.address))) return true;
+              const lDevName = ((l as any).development_name || '').toLowerCase().trim();
+              if (lDevName && lDevName.length > 3) {
+                if (webDevName && webDevName === lDevName) return true;
+                if (webAddrNorm === normalizeAddress(lDevName)) return true;
+              }
+              return false;
             });
 
           // Check for development name matches
@@ -372,6 +399,7 @@ export function AuditWebsiteDialog({
             missingFromPdf={result.missingListings}
             scopeListings={scopeListings}
             brokerSource={selectedLandlord}
+            sourceType="website"
             onConfirm={handleConfirm}
             onConfirmAndUpdate={handleConfirmAndUpdate}
             onAddNewListing={handleAddNewListing}
