@@ -238,6 +238,22 @@ export function AuditWebsiteDialog({
           matchedPairs.push({ pdfListing: extractedListings[candidates[0]], dbListing: scopeListings[di], developmentSiblingIds: devSibIds.length > 0 ? devSibIds : undefined });
           assignedDb.add(di);
         } else {
+          // Before marking as missing, check if this DB listing shares a development name
+          // with any web listing (even already-assigned ones) — development listings can be many-to-one
+          const listingDevName = ((scopeListings[di] as any).development_name || '').toLowerCase().trim();
+          if (listingDevName && listingDevName.length > 3) {
+            const devMatchPi = extractedListings.findIndex(web => {
+              const webDevName = (web.development_name || '').toLowerCase().trim();
+              const webAddrNorm = normalizeAddress(web.address);
+              return webDevName === listingDevName || webAddrNorm === normalizeAddress(listingDevName);
+            });
+            if (devMatchPi !== -1) {
+              const devSibIds = findDevSiblings(extractedListings[devMatchPi]);
+              matchedPairs.push({ pdfListing: extractedListings[devMatchPi], dbListing: scopeListings[di], developmentSiblingIds: devSibIds.length > 0 ? devSibIds : undefined });
+              assignedDb.add(di);
+              continue;
+            }
+          }
           missing.push(scopeListings[di]);
         }
       }
