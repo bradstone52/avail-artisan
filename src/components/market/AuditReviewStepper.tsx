@@ -557,7 +557,7 @@ function MatchedReviewCard({ pair, onEdit, scopeListings }: { pair: MatchedPair;
             <PricingFields listingType={pdfListing.listing_type} askingRate={pdfListing.asking_rate} salePrice={null} />
             <Field label="City" value={pdfListing.city} />
             <Field label="Landlord" value={pdfListing.landlord} />
-            {pdfListing.development_name && <Field label="Development" value={pdfListing.development_name} />}
+            <Field label="Development" value={pdfListing.development_name} />
           </div>
         </div>
 
@@ -595,10 +595,11 @@ function MatchedReviewCard({ pair, onEdit, scopeListings }: { pair: MatchedPair;
                 <div className="grid grid-cols-2 gap-2 text-xs">
                   <Field label="Type" value={dbListing.listing_type} />
                   <Field label="Size" value={dbListing.size_sf ? `${dbListing.size_sf.toLocaleString()} SF` : null} />
-                  <PricingFields listingType={dbListing.listing_type} askingRate={dbListing.asking_rate_psf} salePrice={dbListing.sale_price} />
-                  <Field label="City" value={dbListing.city} />
-                  <Field label="Landlord" value={dbListing.landlord} />
-                  <Field label="Status" value={dbListing.status} />
+                   <PricingFields listingType={dbListing.listing_type} askingRate={dbListing.asking_rate_psf} salePrice={dbListing.sale_price} />
+                   <Field label="City" value={dbListing.city} />
+                   <Field label="Landlord" value={dbListing.landlord} />
+                   <Field label="Development" value={(dbListing as any).development_name} />
+                   <Field label="Status" value={dbListing.status} />
                 </div>
               </>
             )}
@@ -654,10 +655,11 @@ function MatchedReviewCard({ pair, onEdit, scopeListings }: { pair: MatchedPair;
                     <div className="grid grid-cols-2 gap-2 text-xs">
                       <Field label="Type" value={sibling.listing_type} />
                       <Field label="Size" value={sibling.size_sf ? `${sibling.size_sf.toLocaleString()} SF` : null} />
-                      <PricingFields listingType={sibling.listing_type} askingRate={sibling.asking_rate_psf} salePrice={sibling.sale_price} />
-                      <Field label="City" value={sibling.city} />
-                      <Field label="Landlord" value={sibling.landlord} />
-                      <Field label="Status" value={sibling.status} />
+                       <PricingFields listingType={sibling.listing_type} askingRate={sibling.asking_rate_psf} salePrice={sibling.sale_price} />
+                       <Field label="City" value={sibling.city} />
+                       <Field label="Landlord" value={sibling.landlord} />
+                       <Field label="Development" value={(sibling as any).development_name} />
+                       <Field label="Status" value={sibling.status} />
                     </div>
                   </>
                 ) : (
@@ -748,7 +750,7 @@ function NewInPdfCard({ pdfListing, sourceLabel = 'PDF' }: { pdfListing: PdfExtr
         <Field label="City" value={pdfListing.city} />
         <Field label="Submarket" value={pdfListing.submarket} />
         <Field label="Landlord" value={pdfListing.landlord} />
-        {pdfListing.development_name && <Field label="Development" value={pdfListing.development_name} />}
+        <Field label="Development" value={pdfListing.development_name} />
       </div>
       <p className="text-xs text-muted-foreground italic">
         The brochure link often contains more detail — further investigation recommended after adding.
@@ -802,6 +804,7 @@ function MissingFromPdfCard({ dbListing, onEdit, sourceLabel = 'PDF' }: { dbList
           <Field label="Size" value={dbListing.size_sf ? `${dbListing.size_sf.toLocaleString()} SF` : null} />
           <PricingFields listingType={dbListing.listing_type} askingRate={dbListing.asking_rate_psf} salePrice={dbListing.sale_price} />
           <Field label="City" value={dbListing.city} />
+          <Field label="Development" value={(dbListing as any).development_name} />
           <Field label="Status" value={dbListing.status} />
           <Field label="Broker" value={dbListing.broker_source} />
         </div>
