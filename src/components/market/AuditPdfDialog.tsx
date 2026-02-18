@@ -7,6 +7,7 @@ import { FileUpload } from '@/components/common/FileUpload';
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { AlertTriangle, CheckCircle2, FileSearch, Upload, ListChecks } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
@@ -375,92 +376,104 @@ export function AuditPdfDialog({
         </DialogHeader>
 
         <div className="space-y-4">
-          {/* Match Field Selection */}
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label>Match By</Label>
-              <Select
-                value={matchField}
-                onValueChange={(v) => {
-                  setMatchField(v as MatchField);
-                  setSelectedValue('');
-                  setResult(null);
-                }}
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="broker_source">Brokerage</SelectItem>
-                  <SelectItem value="landlord">Landlord</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
+          {/* Upload & Config — collapsible after results */}
+          <Accordion type="single" collapsible value={result ? undefined : 'upload'} defaultValue="upload">
+            <AccordionItem value="upload" className="border rounded-md">
+              <AccordionTrigger className="px-3 py-2 text-sm hover:no-underline">
+                {result ? 'Run Another Audit' : 'Upload & Configure'}
+              </AccordionTrigger>
+              <AccordionContent className="px-3">
+                <div className="space-y-4">
+                  {/* Match Field Selection */}
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label>Match By</Label>
+                      <Select
+                        value={matchField}
+                        onValueChange={(v) => {
+                          setMatchField(v as MatchField);
+                          setSelectedValue('');
+                          setResult(null);
+                        }}
+                      >
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="broker_source">Brokerage</SelectItem>
+                          <SelectItem value="landlord">Landlord</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
 
-            <div className="space-y-2">
-              <Label>{matchField === 'broker_source' ? 'Brokerage' : 'Landlord'}</Label>
-              <Select
-                value={selectedValue}
-                onValueChange={(v) => {
-                  setSelectedValue(v);
-                  setResult(null);
-                }}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder={`Select ${matchField === 'broker_source' ? 'brokerage' : 'landlord'}...`} />
-                </SelectTrigger>
-                <SelectContent>
-                  {options.map((opt) => (
-                    <SelectItem key={opt} value={opt}>
-                      {opt}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
+                    <div className="space-y-2">
+                      <Label>{matchField === 'broker_source' ? 'Brokerage' : 'Landlord'}</Label>
+                      <Select
+                        value={selectedValue}
+                        onValueChange={(v) => {
+                          setSelectedValue(v);
+                          setResult(null);
+                        }}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder={`Select ${matchField === 'broker_source' ? 'brokerage' : 'landlord'}...`} />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {options.map((opt) => (
+                            <SelectItem key={opt} value={opt}>
+                              {opt}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
 
-          {selectedValue && (
-            <p className="text-sm text-muted-foreground">
-              {scopeListings.length} active listing{scopeListings.length !== 1 ? 's' : ''} for{' '}
-              <span className="font-medium text-foreground">{selectedValue}</span>
-            </p>
-          )}
+                  {selectedValue && (
+                    <p className="text-sm text-muted-foreground">
+                      {scopeListings.length} active listing{scopeListings.length !== 1 ? 's' : ''} for{' '}
+                      <span className="font-medium text-foreground">{selectedValue}</span>
+                    </p>
+                  )}
 
-          {/* File Upload */}
-          <FileUpload
-            onFileSelect={handleFileSelect}
-            accept={{ 'application/pdf': ['.pdf'] }}
-            maxFiles={1}
-            maxSize={20 * 1024 * 1024}
-            selectedFiles={files}
-            onRemoveFile={handleRemoveFile}
-          />
+                  {/* File Upload */}
+                  <FileUpload
+                    onFileSelect={handleFileSelect}
+                    accept={{ 'application/pdf': ['.pdf'] }}
+                    maxFiles={1}
+                    maxSize={20 * 1024 * 1024}
+                    selectedFiles={files}
+                    onRemoveFile={handleRemoveFile}
+                  />
 
-          {/* Process Button */}
-          <Button
-            onClick={handleProcess}
-            disabled={!files.length || !selectedValue || isProcessing}
-            className="w-full"
-          >
-            {isProcessing ? (
-              <>Processing PDF...</>
-            ) : (
-              <>
-                <Upload className="w-4 h-4 mr-2" />
-                Audit PDF Against {scopeListings.length} Listings
-              </>
-            )}
-          </Button>
+                  {/* Process Button */}
+                  <Button
+                    onClick={handleProcess}
+                    disabled={!files.length || !selectedValue || isProcessing}
+                    className="w-full"
+                  >
+                    {isProcessing ? (
+                      <>Processing PDF...</>
+                    ) : (
+                      <>
+                        <Upload className="w-4 h-4 mr-2" />
+                        Audit PDF Against {scopeListings.length} Listings
+                      </>
+                    )}
+                  </Button>
 
-          {isProcessing && (
-            <div className="space-y-2">
-              <Progress value={undefined} className="h-2" />
-              <p className="text-xs text-muted-foreground text-center">
-                Extracting addresses from PDF...
-              </p>
-            </div>
-          )}
+                  {isProcessing && (
+                    <div className="space-y-2">
+                      <Progress value={undefined} className="h-2" />
+                      <p className="text-xs text-muted-foreground text-center">
+                        Extracting addresses from PDF...
+                      </p>
+                    </div>
+                  )}
+                </div>
+              </AccordionContent>
+            </AccordionItem>
+          </Accordion>
 
           {/* Results */}
           {result && (() => {
