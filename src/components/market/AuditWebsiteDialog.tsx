@@ -158,6 +158,19 @@ export function AuditWebsiteDialog({
       const dbToPdfCandidates: Map<number, number[]> = new Map();
       const pdfToDbCandidates: Map<number, number[]> = new Map();
 
+      // Helper to find development siblings for a web listing
+      const findDevSiblings = (webItem: PdfExtractedListing): string[] => {
+        const devName = webItem.development_name?.toLowerCase().trim();
+        if (!devName || devName.length <= 3) return [];
+        return scopeListings
+          .filter(l => {
+            const fields = [l.address, l.display_address, l.notes_public, l.internal_note]
+              .filter(Boolean).map(f => f!.toLowerCase());
+            return fields.some(f => f.includes(devName));
+          })
+          .map(l => l.id);
+      };
+
       for (let di = 0; di < scopeListings.length; di++) {
         const listing = scopeListings[di];
         const listingAddr = listing.address || '';
@@ -188,7 +201,8 @@ export function AuditWebsiteDialog({
           (pi) => !assignedPdf.has(pi) && normalizeType(extractedListings[pi].listing_type) === dbType
         );
         if (typeMatch !== undefined) {
-          matchedPairs.push({ pdfListing: extractedListings[typeMatch], dbListing: scopeListings[di] });
+          const devSibIds = findDevSiblings(extractedListings[typeMatch]);
+          matchedPairs.push({ pdfListing: extractedListings[typeMatch], dbListing: scopeListings[di], developmentSiblingIds: devSibIds.length > 0 ? devSibIds : undefined });
           assignedPdf.add(typeMatch);
           assignedDb.add(di);
         }
@@ -199,11 +213,13 @@ export function AuditWebsiteDialog({
         const candidates = dbToPdfCandidates.get(di) || [];
         const fallback = candidates.find((pi) => !assignedPdf.has(pi));
         if (fallback !== undefined) {
-          matchedPairs.push({ pdfListing: extractedListings[fallback], dbListing: scopeListings[di] });
+          const devSibIds = findDevSiblings(extractedListings[fallback]);
+          matchedPairs.push({ pdfListing: extractedListings[fallback], dbListing: scopeListings[di], developmentSiblingIds: devSibIds.length > 0 ? devSibIds : undefined });
           assignedPdf.add(fallback);
           assignedDb.add(di);
         } else if (candidates.length > 0) {
-          matchedPairs.push({ pdfListing: extractedListings[candidates[0]], dbListing: scopeListings[di] });
+          const devSibIds = findDevSiblings(extractedListings[candidates[0]]);
+          matchedPairs.push({ pdfListing: extractedListings[candidates[0]], dbListing: scopeListings[di], developmentSiblingIds: devSibIds.length > 0 ? devSibIds : undefined });
           assignedDb.add(di);
         } else {
           missing.push(scopeListings[di]);
@@ -228,10 +244,28 @@ export function AuditWebsiteDialog({
                 (l.display_address && addressesMatch(l.display_address, webItem.address))
               );
             });
+
+          // Check for development name matches
+          const devName = webItem.development_name?.toLowerCase().trim();
+          let developmentSiblingIds: string[] | undefined;
+          if (devName && devName.length > 3) {
+            const devSiblings = scopeListings.filter(l => {
+              // Check if development name appears in address, display_address, notes_public, or internal_note
+              const fields = [
+                l.address, l.display_address, l.notes_public, l.internal_note
+              ].filter(Boolean).map(f => f!.toLowerCase());
+              return fields.some(f => f.includes(devName));
+            });
+            if (devSiblings.length > 0) {
+              developmentSiblingIds = devSiblings.map(s => s.id);
+            }
+          }
+
           return {
             ...webItem,
             existsInDbUnderDifferentScope: matchOutsideScope,
             existsInDbSameScope: matchInScope,
+            developmentSiblingIds,
           };
         });
 
