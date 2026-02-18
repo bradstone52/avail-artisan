@@ -205,9 +205,17 @@ export function MarketListingsTable({ listings, onEdit, onRefresh, sortColumn, s
     }
   };
 
-  // Reset pin to auto-geocode
+  // Reset pin to auto-geocode (clears manual override then re-geocodes)
   const handleResetPin = async (listing: MarketListing) => {
+    const accessToken = session?.access_token;
+    if (!accessToken) {
+      toast.error('Not authenticated');
+      return;
+    }
+
+    setGeocodingId(listing.id);
     try {
+      // Step 1: Clear manual override
       const { error } = await supabase
         .from('market_listings')
         .update({
@@ -219,11 +227,31 @@ export function MarketListingsTable({ listings, onEdit, onRefresh, sortColumn, s
         .eq('id', listing.id);
       
       if (error) throw error;
-      toast.success('Pin reset — use Auto-geocode to regenerate');
+
+      // Step 2: Immediately re-geocode (which also reassigns submarket)
+      const { data, error: geoError } = await supabase.functions.invoke('geocode-market-listing', {
+        headers: { Authorization: `Bearer ${accessToken}` },
+        body: { listingId: listing.listing_id },
+      });
+
+      if (geoError) throw geoError;
+      if (data?.error) throw new Error(data.error);
+
+      if (data?.geocoded) {
+        const msg = data.submarket_assigned
+          ? `Pin & submarket reset — now "${data.submarket}"`
+          : 'Pin reset & re-geocoded';
+        toast.success(msg);
+      } else {
+        toast.warning('Pin cleared but auto-geocode returned no results');
+      }
+
       onRefresh();
     } catch (err) {
       console.error('Failed to reset pin:', err);
       toast.error('Failed to reset pin location');
+    } finally {
+      setGeocodingId(null);
     }
   };
 
