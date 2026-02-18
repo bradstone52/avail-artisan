@@ -234,16 +234,42 @@ export function AuditPdfDialog({
           addressesMatch(l.address || '', pdfItem.address) ||
           (l.display_address && addressesMatch(l.display_address, pdfItem.address))
         );
-        const matchOutsideScope = !matchInScope && listings.some(l => {
+        const outsideScopeMatches = !matchInScope ? listings.filter(l => {
           const inScope = scopeListings.some(sl => sl.id === l.id);
           if (inScope) return false;
           return addressesMatch(l.address || '', pdfItem.address) ||
             (l.display_address && addressesMatch(l.display_address, pdfItem.address));
-        });
+        }) : [];
+        const matchOutsideScope = outsideScopeMatches.length > 0;
+
+        // Also collect in-scope matches for display
+        const inScopeMatches = matchInScope ? scopeListings.filter(l =>
+          addressesMatch(l.address || '', pdfItem.address) ||
+          (l.display_address && addressesMatch(l.display_address, pdfItem.address))
+        ) : [];
+
+        const existingDbMatches = [...outsideScopeMatches, ...inScopeMatches].map(l => ({
+          id: l.id,
+          address: l.address || '',
+          display_address: l.display_address,
+          listing_type: l.listing_type,
+          size_sf: l.size_sf,
+          asking_rate_psf: l.asking_rate_psf,
+          sale_price: l.sale_price,
+          city: l.city,
+          submarket: l.submarket,
+          broker_source: l.broker_source,
+          landlord: l.landlord,
+          status: l.status,
+          brochure_link: l.brochure_link,
+          link: l.link,
+        }));
+
         return { 
           ...pdfItem, 
           existsInDbUnderDifferentScope: matchOutsideScope,
           existsInDbSameScope: matchInScope,
+          existingDbMatches: existingDbMatches.length > 0 ? existingDbMatches : undefined,
         };
       });
 

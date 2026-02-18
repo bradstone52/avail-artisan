@@ -298,20 +298,53 @@ export function AuditWebsiteDialog({
               return false;
             }
           );
-          const matchOutsideScope =
-            !matchInScope &&
-            listings.some((l) => {
-              const inScope = scopeListings.some((sl) => sl.id === l.id);
-              if (inScope) return false;
-              if (addressesMatch(l.address || '', webItem.address) ||
-                (l.display_address && addressesMatch(l.display_address, webItem.address))) return true;
+          const outsideScopeMatches =
+            !matchInScope
+              ? listings.filter((l) => {
+                  const inScope = scopeListings.some((sl) => sl.id === l.id);
+                  if (inScope) return false;
+                  if (addressesMatch(l.address || '', webItem.address) ||
+                    (l.display_address && addressesMatch(l.display_address, webItem.address))) return true;
+                  const lDevName = ((l as any).development_name || '').toLowerCase().trim();
+                  if (lDevName && lDevName.length > 3) {
+                    if (webDevName && webDevName === lDevName) return true;
+                    if (webAddrNorm === normalizeAddress(lDevName)) return true;
+                  }
+                  return false;
+                })
+              : [];
+          const matchOutsideScope = outsideScopeMatches.length > 0;
+
+          // Also collect in-scope matches for display
+          const inScopeMatches = matchInScope ? scopeListings.filter(l =>
+            addressesMatch(l.address || '', webItem.address) ||
+            (l.display_address && addressesMatch(l.display_address, webItem.address)) ||
+            (() => {
               const lDevName = ((l as any).development_name || '').toLowerCase().trim();
               if (lDevName && lDevName.length > 3) {
                 if (webDevName && webDevName === lDevName) return true;
                 if (webAddrNorm === normalizeAddress(lDevName)) return true;
               }
               return false;
-            });
+            })()
+          ) : [];
+
+          const existingDbMatches = [...outsideScopeMatches, ...inScopeMatches].map(l => ({
+            id: l.id,
+            address: l.address || '',
+            display_address: l.display_address,
+            listing_type: l.listing_type,
+            size_sf: l.size_sf,
+            asking_rate_psf: l.asking_rate_psf,
+            sale_price: l.sale_price,
+            city: l.city,
+            submarket: l.submarket,
+            broker_source: l.broker_source,
+            landlord: l.landlord,
+            status: l.status,
+            brochure_link: l.brochure_link,
+            link: l.link,
+          }));
 
           // Check for development name matches
           const devName = webItem.development_name?.toLowerCase().trim();
@@ -337,6 +370,7 @@ export function AuditWebsiteDialog({
             existsInDbUnderDifferentScope: matchOutsideScope,
             existsInDbSameScope: matchInScope,
             developmentSiblingIds,
+            existingDbMatches: existingDbMatches.length > 0 ? existingDbMatches : undefined,
           };
         });
 
