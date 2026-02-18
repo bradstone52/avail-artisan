@@ -76,7 +76,6 @@ const navigation: NavigationEntry[] = [
 
 const adminNavigation = [
   { name: 'Management', href: '/admin/users', icon: Users },
-  { name: 'PDF Import', href: '/pdf-import', icon: FilePlus },
 ];
 
 export function AppLayout({ children }: AppLayoutProps) {
