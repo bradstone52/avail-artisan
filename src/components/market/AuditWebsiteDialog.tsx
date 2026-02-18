@@ -164,7 +164,12 @@ export function AuditWebsiteDialog({
         if (!devName || devName.length <= 3) return [];
         return scopeListings
           .filter(l => {
-            const fields = [l.address, l.display_address, l.notes_public, l.internal_note]
+            const listingDevName = (l as any).development_name;
+            if (listingDevName) {
+              return listingDevName.toLowerCase().trim() === devName;
+            }
+            // Fallback: check address and display_address for development name
+            const fields = [l.address, l.display_address]
               .filter(Boolean).map(f => f!.toLowerCase());
             return fields.some(f => f.includes(devName));
           })
@@ -250,10 +255,13 @@ export function AuditWebsiteDialog({
           let developmentSiblingIds: string[] | undefined;
           if (devName && devName.length > 3) {
             const devSiblings = scopeListings.filter(l => {
-              // Check if development name appears in address, display_address, notes_public, or internal_note
-              const fields = [
-                l.address, l.display_address, l.notes_public, l.internal_note
-              ].filter(Boolean).map(f => f!.toLowerCase());
+              const listingDevName = (l as any).development_name;
+              if (listingDevName) {
+                return listingDevName.toLowerCase().trim() === devName;
+              }
+              // Fallback: check address/display_address
+              const fields = [l.address, l.display_address]
+                .filter(Boolean).map(f => f!.toLowerCase());
               return fields.some(f => f.includes(devName));
             });
             if (devSiblings.length > 0) {

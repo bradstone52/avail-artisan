@@ -1846,6 +1846,7 @@ export type Database = {
           cranes: string | null
           created_at: string
           cross_dock: string | null
+          development_name: string | null
           display_address: string | null
           dock_doors: number | null
           drive_in_door_dimensions: Json | null
@@ -1906,6 +1907,7 @@ export type Database = {
           cranes?: string | null
           created_at?: string
           cross_dock?: string | null
+          development_name?: string | null
           display_address?: string | null
           dock_doors?: number | null
           drive_in_door_dimensions?: Json | null
@@ -1966,6 +1968,7 @@ export type Database = {
           cranes?: string | null
           created_at?: string
           cross_dock?: string | null
+          development_name?: string | null
           display_address?: string | null
           dock_doors?: number | null
           drive_in_door_dimensions?: Json | null

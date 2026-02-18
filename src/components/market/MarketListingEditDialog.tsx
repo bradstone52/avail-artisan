@@ -167,6 +167,7 @@ export function MarketListingEditDialog({
   const [hasLand, setHasLand] = useState(false);
   const [isDistributionWarehouse, setIsDistributionWarehouse] = useState(false);
   const [calgaryQuad, setCalgaryQuad] = useState('');
+  const [developmentName, setDevelopmentName] = useState('');
   // Track if we've initialized form from storage to avoid re-init on re-renders
   const hasInitializedRef = useRef(false);
   const formSessionIdRef = useRef<string | null>(null);
@@ -222,13 +223,14 @@ export function MarketListingEditDialog({
     hasLand,
     grossRate,
     isDistributionWarehouse,
+    developmentName,
   }), [
     listingId, address, building, unit, displayAddress, displayAddressManuallyEdited, city, submarket,
     sizeSf, status, listingType, askingRate, opCosts, propertyTax, condoFees, salePrice, availabilityDate,
     subleaseExp, landlord, brokerSource, brochureLink, websiteLink, notesPublic, internalNote, warehouseSf,
     officeSf, clearHeight, dockDoors, driveInDoors, driveInDoorDimensions, buildingDepth, powerAmps, voltage, sprinkler,
     hasSprinklers, hasCranes, cranes, craneTons, yard, yardArea, crossDock, trailerParking, landAcres, zoning,
-    mua, muaValue, hasLand, grossRate, isDistributionWarehouse,
+    mua, muaValue, hasLand, grossRate, isDistributionWarehouse, developmentName,
   ]);
 
 
@@ -291,6 +293,7 @@ export function MarketListingEditDialog({
     setHasLand(state.hasLand || false);
     setGrossRate(state.grossRate || '');
     setIsDistributionWarehouse(state.isDistributionWarehouse);
+    setDevelopmentName((state as any).developmentName || '');
   }, []);
 
   // Auto-calculate gross rate when asking rate and op costs are both numeric
@@ -572,6 +575,7 @@ export function MarketListingEditDialog({
       setMua(false);
       setMuaValue('');
       setIsDistributionWarehouse(false);
+      setDevelopmentName('');
     } else if (listing) {
       setListingId(listing.listing_id || '');
       setAddress(listing.address || '');
@@ -636,6 +640,7 @@ export function MarketListingEditDialog({
       setMua(isMuaChecked);
       setMuaValue(isMuaChecked && muaVal !== 'Yes' && muaVal !== 'yes' && muaVal !== 'Y' ? muaVal : '');
       setIsDistributionWarehouse(listing.is_distribution_warehouse || false);
+      setDevelopmentName((listing as any).development_name || '');
     }
 
     hasInitializedRef.current = true;
@@ -746,6 +751,7 @@ export function MarketListingEditDialog({
           mua: mua ? (muaValue || 'Yes') : 'No',
           is_distribution_warehouse: isDistributionWarehouse,
           calgary_quad: calgaryQuad || null,
+          development_name: developmentName || null,
           user_id: user.id,
           org_id: org.id,
           last_verified_date: new Date().toISOString().split('T')[0], // Auto-verify on create
@@ -879,6 +885,7 @@ export function MarketListingEditDialog({
           mua: mua ? (muaValue || 'Yes') : 'No',
           is_distribution_warehouse: isDistributionWarehouse,
           calgary_quad: calgaryQuad || null,
+          development_name: developmentName || null,
           updated_at: new Date().toISOString(),
           last_verified_date: new Date().toISOString().split('T')[0], // Auto-verify on update
           ...geocodeReset,
@@ -1721,6 +1728,20 @@ export function MarketListingEditDialog({
                     onChange={setLandlord}
                   />
                 </div>
+              </div>
+
+              {/* Development Name */}
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="developmentName" className="text-right">
+                  Development
+                </Label>
+                <Input
+                  id="developmentName"
+                  value={developmentName}
+                  onChange={(e) => setDevelopmentName(e.target.value)}
+                  className={`col-span-3 placeholder-light ${developmentName ? 'input-filled' : ''}`}
+                  placeholder="e.g., StoneGate Industrial"
+                />
               </div>
 
               {/* Brochure/Website Link */}
