@@ -147,7 +147,12 @@ IMPORTANT RULES:
 10. If a property appears on multiple pages with the same details, include it only once.
 11. Include land listings if any are shown as available.
 12. For named developments without a street address, use the development name as the address.
-13. IMPORTANT: If a listing is part of a named development or industrial park (e.g., "StoneGate Industrial", "Balzac Business Park", "CrossIron Mills Commerce"), extract the development/project name in the "development_name" field. This applies even if the listing has a specific street address — capture the parent development name.`;
+13. IMPORTANT: If a listing is part of a named development or industrial park (e.g., "StoneGate Industrial", "Balzac Business Park", "CrossIron Mills Commerce"), extract the development/project name in the "development_name" field. This applies even if the listing has a specific street address — capture the parent development name.
+
+ADDRESS EXTRACTION — CRITICAL:
+- You MUST preserve the COMPLETE street number exactly as shown. Addresses like "1016 Avenue NE" must NOT become "16 Avenue NE".
+- Double-check every extracted address against the original content. If the source shows "11500 35 Street SE", return "11500 35 Street SE", not "1500 35 Street SE".
+- Common Calgary addresses have 3-5 digit house numbers (e.g. 900, 1016, 2340, 11500). Never truncate these.`;
 
     const extractionTool = {
       type: "function",

@@ -61,6 +61,11 @@ IMPORTANT RULES:
 9. For named developments without a street address, use the name (e.g. "Midway Industrial Park Crossfield", "Noble Business Park Mountain View County").
 10. Do NOT skip any listing row. Check every table row on every page.
 
+ADDRESS EXTRACTION — CRITICAL:
+- You MUST preserve the COMPLETE street number exactly as printed. Addresses like "1016 Avenue NE" must NOT become "16 Avenue NE". The house/building number is typically the first number in the address.
+- Double-check every extracted address against the original PDF text. If the PDF shows "11500 35 Street SE", you must return "11500 35 Street SE", not "1500 35 Street SE" or "500 35 Street SE".
+- Common Calgary addresses have 3-5 digit house numbers (e.g. 900, 1016, 2340, 11500). Never truncate these.
+
 LISTING TYPE RULES:
 - Use "Lease" for standard for-lease listings
 - Use "Sublease" if the comments mention sublease or the listing is marked as a sublease
@@ -73,7 +78,7 @@ EXTRACTION RULES for additional fields:
 - Extract the total building size in SF if shown (e.g. "50,000" -> 50000)
 - Extract the asking rate/price if shown (lease rate PSF or sale price)
 - Extract the city/submarket if identifiable
-- Extract the landlord name if shown in the table
+- Extract the landlord/owner name if shown in the table. NOTE: The brokerage that produced this PDF is NOT the landlord — the landlord is the property owner/developer listed separately in the table columns (e.g. "Owner", "Landlord").
 - Extract any brochure or listing URL/link if shown in the table or associated with the listing row
 - If a field is not visible or not applicable, use null
 
