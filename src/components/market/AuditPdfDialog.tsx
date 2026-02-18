@@ -351,7 +351,15 @@ export function AuditPdfDialog({
 
   const handleAddNewListing = (pdfListing: PdfExtractedListing) => {
     if (onAddNewListing) {
-      onAddNewListing(pdfListing, selectedValue);
+      // When matchField is 'landlord', the selectedValue is the landlord name, not the broker
+      // Pass the correct broker source: only use selectedValue as broker if matchField is 'broker_source'
+      const brokerSource = matchField === 'broker_source' ? selectedValue : '';
+      // Ensure landlord is populated: use extracted landlord, or the selected landlord filter value
+      const enrichedListing = { ...pdfListing };
+      if (!enrichedListing.landlord && matchField === 'landlord') {
+        enrichedListing.landlord = selectedValue;
+      }
+      onAddNewListing(enrichedListing, brokerSource);
     }
   };
 
