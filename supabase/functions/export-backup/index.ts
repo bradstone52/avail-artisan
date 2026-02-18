@@ -47,37 +47,46 @@ serve(async (req) => {
     const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const anonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
 
-    // Authenticate the caller - must be admin
-    const authHeader = req.headers.get("authorization") || req.headers.get("Authorization");
-    if (!authHeader) {
-      return new Response(JSON.stringify({ error: "Missing Authorization header" }), {
-        status: 401,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-
-    const authedClient = createClient(supabaseUrl, anonKey, {
-      global: { headers: { Authorization: authHeader } },
-    });
-
-    const { data: userData, error: userErr } = await authedClient.auth.getUser();
-    if (userErr || !userData?.user) {
-      return new Response(JSON.stringify({ error: "Invalid session" }), {
-        status: 401,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-
     const adminClient = createClient(supabaseUrl, serviceRoleKey);
 
-    // Check admin
-    const { data: isAdmin } = await adminClient.rpc("is_admin", { _user_id: userData.user.id });
-    if (!isAdmin) {
-      return new Response(JSON.stringify({ error: "Forbidden - admin only" }), {
-        status: 403,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+    // Allow two auth modes:
+    // 1. Cron/service: Authorization header contains the anon key (from pg_cron) — skip user check
+    // 2. User: Authorization header contains a user JWT — must be admin
+    const authHeader = req.headers.get("authorization") || req.headers.get("Authorization");
+    const token = (authHeader || "").replace(/^Bearer\s+/i, "");
+    const isCronCall = token === anonKey;
+
+    if (!isCronCall) {
+      if (!authHeader) {
+        return new Response(JSON.stringify({ error: "Missing Authorization header" }), {
+          status: 401,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      const authedClient = createClient(supabaseUrl, anonKey, {
+        global: { headers: { Authorization: authHeader } },
       });
+
+      const { data: userData, error: userErr } = await authedClient.auth.getUser();
+      if (userErr || !userData?.user) {
+        return new Response(JSON.stringify({ error: "Invalid session" }), {
+          status: 401,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      const { data: isAdmin } = await adminClient.rpc("is_admin", { _user_id: userData.user.id });
+      if (!isAdmin) {
+        return new Response(JSON.stringify({ error: "Forbidden - admin only" }), {
+          status: 403,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
     }
+
+    console.log(`[export-backup] Starting backup (cron: ${isCronCall})`);
+
 
     const now = new Date();
     const dateStr = now.toISOString().replace(/[:.]/g, "-").slice(0, 19);
