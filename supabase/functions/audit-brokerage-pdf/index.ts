@@ -62,9 +62,10 @@ IMPORTANT RULES:
 10. Do NOT skip any listing row. Check every table row on every page.
 
 ADDRESS EXTRACTION — CRITICAL:
-- You MUST preserve the COMPLETE street number exactly as printed. Addresses like "1016 Avenue NE" must NOT become "16 Avenue NE". The house/building number is typically the first number in the address.
-- Double-check every extracted address against the original PDF text. If the PDF shows "11500 35 Street SE", you must return "11500 35 Street SE", not "1500 35 Street SE" or "500 35 Street SE".
-- Common Calgary addresses have 3-5 digit house numbers (e.g. 900, 1016, 2340, 11500). Never truncate these.
+- Calgary addresses often have TWO numbers: a HOUSE/BUILDING number followed by a STREET number. For example "2806 116 Avenue NE" means house 2806 on 116 Avenue NE. You MUST keep BOTH numbers. NEVER drop the house number.
+- More examples: "2806 116 Avenue NE" must NOT become "116 Avenue NE" or "16 Avenue NE". "1016 68 Avenue SE" must NOT become "68 Avenue SE". "11500 35 Street SE" must NOT become "35 Street SE".
+- The house/building number is ALWAYS the FIRST number in the address. It can be 2-5 digits. The street number/name follows it.
+- Double-check every extracted address against the original PDF text character by character. The extracted address must match the PDF exactly.
 
 LISTING TYPE RULES:
 - Use "Lease" for standard for-lease listings
