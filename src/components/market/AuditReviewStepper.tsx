@@ -35,6 +35,22 @@ export interface PdfExtractedListing {
   existsInDbUnderDifferentScope?: boolean;
   existsInDbSameScope?: boolean;
   developmentSiblingIds?: string[];
+  existingDbMatches?: Array<{
+    id: string;
+    address: string;
+    display_address?: string | null;
+    listing_type?: string | null;
+    size_sf?: number | null;
+    asking_rate_psf?: string | null;
+    sale_price?: string | null;
+    city?: string | null;
+    submarket?: string | null;
+    broker_source?: string | null;
+    landlord?: string | null;
+    status?: string | null;
+    brochure_link?: string | null;
+    link?: string | null;
+  }>;
 }
 
 export interface MatchedPair {
@@ -709,75 +725,112 @@ function MatchedReviewCard({ pair, onEdit, scopeListings }: { pair: MatchedPair;
 
 function NewInPdfCard({ pdfListing, sourceLabel = 'PDF' }: { pdfListing: PdfExtractedListing; sourceLabel?: string }) {
   return (
-    <div className={cn("border-2 rounded-md p-4 space-y-3", 
-      pdfListing.existsInDbUnderDifferentScope ? 'border-amber-500' : 
-      pdfListing.existsInDbSameScope ? 'border-blue-500' : 'border-green-600'
-    )} style={{ borderRadius: 'var(--radius)' }}>
-      <div className="flex items-center gap-2 mb-2 flex-wrap">
-        {pdfListing.existsInDbUnderDifferentScope ? (
-          <>
-            <Badge className="bg-amber-500 text-white text-xs">Exists</Badge>
-            <span className="text-xs font-bold uppercase tracking-wider text-amber-600">
-              Already in Database — Different Broker/Landlord
-            </span>
-          </>
-        ) : pdfListing.existsInDbSameScope ? (
-          <>
-            <Badge className="bg-blue-500 text-white text-xs">Duplicate</Badge>
-            <span className="text-xs font-bold uppercase tracking-wider text-blue-600">
-              Already Matched — Possible Additional Unit
-            </span>
-          </>
-        ) : (
-          <>
-            <Badge className="bg-green-600 text-white text-xs">New</Badge>
-            <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-              Found on {sourceLabel} — Not in Database
-            </span>
-          </>
-        )}
-      </div>
-      <div className="flex items-center gap-2">
-        <Building2 className="h-5 w-5 text-muted-foreground" />
-        <p className="text-lg font-bold">{pdfListing.address}</p>
-      </div>
-      <div className="grid grid-cols-3 gap-3 text-sm">
-        <Field label="Listing Type" value={pdfListing.listing_type} />
-        <Field label="Size" value={pdfListing.size_sf ? `${pdfListing.size_sf.toLocaleString()} SF` : null} />
-        <PricingFields listingType={pdfListing.listing_type} askingRate={pdfListing.asking_rate} salePrice={null} />
-        <Field label="City" value={pdfListing.city} />
-        <Field label="Submarket" value={pdfListing.submarket} />
-        <Field label="Landlord" value={pdfListing.landlord} />
-        <Field label="Development" value={pdfListing.development_name} />
-      </div>
-      <p className="text-xs text-muted-foreground italic">
-        The brochure link often contains more detail — further investigation recommended after adding.
-      </p>
+    <div className="space-y-3">
+      <div className={cn("border-2 rounded-md p-4 space-y-3", 
+        pdfListing.existsInDbUnderDifferentScope ? 'border-amber-500' : 
+        pdfListing.existsInDbSameScope ? 'border-blue-500' : 'border-green-600'
+      )} style={{ borderRadius: 'var(--radius)' }}>
+        <div className="flex items-center gap-2 mb-2 flex-wrap">
+          {pdfListing.existsInDbUnderDifferentScope ? (
+            <>
+              <Badge className="bg-amber-500 text-white text-xs">Exists</Badge>
+              <span className="text-xs font-bold uppercase tracking-wider text-amber-600">
+                Already in Database — Different Broker/Landlord
+              </span>
+            </>
+          ) : pdfListing.existsInDbSameScope ? (
+            <>
+              <Badge className="bg-blue-500 text-white text-xs">Duplicate</Badge>
+              <span className="text-xs font-bold uppercase tracking-wider text-blue-600">
+                Already Matched — Possible Additional Unit
+              </span>
+            </>
+          ) : (
+            <>
+              <Badge className="bg-green-600 text-white text-xs">New</Badge>
+              <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                Found on {sourceLabel} — Not in Database
+              </span>
+            </>
+          )}
+        </div>
+        <div className="flex items-center gap-2">
+          <Building2 className="h-5 w-5 text-muted-foreground" />
+          <p className="text-lg font-bold">{pdfListing.address}</p>
+        </div>
+        <div className="grid grid-cols-3 gap-3 text-sm">
+          <Field label="Listing Type" value={pdfListing.listing_type} />
+          <Field label="Size" value={pdfListing.size_sf ? `${pdfListing.size_sf.toLocaleString()} SF` : null} />
+          <PricingFields listingType={pdfListing.listing_type} askingRate={pdfListing.asking_rate} salePrice={null} />
+          <Field label="City" value={pdfListing.city} />
+          <Field label="Submarket" value={pdfListing.submarket} />
+          <Field label="Landlord" value={pdfListing.landlord} />
+          <Field label="Development" value={pdfListing.development_name} />
+        </div>
+        <p className="text-xs text-muted-foreground italic">
+          The brochure link often contains more detail — further investigation recommended after adding.
+        </p>
 
-      {/* Quick actions row */}
-      <div className="flex items-center gap-2 flex-wrap">
-        {pdfListing.brochure_link && (
+        {/* Quick actions row */}
+        <div className="flex items-center gap-2 flex-wrap">
+          {pdfListing.brochure_link && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => window.open(pdfListing.brochure_link!, '_blank')}
+            >
+              <ExternalLink className="h-3.5 w-3.5 mr-1" />
+              View Brochure
+            </Button>
+          )}
           <Button
             variant="outline"
             size="sm"
-            onClick={() => window.open(pdfListing.brochure_link!, '_blank')}
+            onClick={() => {
+              const query = `${pdfListing.address} ${pdfListing.city || 'Calgary'} brochure`.trim();
+              window.open(`https://www.google.com/search?q=${encodeURIComponent(query)}`, '_blank');
+            }}
           >
-            <ExternalLink className="h-3.5 w-3.5 mr-1" />
-            View Brochure
+            <Search className="h-3.5 w-3.5 mr-1" />
+            Find Brochure
           </Button>
-        )}
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => {
-            const query = `${pdfListing.address} ${pdfListing.city || 'Calgary'} brochure`.trim();
-            window.open(`https://www.google.com/search?q=${encodeURIComponent(query)}`, '_blank');
-          }}
-        >
-          <Search className="h-3.5 w-3.5 mr-1" />
-          Find Brochure
-        </Button>
+        </div>
       </div>
+
+      {/* Show existing DB matches */}
+      {pdfListing.existingDbMatches && pdfListing.existingDbMatches.length > 0 && (
+        <div className="space-y-2">
+          <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+            Existing Database Listing{pdfListing.existingDbMatches.length > 1 ? 's' : ''} at This Address
+          </p>
+          {pdfListing.existingDbMatches.map((dbMatch) => (
+            <div key={dbMatch.id} className="border rounded-md p-3 space-y-2 bg-muted/30" style={{ borderRadius: 'var(--radius)' }}>
+              <div className="flex items-center gap-2">
+                <Building2 className="h-4 w-4 text-muted-foreground" />
+                <p className="text-sm font-bold">{dbMatch.display_address || dbMatch.address}</p>
+              </div>
+              <div className="grid grid-cols-3 gap-2 text-sm">
+                <Field label="Listing Type" value={dbMatch.listing_type} />
+                <Field label="Size" value={dbMatch.size_sf ? `${dbMatch.size_sf.toLocaleString()} SF` : null} />
+                <PricingFields listingType={dbMatch.listing_type} askingRate={dbMatch.asking_rate_psf} salePrice={dbMatch.sale_price} />
+                <Field label="Status" value={dbMatch.status} />
+                <Field label="Broker" value={dbMatch.broker_source} />
+                <Field label="Landlord" value={dbMatch.landlord} />
+              </div>
+              {(dbMatch.brochure_link || dbMatch.link) && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => window.open(dbMatch.brochure_link || dbMatch.link!, '_blank')}
+                >
+                  <ExternalLink className="h-3.5 w-3.5 mr-1" />
+                  View Brochure
+                </Button>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
