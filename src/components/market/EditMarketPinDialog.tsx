@@ -12,7 +12,7 @@ import { Button } from '@/components/ui/button';
 import { MarketListing } from '@/hooks/useMarketListings';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { MapPin, Crosshair, RotateCcw } from 'lucide-react';
+import { MapPin, Crosshair, RotateCcw, Check, X } from 'lucide-react';
 
 interface EditMarketPinDialogProps {
   listing: MarketListing | null;
@@ -23,6 +23,8 @@ interface EditMarketPinDialogProps {
 
 /**
  * Edit pin location dialog for market listings.
+ * After placing a pin, looks up the submarket from ArcGIS boundaries
+ * and shows it for confirmation before saving.
  */
 export function EditMarketPinDialog({ 
   listing, 
@@ -39,6 +41,12 @@ export function EditMarketPinDialog({
   const [newLocation, setNewLocation] = useState<{ lat: number; lng: number } | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [mapReady, setMapReady] = useState(false);
+
+  // Submarket confirmation state
+  const [isLookingUpSubmarket, setIsLookingUpSubmarket] = useState(false);
+  const [detectedSubmarket, setDetectedSubmarket] = useState<string | null>(null);
+  const [showSubmarketConfirm, setShowSubmarketConfirm] = useState(false);
+  const [submarketAccepted, setSubmarketAccepted] = useState<boolean | null>(null);
 
   const originalLocation = useMemo(() => {
     if (listing?.latitude && listing?.longitude) {
@@ -57,6 +65,10 @@ export function EditMarketPinDialog({
       isInitializedRef.current = false;
       setMapReady(false);
       setNewLocation(null);
+      setDetectedSubmarket(null);
+      setShowSubmarketConfirm(false);
+      setSubmarketAccepted(null);
+      setIsLookingUpSubmarket(false);
     }
   }, [open]);
 
@@ -125,6 +137,45 @@ export function EditMarketPinDialog({
     }
   }, [createMarkerElement]);
 
+  // Lookup submarket when new location is set
+  const lookupSubmarket = useCallback(async (lat: number, lng: number) => {
+    // Only lookup for Calgary listings
+    if (listing?.city !== 'Calgary') {
+      setDetectedSubmarket(null);
+      setShowSubmarketConfirm(false);
+      return;
+    }
+
+    setIsLookingUpSubmarket(true);
+    setShowSubmarketConfirm(false);
+    setSubmarketAccepted(null);
+    setDetectedSubmarket(null);
+
+    try {
+      const { data, error } = await supabase.functions.invoke('lookup-submarket', {
+        body: { lat, lng }
+      });
+      if (error) throw error;
+
+      if (data?.submarket && data.submarket !== 'No community match') {
+        setDetectedSubmarket(data.submarket);
+        setShowSubmarketConfirm(true);
+      } else if (!data?.insideCity) {
+        setDetectedSubmarket(null);
+        setShowSubmarketConfirm(false);
+        toast.warning('Pin is outside Calgary city limits — submarket will not be updated');
+      } else {
+        setDetectedSubmarket(null);
+        setShowSubmarketConfirm(false);
+      }
+    } catch (err) {
+      console.error('Submarket lookup failed:', err);
+      // Non-blocking — user can still save without submarket update
+    } finally {
+      setIsLookingUpSubmarket(false);
+    }
+  }, [listing?.city]);
+
   useEffect(() => {
     if (!open || !googleMapsApiKey || isInitializedRef.current) {
       return;
@@ -181,6 +232,7 @@ export function EditMarketPinDialog({
             const lng = e.latLng.lng();
             setNewLocation({ lat, lng });
             updateMarker(lat, lng);
+            lookupSubmarket(lat, lng);
           }
         });
       } catch (err) {
@@ -190,10 +242,13 @@ export function EditMarketPinDialog({
     }, 100);
 
     return () => clearTimeout(initTimer);
-  }, [open, googleMapsApiKey, originalLocation, updateMarker]);
+  }, [open, googleMapsApiKey, originalLocation, updateMarker, lookupSubmarket]);
 
   const handleReset = useCallback(() => {
     setNewLocation(null);
+    setDetectedSubmarket(null);
+    setShowSubmarketConfirm(false);
+    setSubmarketAccepted(null);
     if (originalLocation && mapRef.current) {
       updateMarker(originalLocation.lat, originalLocation.lng);
       mapRef.current.panTo({ lat: originalLocation.lat, lng: originalLocation.lng });
@@ -222,19 +277,29 @@ export function EditMarketPinDialog({
 
     setIsSaving(true);
     try {
+      const updatePayload: Record<string, unknown> = {
+        latitude: newLocation.lat,
+        longitude: newLocation.lng,
+        geocode_source: 'manual',
+        geocoded_at: new Date().toISOString(),
+      };
+
+      // If user accepted the detected submarket, include it
+      if (submarketAccepted && detectedSubmarket) {
+        updatePayload.submarket = detectedSubmarket;
+      }
+
       const { error } = await supabase
         .from('market_listings')
-        .update({
-          latitude: newLocation.lat,
-          longitude: newLocation.lng,
-          geocode_source: 'manual',
-          geocoded_at: new Date().toISOString(),
-        })
+        .update(updatePayload)
         .eq('id', listing.id);
 
       if (error) throw error;
 
-      toast.success('Pin location updated');
+      const message = submarketAccepted && detectedSubmarket
+        ? `Pin location updated — submarket set to "${detectedSubmarket}"`
+        : 'Pin location updated';
+      toast.success(message);
       onSave?.();
       onOpenChange(false);
     } catch (err) {
@@ -302,7 +367,55 @@ export function EditMarketPinDialog({
           )}
 
           {mapReady && (
-            <div className="absolute bottom-4 left-4 right-4">
+            <div className="absolute bottom-4 left-4 right-4 flex flex-col gap-2">
+              {/* Submarket confirmation banner */}
+              {isLookingUpSubmarket && (
+                <div className="bg-background/95 backdrop-blur border rounded-lg px-4 py-3 shadow-lg">
+                  <div className="flex items-center gap-2">
+                    <div className="animate-spin w-4 h-4 border-2 border-primary border-t-transparent rounded-full" />
+                    <p className="text-sm text-muted-foreground">Looking up submarket...</p>
+                  </div>
+                </div>
+              )}
+
+              {showSubmarketConfirm && detectedSubmarket && !isLookingUpSubmarket && (
+                <div className="bg-background/95 backdrop-blur border rounded-lg px-4 py-3 shadow-lg">
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium">
+                        Detected submarket: <span className="text-primary">{detectedSubmarket}</span>
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        {listing?.submarket 
+                          ? `Currently "${listing.submarket}" — update to "${detectedSubmarket}"?`
+                          : `Set submarket to "${detectedSubmarket}"?`}
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-1.5 shrink-0">
+                      <Button
+                        variant={submarketAccepted === true ? 'default' : 'outline'}
+                        size="sm"
+                        className="h-8 px-2.5"
+                        onClick={() => setSubmarketAccepted(true)}
+                      >
+                        <Check className="w-4 h-4 mr-1" />
+                        Yes
+                      </Button>
+                      <Button
+                        variant={submarketAccepted === false ? 'destructive' : 'outline'}
+                        size="sm"
+                        className="h-8 px-2.5"
+                        onClick={() => setSubmarketAccepted(false)}
+                      >
+                        <X className="w-4 h-4 mr-1" />
+                        No
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Location info */}
               <div className="bg-background/95 backdrop-blur border rounded-lg px-4 py-3 shadow-lg">
                 {newLocation ? (
                   <div className="flex items-center justify-between">
