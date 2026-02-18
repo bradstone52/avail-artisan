@@ -459,6 +459,7 @@ export function MarketListingsTable({ listings, onEdit, onRefresh, sortColumn, s
             <TableHead className="text-background min-w-[90px] bg-zinc-700 dark:bg-zinc-600">Sub Exp</TableHead>
             <TableHead className="text-background min-w-[90px] bg-zinc-700 dark:bg-zinc-600">Avail</TableHead>
             <TableHead className="text-background min-w-[140px] bg-zinc-700 dark:bg-zinc-600">Landlord</TableHead>
+            <TableHead className="text-background min-w-[140px] bg-zinc-700 dark:bg-zinc-600">Development</TableHead>
             <TableHead className="text-background min-w-[140px] bg-zinc-700 dark:bg-zinc-600">Brokerage</TableHead>
             <TableHead className="text-background min-w-[180px] bg-zinc-700 dark:bg-zinc-600">Notes</TableHead>
             <TableHead className="text-background min-w-[130px] bg-zinc-700 dark:bg-zinc-600">Status</TableHead>
@@ -666,6 +667,13 @@ export function MarketListingsTable({ listings, onEdit, onRefresh, sortColumn, s
               <TableCell>
                 <div className="truncate max-w-[130px] text-sm" title={listing.landlord || ''}>
                   {listing.landlord || '-'}
+                </div>
+              </TableCell>
+
+              {/* Development */}
+              <TableCell>
+                <div className="truncate max-w-[130px] text-sm" title={(listing as any).development_name || ''}>
+                  {(listing as any).development_name || '-'}
                 </div>
               </TableCell>
               

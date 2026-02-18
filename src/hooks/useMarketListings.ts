@@ -64,6 +64,7 @@ export interface MarketListing {
   website_link: string | null;
   has_land: boolean | null;
   calgary_quad: string | null;
+  development_name: string | null;
 }
 
 export interface MarketSyncLog {
