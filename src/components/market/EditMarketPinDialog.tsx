@@ -153,7 +153,7 @@ export function EditMarketPinDialog({
 
     try {
       const { data, error } = await supabase.functions.invoke('lookup-submarket', {
-        body: { lat, lng }
+        body: { lat, lng, address: listing?.address }
       });
       if (error) throw error;
 

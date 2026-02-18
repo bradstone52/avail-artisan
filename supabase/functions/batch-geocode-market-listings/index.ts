@@ -192,7 +192,66 @@ async function fetchCityBoundary(): Promise<number[][][][]> {
   return cachedCityPolys;
 }
 
-async function determineSubmarket(lat: number, lng: number): Promise<string | null> {
+// City of Calgary Assessment API fallback
+const ASSESSMENT_API = 'https://data.calgary.ca/resource/4bsw-nn7w.json';
+
+function looksLikeCodeName(name: string): boolean {
+  if (!name) return true;
+  return /^[0-9]+[a-z]?$/i.test(name.trim());
+}
+
+async function lookupCommunityFromCityApi(address: string): Promise<string | null> {
+  try {
+    const parts = address.replace(/,.*$/, '').replace(/\s+(Calgary|AB|Alberta).*$/i, '').trim().toUpperCase().split(/\s+/);
+    const streetNumber = parts[0];
+    if (!streetNumber || !/^\d+$/.test(streetNumber)) return null;
+
+    const QUADRANTS = ['NE', 'NW', 'SE', 'SW'];
+    const STREET_TYPES_LOOKUP = ['ST', 'STREET', 'AVE', 'AV', 'AVENUE', 'DR', 'DRIVE', 'RD', 'ROAD',
+      'BLVD', 'BOULEVARD', 'LN', 'LANE', 'PL', 'PLACE', 'CT', 'COURT', 'WAY', 'CRES', 'CRESCENT', 'TR', 'TRAIL'];
+
+    const quadrant = parts.find(p => QUADRANTS.includes(p)) || null;
+    const streetTypeRaw = parts.find(p => STREET_TYPES_LOOKUP.includes(p)) || null;
+    const streetTypeAbbrev = streetTypeRaw
+      ? (streetTypeRaw === 'AVENUE' || streetTypeRaw === 'AVE' ? 'AV' : streetTypeRaw === 'LANE' ? 'LN' : streetTypeRaw)
+      : null;
+    const streetNameNumber = parts.slice(1).find(p => /^\d+$/.test(p)) || null;
+    const streetNameWord = !streetNameNumber
+      ? parts.slice(1).find(p => !QUADRANTS.includes(p) && !STREET_TYPES_LOOKUP.includes(p) && !/^\d+$/.test(p) && p.length > 0) || null
+      : null;
+
+    const searchPatterns: string[] = [];
+    if (streetNumber && streetNameNumber && streetTypeAbbrev && quadrant)
+      searchPatterns.push(`${streetNumber} ${streetNameNumber} ${streetTypeAbbrev} ${quadrant}`);
+    if (streetNumber && streetNameNumber && quadrant)
+      searchPatterns.push(`${streetNumber} ${streetNameNumber} ${quadrant}`);
+    if (streetNumber && streetNameWord && streetTypeAbbrev && quadrant)
+      searchPatterns.push(`${streetNumber} ${streetNameWord} ${streetTypeAbbrev} ${quadrant}`);
+    if (searchPatterns.length === 0) return null;
+
+    for (const pattern of searchPatterns.slice(0, 2)) {
+      const escapedValue = pattern.replace(/'/g, "''");
+      const params = new URLSearchParams();
+      params.set('$where', `address like '%${escapedValue}%'`);
+      params.set('$limit', '5');
+      const resp = await fetch(`${ASSESSMENT_API}?${params.toString()}`);
+      if (!resp.ok) { await resp.text(); continue; }
+      const data = await resp.json();
+      if (!data || data.length === 0) continue;
+
+      const candidates = data.filter((d: Record<string, unknown>) => {
+        const addr = String(d.address || '').toUpperCase();
+        return addr.startsWith(`${streetNumber} `) && (quadrant ? addr.includes(` ${quadrant}`) : true);
+      });
+      if (candidates.length === 0) continue;
+      const communityName = String(candidates[0].community_name || candidates[0].comm_name || '').trim();
+      if (communityName) return communityName;
+    }
+    return null;
+  } catch { return null; }
+}
+
+async function determineSubmarket(lat: number, lng: number, address?: string): Promise<string | null> {
   const pt: [number, number] = [lng, lat];
   
   try {
@@ -206,12 +265,18 @@ async function determineSubmarket(lat: number, lng: number): Promise<string | nu
     const communities = await fetchCommunityBoundaries();
     const feature = findContainingFeature(pt, communities);
     
+    let name: string | null = null;
     if (feature) {
-      const name = String(feature.properties?.[COMMUNITY_NAME_FIELD] || '').trim();
-      return name || 'No community match';
+      name = String(feature.properties?.[COMMUNITY_NAME_FIELD] || '').trim() || null;
     }
     
-    return 'No community match';
+    // Fallback to City API if ArcGIS returned a code-like name
+    if ((!name || looksLikeCodeName(name)) && address) {
+      const cityResult = await lookupCommunityFromCityApi(address);
+      if (cityResult) return cityResult;
+    }
+    
+    return name || 'No community match';
     
   } catch (error) {
     console.error(`[Submarket] Error:`, error);
@@ -292,7 +357,7 @@ serve(async (req) => {
 
         const shouldAssignSubmarket = listing.city === 'Calgary';
         const submarket = shouldAssignSubmarket
-          ? await determineSubmarket(geocodeResult.lat, geocodeResult.lng)
+          ? await determineSubmarket(geocodeResult.lat, geocodeResult.lng, listing.address)
           : null;
 
         const updatePayload: Record<string, unknown> = {
