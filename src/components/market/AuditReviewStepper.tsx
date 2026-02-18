@@ -31,13 +31,16 @@ export interface PdfExtractedListing {
   submarket?: string | null;
   landlord?: string | null;
   brochure_link?: string | null;
+  development_name?: string | null;
   existsInDbUnderDifferentScope?: boolean;
   existsInDbSameScope?: boolean;
+  developmentSiblingIds?: string[];
 }
 
 export interface MatchedPair {
   pdfListing: PdfExtractedListing;
   dbListing: MarketListing;
+  developmentSiblingIds?: string[];
 }
 
 export type ReviewAction = 'confirmed' | 'confirmed_updated' | 'skipped' | 'added' | 'flagged' | null;
@@ -500,13 +503,27 @@ function MatchedReviewCard({ pair, onEdit, scopeListings }: { pair: MatchedPair;
     const normAddr = (a: string) => a.toLowerCase().replace(/[.,#\-–—&]/g, ' ').replace(/\s+/g, ' ').trim();
     const dbAddr = normAddr(dbListing.address || '');
     const dbDisplay = dbListing.display_address ? normAddr(dbListing.display_address) : '';
-    return scopeListings.filter(l => {
+
+    // Address-based siblings
+    const addrSiblings = scopeListings.filter(l => {
       if (l.id === dbListing.id) return false;
       const lAddr = normAddr(l.address || '');
       const lDisplay = l.display_address ? normAddr(l.display_address) : '';
       return lAddr === dbAddr || (dbDisplay && lAddr === dbDisplay) || (lDisplay && lDisplay === dbAddr);
     });
-  }, [scopeListings, dbListing]);
+
+    // Development-name siblings (from matched pair data)
+    const devSiblingIds = pair.developmentSiblingIds || [];
+    const devSiblings = devSiblingIds.length > 0 && scopeListings
+      ? scopeListings.filter(l => 
+          l.id !== dbListing.id && 
+          devSiblingIds.includes(l.id) && 
+          !addrSiblings.some(s => s.id === l.id)
+        )
+      : [];
+
+    return [...addrSiblings, ...devSiblings];
+  }, [scopeListings, dbListing, pair.developmentSiblingIds]);
 
   const isExpanded = expandedSiblingId !== null;
   const expandedSibling = siblings.find(s => s.id === expandedSiblingId);
@@ -537,6 +554,7 @@ function MatchedReviewCard({ pair, onEdit, scopeListings }: { pair: MatchedPair;
             <PricingFields listingType={pdfListing.listing_type} askingRate={pdfListing.asking_rate} salePrice={null} />
             <Field label="City" value={pdfListing.city} />
             <Field label="Landlord" value={pdfListing.landlord} />
+            {pdfListing.development_name && <Field label="Development" value={pdfListing.development_name} />}
           </div>
         </div>
 
@@ -583,9 +601,17 @@ function MatchedReviewCard({ pair, onEdit, scopeListings }: { pair: MatchedPair;
             )}
           </div>
 
-          {/* Sibling listings at same address */}
+          {/* Sibling listings at same address or development */}
           {siblings.map(sibling => {
             const isSiblingExpanded = expandedSiblingId === sibling.id;
+            // Determine if this is a development sibling (not address match)
+            const normAddr = (a: string) => a.toLowerCase().replace(/[.,#\-–—&]/g, ' ').replace(/\s+/g, ' ').trim();
+            const dbAddr = normAddr(dbListing.address || '');
+            const dbDisplay = dbListing.display_address ? normAddr(dbListing.display_address) : '';
+            const sibAddr = normAddr(sibling.address || '');
+            const sibDisplay = sibling.display_address ? normAddr(sibling.display_address) : '';
+            const isAddressSibling = sibAddr === dbAddr || (dbDisplay && sibAddr === dbDisplay) || (sibDisplay && sibDisplay === dbAddr);
+            const siblingLabel = isAddressSibling ? 'Also at this address' : `${pdfListing.development_name || 'Development'} listing`;
             return (
               <div
                 key={sibling.id}
@@ -601,7 +627,7 @@ function MatchedReviewCard({ pair, onEdit, scopeListings }: { pair: MatchedPair;
                   <>
                     <div className="flex items-center justify-between gap-2 mb-3">
                       <div className="flex items-center gap-2">
-                        <Badge variant="outline" className="text-xs">Also at this address</Badge>
+                        <Badge variant="outline" className="text-xs">{siblingLabel}</Badge>
                         <span className="text-xs font-semibold text-muted-foreground">{sibling.listing_type || 'Unknown type'}</span>
                       </div>
                       {onEdit && (
@@ -634,7 +660,7 @@ function MatchedReviewCard({ pair, onEdit, scopeListings }: { pair: MatchedPair;
                 ) : (
                   <>
                     <div className="flex items-center gap-2">
-                      <Badge variant="outline" className="text-xs">Also at this address</Badge>
+                      <Badge variant="outline" className="text-xs">{siblingLabel}</Badge>
                       <span className="text-xs font-semibold text-muted-foreground">{sibling.listing_type || 'Unknown type'}</span>
                     </div>
                     <div className="flex items-center gap-3 text-xs">
@@ -719,6 +745,7 @@ function NewInPdfCard({ pdfListing }: { pdfListing: PdfExtractedListing }) {
         <Field label="City" value={pdfListing.city} />
         <Field label="Submarket" value={pdfListing.submarket} />
         <Field label="Landlord" value={pdfListing.landlord} />
+        {pdfListing.development_name && <Field label="Development" value={pdfListing.development_name} />}
       </div>
       <p className="text-xs text-muted-foreground italic">
         The brochure link often contains more detail — further investigation recommended after adding.

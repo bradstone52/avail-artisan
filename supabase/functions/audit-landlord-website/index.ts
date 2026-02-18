@@ -146,7 +146,8 @@ IMPORTANT RULES:
 9. If the same building has multiple available units/bays, extract each separately if they have distinct sizes.
 10. If a property appears on multiple pages with the same details, include it only once.
 11. Include land listings if any are shown as available.
-12. For named developments without a street address, use the development name.`;
+12. For named developments without a street address, use the development name as the address.
+13. IMPORTANT: If a listing is part of a named development or industrial park (e.g., "StoneGate Industrial", "Balzac Business Park", "CrossIron Mills Commerce"), extract the development/project name in the "development_name" field. This applies even if the listing has a specific street address — capture the parent development name.`;
 
     const extractionTool = {
       type: "function",
@@ -169,6 +170,7 @@ IMPORTANT RULES:
                   city: { type: ["string", "null"], description: "City name if identifiable, or null" },
                   submarket: { type: ["string", "null"], description: "Submarket/area name if shown, or null" },
                   brochure_link: { type: ["string", "null"], description: "URL to a brochure or listing detail page, or null" },
+                  development_name: { type: ["string", "null"], description: "Name of the parent development, industrial park, or business park this listing belongs to (e.g., 'StoneGate Industrial', 'Balzac Business Park'), or null if standalone" },
                 },
                 required: ["address", "listing_type"],
               },
@@ -249,6 +251,7 @@ IMPORTANT RULES:
       city?: string | null;
       submarket?: string | null;
       brochure_link?: string | null;
+      development_name?: string | null;
     }[] = [];
 
     if (toolArgs) {
