@@ -92,6 +92,13 @@ export function SelectListingsStep({
     onSelectionChange([]);
   };
 
+  const filteredIds = new Set(filteredListings.map(l => l.id));
+  const hiddenSelectedCount = selectedIds.filter(id => !filteredIds.has(id)).length;
+
+  const deselectHidden = () => {
+    onSelectionChange(selectedIds.filter(id => filteredIds.has(id)));
+  };
+
   const selectIncludeMarked = () => {
     const marked = filteredListings.filter(l => l.include_in_issue).map(l => l.id);
     onSelectionChange(marked);
@@ -117,6 +124,19 @@ export function SelectListingsStep({
           <span className="text-lg font-semibold">{eligibleListings.length}</span>
           <span className="text-muted-foreground ml-1">eligible (≥{sizeThreshold.toLocaleString()} SF, Active)</span>
         </div>
+        {hiddenSelectedCount > 0 && (
+          <>
+            <div className="text-muted-foreground">|</div>
+            <div className="flex items-center gap-2">
+              <Badge variant="destructive" className="text-xs">
+                {hiddenSelectedCount} selected but hidden by filter
+              </Badge>
+              <Button variant="outline" size="sm" onClick={deselectHidden} className="h-7 text-xs">
+                Deselect Hidden
+              </Button>
+            </div>
+          </>
+        )}
       </div>
 
       {/* Actions */}
