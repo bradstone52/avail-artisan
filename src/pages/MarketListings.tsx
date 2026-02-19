@@ -15,7 +15,7 @@ import {
 import { Checkbox } from '@/components/ui/checkbox';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
-import { RefreshCw, Database, Search, X, Filter, Link2, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Plus, ChevronDown, Wrench, ClipboardCheck, FileSearch, AlertTriangle, Globe } from 'lucide-react';
+import { RefreshCw, Database, Search, X, Filter, Link2, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Plus, ChevronDown, Wrench, ClipboardCheck, FileSearch, AlertTriangle, Globe, MapPin, Copy } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { format } from 'date-fns';
 import { MarketListingEditDialog } from '@/components/market/MarketListingEditDialog';
@@ -25,6 +25,8 @@ import { LogTransactionDialog } from '@/components/market/LogTransactionDialog';
 import { MonthlyUpdateCheckerDialog } from '@/components/market/MonthlyUpdateCheckerDialog';
 import { AuditPdfDialog } from '@/components/market/AuditPdfDialog';
 import { AuditWebsiteDialog } from '@/components/market/AuditWebsiteDialog';
+import { UngeocodeListingsDialog } from '@/components/market/UngeocodeListingsDialog';
+import { DuplicateListingsDialog } from '@/components/market/DuplicateListingsDialog';
 
 const SIZE_RANGES = [
   { label: 'All Sizes', value: 'all', min: 0, max: Infinity },
@@ -82,6 +84,8 @@ export default function MarketListings() {
   const [isAuditPdfOpen, setIsAuditPdfOpen] = useState(false);
   const [isAuditWebsiteOpen, setIsAuditWebsiteOpen] = useState(false);
   const [flaggedListingIds, setFlaggedListingIds] = useState<string[]>([]);
+  const [isUngeocodeDialogOpen, setIsUngeocodeDialogOpen] = useState(false);
+  const [isDuplicateDialogOpen, setIsDuplicateDialogOpen] = useState(false);
   const auditEditCallbackRef = useRef<((listingId: string) => void) | null>(null);
 
   // Handle column sorting
@@ -364,6 +368,20 @@ export default function MarketListings() {
    const linksUnchecked = linksWithUrl.filter(l => !l.link_status).length;
   const hasLinkIssues = linksBroken > 0 || linksError > 0 || linksMissing > 0 || linksRestricted > 0;
 
+  const geocodedCount = listings.filter(l => l.latitude && l.longitude).length;
+  const ungeocodeCount = listings.length - geocodedCount;
+
+  const duplicateCount = useMemo(() => {
+    const counts = new Map<string, number>();
+    for (const l of listings) {
+      const key = (l.address || '').toLowerCase().trim().replace(/\s+/g, ' ');
+      if (key) counts.set(key, (counts.get(key) || 0) + 1);
+    }
+    let extras = 0;
+    for (const c of counts.values()) if (c > 1) extras += c - 1;
+    return extras;
+  }, [listings]);
+
   const linksLeftThisRun = useMemo(() => {
     if (!isValidatingLinks || !linkCheckTotal) return 0;
     return Math.max(0, linkCheckTotal - linkCheckChecked);
@@ -436,7 +454,7 @@ export default function MarketListings() {
         </div>
 
         {/* Stats Cards - Compact */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 mb-6">
           <Card className="py-2">
             <CardHeader className="py-1.5 px-4">
               <CardDescription className="text-xs">Total Listings</CardDescription>
@@ -453,9 +471,50 @@ export default function MarketListings() {
             <CardHeader className="py-1.5 px-4">
               <CardDescription className="text-xs">Geocoded</CardDescription>
               <CardTitle className="text-2xl">
-                {listings.filter(l => l.latitude && l.longitude).length}
+                <span className="text-green-600">{geocodedCount}</span>
+                {ungeocodeCount > 0 && (
+                  <span className="text-destructive text-base"> / {ungeocodeCount} <span className="text-xs font-bold">MISSING</span></span>
+                )}
               </CardTitle>
             </CardHeader>
+            {ungeocodeCount > 0 && (
+              <CardContent className="pt-0 pb-1.5 px-4">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => setIsUngeocodeDialogOpen(true)}
+                  className="w-full h-6 text-[10px]"
+                >
+                  <MapPin className="w-3 h-3 mr-1" />
+                  Fix Geocoding
+                </Button>
+              </CardContent>
+            )}
+          </Card>
+          <Card className="py-2">
+            <CardHeader className="py-1.5 px-4">
+              <CardDescription className="text-xs">Duplicates</CardDescription>
+              <CardTitle className="text-2xl">
+                {duplicateCount === 0 ? (
+                  <span className="text-green-600">0</span>
+                ) : (
+                  <span className="text-destructive">{duplicateCount}</span>
+                )}
+              </CardTitle>
+            </CardHeader>
+            {duplicateCount > 0 && (
+              <CardContent className="pt-0 pb-1.5 px-4">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => setIsDuplicateDialogOpen(true)}
+                  className="w-full h-6 text-[10px]"
+                >
+                  <Copy className="w-3 h-3 mr-1" />
+                  Review Duplicates
+                </Button>
+              </CardContent>
+            )}
           </Card>
           <Card className="py-2">
             <CardHeader className="py-1.5 px-4">
@@ -919,6 +978,22 @@ export default function MarketListings() {
         <FixLinksDialog
           open={isFixLinksDialogOpen}
           onOpenChange={setIsFixLinksDialogOpen}
+          listings={listings}
+          onListingUpdated={refreshListings}
+        />
+
+        {/* Ungeocode Listings Dialog */}
+        <UngeocodeListingsDialog
+          open={isUngeocodeDialogOpen}
+          onOpenChange={setIsUngeocodeDialogOpen}
+          listings={listings}
+          onListingUpdated={refreshListings}
+        />
+
+        {/* Duplicate Listings Dialog */}
+        <DuplicateListingsDialog
+          open={isDuplicateDialogOpen}
+          onOpenChange={setIsDuplicateDialogOpen}
           listings={listings}
           onListingUpdated={refreshListings}
         />
