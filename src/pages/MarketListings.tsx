@@ -355,7 +355,7 @@ export default function MarketListings() {
 
   const distributionCount = listings.filter(l => l.is_distribution_warehouse).length;
   const linksWithUrl = listings.filter(l => l.link && l.link !== '');
-  const linksMissing = listings.filter(l => !l.link || l.link === '').length;
+  const linksMissing = listings.filter(l => (!l.link || l.link === '') && l.status === 'Active').length;
   const linksOk = linksWithUrl.filter(l => l.link_status === 'ok').length;
   const linksBroken = linksWithUrl.filter(l => l.link_status === 'broken').length;
   const linksError = linksWithUrl.filter(l => l.link_status === 'error').length;
