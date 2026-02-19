@@ -278,7 +278,9 @@ export function useMarketListings() {
 
   // Refresh listings
   const refreshListings = async () => {
+    toast.info('Refreshing listings...');
     await fetchListings();
+    toast.success('Listings refreshed');
   };
 
   return {
