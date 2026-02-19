@@ -107,6 +107,8 @@ export function AuditPdfDialog({
     return tokens ? tokens.join(' ') : normalized;
   };
 
+  const QUADRANTS = new Set(['ne', 'nw', 'se', 'sw']);
+
   const addressesMatch = (dbAddr: string, pdfAddr: string) => {
     const normDb = normalizeAddress(dbAddr);
     const normPdf = normalizeAddress(pdfAddr);
@@ -118,7 +120,17 @@ export function AuditPdfDialog({
     // Need at least 2 tokens to compare meaningfully
     if (dbTokens.length < 2 || pdfTokens.length < 2) return false;
     // Both sets must match each other (bidirectional)
-    return dbTokens.every(t => pdfTokens.includes(t)) && pdfTokens.every(t => dbTokens.includes(t));
+    const exactMatch = dbTokens.every(t => pdfTokens.includes(t)) && pdfTokens.every(t => dbTokens.includes(t));
+    if (exactMatch) return true;
+    // Quadrant-relaxed match: PDFs sometimes extract the wrong quadrant (e.g. SE vs NE).
+    // If all NON-quadrant tokens match bidirectionally AND at least 2 numeric tokens match, accept it.
+    const dbNonQ = dbTokens.filter(t => !QUADRANTS.has(t));
+    const pdfNonQ = pdfTokens.filter(t => !QUADRANTS.has(t));
+    if (dbNonQ.length >= 2 && pdfNonQ.length >= 2) {
+      const nonQMatch = dbNonQ.every(t => pdfNonQ.includes(t)) && pdfNonQ.every(t => dbNonQ.includes(t));
+      if (nonQMatch) return true;
+    }
+    return false;
   };
 
   const handleProcess = async () => {
