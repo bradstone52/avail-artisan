@@ -412,14 +412,33 @@ serve(async (req) => {
 
     const adminClient = createClient(supabaseUrl, serviceRoleKey);
 
-    // Fetch the listing
-    const { data: listing, error: fetchError } = await adminClient
-      .from('market_listings')
-      .select('id, listing_id, address, city, submarket, latitude, longitude, geocode_source')
-      .eq('listing_id', listingId)
-      .single();
+    // Fetch the listing — try by listing_id first, fall back to id (UUID)
+    let listing: Record<string, unknown> | null = null;
+    let fetchError: unknown = null;
 
-    if (fetchError || !listing) {
+    // If it looks like a UUID, try by id first
+    if (isValidUUID(listingId as string)) {
+      const result = await adminClient
+        .from('market_listings')
+        .select('id, listing_id, address, city, submarket, latitude, longitude, geocode_source')
+        .eq('id', listingId)
+        .single();
+      listing = result.data;
+      fetchError = result.error;
+    }
+
+    // If not found by UUID, try by listing_id string
+    if (!listing) {
+      const result = await adminClient
+        .from('market_listings')
+        .select('id, listing_id, address, city, submarket, latitude, longitude, geocode_source')
+        .eq('listing_id', listingId)
+        .single();
+      listing = result.data;
+      fetchError = result.error;
+    }
+
+    if (!listing) {
       console.error('[Geocode Market Listing] Listing not found:', fetchError);
       return new Response(JSON.stringify({ error: 'Listing not found' }), { 
         status: 404, 
