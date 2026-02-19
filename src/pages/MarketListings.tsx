@@ -376,7 +376,7 @@ export default function MarketListings() {
     for (const l of listings) {
       const addr = normalizeAddressForDupeCheck(l);
       if (!addr) continue;
-      const key = `${addr}||${l.size_sf ?? ''}`;
+      const key = `${addr}||${l.size_sf ?? ''}||${l.land_acres ?? ''}||${l.listing_type ?? ''}`;
       counts.set(key, (counts.get(key) || 0) + 1);
     }
     let extras = 0;

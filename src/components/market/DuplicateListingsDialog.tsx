@@ -61,7 +61,7 @@ export function DuplicateListingsDialog({ open, onOpenChange, listings, onListin
       const addr = normalizeAddressForDupeCheck(listing);
       if (!addr) continue;
 
-      const key = `${addr}||${listing.size_sf ?? ''}`;
+      const key = `${addr}||${listing.size_sf ?? ''}||${listing.land_acres ?? ''}||${listing.listing_type ?? ''}`;
       
       const existing = groups.get(key) || [];
       existing.push(listing);
@@ -124,7 +124,7 @@ export function DuplicateListingsDialog({ open, onOpenChange, listings, onListin
             <DialogDescription>
               {duplicateGroups.length === 0 
                 ? 'No duplicate addresses found.'
-                : `${duplicateGroups.length} groups with duplicates (${totalDuplicates} extra entries). Matched by normalized address + identical size.`
+                : `${duplicateGroups.length} groups with duplicates (${totalDuplicates} extra entries). Matched by normalized address + size + acreage + listing type.`
               }
             </DialogDescription>
           </DialogHeader>
