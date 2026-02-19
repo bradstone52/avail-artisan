@@ -28,16 +28,19 @@ interface SelectListingsStepProps {
   selectedIds: string[];
   sizeThreshold: number;
   onSelectionChange: (ids: string[]) => void;
+  landlordFilter: string;
+  onLandlordFilterChange: (landlord: string) => void;
 }
 
 export function SelectListingsStep({ 
   listings, 
   selectedIds, 
   sizeThreshold,
-  onSelectionChange 
+  onSelectionChange,
+  landlordFilter,
+  onLandlordFilterChange,
 }: SelectListingsStepProps) {
   const [search, setSearch] = useState('');
-  const [landlordFilter, setLandlordFilter] = useState('');
 
   // Filter eligible listings (Active status, meets threshold)
   const eligibleListings = useMemo(() => {
@@ -152,7 +155,7 @@ export function SelectListingsStep({
         </div>
         <Select
           value={landlordFilter || "__all__"}
-          onValueChange={(v) => setLandlordFilter(v === "__all__" ? "" : v)}
+          onValueChange={(v) => onLandlordFilterChange(v === "__all__" ? "" : v)}
         >
           <SelectTrigger className="w-[180px]">
             <SelectValue placeholder="All Landlords" />
