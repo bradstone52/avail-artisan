@@ -26,7 +26,7 @@ const PRIORITY_BROKERAGES = new Set([
 
 const PRIORITY_LANDLORDS = new Set([
   'anthem', 'bentall green oak', 'charger logistics', 'gwl realty advisors',
-  'hopewell', 'pannatoni', 'quadreal', 'remington',
+  'hopewell', 'oxford', 'pannatoni', 'quadreal', 'remington',
 ]);
 
 const isPriority = (name: string, set: Set<string>) => {
