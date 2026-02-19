@@ -28,24 +28,25 @@ export function FixLinksDialog({ open, onOpenChange, listings, onListingUpdated 
   const [editingLink, setEditingLink] = useState('');
   const [savingId, setSavingId] = useState<string | null>(null);
   
+  const hasAnyLink = (l: MarketListing) => (l.link && l.link !== '') || (l.brochure_link && l.brochure_link !== '');
 
   const brokenListings = useMemo(() => 
-    listings.filter(l => l.link && l.link !== '' && l.link_status === 'broken'),
+    listings.filter(l => hasAnyLink(l) && l.link_status === 'broken'),
     [listings]
   );
 
   const errorListings = useMemo(() => 
-    listings.filter(l => l.link && l.link !== '' && l.link_status === 'error'),
+    listings.filter(l => hasAnyLink(l) && l.link_status === 'error'),
     [listings]
   );
 
   const restrictedListings = useMemo(() => 
-    listings.filter(l => l.link && l.link !== '' && l.link_status === 'restricted'),
+    listings.filter(l => hasAnyLink(l) && l.link_status === 'restricted'),
     [listings]
   );
 
   const missingListings = useMemo(() => 
-    listings.filter(l => !l.link || l.link === ''),
+    listings.filter(l => !hasAnyLink(l)),
     [listings]
   );
 

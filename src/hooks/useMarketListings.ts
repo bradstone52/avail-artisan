@@ -208,7 +208,7 @@ export function useMarketListings() {
     // Snapshot current link_last_checked so we can compute progress reliably even if
     // the database formats timestamps differently.
     const baseline: Record<string, string | null> = {};
-    const linksWithUrl = listings.filter((l) => !!l.link && l.link !== '');
+    const linksWithUrl = listings.filter((l) => (l.link && l.link !== '') || (l.brochure_link && l.brochure_link !== ''));
     for (const l of linksWithUrl) baseline[l.id] = l.link_last_checked;
 
     setIsValidatingLinks(true);
@@ -259,7 +259,7 @@ export function useMarketListings() {
   useEffect(() => {
     if (!isValidatingLinks || linkCheckTotal <= 0) return;
 
-    const linksWithUrl = listings.filter((l) => !!l.link && l.link !== '');
+    const linksWithUrl = listings.filter((l) => (l.link && l.link !== '') || (l.brochure_link && l.brochure_link !== ''));
     const changed = linksWithUrl.filter((l) => (linkCheckBaseline[l.id] ?? null) !== l.link_last_checked).length;
     setLinkCheckChecked(changed);
 
