@@ -18,6 +18,8 @@ interface Listing {
   drive_in_doors: number | null;
   availability_date: string | null;
   asking_rate_psf: string | null;
+  op_costs: string | null;
+  landlord: string | null;
   notes_public: string | null;
   link: string | null;
   photo_url?: string | null;
@@ -135,6 +137,7 @@ serve(async (req) => {
       "dock_doors",
       "drive_in_doors",
       "op_costs",
+      "landlord",
       "availability_date",
       "asking_rate_psf",
       "notes_public",
@@ -418,8 +421,18 @@ function buildPdfHtml(issue: any, listings: any[], opts?: { includeDetails?: boo
     // Drive-In: show "—" for 0, null, or undefined
     const driveVal = l.drive_in_doors;
     const drive = (driveVal == null || driveVal === 0) ? "—" : String(driveVal);
-    // Op Costs: display exactly as entered, or "—" if empty
-    const opCosts = l.op_costs && String(l.op_costs).trim() ? esc(l.op_costs) : "—";
+    // Op Costs: format as currency if numeric
+    const opCostsRaw = l.op_costs && String(l.op_costs).trim() ? String(l.op_costs).trim() : null;
+    let opCosts = "—";
+    if (opCostsRaw) {
+      const parsed = parseFloat(opCostsRaw.replace(/[^0-9.\-]/g, ''));
+      if (Number.isFinite(parsed)) {
+        opCosts = `$${parsed.toFixed(2)}`;
+      } else {
+        opCosts = esc(opCostsRaw);
+      }
+    }
+    const landlord = esc(l.landlord || "—");
     const avail = esc(l.availability_date || "TBD");
     const rowClass = idx % 2 === 1 ? ' class="alt"' : '';
 
@@ -431,6 +444,7 @@ function buildPdfHtml(issue: any, listings: any[], opts?: { includeDetails?: boo
       <td class="col-center">${dock}</td>
       <td class="col-center">${drive}</td>
       <td class="col-center">${opCosts}</td>
+      <td class="col-landlord">${landlord}</td>
       <td class="col-mid">${avail}</td>
     </tr>`;
   }).join("");
@@ -459,8 +473,8 @@ function buildPdfHtml(issue: any, listings: any[], opts?: { includeDetails?: boo
 }
 
 @page {
-  size: A4;
-  margin: 14mm 16mm;
+  size: letter;
+  margin: 12mm 14mm;
   @bottom-right {
     content: "Page " counter(page) " of " counter(pages);
     font-size: 7pt;
@@ -696,15 +710,15 @@ body {
 table {
   width: 100%;
   border-collapse: collapse;
-  font-size: 8pt;
+  font-size: 7.5pt;
 }
 
 thead th {
   background: var(--ink);
   color: var(--bg);
   text-align: left;
-  padding: 12px 8px;
-  font-size: 7pt;
+  padding: 10px 6px;
+  font-size: 6.5pt;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.05em;
@@ -721,7 +735,7 @@ thead th.col-center {
 }
 
 tbody td {
-  padding: 10px 8px;
+  padding: 8px 6px;
   border-bottom: 1px solid #d1d5db;
   vertical-align: top;
   color: var(--ink);
@@ -745,16 +759,17 @@ tbody tr:last-child td {
   border-bottom: none;
 }
 
-.col-prop { width: 26%; }
-.col-city { width: 12%; }
-.col-num { width: 10%; }
-.col-mid { width: 10%; }
+.col-prop { width: 22%; }
+.col-city { width: 9%; }
+.col-num { width: 9%; }
+.col-mid { width: 8%; }
+.col-landlord { width: 12%; }
 
 .prop-name {
   display: block;
   font-weight: 700;
   color: var(--ink);
-  font-size: 8pt;
+  font-size: 7.5pt;
   white-space: normal;
   overflow: visible;
   text-overflow: clip;
@@ -945,6 +960,7 @@ tbody tr:last-child td {
           <th class="col-center">Docks</th>
           <th class="col-center">Drive-In</th>
           <th class="col-center">Op Costs</th>
+          <th class="col-landlord">Landlord</th>
           <th class="col-mid">Avail.</th>
         </tr>
       </thead>
