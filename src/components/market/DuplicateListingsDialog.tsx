@@ -27,12 +27,15 @@ export function DuplicateListingsDialog({ open, onOpenChange, listings, onListin
     
     for (const listing of listings) {
       // Normalize: lowercase, trim, collapse whitespace
-      const key = (listing.address || '')
+      const addr = (listing.address || '')
         .toLowerCase()
         .trim()
         .replace(/\s+/g, ' ');
       
-      if (!key) continue;
+      if (!addr) continue;
+
+      // Key on address + size to distinguish unique units at the same building
+      const key = `${addr}||${listing.size_sf ?? ''}`;
       
       const existing = groups.get(key) || [];
       existing.push(listing);
@@ -40,10 +43,10 @@ export function DuplicateListingsDialog({ open, onOpenChange, listings, onListin
     }
 
     // Only keep groups with 2+ listings
-    const dupes: { address: string; listings: MarketListing[] }[] = [];
-    for (const [address, group] of groups) {
+    const dupes: { address: string; size_sf: number | null; listings: MarketListing[] }[] = [];
+    for (const [, group] of groups) {
       if (group.length >= 2) {
-        dupes.push({ address, listings: group });
+        dupes.push({ address: group[0].display_address || group[0].address, size_sf: group[0].size_sf, listings: group });
       }
     }
 
@@ -100,9 +103,12 @@ export function DuplicateListingsDialog({ open, onOpenChange, listings, onListin
               ) : (
                 duplicateGroups.map((group) => (
                   <div key={group.address} className="border rounded-lg overflow-hidden">
-                    <div className="bg-muted/50 px-3 py-2 border-b">
+                    <div className="bg-muted/50 px-3 py-2 border-b flex items-center gap-2 flex-wrap">
                       <span className="font-medium text-sm">{group.listings[0].display_address || group.listings[0].address}</span>
-                      <Badge variant="outline" className="ml-2 text-xs">{group.listings.length}x</Badge>
+                      {group.size_sf != null && (
+                        <span className="text-xs text-muted-foreground">({group.size_sf.toLocaleString()} SF)</span>
+                      )}
+                      <Badge variant="outline" className="text-xs">{group.listings.length}x</Badge>
                     </div>
                     <div className="divide-y">
                       {group.listings.map((listing) => (
