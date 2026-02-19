@@ -374,8 +374,10 @@ export default function MarketListings() {
   const duplicateCount = useMemo(() => {
     const counts = new Map<string, number>();
     for (const l of listings) {
-      const key = (l.address || '').toLowerCase().trim().replace(/\s+/g, ' ');
-      if (key) counts.set(key, (counts.get(key) || 0) + 1);
+      const addr = (l.address || '').toLowerCase().trim().replace(/\s+/g, ' ');
+      if (!addr) continue;
+      const key = `${addr}||${l.size_sf ?? ''}`;
+      counts.set(key, (counts.get(key) || 0) + 1);
     }
     let extras = 0;
     for (const c of counts.values()) if (c > 1) extras += c - 1;
