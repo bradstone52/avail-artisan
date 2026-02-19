@@ -12,6 +12,13 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { Search, CheckSquare, Square, Filter } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { formatSubmarket } from '@/lib/formatters';
@@ -30,6 +37,7 @@ export function SelectListingsStep({
   onSelectionChange 
 }: SelectListingsStepProps) {
   const [search, setSearch] = useState('');
+  const [landlordFilter, setLandlordFilter] = useState('');
 
   // Filter eligible listings (Active status, meets threshold)
   const eligibleListings = useMemo(() => {
@@ -39,16 +47,32 @@ export function SelectListingsStep({
     );
   }, [listings, sizeThreshold]);
 
-  // Apply search filter
+  // Unique landlords for filter dropdown
+  const uniqueLandlords = useMemo(() => {
+    const set = new Set<string>();
+    eligibleListings.forEach(l => {
+      if (l.landlord?.trim()) set.add(l.landlord.trim());
+    });
+    return Array.from(set).sort((a, b) => a.localeCompare(b));
+  }, [eligibleListings]);
+
+  // Apply search + landlord filter
   const filteredListings = useMemo(() => {
-    if (!search) return eligibleListings;
-    const searchLower = search.toLowerCase();
-    return eligibleListings.filter(l =>
-      l.property_name?.toLowerCase().includes(searchLower) ||
-      l.address.toLowerCase().includes(searchLower) ||
-      l.submarket.toLowerCase().includes(searchLower)
-    );
-  }, [eligibleListings, search]);
+    let result = eligibleListings;
+    if (landlordFilter) {
+      result = result.filter(l => l.landlord?.trim() === landlordFilter);
+    }
+    if (search) {
+      const searchLower = search.toLowerCase();
+      result = result.filter(l =>
+        l.property_name?.toLowerCase().includes(searchLower) ||
+        l.address.toLowerCase().includes(searchLower) ||
+        l.submarket.toLowerCase().includes(searchLower) ||
+        l.landlord?.toLowerCase().includes(searchLower)
+      );
+    }
+    return result;
+  }, [eligibleListings, search, landlordFilter]);
 
   const isSelected = (id: string) => selectedIds.includes(id);
 
@@ -106,6 +130,20 @@ export function SelectListingsStep({
             className="pl-10"
           />
         </div>
+        <Select
+          value={landlordFilter || "__all__"}
+          onValueChange={(v) => setLandlordFilter(v === "__all__" ? "" : v)}
+        >
+          <SelectTrigger className="w-[180px]">
+            <SelectValue placeholder="All Landlords" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="__all__">All Landlords</SelectItem>
+            {uniqueLandlords.map((ll) => (
+              <SelectItem key={ll} value={ll}>{ll}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
         <div className="flex items-center gap-2">
           <Button variant="outline" size="sm" onClick={selectIncludeMarked}>
             <Filter className="w-4 h-4 mr-2" />
