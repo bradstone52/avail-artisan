@@ -19,6 +19,21 @@ interface MonthlyUpdateCheckerDialogProps {
   listings: MarketListing[];
 }
 
+const PRIORITY_BROKERAGES = new Set([
+  'avison young', 'barclay street', 'cbre', 'cdn global', 'colliers',
+  'clearview', 'cushman & wakefield', 'jll', 'lee & associates', 'nai',
+]);
+
+const PRIORITY_LANDLORDS = new Set([
+  'anthem', 'bentall green oak', 'charger logistics', 'gwl realty advisors',
+  'hopewell', 'pannatoni', 'quadreal', 'remington',
+]);
+
+const isPriority = (name: string, set: Set<string>) => {
+  const lower = name.toLowerCase();
+  return Array.from(set).some(p => lower.includes(p) || p.includes(lower));
+};
+
 export function MonthlyUpdateCheckerDialog({ open, onOpenChange, listings }: MonthlyUpdateCheckerDialogProps) {
   const brokerageNames = useMemo(() => {
     const names = new Set<string>();
@@ -87,8 +102,11 @@ export function MonthlyUpdateCheckerDialog({ open, onOpenChange, listings }: Mon
                             }}
                             disabled={toggleCheck.isPending}
                           />
-                          <span className={`text-sm ${isChecked ? 'line-through text-muted-foreground' : ''}`}>
+                          <span className={`text-sm ${isChecked ? 'line-through text-muted-foreground' : ''} ${isPriority(name, PRIORITY_BROKERAGES) ? 'font-semibold text-primary' : ''}`}>
                             {name}
+                            {isPriority(name, PRIORITY_BROKERAGES) && !isChecked && (
+                              <span className="ml-1.5 text-[10px] font-bold uppercase tracking-wider text-primary/70">★</span>
+                            )}
                           </span>
                         </label>
                       );
@@ -123,8 +141,11 @@ export function MonthlyUpdateCheckerDialog({ open, onOpenChange, listings }: Mon
                             }}
                             disabled={toggleCheck.isPending}
                           />
-                          <span className={`text-sm ${isChecked ? 'line-through text-muted-foreground' : ''}`}>
+                          <span className={`text-sm ${isChecked ? 'line-through text-muted-foreground' : ''} ${isPriority(name, PRIORITY_LANDLORDS) ? 'font-semibold text-primary' : ''}`}>
                             {name}
+                            {isPriority(name, PRIORITY_LANDLORDS) && !isChecked && (
+                              <span className="ml-1.5 text-[10px] font-bold uppercase tracking-wider text-primary/70">★</span>
+                            )}
                           </span>
                         </label>
                       );
