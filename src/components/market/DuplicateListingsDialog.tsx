@@ -10,6 +10,27 @@ import type { MarketListing } from '@/hooks/useMarketListings';
 import { formatSubmarket } from '@/lib/formatters';
 import { ConfirmDialog } from '@/components/common/ConfirmDialog';
 
+/**
+ * Strip building / unit / suite suffixes so that addresses like:
+ *   "11500 Barlow Trail NE - Building B - Unit 140"
+ *   "11500 Barlow Trail NE - Unit 140"
+ * collapse to the same core street address for duplicate comparison.
+ */
+export function normalizeAddressForDupeCheck(raw: string): string {
+  let s = raw.toLowerCase().trim().replace(/\s+/g, ' ');
+
+  // Remove segments after hyphens that are building/unit/suite identifiers
+  // e.g. "- building b", "- unit 140", "- suite 200", "- bay 3"
+  s = s.replace(/\s*-\s*(building|bldg|unit|suite|ste|bay)\b[^-]*/gi, '');
+
+  // Also strip standalone "#123", "unit 123", "suite 200" etc. that aren't after a dash
+  s = s.replace(/\b(unit|suite|ste|bay|bldg|building)\s*#?\s*\w+/gi, '');
+  s = s.replace(/#\s*\w+/, '');
+
+  // Collapse whitespace again and trim
+  return s.replace(/\s+/g, ' ').trim();
+}
+
 interface Props {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -21,20 +42,14 @@ export function DuplicateListingsDialog({ open, onOpenChange, listings, onListin
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [confirmDelete, setConfirmDelete] = useState<MarketListing | null>(null);
 
-  // Group by normalized address to find duplicates
+  // Group by normalized address + size to find duplicates
   const duplicateGroups = useMemo(() => {
     const groups = new Map<string, MarketListing[]>();
     
     for (const listing of listings) {
-      // Normalize: lowercase, trim, collapse whitespace
-      const addr = (listing.address || '')
-        .toLowerCase()
-        .trim()
-        .replace(/\s+/g, ' ');
-      
+      const addr = normalizeAddressForDupeCheck(listing.address || '');
       if (!addr) continue;
 
-      // Key on address + size to distinguish unique units at the same building
       const key = `${addr}||${listing.size_sf ?? ''}`;
       
       const existing = groups.get(key) || [];
@@ -46,7 +61,11 @@ export function DuplicateListingsDialog({ open, onOpenChange, listings, onListin
     const dupes: { address: string; size_sf: number | null; listings: MarketListing[] }[] = [];
     for (const [, group] of groups) {
       if (group.length >= 2) {
-        dupes.push({ address: group[0].display_address || group[0].address, size_sf: group[0].size_sf, listings: group });
+        dupes.push({
+          address: group[0].display_address || group[0].address,
+          size_sf: group[0].size_sf,
+          listings: group,
+        });
       }
     }
 
@@ -80,7 +99,7 @@ export function DuplicateListingsDialog({ open, onOpenChange, listings, onListin
   return (
     <>
       <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="max-w-2xl max-h-[80vh]">
+        <DialogContent className="max-w-3xl max-h-[85vh]">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Copy className="w-5 h-5" />
@@ -89,22 +108,22 @@ export function DuplicateListingsDialog({ open, onOpenChange, listings, onListin
             <DialogDescription>
               {duplicateGroups.length === 0 
                 ? 'No duplicate addresses found.'
-                : `${duplicateGroups.length} addresses with duplicates (${totalDuplicates} extra entries)`
+                : `${duplicateGroups.length} groups with duplicates (${totalDuplicates} extra entries). Matched by normalized address + identical size.`
               }
             </DialogDescription>
           </DialogHeader>
 
-          <ScrollArea className="h-[55vh] pr-4">
+          <ScrollArea className="h-[60vh] pr-4">
             <div className="space-y-4">
               {duplicateGroups.length === 0 ? (
                 <div className="text-center py-8 text-muted-foreground">
                   No duplicates detected! 🎉
                 </div>
               ) : (
-                duplicateGroups.map((group) => (
-                  <div key={group.address} className="border rounded-lg overflow-hidden">
+                duplicateGroups.map((group, gi) => (
+                  <div key={gi} className="border rounded-lg overflow-hidden">
                     <div className="bg-muted/50 px-3 py-2 border-b flex items-center gap-2 flex-wrap">
-                      <span className="font-medium text-sm">{group.listings[0].display_address || group.listings[0].address}</span>
+                      <span className="font-medium text-sm">{group.address}</span>
                       {group.size_sf != null && (
                         <span className="text-xs text-muted-foreground">({group.size_sf.toLocaleString()} SF)</span>
                       )}
@@ -114,30 +133,55 @@ export function DuplicateListingsDialog({ open, onOpenChange, listings, onListin
                       {group.listings.map((listing) => (
                         <div
                           key={listing.id}
-                          className="flex items-center gap-3 px-3 py-2 hover:bg-accent/30 transition-colors"
+                          className="flex items-start gap-3 px-3 py-2.5 hover:bg-accent/30 transition-colors"
                         >
-                          <div className="flex-1 min-w-0">
-                            <div className="text-xs text-muted-foreground flex items-center gap-2 flex-wrap">
-                              <span>ID: {listing.listing_id || '—'}</span>
-                              <span>•</span>
-                              <span>{formatSubmarket(listing.submarket)}</span>
-                              <span>•</span>
-                              <span>{listing.size_sf?.toLocaleString()} SF</span>
-                              {listing.broker_source && (
-                                <>
-                                  <span>•</span>
-                                  <span>{listing.broker_source}</span>
-                                </>
-                              )}
+                          <div className="flex-1 min-w-0 space-y-1">
+                            {/* Full original address if it differs from the group header */}
+                            <div className="text-sm font-medium truncate">
+                              {listing.display_address || listing.address}
+                            </div>
+                            <div className="text-xs text-muted-foreground flex items-center gap-1.5 flex-wrap">
                               <Badge variant={listing.status === 'Active' ? 'default' : 'secondary'} className="text-[10px] h-4">
                                 {listing.status}
                               </Badge>
+                              <span>{listing.size_sf?.toLocaleString()} SF</span>
+                              <span className="text-muted-foreground/50">•</span>
+                              <span>{formatSubmarket(listing.submarket)}</span>
+                              {listing.listing_type && (
+                                <>
+                                  <span className="text-muted-foreground/50">•</span>
+                                  <span>{listing.listing_type}</span>
+                                </>
+                              )}
+                            </div>
+                            <div className="text-xs text-muted-foreground flex items-center gap-1.5 flex-wrap">
+                              {listing.listing_id && (
+                                <span className="font-mono">ID: {listing.listing_id}</span>
+                              )}
+                              {listing.landlord && (
+                                <>
+                                  <span className="text-muted-foreground/50">•</span>
+                                  <span>Landlord: {listing.landlord}</span>
+                                </>
+                              )}
+                              {listing.broker_source && (
+                                <>
+                                  <span className="text-muted-foreground/50">•</span>
+                                  <span>Source: {listing.broker_source}</span>
+                                </>
+                              )}
+                              {listing.asking_rate_psf && (
+                                <>
+                                  <span className="text-muted-foreground/50">•</span>
+                                  <span>Rate: {listing.asking_rate_psf}</span>
+                                </>
+                              )}
                             </div>
                           </div>
                           <Button
                             size="sm"
                             variant="ghost"
-                            className="h-7 w-7 p-0 text-destructive hover:text-destructive shrink-0"
+                            className="h-7 w-7 p-0 text-destructive hover:text-destructive shrink-0 mt-0.5"
                             onClick={() => setConfirmDelete(listing)}
                             disabled={deletingId === listing.id}
                           >

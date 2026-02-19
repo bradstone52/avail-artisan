@@ -26,7 +26,7 @@ import { MonthlyUpdateCheckerDialog } from '@/components/market/MonthlyUpdateChe
 import { AuditPdfDialog } from '@/components/market/AuditPdfDialog';
 import { AuditWebsiteDialog } from '@/components/market/AuditWebsiteDialog';
 import { UngeocodeListingsDialog } from '@/components/market/UngeocodeListingsDialog';
-import { DuplicateListingsDialog } from '@/components/market/DuplicateListingsDialog';
+import { DuplicateListingsDialog, normalizeAddressForDupeCheck } from '@/components/market/DuplicateListingsDialog';
 
 const SIZE_RANGES = [
   { label: 'All Sizes', value: 'all', min: 0, max: Infinity },
@@ -374,7 +374,7 @@ export default function MarketListings() {
   const duplicateCount = useMemo(() => {
     const counts = new Map<string, number>();
     for (const l of listings) {
-      const addr = (l.address || '').toLowerCase().trim().replace(/\s+/g, ' ');
+      const addr = normalizeAddressForDupeCheck(l.address || '');
       if (!addr) continue;
       const key = `${addr}||${l.size_sf ?? ''}`;
       counts.set(key, (counts.get(key) || 0) + 1);
