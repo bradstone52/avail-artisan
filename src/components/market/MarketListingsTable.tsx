@@ -268,7 +268,7 @@ export function MarketListingsTable({ listings, onEdit, onRefresh, sortColumn, s
         headers: {
           Authorization: `Bearer ${accessToken}`,
         },
-        body: { listingId: listing.listing_id },
+        body: { listingId: listing.listing_id || listing.id },
       });
 
       if (error) throw error;
