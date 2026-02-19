@@ -291,13 +291,12 @@ Deno.serve(async (req) => {
 
     const orgId = orgMembers[0].org_id;
 
-    // Build query - either all links (force) or only unchecked/stale links
+    // Build query - fetch listings that have EITHER link or brochure_link
     let query = supabase
       .from("market_listings")
-      .select("id, link")
+      .select("id, link, brochure_link")
       .eq("org_id", orgId)
-      .not("link", "is", null)
-      .neq("link", "");
+      .or("link.neq.,brochure_link.neq.");
     
     if (!forceRecheck) {
       const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
@@ -344,9 +343,11 @@ Deno.serve(async (req) => {
 
         // Validate batch
         const batchResults = await Promise.all(
-          batch.map((listing) => validateLink(listing.id, listing.link!))
+          batch.map((listing) => {
+            const url = (listing.link && listing.link.trim() !== '') ? listing.link : listing.brochure_link;
+            return validateLink(listing.id, url!);
+          })
         );
-
         // Refine with soft 404 check
         const refinedBatch = await Promise.all(
           batchResults.map(async (result) => {
