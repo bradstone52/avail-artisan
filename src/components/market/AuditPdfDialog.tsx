@@ -188,10 +188,19 @@ export function AuditPdfDialog({
             addressesMatch(listingAddr, pdfAddr) ||
             (displayAddr && addressesMatch(displayAddr, pdfAddr));
 
-          // Also match by development name
+          // Also match by development name — use substring containment so
+          // "Nose Creek Business Park Building H" matches dev name "Nose Creek Business Park"
+          const pdfAddrLower = pdfAddr.toLowerCase().trim();
           const devMatch =
-            (listingDevName && listingDevName.length > 3 && pdfDevName && pdfDevName === listingDevName) ||
-            (listingDevName && listingDevName.length > 3 && normalizeAddress(pdfAddr) === normalizeAddress(listingDevName));
+            (listingDevName && listingDevName.length > 3 && pdfDevName && (
+              pdfDevName === listingDevName ||
+              pdfDevName.includes(listingDevName) ||
+              listingDevName.includes(pdfDevName)
+            )) ||
+            (listingDevName && listingDevName.length > 3 && (
+              pdfAddrLower.includes(listingDevName) ||
+              listingDevName.includes(pdfAddrLower)
+            ));
 
           if (addrMatch || devMatch) {
             candidates.push(pi);
@@ -260,8 +269,9 @@ export function AuditPdfDialog({
           if (listingDevName && listingDevName.length > 3) {
             const devMatchPi = extractedListings.findIndex(pdf => {
               const pdfDevName = (pdf.development_name || '').toLowerCase().trim();
-              const pdfAddrNorm = normalizeAddress(pdf.address);
-              return pdfDevName === listingDevName || pdfAddrNorm === normalizeAddress(listingDevName);
+              const pdfAddrLower = pdf.address.toLowerCase().trim();
+              return (pdfDevName && (pdfDevName === listingDevName || pdfDevName.includes(listingDevName) || listingDevName.includes(pdfDevName))) ||
+                pdfAddrLower.includes(listingDevName) || listingDevName.includes(pdfAddrLower);
             });
             if (devMatchPi !== -1) {
               const devSibIds = findDevSiblings(extractedListings[devMatchPi]);
@@ -287,9 +297,10 @@ export function AuditPdfDialog({
           if (addressesMatch(l.address || '', pdfItem.address) ||
             (l.display_address && addressesMatch(l.display_address, pdfItem.address))) return true;
           const lDevName = ((l as any).development_name || '').toLowerCase().trim();
+          const pdfAddrLower = pdfItem.address.toLowerCase().trim();
           if (lDevName && lDevName.length > 3) {
-            if (pdfDevName && pdfDevName === lDevName) return true;
-            if (pdfAddrNorm === normalizeAddress(lDevName)) return true;
+            if (pdfDevName && (pdfDevName === lDevName || pdfDevName.includes(lDevName) || lDevName.includes(pdfDevName))) return true;
+            if (pdfAddrLower.includes(lDevName) || lDevName.includes(pdfAddrLower)) return true;
           }
           return false;
         };
