@@ -354,14 +354,14 @@ export default function MarketListings() {
   }, [sortedListings.length, currentPage, totalPages]);
 
   const distributionCount = listings.filter(l => l.is_distribution_warehouse).length;
-  const linksWithUrl = listings.filter(l => l.link && l.link !== '');
-  const hasAnyLink = (l: MarketListing) => (l.link && l.link !== '') || (l.brochure_link && l.brochure_link !== '');
-  const linksMissing = listings.filter(l => !hasAnyLink(l) && l.status === 'Active').length;
-  const linksOk = linksWithUrl.filter(l => l.link_status === 'ok').length;
-  const linksBroken = linksWithUrl.filter(l => l.link_status === 'broken').length;
-  const linksError = linksWithUrl.filter(l => l.link_status === 'error').length;
-  const linksRestricted = linksWithUrl.filter(l => l.link_status === 'restricted').length;
-  const linksUnchecked = linksWithUrl.filter(l => !l.link_status).length;
+   const hasAnyLink = (l: MarketListing) => (l.link && l.link !== '') || (l.brochure_link && l.brochure_link !== '');
+   const linksWithUrl = listings.filter(l => hasAnyLink(l));
+   const linksMissing = listings.filter(l => !hasAnyLink(l) && l.status === 'Active').length;
+   const linksOk = linksWithUrl.filter(l => l.link_status === 'ok').length;
+   const linksBroken = linksWithUrl.filter(l => l.link_status === 'broken').length;
+   const linksError = linksWithUrl.filter(l => l.link_status === 'error').length;
+   const linksRestricted = linksWithUrl.filter(l => l.link_status === 'restricted').length;
+   const linksUnchecked = linksWithUrl.filter(l => !l.link_status).length;
   const hasLinkIssues = linksBroken > 0 || linksError > 0 || linksMissing > 0 || linksRestricted > 0;
 
   const linksLeftThisRun = useMemo(() => {
