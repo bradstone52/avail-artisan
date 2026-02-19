@@ -58,6 +58,7 @@ export default function IssueBuilder() {
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [executiveNotes, setExecutiveNotes] = useState<Record<string, string>>({});
   const [changeStatus, setChangeStatus] = useState<Record<string, "new" | "changed" | "unchanged">>({});
+  const [landlordFilter, setLandlordFilter] = useState("");
 
   // Auto-select eligible listings when moving to step 2
   useEffect(() => {
@@ -95,6 +96,17 @@ export default function IssueBuilder() {
   };
 
   const handleNext = async () => {
+    if (currentStep === 1 && landlordFilter) {
+      // Auto-prune: only keep listings visible under the current landlord filter
+      const eligible = listings.filter(
+        (l) => l.status === "Active" && l.include_in_issue &&
+               l.size_sf >= settings.sizeThreshold &&
+               l.size_sf <= settings.sizeThresholdMax &&
+               l.landlord?.trim() === landlordFilter
+      );
+      const eligibleIds = new Set(eligible.map(l => l.id));
+      setSelectedIds(prev => prev.filter(id => eligibleIds.has(id)));
+    }
     if (currentStep === 3) {
       // Create issue
       await handleCreateIssue();
@@ -112,7 +124,8 @@ export default function IssueBuilder() {
   const handleCreateIssue = async () => {
     setIsCreating(true);
     try {
-      const title = settings.title || `Large-Format Distribution Availability — ${format(new Date(), "MMMM yyyy")}`;
+      const baseTitle = settings.title || `Large-Format Distribution Availability — ${format(new Date(), "MMMM yyyy")}`;
+      const title = landlordFilter ? `${baseTitle} — ${landlordFilter}` : baseTitle;
 
       const newCount = Object.values(changeStatus).filter((s) => s === "new").length;
       const changedCount = Object.values(changeStatus).filter((s) => s === "changed").length;
@@ -216,6 +229,8 @@ export default function IssueBuilder() {
               selectedIds={selectedIds}
               sizeThreshold={settings.sizeThreshold}
               onSelectionChange={setSelectedIds}
+              landlordFilter={landlordFilter}
+              onLandlordFilterChange={setLandlordFilter}
             />
           )}
           {currentStep === 2 && (
@@ -228,7 +243,7 @@ export default function IssueBuilder() {
           )}
           {currentStep === 3 && (
             <PreviewStep
-              settings={settings}
+              settings={landlordFilter ? { ...settings, title: `${settings.title} — ${landlordFilter}` } : settings}
               listings={listings}
               selectedIds={selectedIds}
               executiveNotes={executiveNotes}
@@ -238,7 +253,7 @@ export default function IssueBuilder() {
           {currentStep === 4 && (
             <ShareStep
               issue={createdIssue}
-              settings={settings}
+              settings={landlordFilter ? { ...settings, title: `${settings.title} — ${landlordFilter}` } : settings}
               listingsCount={selectedIds.length}
               listings={listings}
               selectedIds={selectedIds}
