@@ -374,7 +374,7 @@ export default function MarketListings() {
   const duplicateCount = useMemo(() => {
     const counts = new Map<string, number>();
     for (const l of listings) {
-      const addr = normalizeAddressForDupeCheck(l.address || '');
+      const addr = normalizeAddressForDupeCheck(l);
       if (!addr) continue;
       const key = `${addr}||${l.size_sf ?? ''}`;
       counts.set(key, (counts.get(key) || 0) + 1);
@@ -998,6 +998,9 @@ export default function MarketListings() {
           onOpenChange={setIsDuplicateDialogOpen}
           listings={listings}
           onListingUpdated={refreshListings}
+          onFilterByAddress={(addr) => {
+            setSearchQuery(addr);
+          }}
         />
 
         {/* Log Transaction Dialog */}

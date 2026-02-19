@@ -3,7 +3,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Copy, Trash2, Loader2 } from 'lucide-react';
+import { Copy, Trash2, Loader2, Search } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import type { MarketListing } from '@/hooks/useMarketListings';
@@ -11,24 +11,34 @@ import { formatSubmarket } from '@/lib/formatters';
 import { ConfirmDialog } from '@/components/common/ConfirmDialog';
 
 /**
- * Strip building / unit / suite suffixes so that addresses like:
- *   "11500 Barlow Trail NE - Building B - Unit 140"
- *   "11500 Barlow Trail NE - Unit 140"
- * collapse to the same core street address for duplicate comparison.
+ * Normalize an address for duplicate comparison.
+ * Uses display_address (which includes lot/unit detail) when available,
+ * then strips building/unit/suite suffixes so minor formatting differences
+ * collapse — e.g. "11500 Barlow Trail NE - Building B - Unit 140" matches
+ * "11500 Barlow Trail NE - Unit 140".
+ *
+ * Does NOT strip "lot" because lot numbers typically represent distinct parcels.
  */
-export function normalizeAddressForDupeCheck(raw: string): string {
+export function normalizeAddressForDupeCheck(listing: { address: string; display_address?: string | null }): string {
+  // Prefer display_address — it usually includes lot / unit detail that
+  // the bare address field may lack (e.g. "Rme Lands" vs "Rme Lands — Lot 3").
+  const raw = (listing.display_address || listing.address || '');
   let s = raw.toLowerCase().trim().replace(/\s+/g, ' ');
+
+  // Normalise em-dashes / en-dashes to regular hyphens
+  s = s.replace(/[—–]/g, '-');
 
   // Remove segments after hyphens that are building/unit/suite identifiers
   // e.g. "- building b", "- unit 140", "- suite 200", "- bay 3"
+  // NOTE: "lot" is intentionally excluded — lots are distinct parcels.
   s = s.replace(/\s*-\s*(building|bldg|unit|suite|ste|bay)\b[^-]*/gi, '');
 
-  // Also strip standalone "#123", "unit 123", "suite 200" etc. that aren't after a dash
+  // Also strip standalone "#123", "unit 123", "suite 200" etc. not after a dash
   s = s.replace(/\b(unit|suite|ste|bay|bldg|building)\s*#?\s*\w+/gi, '');
   s = s.replace(/#\s*\w+/, '');
 
-  // Collapse whitespace again and trim
-  return s.replace(/\s+/g, ' ').trim();
+  // Collapse whitespace again and trim trailing hyphens / spaces
+  return s.replace(/\s+/g, ' ').replace(/[\s-]+$/, '').trim();
 }
 
 interface Props {
@@ -36,18 +46,19 @@ interface Props {
   onOpenChange: (open: boolean) => void;
   listings: MarketListing[];
   onListingUpdated: () => void;
+  onFilterByAddress?: (address: string) => void;
 }
 
-export function DuplicateListingsDialog({ open, onOpenChange, listings, onListingUpdated }: Props) {
+export function DuplicateListingsDialog({ open, onOpenChange, listings, onListingUpdated, onFilterByAddress }: Props) {
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [confirmDelete, setConfirmDelete] = useState<MarketListing | null>(null);
 
-  // Group by normalized address + size to find duplicates
+  // Group by normalized (display_address || address) + size to find duplicates
   const duplicateGroups = useMemo(() => {
     const groups = new Map<string, MarketListing[]>();
     
     for (const listing of listings) {
-      const addr = normalizeAddressForDupeCheck(listing.address || '');
+      const addr = normalizeAddressForDupeCheck(listing);
       if (!addr) continue;
 
       const key = `${addr}||${listing.size_sf ?? ''}`;
@@ -96,6 +107,11 @@ export function DuplicateListingsDialog({ open, onOpenChange, listings, onListin
     }
   };
 
+  const handleViewInTable = (address: string) => {
+    onFilterByAddress?.(address);
+    onOpenChange(false);
+  };
+
   return (
     <>
       <Dialog open={open} onOpenChange={onOpenChange}>
@@ -128,6 +144,17 @@ export function DuplicateListingsDialog({ open, onOpenChange, listings, onListin
                         <span className="text-xs text-muted-foreground">({group.size_sf.toLocaleString()} SF)</span>
                       )}
                       <Badge variant="outline" className="text-xs">{group.listings.length}x</Badge>
+                      {onFilterByAddress && (
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="h-6 px-2 text-xs ml-auto gap-1"
+                          onClick={() => handleViewInTable(group.listings[0].address)}
+                        >
+                          <Search className="w-3 h-3" />
+                          View in Table
+                        </Button>
+                      )}
                     </div>
                     <div className="divide-y">
                       {group.listings.map((listing) => (
@@ -136,7 +163,6 @@ export function DuplicateListingsDialog({ open, onOpenChange, listings, onListin
                           className="flex items-start gap-3 px-3 py-2.5 hover:bg-accent/30 transition-colors"
                         >
                           <div className="flex-1 min-w-0 space-y-1">
-                            {/* Full original address if it differs from the group header */}
                             <div className="text-sm font-medium truncate">
                               {listing.display_address || listing.address}
                             </div>
