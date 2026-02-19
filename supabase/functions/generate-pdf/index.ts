@@ -62,6 +62,19 @@ interface PdfGenerationResult {
   map_share_token?: string;
 }
 
+function formatSubmarket(submarket: string): string {
+  if (!submarket) return '';
+  const DIRECTIONAL = ['NE', 'NW', 'SE', 'SW', 'N', 'S', 'E', 'W'];
+  return submarket
+    .split(/\s+/)
+    .map(word => {
+      const upper = word.toUpperCase();
+      if (DIRECTIONAL.includes(upper)) return upper;
+      return word.charAt(0).toUpperCase() + word.slice(1).toLowerCase();
+    })
+    .join(' ');
+}
+
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
@@ -413,7 +426,7 @@ function buildPdfHtml(issue: any, listings: any[], opts?: { includeDetails?: boo
   // Ceiling Ht, Docks, Drive-In are center-aligned
   const summaryRows = sorted.map((l, idx) => {
     const property = esc(l.property_name || l.display_address || l.address || "—");
-    const submarket = esc(l.submarket || "");
+    const submarket = esc(formatSubmarket(l.submarket || ""));
     const city = esc(l.city || "—");
     const size = fmtNum(l.size_sf);
     const clear = l.clear_height_ft ? `${l.clear_height_ft}'` : "—";
