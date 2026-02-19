@@ -427,15 +427,6 @@ export default function MarketListings() {
               <Globe className="w-4 h-4 mr-2" />
               Audit Website
             </Button>
-            <Button 
-              variant="outline"
-              size="sm"
-              className="flex-1 sm:flex-none"
-              onClick={refreshListings}
-            >
-              <RefreshCw className="w-4 h-4 mr-2" />
-              Refresh
-            </Button>
             <Button size="sm" className="flex-1 sm:flex-none" onClick={() => setIsCreateDialogOpen(true)}>
               <Plus className="w-4 h-4 mr-2" />
               Add Listing
