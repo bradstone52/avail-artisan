@@ -20,6 +20,7 @@ import { ConfirmDialog } from '@/components/common/ConfirmDialog';
 import { formatDate, formatNumber } from '@/lib/format';
 import { useDeleteProspect } from '@/hooks/useProspects';
 import { Eye, Pencil, Trash2, MoreHorizontal } from 'lucide-react';
+import { cn } from '@/lib/utils';
 import type { Prospect } from '@/types/prospect';
 
 interface ProspectsTableProps {
@@ -45,6 +46,7 @@ export function ProspectsTable({ prospects, isLoading, onEdit }: ProspectsTableP
   const navigate = useNavigate();
   const deleteProspect = useDeleteProspect();
   const [deleteId, setDeleteId] = useState<string | null>(null);
+  const [selectedRowId, setSelectedRowId] = useState<string | null>(null);
 
   const handleDelete = async () => {
     if (deleteId) {
@@ -68,24 +70,46 @@ export function ProspectsTable({ prospects, isLoading, onEdit }: ProspectsTableP
           No prospects found. Create your first prospect to get started.
         </div>
       ) : (
-        <div className="border-2 border-foreground shadow-[4px_4px_0_hsl(var(--foreground))] bg-card overflow-hidden" style={{ borderRadius: 'var(--radius)' }}>
-          <Table>
-            <TableHeader>
-              <TableRow className="border-b-2 border-foreground bg-muted/50">
-                <TableHead className="font-bold uppercase text-xs tracking-wider">Name</TableHead>
-                <TableHead className="font-bold uppercase text-xs tracking-wider">Type</TableHead>
-                <TableHead className="font-bold uppercase text-xs tracking-wider">Source</TableHead>
-                <TableHead className="font-bold uppercase text-xs tracking-wider text-right">Required Size</TableHead>
-                <TableHead className="font-bold uppercase text-xs tracking-wider">Follow-up</TableHead>
-                <TableHead className="w-[60px]"></TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {prospects.map((prospect) => (
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Name</TableHead>
+              <TableHead>Type</TableHead>
+              <TableHead>Source</TableHead>
+              <TableHead className="text-right">Required Size</TableHead>
+              <TableHead>Follow-up</TableHead>
+              <TableHead className="w-[60px]"></TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {prospects.map((prospect, index) => {
+              const isSelected = selectedRowId === prospect.id;
+              const isEvenRow = index % 2 === 1;
+              const rowBg = isSelected
+                ? '!bg-secondary'
+                : isEvenRow
+                  ? 'bg-table-stripe'
+                  : '';
+              const hoverClass = isSelected
+                ? 'hover:!bg-secondary/90'
+                : isEvenRow
+                  ? 'hover:!bg-pink-300 dark:hover:!bg-pink-800'
+                  : 'hover:!bg-pink-200 dark:hover:!bg-pink-900/50';
+              const outlineClass = isSelected
+                ? 'outline outline-2 outline-amber-600 dark:outline-amber-500 -outline-offset-1'
+                : 'outline-0 hover:outline hover:outline-2 hover:outline-pink-500 dark:hover:outline-pink-400 hover:-outline-offset-1';
+
+              return (
                 <TableRow
                   key={prospect.id}
-                  className="border-b border-foreground/20 hover:bg-muted/30 cursor-pointer"
-                  onClick={() => navigate(`/prospects/${prospect.id}`)}
+                  className={cn(
+                    'cursor-pointer transition-all !border-b-2 !border-foreground',
+                    rowBg,
+                    hoverClass,
+                    outlineClass,
+                  )}
+                  onClick={() => setSelectedRowId(isSelected ? null : prospect.id)}
+                  onDoubleClick={() => navigate(`/prospects/${prospect.id}`)}
                 >
                   <TableCell>
                     <span className="font-medium">{prospect.name}</span>
@@ -160,10 +184,10 @@ export function ProspectsTable({ prospects, isLoading, onEdit }: ProspectsTableP
                     </DropdownMenu>
                   </TableCell>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </div>
+              );
+            })}
+          </TableBody>
+        </Table>
       )}
 
       <ConfirmDialog

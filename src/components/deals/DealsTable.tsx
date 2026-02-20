@@ -28,6 +28,7 @@ import { ConfirmDialog } from '@/components/common/ConfirmDialog';
 import { formatCurrency, formatDate } from '@/lib/format';
 import { useDeleteDeal } from '@/hooks/useDeals';
 import { Eye, Pencil, Trash2, Search, X, MoreHorizontal } from 'lucide-react';
+import { cn } from '@/lib/utils';
 import type { Deal } from '@/types/database';
 
 interface DealsTableProps {
@@ -54,6 +55,7 @@ export function DealsTable({ deals, isLoading, onEdit }: DealsTableProps) {
   const navigate = useNavigate();
   const deleteDeal = useDeleteDeal();
   const [deleteId, setDeleteId] = useState<string | null>(null);
+  const [selectedRowId, setSelectedRowId] = useState<string | null>(null);
   
   // Filter states
   const [searchQuery, setSearchQuery] = useState('');
@@ -75,7 +77,6 @@ export function DealsTable({ deals, isLoading, onEdit }: DealsTableProps) {
 
   const hasActiveFilters = searchQuery || typeFilter !== 'All' || statusFilter !== 'All';
 
-  // Filter deals
   const filteredDeals = useMemo(() => {
     return deals.filter(deal => {
       if (searchQuery) {
@@ -157,25 +158,47 @@ export function DealsTable({ deals, isLoading, onEdit }: DealsTableProps) {
           }
         </div>
       ) : (
-        <div className="border-2 border-foreground shadow-[4px_4px_0_hsl(var(--foreground))] bg-card overflow-hidden" style={{ borderRadius: 'var(--radius)' }}>
-          <Table>
-            <TableHeader>
-              <TableRow className="border-b-2 border-foreground bg-muted/50">
-                <TableHead className="font-bold uppercase text-xs tracking-wider">Deal #</TableHead>
-                <TableHead className="font-bold uppercase text-xs tracking-wider">Address</TableHead>
-                <TableHead className="font-bold uppercase text-xs tracking-wider">Type</TableHead>
-                <TableHead className="font-bold uppercase text-xs tracking-wider">Status</TableHead>
-                <TableHead className="font-bold uppercase text-xs tracking-wider text-right">Value</TableHead>
-                <TableHead className="font-bold uppercase text-xs tracking-wider">Close Date</TableHead>
-                <TableHead className="w-[60px]"></TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {filteredDeals.map((deal) => (
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Deal #</TableHead>
+              <TableHead>Address</TableHead>
+              <TableHead>Type</TableHead>
+              <TableHead>Status</TableHead>
+              <TableHead className="text-right">Value</TableHead>
+              <TableHead>Close Date</TableHead>
+              <TableHead className="w-[60px]"></TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {filteredDeals.map((deal, index) => {
+              const isSelected = selectedRowId === deal.id;
+              const isEvenRow = index % 2 === 1;
+              const rowBg = isSelected
+                ? '!bg-secondary'
+                : isEvenRow
+                  ? 'bg-table-stripe'
+                  : '';
+              const hoverClass = isSelected
+                ? 'hover:!bg-secondary/90'
+                : isEvenRow
+                  ? 'hover:!bg-pink-300 dark:hover:!bg-pink-800'
+                  : 'hover:!bg-pink-200 dark:hover:!bg-pink-900/50';
+              const outlineClass = isSelected
+                ? 'outline outline-2 outline-amber-600 dark:outline-amber-500 -outline-offset-1'
+                : 'outline-0 hover:outline hover:outline-2 hover:outline-pink-500 dark:hover:outline-pink-400 hover:-outline-offset-1';
+
+              return (
                 <TableRow
                   key={deal.id}
-                  className="border-b border-foreground/20 hover:bg-muted/30 cursor-pointer"
-                  onClick={() => navigate(`/deals/${deal.id}`)}
+                  className={cn(
+                    'cursor-pointer transition-all !border-b-2 !border-foreground',
+                    rowBg,
+                    hoverClass,
+                    outlineClass,
+                  )}
+                  onClick={() => setSelectedRowId(isSelected ? null : deal.id)}
+                  onDoubleClick={() => navigate(`/deals/${deal.id}`)}
                 >
                   <TableCell className="font-medium">
                     {deal.deal_number || '-'}
@@ -250,10 +273,10 @@ export function DealsTable({ deals, isLoading, onEdit }: DealsTableProps) {
                     </DropdownMenu>
                   </TableCell>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </div>
+              );
+            })}
+          </TableBody>
+        </Table>
       )}
 
       <ConfirmDialog
