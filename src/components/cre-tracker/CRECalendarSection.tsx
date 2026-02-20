@@ -96,6 +96,20 @@ export function CRECalendarSection({ calendarDates }: CRECalendarSectionProps) {
               month={displayedMonth}
               onMonthChange={setDisplayedMonth}
             />
+            <div className="flex flex-wrap justify-center gap-x-4 gap-y-1 mt-3">
+              {([
+                { type: 'closing', label: 'Closing' },
+                { type: 'deposit', label: 'Deposit' },
+                { type: 'condition', label: 'Condition' },
+                { type: 'action', label: 'Action' },
+                { type: 'prospect', label: 'Follow-up' },
+              ] as const).map(item => (
+                <div key={item.type} className="flex items-center gap-1.5">
+                  <div className={`w-2 h-2 rounded-full ${getEventColor(item.type)}`} />
+                  <span className="text-xs text-muted-foreground">{item.label}</span>
+                </div>
+              ))}
+            </div>
           </div>
           <div>
             <div className="flex items-center justify-between mb-3">
