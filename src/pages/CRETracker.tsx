@@ -216,6 +216,7 @@ export default function CRETracker() {
 
   // Quick nav sections for the top cards
   const quickNav = [
+    { title: 'Overview', icon: Calendar, tab: 'overview', color: 'bg-muted' },
     { title: 'Deals', icon: Briefcase, tab: 'deals', stat: `${activeDeals.length} active`, color: 'bg-primary' },
     { title: 'Prospects', icon: UserSearch, tab: 'prospects', color: 'bg-secondary' },
     { title: 'Internal Listings', icon: Building2, tab: 'listings', color: 'bg-accent' },
@@ -230,7 +231,7 @@ export default function CRETracker() {
         <PageHeader title="CRE Tracker" icon={Briefcase} />
 
         {/* Quick Nav Cards */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
           {quickNav.map((item) => (
             <button
               key={item.title}
@@ -255,13 +256,6 @@ export default function CRETracker() {
 
         {/* Tabbed Content */}
         <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList className="border-2 border-foreground bg-muted">
-            <TabsTrigger value="overview">Overview</TabsTrigger>
-            <TabsTrigger value="deals">Deals</TabsTrigger>
-            <TabsTrigger value="prospects">Prospects</TabsTrigger>
-            <TabsTrigger value="listings">Internal Listings</TabsTrigger>
-            <TabsTrigger value="contacts">BrokerageDB</TabsTrigger>
-          </TabsList>
 
           {/* Overview Tab */}
           <TabsContent value="overview" className="space-y-6 mt-4">
