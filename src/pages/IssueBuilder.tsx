@@ -38,7 +38,7 @@ export default function IssueBuilder() {
 
   const [settings, setSettings] = useState<IssueSettings>({
     title: `Large-Format Distribution Availability — ${format(new Date(), "MMMM yyyy")}`,
-    market: "Calgary Region",
+    market: "Calgary & Area",
     sizeThreshold: 100000,
     sizeThresholdMax: 500000,
     sortOrder: "size_desc",
