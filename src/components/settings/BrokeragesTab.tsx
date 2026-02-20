@@ -304,7 +304,7 @@ export function BrokeragesTab() {
                       </TableCell>
                     </TableRow>
                     {isExpanded && brokerageAgents.length > 0 && brokerageAgents.map(agent => (
-                      <TableRow key={agent.id} className="bg-muted/30 !border-b border-foreground/10">
+                      <TableRow key={agent.id} className="bg-pink-50 dark:bg-pink-950/20 !border-b border-foreground/10 hover:!bg-pink-200 dark:hover:!bg-pink-900/50 outline-0 hover:outline hover:outline-2 hover:outline-pink-500 dark:hover:outline-pink-400 hover:-outline-offset-1 transition-all">
                         <TableCell></TableCell>
                         <TableCell className="pl-8">
                           <span className="text-muted-foreground">↳</span> {agent.name}
@@ -340,7 +340,7 @@ export function BrokeragesTab() {
                       </TableRow>
                     ))}
                     {isExpanded && brokerageAgents.length === 0 && (
-                      <TableRow className="bg-muted/30 !border-b border-foreground/10">
+                      <TableRow className="bg-pink-50 dark:bg-pink-950/20 !border-b border-foreground/10">
                         <TableCell></TableCell>
                         <TableCell colSpan={4} className="pl-8 text-muted-foreground text-sm">
                           No agents. Use the menu to add one.
