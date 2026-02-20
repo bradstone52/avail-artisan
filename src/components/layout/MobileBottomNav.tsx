@@ -41,7 +41,6 @@ const moreNav = [
   { name: 'Distribution Listings', href: '/listings', icon: FileSpreadsheet },
   { name: 'Recipients', href: '/recipients', icon: Mail },
   { name: 'CRE Tracker', href: '/cre-tracker', icon: Briefcase },
-  { name: 'Internal Listings', href: '/internal-listings', icon: Building2 },
   { name: 'Tenants', href: '/tenants', icon: Users },
   { name: 'Settings', href: '/account', icon: Settings },
 ];
