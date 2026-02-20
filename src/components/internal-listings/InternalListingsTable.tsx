@@ -18,7 +18,8 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { ConfirmDialog } from '@/components/common/ConfirmDialog';
 import { formatNumber, formatCurrency } from '@/lib/format';
-import { MoreHorizontal, Eye, Pencil, Trash2, ExternalLink } from 'lucide-react';
+import { MoreHorizontal, Eye, Pencil, Trash2 } from 'lucide-react';
+import { cn } from '@/lib/utils';
 import { InternalListing } from '@/hooks/useInternalListings';
 
 interface InternalListingsTableProps {
@@ -51,6 +52,7 @@ export function InternalListingsTable({
 }: InternalListingsTableProps) {
   const navigate = useNavigate();
   const [deleteId, setDeleteId] = useState<string | null>(null);
+  const [selectedRowId, setSelectedRowId] = useState<string | null>(null);
 
   const handleDelete = () => {
     if (deleteId) {
@@ -61,34 +63,56 @@ export function InternalListingsTable({
 
   return (
     <>
-      <div className="border-2 border-foreground shadow-[4px_4px_0_hsl(var(--foreground))] bg-card overflow-hidden" style={{ borderRadius: 'var(--radius)' }}>
-        <Table>
-          <TableHeader>
-            <TableRow className="border-b-2 border-foreground bg-muted/50">
-              <TableHead className="font-bold uppercase text-xs tracking-wider">Address</TableHead>
-              <TableHead className="font-bold uppercase text-xs tracking-wider">City</TableHead>
-              <TableHead className="font-bold uppercase text-xs tracking-wider">Type</TableHead>
-              <TableHead className="font-bold uppercase text-xs tracking-wider text-right">Size (SF)</TableHead>
-              <TableHead className="font-bold uppercase text-xs tracking-wider">Deal</TableHead>
-              <TableHead className="font-bold uppercase text-xs tracking-wider text-right">Asking</TableHead>
-              <TableHead className="font-bold uppercase text-xs tracking-wider">Status</TableHead>
-              <TableHead className="font-bold uppercase text-xs tracking-wider">Agent</TableHead>
-              <TableHead className="w-[60px]"></TableHead>
+      <Table>
+        <TableHeader>
+          <TableRow>
+            <TableHead>Address</TableHead>
+            <TableHead>City</TableHead>
+            <TableHead>Type</TableHead>
+            <TableHead className="text-right">Size (SF)</TableHead>
+            <TableHead>Deal</TableHead>
+            <TableHead className="text-right">Asking</TableHead>
+            <TableHead>Status</TableHead>
+            <TableHead>Agent</TableHead>
+            <TableHead className="w-[60px]"></TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {listings.length === 0 ? (
+            <TableRow>
+              <TableCell colSpan={9} className="text-center py-12 text-muted-foreground">
+                No listings found. Create your first internal listing to get started.
+              </TableCell>
             </TableRow>
-          </TableHeader>
-          <TableBody>
-            {listings.length === 0 ? (
-              <TableRow>
-                <TableCell colSpan={9} className="text-center py-12 text-muted-foreground">
-                  No listings found. Create your first internal listing to get started.
-                </TableCell>
-              </TableRow>
-            ) : (
-              listings.map((listing) => (
+          ) : (
+            listings.map((listing, index) => {
+              const isSelected = selectedRowId === listing.id;
+              const isEvenRow = index % 2 === 1;
+              const rowBg = isSelected
+                ? '!bg-secondary'
+                : isEvenRow
+                  ? 'bg-table-stripe'
+                  : '';
+              const hoverClass = isSelected
+                ? 'hover:!bg-secondary/90'
+                : isEvenRow
+                  ? 'hover:!bg-pink-300 dark:hover:!bg-pink-800'
+                  : 'hover:!bg-pink-200 dark:hover:!bg-pink-900/50';
+              const outlineClass = isSelected
+                ? 'outline outline-2 outline-amber-600 dark:outline-amber-500 -outline-offset-1'
+                : 'outline-0 hover:outline hover:outline-2 hover:outline-pink-500 dark:hover:outline-pink-400 hover:-outline-offset-1';
+
+              return (
                 <TableRow
                   key={listing.id}
-                  className="border-b border-foreground/20 hover:bg-muted/30 cursor-pointer"
-                  onClick={() => navigate(`/internal-listings/${listing.id}`)}
+                  className={cn(
+                    'cursor-pointer transition-all !border-b-2 !border-foreground',
+                    rowBg,
+                    hoverClass,
+                    outlineClass,
+                  )}
+                  onClick={() => setSelectedRowId(isSelected ? null : listing.id)}
+                  onDoubleClick={() => navigate(`/internal-listings/${listing.id}`)}
                 >
                   <TableCell className="font-medium">
                     <div className="flex flex-col">
@@ -175,11 +199,11 @@ export function InternalListingsTable({
                     </DropdownMenu>
                   </TableCell>
                 </TableRow>
-              ))
-            )}
-          </TableBody>
-        </Table>
-      </div>
+              );
+            })
+          )}
+        </TableBody>
+      </Table>
 
       <ConfirmDialog
         open={!!deleteId}
