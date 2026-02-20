@@ -64,14 +64,7 @@ const navigation: NavigationEntry[] = [
   { name: 'Properties', href: '/properties', icon: Building2 },
   { name: 'Tenants', href: '/tenants', icon: UserSearch },
   { name: 'Transactions', href: '/transactions', icon: Receipt },
-  { 
-    name: 'CRE Tracker', 
-    icon: Briefcase,
-    items: [
-      { name: 'Overview', href: '/cre-tracker', icon: Briefcase },
-      { name: 'Internal Listings', href: '/internal-listings', icon: Building2 },
-    ]
-  },
+  { name: 'CRE Tracker', href: '/cre-tracker', icon: Briefcase },
 ];
 
 const adminNavigation = [
@@ -89,7 +82,6 @@ export function AppLayout({ children }: AppLayoutProps) {
     // Default open groups based on current route
     return {
       'Distribution': ['/listings', '/recipients'].includes(location.pathname),
-      'CRE Tracker': ['/cre-tracker', '/internal-listings'].some(p => location.pathname.startsWith(p)),
     };
   });
 
@@ -102,7 +94,6 @@ export function AppLayout({ children }: AppLayoutProps) {
     setOpenGroups(prev => ({
       ...prev,
       'Distribution': prev['Distribution'] || ['/listings', '/recipients'].includes(location.pathname),
-      'CRE Tracker': prev['CRE Tracker'] || ['/cre-tracker', '/internal-listings'].some(p => location.pathname.startsWith(p)),
     }));
   }, [location.pathname]);
 
