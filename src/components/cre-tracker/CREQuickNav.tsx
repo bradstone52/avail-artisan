@@ -13,14 +13,16 @@ interface CREQuickNavProps {
   activeTab: string;
   setActiveTab: (tab: string) => void;
   activeDealsCount: number;
+  prospectsCount?: number;
+  listingsCount?: number;
 }
 
-export function CREQuickNav({ activeTab, setActiveTab, activeDealsCount }: CREQuickNavProps) {
+export function CREQuickNav({ activeTab, setActiveTab, activeDealsCount, prospectsCount, listingsCount }: CREQuickNavProps) {
   const quickNav: QuickNavItem[] = [
     { title: 'Overview', icon: Calendar, tab: 'overview', color: 'bg-muted' },
     { title: 'Deals', icon: Briefcase, tab: 'deals', stat: `${activeDealsCount} active`, color: 'bg-primary' },
-    { title: 'Prospects', icon: UserSearch, tab: 'prospects', color: 'bg-secondary' },
-    { title: 'Internal Listings', icon: Building2, tab: 'listings', color: 'bg-accent' },
+    { title: 'Prospects', icon: UserSearch, tab: 'prospects', stat: prospectsCount !== undefined ? `${prospectsCount} total` : '—', color: 'bg-secondary' },
+    { title: 'Internal Listings', icon: Building2, tab: 'listings', stat: listingsCount !== undefined ? `${listingsCount} total` : '—', color: 'bg-accent' },
     { title: 'BrokerageDB', icon: Users, tab: 'contacts', color: 'bg-muted' },
   ];
 

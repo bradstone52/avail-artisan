@@ -7,6 +7,8 @@ import { useSearchParams } from 'react-router-dom';
 import { useDeals } from '@/hooks/useDeals';
 import { useAllDealImportantDates } from '@/hooks/useAllDealImportantDates';
 import { useUpcomingFollowUps } from '@/hooks/useUpcomingFollowUps';
+import { useProspects } from '@/hooks/useProspects';
+import { useInternalListings } from '@/hooks/useInternalListings';
 import { parseISO, addDays } from 'date-fns';
 import { BrokeragesAndAgentsTab } from '@/components/settings/BrokeragesAndAgentsTab';
 import { CREQuickNav } from '@/components/cre-tracker/CREQuickNav';
@@ -27,6 +29,8 @@ export default function CRETracker() {
   const { data: deals = [] } = useDeals();
   const { data: dealDates = [] } = useAllDealImportantDates(365);
   const upcomingFollowUps = useUpcomingFollowUps(365);
+  const { data: prospects, isLoading: prospectsLoading } = useProspects();
+  const { listings, isLoading: listingsLoading } = useInternalListings();
 
   const activeDeals = deals.filter(d => d.status === 'Conditional' || d.status === 'Firm');
   const closedDeals = deals.filter(d => d.status === 'Closed');
@@ -82,7 +86,13 @@ export default function CRETracker() {
     <AppLayout>
       <div className="p-6 lg:p-8 space-y-6">
         <PageHeader title="CRE Tracker" icon={Briefcase} />
-        <CREQuickNav activeTab={activeTab} setActiveTab={setActiveTab} activeDealsCount={activeDeals.length} />
+        <CREQuickNav
+          activeTab={activeTab}
+          setActiveTab={setActiveTab}
+          activeDealsCount={activeDeals.length}
+          prospectsCount={prospectsLoading ? undefined : (prospects?.length ?? 0)}
+          listingsCount={listingsLoading ? undefined : listings.length}
+        />
 
         <Tabs value={activeTab} onValueChange={setActiveTab}>
           <TabsContent value="overview" className="space-y-6 mt-4">
