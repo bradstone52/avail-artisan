@@ -3,6 +3,7 @@ import { AppLayout } from '@/components/layout/AppLayout';
 import { PageHeader } from '@/components/common/PageHeader';
 import { Tabs, TabsContent } from '@/components/ui/tabs';
 import { Briefcase } from 'lucide-react';
+import { useSearchParams } from 'react-router-dom';
 import { useDeals } from '@/hooks/useDeals';
 import { useAllDealImportantDates } from '@/hooks/useAllDealImportantDates';
 import { useUpcomingFollowUps } from '@/hooks/useUpcomingFollowUps';
@@ -14,6 +15,13 @@ import { CREDealsTab } from '@/components/cre-tracker/CREDealsTab';
 import { CREProspectsTab } from '@/components/cre-tracker/CREProspectsTab';
 import { CREListingsTab } from '@/components/cre-tracker/CREListingsTab';
 import type { CalendarEvent } from '@/components/cre-tracker/CRECalendarSection';
+
+const VALID_TABS = ['overview', 'deals', 'prospects', 'listings', 'contacts'] as const;
+type CRETab = typeof VALID_TABS[number];
+const DEFAULT_TAB: CRETab = 'overview';
+function parseTab(value: string | null): CRETab {
+  return VALID_TABS.includes(value as CRETab) ? (value as CRETab) : DEFAULT_TAB;
+}
 
 export default function CRETracker() {
   const { data: deals = [] } = useDeals();
@@ -64,7 +72,11 @@ export default function CRETracker() {
   const today = new Date();
   const next30DaysEvents = calendarDates.filter(d => d.date >= today && d.date <= addDays(today, 30));
 
-  const [activeTab, setActiveTab] = React.useState('overview');
+  const [searchParams, setSearchParams] = useSearchParams();
+  const activeTab = parseTab(searchParams.get('tab'));
+  const setActiveTab = React.useCallback((tab: string) => {
+    setSearchParams({ tab }, { replace: false });
+  }, [setSearchParams]);
 
   return (
     <AppLayout>
