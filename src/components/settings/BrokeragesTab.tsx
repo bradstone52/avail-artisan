@@ -1,5 +1,4 @@
 import { useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
@@ -21,7 +20,14 @@ import { SearchInput } from '@/components/common/SearchInput';
 import { ConfirmDialog } from '@/components/common/ConfirmDialog';
 import { useBrokerages, useCreateBrokerage, useUpdateBrokerage, useDeleteBrokerage } from '@/hooks/useBrokerages';
 import { useAgents, useCreateAgent, useUpdateAgent, useDeleteAgent } from '@/hooks/useAgents';
-import { Edit, Trash2, Plus, ChevronDown, ChevronRight, UserPlus } from 'lucide-react';
+import { Edit, Trash2, Plus, ChevronDown, ChevronRight, UserPlus, MoreHorizontal } from 'lucide-react';
+import { cn } from '@/lib/utils';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import {
   Dialog,
   DialogContent,
@@ -193,9 +199,8 @@ export function BrokeragesTab() {
   };
 
   return (
-    <Card>
-      <CardHeader className="flex flex-row items-center justify-between">
-        <CardTitle>Brokerages</CardTitle>
+    <div className="space-y-4">
+      <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <SearchInput
             value={search}
@@ -203,18 +208,17 @@ export function BrokeragesTab() {
             placeholder="Search brokerages..."
             className="w-64"
           />
-          <Button onClick={() => handleOpenDialog()}>
-            <Plus className="w-4 h-4 mr-2" />
-            Add Brokerage
-          </Button>
         </div>
-      </CardHeader>
-      <CardContent>
-        {isLoading ? (
-          <p className="text-center py-8 text-muted-foreground">Loading...</p>
-        ) : filteredBrokerages.length === 0 ? (
-          <p className="text-center py-8 text-muted-foreground">No brokerages found</p>
-        ) : (
+        <Button onClick={() => handleOpenDialog()}>
+          <Plus className="w-4 h-4 mr-2" />
+          Add Brokerage
+        </Button>
+      </div>
+      {isLoading ? (
+        <p className="text-center py-8 text-muted-foreground">Loading...</p>
+      ) : filteredBrokerages.length === 0 ? (
+        <p className="text-center py-12 text-muted-foreground border-2 border-foreground shadow-[4px_4px_0_hsl(var(--foreground))] bg-card" style={{ borderRadius: 'var(--radius)' }}>No brokerages found</p>
+      ) : (
           <Table>
             <TableHeader>
               <TableRow>
@@ -222,56 +226,85 @@ export function BrokeragesTab() {
                 <TableHead>Name</TableHead>
                 <TableHead>Address</TableHead>
                 <TableHead>Agents</TableHead>
-                <TableHead className="w-[120px]">Actions</TableHead>
+                <TableHead className="w-[60px]"></TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filteredBrokerages.map((brokerage) => {
+              {filteredBrokerages.map((brokerage, index) => {
                 const brokerageAgents = getAgentsForBrokerage(brokerage.id);
                 const isExpanded = expandedBrokerages.has(brokerage.id);
+                const isEvenRow = index % 2 === 1;
+                const hoverClass = isEvenRow
+                  ? 'hover:!bg-pink-300 dark:hover:!bg-pink-800'
+                  : 'hover:!bg-pink-200 dark:hover:!bg-pink-900/50';
+                const outlineClass = 'outline-0 hover:outline hover:outline-2 hover:outline-pink-500 dark:hover:outline-pink-400 hover:-outline-offset-1';
                 
                 return (
                   <>
-                    <TableRow key={brokerage.id}>
+                    <TableRow
+                      key={brokerage.id}
+                      className={cn(
+                        'cursor-pointer transition-all !border-b-2 !border-foreground',
+                        isEvenRow ? 'bg-table-stripe' : '',
+                        hoverClass,
+                        outlineClass,
+                      )}
+                      onClick={() => toggleBrokerage(brokerage.id)}
+                    >
                       <TableCell>
-                        <Button 
-                          variant="ghost" 
-                          size="icon" 
-                          className="w-6 h-6"
-                          onClick={() => toggleBrokerage(brokerage.id)}
-                        >
+                        <div className="w-6 h-6 flex items-center justify-center">
                           {isExpanded ? (
                             <ChevronDown className="w-4 h-4" />
                           ) : (
                             <ChevronRight className="w-4 h-4" />
                           )}
-                        </Button>
+                        </div>
                       </TableCell>
                       <TableCell className="font-medium">{brokerage.name}</TableCell>
                       <TableCell>{brokerage.address || '-'}</TableCell>
                       <TableCell>{brokerageAgents.length}</TableCell>
                       <TableCell>
-                        <div className="flex items-center gap-1">
-                          <Button 
-                            variant="ghost" 
-                            size="icon" 
-                            className="w-8 h-8"
-                            onClick={() => handleOpenAddAgentDialog(brokerage.id)}
-                            title="Add Agent"
-                          >
-                            <UserPlus className="w-4 h-4" />
-                          </Button>
-                          <Button variant="ghost" size="icon" className="w-8 h-8" onClick={() => handleOpenDialog(brokerage)}>
-                            <Edit className="w-4 h-4" />
-                          </Button>
-                          <Button variant="ghost" size="icon" className="w-8 h-8 text-destructive" onClick={() => setDeleteId(brokerage.id)}>
-                            <Trash2 className="w-4 h-4" />
-                          </Button>
-                        </div>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
+                            <Button variant="ghost" size="icon" className="h-8 w-8">
+                              <MoreHorizontal className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleOpenAddAgentDialog(brokerage.id);
+                              }}
+                            >
+                              <UserPlus className="mr-2 h-4 w-4" />
+                              Add Agent
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleOpenDialog(brokerage);
+                              }}
+                            >
+                              <Edit className="mr-2 h-4 w-4" />
+                              Edit
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setDeleteId(brokerage.id);
+                              }}
+                              className="text-destructive focus:text-destructive"
+                            >
+                              <Trash2 className="mr-2 h-4 w-4" />
+                              Delete
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
                       </TableCell>
                     </TableRow>
                     {isExpanded && brokerageAgents.length > 0 && brokerageAgents.map(agent => (
-                      <TableRow key={agent.id} className="bg-muted/30">
+                      <TableRow key={agent.id} className="bg-muted/30 !border-b border-foreground/10">
                         <TableCell></TableCell>
                         <TableCell className="pl-8">
                           <span className="text-muted-foreground">↳</span> {agent.name}
@@ -283,32 +316,34 @@ export function BrokeragesTab() {
                           {agent.phone && <span className="text-sm text-muted-foreground">{agent.phone}</span>}
                         </TableCell>
                         <TableCell>
-                          <div className="flex items-center gap-1">
-                            <Button 
-                              variant="ghost" 
-                              size="icon" 
-                              className="w-8 h-8"
-                              onClick={() => handleOpenEditAgentDialog(agent)}
-                            >
-                              <Edit className="w-4 h-4" />
-                            </Button>
-                            <Button 
-                              variant="ghost" 
-                              size="icon" 
-                              className="w-8 h-8 text-destructive" 
-                              onClick={() => setDeleteAgentId(agent.id)}
-                            >
-                              <Trash2 className="w-4 h-4" />
-                            </Button>
-                          </div>
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button variant="ghost" size="icon" className="h-8 w-8">
+                                <MoreHorizontal className="h-4 w-4" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              <DropdownMenuItem onClick={() => handleOpenEditAgentDialog(agent)}>
+                                <Edit className="mr-2 h-4 w-4" />
+                                Edit
+                              </DropdownMenuItem>
+                              <DropdownMenuItem
+                                onClick={() => setDeleteAgentId(agent.id)}
+                                className="text-destructive focus:text-destructive"
+                              >
+                                <Trash2 className="mr-2 h-4 w-4" />
+                                Delete
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
                         </TableCell>
                       </TableRow>
                     ))}
                     {isExpanded && brokerageAgents.length === 0 && (
-                      <TableRow className="bg-muted/30">
+                      <TableRow className="bg-muted/30 !border-b border-foreground/10">
                         <TableCell></TableCell>
                         <TableCell colSpan={4} className="pl-8 text-muted-foreground text-sm">
-                          No agents. Click <UserPlus className="w-3 h-3 inline mx-1" /> to add one.
+                          No agents. Use the menu to add one.
                         </TableCell>
                       </TableRow>
                     )}
@@ -318,7 +353,7 @@ export function BrokeragesTab() {
             </TableBody>
           </Table>
         )}
-      </CardContent>
+
 
       {/* Add/Edit Brokerage Dialog */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
@@ -488,6 +523,6 @@ export function BrokeragesTab() {
         variant="destructive"
         onConfirm={handleDeleteAgent}
       />
-    </Card>
+    </div>
   );
 }
