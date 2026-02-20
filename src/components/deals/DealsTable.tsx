@@ -10,6 +10,7 @@ import {
 } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Badge } from '@/components/ui/badge';
 import {
   Select,
   SelectContent,
@@ -17,11 +18,16 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { StatusBadge } from '@/components/common/StatusBadge';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { ConfirmDialog } from '@/components/common/ConfirmDialog';
 import { formatCurrency, formatDate } from '@/lib/format';
 import { useDeleteDeal } from '@/hooks/useDeals';
-import { Eye, Edit, Trash2, Search, X } from 'lucide-react';
+import { Eye, Pencil, Trash2, Search, X, MoreHorizontal } from 'lucide-react';
 import type { Deal } from '@/types/database';
 
 interface DealsTableProps {
@@ -32,6 +38,17 @@ interface DealsTableProps {
 
 const DEAL_TYPES = ['All', 'Lease', 'Sale'];
 const DEAL_STATUSES = ['All', 'Conditional', 'Firm', 'Closed'];
+
+const statusColors: Record<string, string> = {
+  Conditional: 'bg-yellow-100 text-yellow-800 border-yellow-300',
+  Firm: 'bg-green-100 text-green-800 border-green-300',
+  Closed: 'bg-blue-100 text-blue-800 border-blue-300',
+};
+
+const dealTypeColors: Record<string, string> = {
+  Lease: 'bg-cyan-100 text-cyan-800 border-cyan-300',
+  Sale: 'bg-orange-100 text-orange-800 border-orange-300',
+};
 
 export function DealsTable({ deals, isLoading, onEdit }: DealsTableProps) {
   const navigate = useNavigate();
@@ -61,7 +78,6 @@ export function DealsTable({ deals, isLoading, onEdit }: DealsTableProps) {
   // Filter deals
   const filteredDeals = useMemo(() => {
     return deals.filter(deal => {
-      // Search filter
       if (searchQuery) {
         const query = searchQuery.toLowerCase();
         const matchesSearch = 
@@ -71,17 +87,8 @@ export function DealsTable({ deals, isLoading, onEdit }: DealsTableProps) {
           deal.submarket?.toLowerCase().includes(query);
         if (!matchesSearch) return false;
       }
-
-      // Type filter
-      if (typeFilter !== 'All' && deal.deal_type !== typeFilter) {
-        return false;
-      }
-
-      // Status filter
-      if (statusFilter !== 'All' && deal.status !== statusFilter) {
-        return false;
-      }
-
+      if (typeFilter !== 'All' && deal.deal_type !== typeFilter) return false;
+      if (statusFilter !== 'All' && deal.status !== statusFilter) return false;
       return true;
     });
   }, [deals, searchQuery, typeFilter, statusFilter]);
@@ -143,77 +150,104 @@ export function DealsTable({ deals, isLoading, onEdit }: DealsTableProps) {
       </div>
 
       {filteredDeals.length === 0 ? (
-        <div className="text-center py-8 text-muted-foreground border rounded-lg">
+        <div className="text-center py-12 text-muted-foreground border-2 border-foreground shadow-[4px_4px_0_hsl(var(--foreground))] bg-card" style={{ borderRadius: 'var(--radius)' }}>
           {deals.length === 0 
             ? "No deals found. Create your first deal to get started."
             : "No deals match your filters."
           }
         </div>
       ) : (
-        <div className="border rounded-lg overflow-hidden">
+        <div className="border-2 border-foreground shadow-[4px_4px_0_hsl(var(--foreground))] bg-card overflow-hidden" style={{ borderRadius: 'var(--radius)' }}>
           <Table>
             <TableHeader>
-              <TableRow>
-                <TableHead>Deal #</TableHead>
-                <TableHead>Address</TableHead>
-                <TableHead>Type</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead className="text-right">Value</TableHead>
-                <TableHead>Close Date</TableHead>
-                <TableHead className="w-[100px]">Actions</TableHead>
+              <TableRow className="border-b-2 border-foreground bg-muted/50">
+                <TableHead className="font-bold uppercase text-xs tracking-wider">Deal #</TableHead>
+                <TableHead className="font-bold uppercase text-xs tracking-wider">Address</TableHead>
+                <TableHead className="font-bold uppercase text-xs tracking-wider">Type</TableHead>
+                <TableHead className="font-bold uppercase text-xs tracking-wider">Status</TableHead>
+                <TableHead className="font-bold uppercase text-xs tracking-wider text-right">Value</TableHead>
+                <TableHead className="font-bold uppercase text-xs tracking-wider">Close Date</TableHead>
+                <TableHead className="w-[60px]"></TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {filteredDeals.map((deal) => (
-                <TableRow key={deal.id}>
+                <TableRow
+                  key={deal.id}
+                  className="border-b border-foreground/20 hover:bg-muted/30 cursor-pointer"
+                  onClick={() => navigate(`/deals/${deal.id}`)}
+                >
                   <TableCell className="font-medium">
                     {deal.deal_number || '-'}
                   </TableCell>
                   <TableCell>
-                    <div>
-                      <div className="font-medium">{deal.address}</div>
-                      <div className="text-sm text-muted-foreground">
+                    <div className="flex flex-col">
+                      <span className="font-medium">{deal.address}</span>
+                      <span className="text-xs text-muted-foreground">
                         {deal.city}{deal.submarket && `, ${deal.submarket}`}
-                      </div>
+                      </span>
                     </div>
                   </TableCell>
-                  <TableCell>{deal.deal_type}</TableCell>
                   <TableCell>
-                    <StatusBadge status={deal.status} />
+                    <Badge
+                      variant="outline"
+                      className={`font-medium border ${dealTypeColors[deal.deal_type] || ''}`}
+                    >
+                      {deal.deal_type}
+                    </Badge>
                   </TableCell>
-                  <TableCell className="text-right">
+                  <TableCell>
+                    <Badge
+                      variant="outline"
+                      className={`font-medium border ${statusColors[deal.status] || ''}`}
+                    >
+                      {deal.status}
+                    </Badge>
+                  </TableCell>
+                  <TableCell className="text-right font-mono">
                     {formatCurrency(deal.deal_value)}
                   </TableCell>
                   <TableCell>{formatDate(deal.close_date)}</TableCell>
                   <TableCell>
-                    <div className="flex items-center gap-1">
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="w-8 h-8"
-                        onClick={() => navigate(`/deals/${deal.id}`)}
-                      >
-                        <Eye className="w-4 h-4" />
-                      </Button>
-                      {onEdit && (
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="w-8 h-8"
-                          onClick={() => onEdit(deal)}
-                        >
-                          <Edit className="w-4 h-4" />
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
+                        <Button variant="ghost" size="icon" className="h-8 w-8">
+                          <MoreHorizontal className="h-4 w-4" />
                         </Button>
-                      )}
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="w-8 h-8 text-destructive hover:text-destructive"
-                        onClick={() => setDeleteId(deal.id)}
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </Button>
-                    </div>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            navigate(`/deals/${deal.id}`);
+                          }}
+                        >
+                          <Eye className="mr-2 h-4 w-4" />
+                          View Details
+                        </DropdownMenuItem>
+                        {onEdit && (
+                          <DropdownMenuItem
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              onEdit(deal);
+                            }}
+                          >
+                            <Pencil className="mr-2 h-4 w-4" />
+                            Edit
+                          </DropdownMenuItem>
+                        )}
+                        <DropdownMenuItem
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setDeleteId(deal.id);
+                          }}
+                          className="text-destructive focus:text-destructive"
+                        >
+                          <Trash2 className="mr-2 h-4 w-4" />
+                          Delete
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
                   </TableCell>
                 </TableRow>
               ))}
