@@ -61,7 +61,17 @@ const navigation: NavigationEntry[] = [
     ]
   },
   { name: 'Market Listings', href: '/market-listings', icon: Database },
-  { name: 'CRE Tracker', href: '/cre-tracker', icon: Briefcase },
+  { 
+    name: 'CRE Tracker', 
+    icon: Briefcase,
+    items: [
+      { name: 'Overview', href: '/cre-tracker?tab=overview', icon: Briefcase },
+      { name: 'Deals', href: '/cre-tracker?tab=deals', icon: Briefcase },
+      { name: 'Prospects', href: '/cre-tracker?tab=prospects', icon: UserSearch },
+      { name: 'Internal Listings', href: '/cre-tracker?tab=listings', icon: FileSpreadsheet },
+      { name: 'BrokerageDB', href: '/cre-tracker?tab=contacts', icon: Users },
+    ]
+  },
   { name: 'Properties', href: '/properties', icon: Building2 },
   { name: 'Tenants', href: '/tenants', icon: UserSearch },
   { name: 'Transactions', href: '/transactions', icon: Receipt },
@@ -82,6 +92,7 @@ export function AppLayout({ children }: AppLayoutProps) {
     // Default open groups based on current route
     return {
       'Distribution': ['/listings', '/recipients'].includes(location.pathname),
+      'CRE Tracker': location.pathname.startsWith('/cre-tracker'),
     };
   });
 
@@ -94,6 +105,7 @@ export function AppLayout({ children }: AppLayoutProps) {
     setOpenGroups(prev => ({
       ...prev,
       'Distribution': prev['Distribution'] || ['/listings', '/recipients'].includes(location.pathname),
+      'CRE Tracker': prev['CRE Tracker'] || location.pathname.startsWith('/cre-tracker'),
     }));
   }, [location.pathname]);
 
@@ -158,7 +170,10 @@ export function AppLayout({ children }: AppLayoutProps) {
             {navigation.map((entry) => {
               if (isNavGroup(entry)) {
                 // Render collapsible group
-                const groupHasActiveItem = entry.items.some(item => location.pathname === item.href);
+                const groupHasActiveItem = entry.items.some(item => {
+                  const [itemPath, itemSearch] = item.href.split('?');
+                  return location.pathname === itemPath && (!itemSearch || location.search === `?${itemSearch}`);
+                });
                 return (
                   <div key={entry.name}>
                     <button
@@ -185,7 +200,8 @@ export function AppLayout({ children }: AppLayoutProps) {
                     {(openGroups[entry.name] || sidebarCollapsed) && (
                       <div className={cn("space-y-1", !sidebarCollapsed && "ml-4 mt-1 pl-2 border-l-2 border-foreground/20")}>
                         {entry.items.map((item) => {
-                          const isActive = location.pathname === item.href;
+                          const [itemPath, itemSearch] = item.href.split('?');
+                          const isActive = location.pathname === itemPath && (!itemSearch || location.search === `?${itemSearch}`);
                           return (
                             <Link
                               key={item.name}
