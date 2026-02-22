@@ -5,7 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { Skeleton } from '@/components/ui/skeleton';
-import { AlertTriangle, ArrowRight, Calendar, ChevronRight, Filter } from 'lucide-react';
+import { AlertTriangle, ArrowRight, ChevronRight, Filter } from 'lucide-react';
 import {
   Select,
   SelectContent,
@@ -170,16 +170,28 @@ export function CRENextActionsPanel({ prospects, dealDates, isLoading }: CRENext
     return result;
   }, [prospects, dealDates, timeFilter, sourceFilter, today]);
 
-  const overdueCount = React.useMemo(() => {
-    let count = 0;
-    prospects?.forEach((p) => {
-      if (p.follow_up_date && p.status !== 'Closed' && p.status !== 'Lost' && parseLocalDate(p.follow_up_date) < today) count++;
-    });
-    dealDates.forEach((dd) => {
-      if (parseLocalDate(dd.date) < today) count++;
-    });
-    return count;
-  }, [prospects, dealDates, today]);
+  const { overdueCount, next7Count, next30Count } = React.useMemo(() => {
+    const end7 = new Date(today.getFullYear(), today.getMonth(), today.getDate() + 8);
+    const end30 = new Date(today.getFullYear(), today.getMonth(), today.getDate() + 31);
+    let oc = 0, n7 = 0, n30 = 0;
+
+    const countDate = (dateStr: string) => {
+      const d = parseLocalDate(dateStr);
+      if (d < today) oc++;
+      else if (d < end7) n7++;
+      else if (d < end30) n30++;
+    };
+
+    if (sourceFilter !== 'deal-dates') {
+      prospects?.forEach((p) => {
+        if (p.follow_up_date && p.status !== 'Closed' && p.status !== 'Lost') countDate(p.follow_up_date);
+      });
+    }
+    if (sourceFilter !== 'follow-ups') {
+      dealDates.forEach((dd) => countDate(dd.date));
+    }
+    return { overdueCount: oc, next7Count: n7, next30Count: n30 };
+  }, [prospects, dealDates, today, sourceFilter]);
 
   return (
     <Card>
@@ -207,14 +219,25 @@ export function CRENextActionsPanel({ prospects, dealDates, isLoading }: CRENext
         >
           <ToggleGroupItem value="overdue" className="text-xs gap-1">
             Overdue
-            {overdueCount > 0 && (
-              <span className="ml-1 inline-flex items-center justify-center rounded-full bg-destructive text-destructive-foreground text-[10px] font-bold h-5 min-w-5 px-1">
-                {overdueCount}
-              </span>
-            )}
+            <span className={cn(
+              'ml-0.5 inline-flex items-center justify-center rounded-full text-[10px] font-bold h-5 min-w-5 px-1',
+              overdueCount > 0 ? 'bg-destructive text-destructive-foreground' : 'bg-muted text-muted-foreground'
+            )}>
+              {overdueCount}
+            </span>
           </ToggleGroupItem>
-          <ToggleGroupItem value="7days" className="text-xs">Next 7 days</ToggleGroupItem>
-          <ToggleGroupItem value="30days" className="text-xs">Next 30 days</ToggleGroupItem>
+          <ToggleGroupItem value="7days" className="text-xs gap-1">
+            Next 7
+            <span className="ml-0.5 inline-flex items-center justify-center rounded-full bg-muted text-muted-foreground text-[10px] font-bold h-5 min-w-5 px-1">
+              {next7Count}
+            </span>
+          </ToggleGroupItem>
+          <ToggleGroupItem value="30days" className="text-xs gap-1">
+            Next 30
+            <span className="ml-0.5 inline-flex items-center justify-center rounded-full bg-muted text-muted-foreground text-[10px] font-bold h-5 min-w-5 px-1">
+              {next30Count}
+            </span>
+          </ToggleGroupItem>
         </ToggleGroup>
       </CardHeader>
       <CardContent className="pt-0">
@@ -225,9 +248,28 @@ export function CRENextActionsPanel({ prospects, dealDates, isLoading }: CRENext
             ))}
           </div>
         ) : items.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-8 text-muted-foreground text-sm">
-            <Calendar className="h-8 w-8 mb-2 opacity-50" />
-            <p>No {timeFilter === 'overdue' ? 'overdue' : 'upcoming'} action items</p>
+          <div className="flex flex-col items-center justify-center py-4 text-muted-foreground text-sm gap-1.5">
+            {timeFilter === 'overdue' ? (
+              <>
+                <p>No overdue items 🎉</p>
+                {next7Count > 0 && (
+                  <Button variant="ghost" size="sm" className="text-xs h-7" onClick={() => setTimeFilter('7days')}>
+                    View Next 7 days <ArrowRight className="ml-1 h-3 w-3" />
+                  </Button>
+                )}
+              </>
+            ) : timeFilter === '7days' ? (
+              <>
+                <p>No items in the next 7 days</p>
+                {next30Count > 0 && (
+                  <Button variant="ghost" size="sm" className="text-xs h-7" onClick={() => setTimeFilter('30days')}>
+                    View Next 30 days <ArrowRight className="ml-1 h-3 w-3" />
+                  </Button>
+                )}
+              </>
+            ) : (
+              <p>No items in the next 30 days</p>
+            )}
           </div>
         ) : (
           <ul className="divide-y divide-border">
