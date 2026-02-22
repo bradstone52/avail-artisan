@@ -5,13 +5,21 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { Skeleton } from '@/components/ui/skeleton';
-import { AlertTriangle, ArrowRight, Calendar, ChevronRight } from 'lucide-react';
+import { AlertTriangle, ArrowRight, Calendar, ChevronRight, Filter } from 'lucide-react';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { useProspects } from '@/hooks/useProspects';
 import { useAllDealImportantDates } from '@/hooks/useAllDealImportantDates';
-import { parseISO, isBefore, isAfter, addDays, format, startOfDay } from 'date-fns';
+import { differenceInCalendarDays, format } from 'date-fns';
 import { cn } from '@/lib/utils';
 
 type TimeFilter = 'overdue' | '7days' | '30days';
+type SourceFilter = 'all' | 'follow-ups' | 'deal-dates';
 
 interface ActionItem {
   id: string;
@@ -40,8 +48,46 @@ const TYPE_LABEL: Record<ActionItem['type'], string> = {
   action: 'Action',
 };
 
+/**
+ * Get "today" in America/Edmonton timezone as a plain Date at midnight local.
+ * This prevents UTC-boundary off-by-one errors for Mountain Time users.
+ */
+function getTodayEdmonton(): Date {
+  const edmontonStr = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Edmonton' });
+  // edmontonStr is "YYYY-MM-DD"; parse as local date at midnight
+  const [y, m, d] = edmontonStr.split('-').map(Number);
+  return new Date(y, m - 1, d);
+}
+
+/**
+ * Parse a date-only string "YYYY-MM-DD" as a local date (no timezone shift).
+ */
+function parseLocalDate(dateStr: string): Date {
+  const [y, m, d] = dateStr.split('-').map(Number);
+  return new Date(y, m - 1, d);
+}
+
+/**
+ * Produce a human-readable date label.
+ * - Overdue: "Overdue by X days" (or "Overdue by 1 day")
+ * - Today:  "Due today"
+ * - Tomorrow: "Due tomorrow"
+ * - Otherwise: "MMM d, yyyy"
+ */
+function dateLabel(itemDate: Date, today: Date): { text: string; isOverdue: boolean } {
+  const diff = differenceInCalendarDays(itemDate, today);
+  if (diff < 0) {
+    const absDiff = Math.abs(diff);
+    return { text: `Overdue by ${absDiff} day${absDiff === 1 ? '' : 's'}`, isOverdue: true };
+  }
+  if (diff === 0) return { text: 'Due today', isOverdue: false };
+  if (diff === 1) return { text: 'Due tomorrow', isOverdue: false };
+  return { text: format(itemDate, 'MMM d, yyyy'), isOverdue: false };
+}
+
 export function CRENextActionsPanel() {
-  const [filter, setFilter] = React.useState<TimeFilter>('overdue');
+  const [timeFilter, setTimeFilter] = React.useState<TimeFilter>('overdue');
+  const [sourceFilter, setSourceFilter] = React.useState<SourceFilter>('all');
   const navigate = useNavigate();
 
   const { data: prospects, isLoading: prospectsLoading } = useProspects();
@@ -49,90 +95,113 @@ export function CRENextActionsPanel() {
 
   const isLoading = prospectsLoading || datesLoading;
 
+  const today = React.useMemo(() => getTodayEdmonton(), []);
+
   const items = React.useMemo(() => {
-    const today = startOfDay(new Date());
-    const end7 = addDays(today, 7);
-    const end30 = addDays(today, 30);
+    // Inclusive end boundaries: today + 7 days and today + 30 days
+    const end7 = new Date(today.getFullYear(), today.getMonth(), today.getDate() + 8);   // < end7 means <= today+7
+    const end30 = new Date(today.getFullYear(), today.getMonth(), today.getDate() + 31); // < end30 means <= today+30
     const result: ActionItem[] = [];
 
-    // Prospect follow-ups
-    prospects?.forEach((p) => {
-      if (!p.follow_up_date || p.status === 'Closed' || p.status === 'Lost') return;
-      const d = parseISO(p.follow_up_date);
-      const isOverdue = isBefore(d, today);
-      const inNext7 = !isOverdue && isBefore(d, end7);
-      const inNext30 = !isOverdue && isBefore(d, end30);
+    // --- Prospect follow-ups ---
+    if (sourceFilter !== 'deal-dates') {
+      prospects?.forEach((p) => {
+        if (!p.follow_up_date || p.status === 'Closed' || p.status === 'Lost') return;
+        const d = parseLocalDate(p.follow_up_date);
+        const isOverdue = d < today;
+        const inWindow7 = !isOverdue && d < end7;
+        const inWindow30 = !isOverdue && d < end30;
 
-      if (
-        (filter === 'overdue' && isOverdue) ||
-        (filter === '7days' && (isOverdue || inNext7)) ||
-        (filter === '30days' && (isOverdue || inNext30))
-      ) {
-        result.push({
-          id: `prospect-${p.id}`,
-          entityId: p.id,
-          source: 'prospect',
-          type: 'follow-up',
-          title: p.name,
-          date: d,
-          dateStr: p.follow_up_date,
-          linkPath: `/prospects/${p.id}`,
-        });
-      }
-    });
+        if (
+          (timeFilter === 'overdue' && isOverdue) ||
+          (timeFilter === '7days' && (isOverdue || inWindow7)) ||
+          (timeFilter === '30days' && (isOverdue || inWindow30))
+        ) {
+          result.push({
+            id: `prospect-${p.id}`,
+            entityId: p.id,
+            source: 'prospect',
+            type: 'follow-up',
+            title: p.name,
+            date: d,
+            dateStr: p.follow_up_date,
+            linkPath: `/prospects/${p.id}`,
+          });
+        }
+      });
+    }
 
-    // Deal important dates
-    dealDates.forEach((dd) => {
-      const d = parseISO(dd.date);
-      const isOverdue = isBefore(d, today);
-      const inNext7 = !isOverdue && isBefore(d, end7);
-      const inNext30 = !isOverdue && isBefore(d, end30);
+    // --- Deal important dates ---
+    if (sourceFilter !== 'follow-ups') {
+      dealDates.forEach((dd) => {
+        const d = parseLocalDate(dd.date);
+        const isOverdue = d < today;
+        const inWindow7 = !isOverdue && d < end7;
+        const inWindow30 = !isOverdue && d < end30;
 
-      if (
-        (filter === 'overdue' && isOverdue) ||
-        (filter === '7days' && (isOverdue || inNext7)) ||
-        (filter === '30days' && (isOverdue || inNext30))
-      ) {
-        result.push({
-          id: dd.id,
-          entityId: dd.dealId,
-          source: 'deal',
-          type: dd.type,
-          title: dd.dealAddress,
-          date: d,
-          dateStr: dd.date,
-          linkPath: `/deals/${dd.dealId}`,
-        });
-      }
-    });
+        if (
+          (timeFilter === 'overdue' && isOverdue) ||
+          (timeFilter === '7days' && (isOverdue || inWindow7)) ||
+          (timeFilter === '30days' && (isOverdue || inWindow30))
+        ) {
+          result.push({
+            id: dd.id,
+            entityId: dd.dealId,
+            source: 'deal',
+            type: dd.type,
+            title: dd.dealAddress,
+            date: d,
+            dateStr: dd.date,
+            linkPath: `/deals/${dd.dealId}`,
+          });
+        }
+      });
+    }
 
-    // Sort: overdue (oldest first), then upcoming (soonest first)
+    /**
+     * Sorting rules:
+     * - Overdue tab: most overdue first (oldest date first, i.e. ascending by date
+     *   so items with the largest "overdue by X days" appear at the top).
+     * - Next 7 / Next 30: soonest date first (ascending).
+     * Both use ascending sort; for Overdue this naturally surfaces the most stale items.
+     */
     result.sort((a, b) => a.date.getTime() - b.date.getTime());
     return result;
-  }, [prospects, dealDates, filter]);
+  }, [prospects, dealDates, timeFilter, sourceFilter, today]);
 
   const overdueCount = React.useMemo(() => {
-    const today = startOfDay(new Date());
     let count = 0;
     prospects?.forEach((p) => {
-      if (p.follow_up_date && p.status !== 'Closed' && p.status !== 'Lost' && isBefore(parseISO(p.follow_up_date), today)) count++;
+      if (p.follow_up_date && p.status !== 'Closed' && p.status !== 'Lost' && parseLocalDate(p.follow_up_date) < today) count++;
     });
     dealDates.forEach((dd) => {
-      if (isBefore(parseISO(dd.date), today)) count++;
+      if (parseLocalDate(dd.date) < today) count++;
     });
     return count;
-  }, [prospects, dealDates]);
-
-  const today = startOfDay(new Date());
+  }, [prospects, dealDates, today]);
 
   return (
     <Card>
-      <CardHeader className="flex flex-row items-center justify-between gap-4 space-y-0 pb-3">
-        <CardTitle className="text-lg font-bold">My Next Actions</CardTitle>
+      <CardHeader className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 space-y-0 pb-3">
+        <div className="flex items-center gap-3">
+          <CardTitle className="text-lg font-bold">My Next Actions</CardTitle>
+          {/* Source filter — compact dropdown */}
+          <Select value={sourceFilter} onValueChange={(v) => setSourceFilter(v as SourceFilter)}>
+            <SelectTrigger className="h-7 w-auto gap-1 text-xs border-foreground/30 px-2 [&>svg]:h-3 [&>svg]:w-3">
+              <Filter className="h-3 w-3 shrink-0" />
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All</SelectItem>
+              <SelectItem value="follow-ups">Follow-ups</SelectItem>
+              <SelectItem value="deal-dates">Deal Dates</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
         <ToggleGroup
           type="single"
-          value={filter}
-          onValueChange={(v) => v && setFilter(v as TimeFilter)}
+          value={timeFilter}
+          onValueChange={(v) => v && setTimeFilter(v as TimeFilter)}
           size="sm"
         >
           <ToggleGroupItem value="overdue" className="text-xs gap-1">
@@ -157,27 +226,34 @@ export function CRENextActionsPanel() {
         ) : items.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-8 text-muted-foreground text-sm">
             <Calendar className="h-8 w-8 mb-2 opacity-50" />
-            <p>No {filter === 'overdue' ? 'overdue' : 'upcoming'} action items</p>
+            <p>No {timeFilter === 'overdue' ? 'overdue' : 'upcoming'} action items</p>
           </div>
         ) : (
           <ul className="divide-y divide-border">
             {items.map((item) => {
-              const isOverdue = isBefore(item.date, today);
+              const label = dateLabel(item.date, today);
               return (
                 <li
                   key={item.id}
                   className="flex items-center gap-3 py-2.5 px-1 cursor-pointer hover:bg-muted/50 rounded-md transition-colors group"
                   onClick={() => navigate(item.linkPath)}
                 >
-                  {isOverdue && <AlertTriangle className="h-4 w-4 text-destructive shrink-0" />}
+                  {label.isOverdue && <AlertTriangle className="h-4 w-4 text-destructive shrink-0" />}
                   <Badge variant={TYPE_VARIANT[item.type]} className="shrink-0 text-[10px] py-0.5 px-2">
                     {TYPE_LABEL[item.type]}
                   </Badge>
-                  <span className={cn('flex-1 text-sm font-medium truncate', isOverdue && 'text-destructive')}>
+                  <span className={cn('flex-1 text-sm font-medium truncate', label.isOverdue && 'text-destructive')}>
                     {item.title}
                   </span>
-                  <span className={cn('text-xs text-muted-foreground whitespace-nowrap', isOverdue && 'text-destructive font-semibold')}>
-                    {format(item.date, 'MMM d, yyyy')}
+                  <span className={cn(
+                    'text-xs whitespace-nowrap',
+                    label.isOverdue
+                      ? 'text-destructive font-semibold'
+                      : label.text === 'Due today'
+                        ? 'text-amber-600 dark:text-amber-400 font-semibold'
+                        : 'text-muted-foreground'
+                  )}>
+                    {label.text}
                   </span>
                   <ChevronRight className="h-4 w-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity shrink-0" />
                 </li>
