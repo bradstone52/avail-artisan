@@ -129,39 +129,42 @@ export function DealViewCard({ deal, onEdit }: DealViewCardProps) {
           )}
         </div>
       </CardHeader>
-      <CardContent className="space-y-3">
+      <CardContent className="space-y-2 p-4 pt-0">
         {/* Core fields */}
-        <div className="grid grid-cols-2 gap-x-6 gap-y-0">
-          <Field label="Type">
-            <Badge variant="secondary" className="bg-amber-100 text-amber-800 hover:bg-amber-100">
-              {deal.deal_type || 'Lease'}
-            </Badge>
-          </Field>
-          <Field label="Status">
-            <Select value={deal.status} onValueChange={handleStatusChange}>
-              <SelectTrigger className="w-[140px] h-8">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent className="bg-background z-50">
-                {DEAL_STATUSES.map(status => (
-                  <SelectItem key={status} value={status}>{status}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </Field>
-          <Field label="Address">{deal.address}</Field>
-          {deal.deal_number && <Field label="Deal Number">{deal.deal_number}</Field>}
-          <Field label="City">{deal.city || '—'}</Field>
-          <Field label="Submarket">{deal.submarket || '—'}</Field>
-          <Field label={deal.is_land_deal ? 'Size (Ac)' : 'Size (SF)'}>{formatNumber(deal.size_sf)}</Field>
-          <Field label="Deal Value">{formatCurrency(deal.deal_value)}</Field>
-          <Field label="Close Date">{formatDate(deal.close_date)}</Field>
-          <Field label="Effective Date">{formatDate((deal as any).effective_date)}</Field>
+        <div className="rounded-md bg-muted/40 p-3">
+          <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-1">Overview</h4>
+          <div className="grid grid-cols-2 gap-x-6 gap-y-0">
+            <Field label="Type">
+              <Badge variant="secondary" className="bg-secondary text-secondary-foreground hover:bg-secondary/80 text-xs">
+                {deal.deal_type || 'Lease'}
+              </Badge>
+            </Field>
+            <Field label="Status">
+              <Select value={deal.status} onValueChange={handleStatusChange}>
+                <SelectTrigger className="w-[140px] h-7 text-xs">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent className="bg-background z-50">
+                  {DEAL_STATUSES.map(status => (
+                    <SelectItem key={status} value={status}>{status}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </Field>
+            <Field label="Address">{deal.address}</Field>
+            {deal.deal_number && <Field label="Deal Number">{deal.deal_number}</Field>}
+            <Field label="City">{deal.city || '—'}</Field>
+            <Field label="Submarket">{deal.submarket || '—'}</Field>
+            <Field label={deal.is_land_deal ? 'Size (Ac)' : 'Size (SF)'}>{formatNumber(deal.size_sf)}</Field>
+            <Field label="Deal Value">{formatCurrency(deal.deal_value)}</Field>
+            <Field label="Close Date">{formatDate(deal.close_date)}</Field>
+            <Field label="Effective Date">{formatDate((deal as any).effective_date)}</Field>
+          </div>
         </div>
 
         {/* Parties */}
         {hasParties && (
-          <div className="border-t pt-3">
+          <div className="rounded-md bg-accent/30 p-3">
             <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-1">Parties</h4>
             <div className="grid grid-cols-2 gap-x-6 gap-y-0">
               <Field label="Vendor / Seller">{deal.seller_name || '—'}</Field>
@@ -174,7 +177,7 @@ export function DealViewCard({ deal, onEdit }: DealViewCardProps) {
 
         {/* Agents */}
         {hasAgents && (
-          <div className="border-t pt-3">
+          <div className="rounded-md bg-muted/40 p-3">
             <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-1">Agents</h4>
             <div className="grid grid-cols-2 gap-x-6 gap-y-0">
               {deal.listing_brokerage_id && (
@@ -202,7 +205,7 @@ export function DealViewCard({ deal, onEdit }: DealViewCardProps) {
 
         {/* Commission Split */}
         {hasFinancials && (
-          <div className="border-t pt-3">
+          <div className="rounded-md bg-accent/30 p-3">
             <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-1">Commission</h4>
             <div className="grid grid-cols-2 gap-x-6 gap-y-0">
               <Field label="Commission Rate">{formatPercent(deal.commission_percent)}</Field>
@@ -215,9 +218,9 @@ export function DealViewCard({ deal, onEdit }: DealViewCardProps) {
 
         {/* Linked Property */}
         {linkedProperty && (
-          <div className="border-t pt-3">
+          <div className="rounded-md bg-muted/40 p-3">
             <Field label="Linked Property">
-              <Button variant="link" className="p-0 h-auto" asChild>
+              <Button variant="link" className="p-0 h-auto text-xs" asChild>
                 <Link to={`/properties/${linkedProperty.id}`} className="flex items-center gap-1 text-primary">
                   {linkedProperty.name || linkedProperty.address}
                   <ExternalLink className="w-3 h-3" />
@@ -229,7 +232,7 @@ export function DealViewCard({ deal, onEdit }: DealViewCardProps) {
 
         {/* Notes */}
         {deal.notes && (
-          <div className="border-t pt-3">
+          <div className="rounded-md bg-accent/30 p-3">
             <p className="text-xs text-muted-foreground mb-0.5">Notes</p>
             <p className="text-xs">{deal.notes}</p>
           </div>
