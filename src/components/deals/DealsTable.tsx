@@ -27,18 +27,26 @@ import {
 import { ConfirmDialog } from '@/components/common/ConfirmDialog';
 import { formatCurrency, formatDate } from '@/lib/format';
 import { useDeleteDeal } from '@/hooks/useDeals';
-import { Eye, Pencil, Trash2, Search, X, MoreHorizontal } from 'lucide-react';
+import { Eye, Pencil, Trash2, Search, X, MoreHorizontal, ArrowUpDown } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { differenceInDays, parseISO } from 'date-fns';
 import type { Deal } from '@/types/database';
+import type { DealImportantDate } from '@/hooks/useAllDealImportantDates';
 
 interface DealsTableProps {
   deals: Deal[];
   isLoading?: boolean;
   onEdit?: (deal: Deal) => void;
+  importantDates?: DealImportantDate[];
 }
 
 const DEAL_TYPES = ['All', 'Lease', 'Sale'];
 const DEAL_STATUSES = ['All', 'Conditional', 'Firm', 'Closed'];
+const SORT_OPTIONS = [
+  { value: 'milestone', label: 'Next milestone' },
+  { value: 'close_date', label: 'Close date' },
+  { value: 'value', label: 'Value' },
+];
 
 const statusColors: Record<string, string> = {
   Conditional: 'bg-yellow-100 text-yellow-800 border-yellow-300',
@@ -51,7 +59,48 @@ const dealTypeColors: Record<string, string> = {
   Sale: 'bg-orange-100 text-orange-800 border-orange-300',
 };
 
-export function DealsTable({ deals, isLoading, onEdit }: DealsTableProps) {
+function getNextMilestone(dealId: string, importantDates?: DealImportantDate[]) {
+  if (!importantDates) return null;
+  const dealDates = importantDates.filter(d => d.dealId === dealId);
+  if (dealDates.length === 0) return null;
+  // Already sorted ascending by date from the hook, but let's be safe
+  dealDates.sort((a, b) => parseISO(a.date).getTime() - parseISO(b.date).getTime());
+  return dealDates[0];
+}
+
+function MilestoneCell({ milestone }: { milestone: DealImportantDate | null }) {
+  if (!milestone) return <span className="text-muted-foreground">-</span>;
+
+  const date = parseISO(milestone.date);
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const days = differenceInDays(date, today);
+  const isOverdue = days < 0;
+
+  return (
+    <div className="flex flex-col gap-0.5">
+      <span className={cn(
+        'text-xs font-medium truncate max-w-[180px]',
+        isOverdue && 'text-destructive'
+      )}>
+        {milestone.label}
+      </span>
+      <span className={cn(
+        'text-[11px]',
+        isOverdue ? 'text-destructive font-semibold' : 'text-muted-foreground'
+      )}>
+        {isOverdue
+          ? `Overdue by ${Math.abs(days)}d`
+          : days === 0
+            ? 'Today'
+            : `In ${days}d`
+        }
+      </span>
+    </div>
+  );
+}
+
+export function DealsTable({ deals, isLoading, onEdit, importantDates }: DealsTableProps) {
   const navigate = useNavigate();
   const deleteDeal = useDeleteDeal();
   const [deleteId, setDeleteId] = useState<string | null>(null);
@@ -61,6 +110,7 @@ export function DealsTable({ deals, isLoading, onEdit }: DealsTableProps) {
   const [searchQuery, setSearchQuery] = useState('');
   const [typeFilter, setTypeFilter] = useState('All');
   const [statusFilter, setStatusFilter] = useState('All');
+  const [sortBy, setSortBy] = useState('milestone');
 
   const handleDelete = async () => {
     if (deleteId) {
@@ -77,8 +127,17 @@ export function DealsTable({ deals, isLoading, onEdit }: DealsTableProps) {
 
   const hasActiveFilters = searchQuery || typeFilter !== 'All' || statusFilter !== 'All';
 
-  const filteredDeals = useMemo(() => {
-    return deals.filter(deal => {
+  // Build milestone map once
+  const milestoneMap = useMemo(() => {
+    const map = new Map<string, DealImportantDate | null>();
+    deals.forEach(deal => {
+      map.set(deal.id, getNextMilestone(deal.id, importantDates));
+    });
+    return map;
+  }, [deals, importantDates]);
+
+  const filteredAndSortedDeals = useMemo(() => {
+    let filtered = deals.filter(deal => {
       if (searchQuery) {
         const query = searchQuery.toLowerCase();
         const matchesSearch = 
@@ -92,7 +151,32 @@ export function DealsTable({ deals, isLoading, onEdit }: DealsTableProps) {
       if (statusFilter !== 'All' && deal.status !== statusFilter) return false;
       return true;
     });
-  }, [deals, searchQuery, typeFilter, statusFilter]);
+
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    filtered.sort((a, b) => {
+      if (sortBy === 'milestone') {
+        const mA = milestoneMap.get(a.id);
+        const mB = milestoneMap.get(b.id);
+        const dateA = mA ? parseISO(mA.date).getTime() : Infinity;
+        const dateB = mB ? parseISO(mB.date).getTime() : Infinity;
+        // Overdue first (past dates), then upcoming, then no milestone
+        return dateA - dateB;
+      }
+      if (sortBy === 'close_date') {
+        const dA = a.close_date ? parseISO(a.close_date).getTime() : Infinity;
+        const dB = b.close_date ? parseISO(b.close_date).getTime() : Infinity;
+        return dA - dB;
+      }
+      if (sortBy === 'value') {
+        return (b.deal_value || b.lease_value || 0) - (a.deal_value || a.lease_value || 0);
+      }
+      return 0;
+    });
+
+    return filtered;
+  }, [deals, searchQuery, typeFilter, statusFilter, sortBy, milestoneMap]);
 
   if (isLoading) {
     return (
@@ -138,6 +222,18 @@ export function DealsTable({ deals, isLoading, onEdit }: DealsTableProps) {
           </SelectContent>
         </Select>
 
+        <Select value={sortBy} onValueChange={setSortBy}>
+          <SelectTrigger className="w-[160px]">
+            <ArrowUpDown className="w-3.5 h-3.5 mr-1.5 text-muted-foreground" />
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent className="bg-background z-50">
+            {SORT_OPTIONS.map(opt => (
+              <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+
         {hasActiveFilters && (
           <Button variant="ghost" size="sm" onClick={clearFilters}>
             <X className="w-4 h-4 mr-1" />
@@ -146,11 +242,11 @@ export function DealsTable({ deals, isLoading, onEdit }: DealsTableProps) {
         )}
 
         <div className="text-sm text-muted-foreground ml-auto">
-          {filteredDeals.length} of {deals.length} deals
+          {filteredAndSortedDeals.length} of {deals.length} deals
         </div>
       </div>
 
-      {filteredDeals.length === 0 ? (
+      {filteredAndSortedDeals.length === 0 ? (
         <div className="text-center py-12 text-muted-foreground border-2 border-foreground shadow-[4px_4px_0_hsl(var(--foreground))] bg-card" style={{ borderRadius: 'var(--radius)' }}>
           {deals.length === 0 
             ? "No deals found. Create your first deal to get started."
@@ -165,13 +261,14 @@ export function DealsTable({ deals, isLoading, onEdit }: DealsTableProps) {
               <TableHead>Address</TableHead>
               <TableHead>Type</TableHead>
               <TableHead>Status</TableHead>
+              <TableHead>Next Milestone</TableHead>
               <TableHead className="text-right">Value</TableHead>
               <TableHead>Close Date</TableHead>
               <TableHead className="w-[60px]"></TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
-            {filteredDeals.map((deal, index) => {
+            {filteredAndSortedDeals.map((deal, index) => {
               const isSelected = selectedRowId === deal.id;
               const isEvenRow = index % 2 === 1;
               const rowBg = isSelected
@@ -187,6 +284,8 @@ export function DealsTable({ deals, isLoading, onEdit }: DealsTableProps) {
               const outlineClass = isSelected
                 ? 'outline outline-2 outline-amber-600 dark:outline-amber-500 -outline-offset-1'
                 : 'outline-0 hover:outline hover:outline-2 hover:outline-pink-500 dark:hover:outline-pink-400 hover:-outline-offset-1';
+
+              const milestone = milestoneMap.get(deal.id) ?? null;
 
               return (
                 <TableRow
@@ -226,6 +325,9 @@ export function DealsTable({ deals, isLoading, onEdit }: DealsTableProps) {
                     >
                       {deal.status}
                     </Badge>
+                  </TableCell>
+                  <TableCell>
+                    <MilestoneCell milestone={milestone} />
                   </TableCell>
                   <TableCell className="text-right font-mono">
                     {formatCurrency(deal.deal_value)}
