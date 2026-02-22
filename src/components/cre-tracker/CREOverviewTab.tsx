@@ -1,5 +1,6 @@
 import { CREStatsCards } from './CREStatsCards';
 import { CRECalendarSection, CalendarEvent } from './CRECalendarSection';
+import { CRENextActionsPanel } from './CRENextActionsPanel';
 import type { Deal } from '@/types/database';
 
 interface DealStats {
@@ -31,6 +32,7 @@ export function CREOverviewTab({
 }: CREOverviewTabProps) {
   return (
     <div className="space-y-6">
+      <CRENextActionsPanel />
       <CREStatsCards
         activeDealsCount={activeDealsCount}
         closedDealsCount={closedDealsCount}
