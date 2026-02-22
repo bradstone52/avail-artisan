@@ -25,8 +25,10 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { ConfirmDialog } from '@/components/common/ConfirmDialog';
+import { ColumnsDropdown } from '@/components/common/ColumnsDropdown';
 import { formatCurrency, formatDate } from '@/lib/format';
 import { useDeleteDeal } from '@/hooks/useDeals';
+import { useTableColumnPrefs } from '@/hooks/useTableColumnPrefs';
 import { Eye, Pencil, Trash2, Search, X, MoreHorizontal, ArrowUpDown } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { differenceInDays, parseISO } from 'date-fns';
@@ -48,6 +50,16 @@ const SORT_OPTIONS = [
   { value: 'value', label: 'Value' },
 ];
 
+const DEALS_COLUMNS = [
+  { id: 'deal_number', label: 'Deal #', defaultVisible: true },
+  { id: 'address', label: 'Address', defaultVisible: true },
+  { id: 'type', label: 'Type', defaultVisible: true },
+  { id: 'status', label: 'Status', defaultVisible: true },
+  { id: 'milestone', label: 'Next Milestone', defaultVisible: true },
+  { id: 'value', label: 'Value', defaultVisible: true },
+  { id: 'close_date', label: 'Close Date', defaultVisible: true },
+];
+
 const statusColors: Record<string, string> = {
   Conditional: 'bg-yellow-100 text-yellow-800 border-yellow-300',
   Firm: 'bg-green-100 text-green-800 border-green-300',
@@ -63,7 +75,6 @@ function getNextMilestone(dealId: string, importantDates?: DealImportantDate[]) 
   if (!importantDates) return null;
   const dealDates = importantDates.filter(d => d.dealId === dealId);
   if (dealDates.length === 0) return null;
-  // Already sorted ascending by date from the hook, but let's be safe
   dealDates.sort((a, b) => parseISO(a.date).getTime() - parseISO(b.date).getTime());
   return dealDates[0];
 }
@@ -106,11 +117,12 @@ export function DealsTable({ deals, isLoading, onEdit, importantDates }: DealsTa
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [selectedRowId, setSelectedRowId] = useState<string | null>(null);
   
-  // Filter states
   const [searchQuery, setSearchQuery] = useState('');
   const [typeFilter, setTypeFilter] = useState('All');
   const [statusFilter, setStatusFilter] = useState('All');
   const [sortBy, setSortBy] = useState('milestone');
+
+  const { isVisible, toggle, reset, columns } = useTableColumnPrefs('deals', DEALS_COLUMNS);
 
   const handleDelete = async () => {
     if (deleteId) {
@@ -127,7 +139,6 @@ export function DealsTable({ deals, isLoading, onEdit, importantDates }: DealsTa
 
   const hasActiveFilters = searchQuery || typeFilter !== 'All' || statusFilter !== 'All';
 
-  // Build milestone map once
   const milestoneMap = useMemo(() => {
     const map = new Map<string, DealImportantDate | null>();
     deals.forEach(deal => {
@@ -152,16 +163,12 @@ export function DealsTable({ deals, isLoading, onEdit, importantDates }: DealsTa
       return true;
     });
 
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-
     filtered.sort((a, b) => {
       if (sortBy === 'milestone') {
         const mA = milestoneMap.get(a.id);
         const mB = milestoneMap.get(b.id);
         const dateA = mA ? parseISO(mA.date).getTime() : Infinity;
         const dateB = mB ? parseISO(mB.date).getTime() : Infinity;
-        // Overdue first (past dates), then upcoming, then no milestone
         return dateA - dateB;
       }
       if (sortBy === 'close_date') {
@@ -185,6 +192,8 @@ export function DealsTable({ deals, isLoading, onEdit, importantDates }: DealsTa
       </div>
     );
   }
+
+  const visibleCount = columns.filter(c => isVisible(c.id)).length;
 
   return (
     <>
@@ -234,6 +243,8 @@ export function DealsTable({ deals, isLoading, onEdit, importantDates }: DealsTa
           </SelectContent>
         </Select>
 
+        <ColumnsDropdown columns={columns} isVisible={isVisible} toggle={toggle} reset={reset} />
+
         {hasActiveFilters && (
           <Button variant="ghost" size="sm" onClick={clearFilters}>
             <X className="w-4 h-4 mr-1" />
@@ -257,13 +268,13 @@ export function DealsTable({ deals, isLoading, onEdit, importantDates }: DealsTa
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Deal #</TableHead>
-              <TableHead>Address</TableHead>
-              <TableHead>Type</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead>Next Milestone</TableHead>
-              <TableHead className="text-right">Value</TableHead>
-              <TableHead>Close Date</TableHead>
+              {isVisible('deal_number') && <TableHead>Deal #</TableHead>}
+              {isVisible('address') && <TableHead>Address</TableHead>}
+              {isVisible('type') && <TableHead>Type</TableHead>}
+              {isVisible('status') && <TableHead>Status</TableHead>}
+              {isVisible('milestone') && <TableHead>Next Milestone</TableHead>}
+              {isVisible('value') && <TableHead className="text-right">Value</TableHead>}
+              {isVisible('close_date') && <TableHead>Close Date</TableHead>}
               <TableHead className="w-[60px]"></TableHead>
             </TableRow>
           </TableHeader>
@@ -299,40 +310,54 @@ export function DealsTable({ deals, isLoading, onEdit, importantDates }: DealsTa
                   onClick={() => setSelectedRowId(isSelected ? null : deal.id)}
                   onDoubleClick={() => navigate(`/deals/${deal.id}`)}
                 >
-                  <TableCell className="font-medium">
-                    {deal.deal_number || '-'}
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex flex-col">
-                      <span className="font-medium">{deal.address}</span>
-                      <span className="text-xs text-muted-foreground">
-                        {deal.city}{deal.submarket && `, ${deal.submarket}`}
-                      </span>
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <Badge
-                      variant="outline"
-                      className={`font-medium border ${dealTypeColors[deal.deal_type] || ''}`}
-                    >
-                      {deal.deal_type}
-                    </Badge>
-                  </TableCell>
-                  <TableCell>
-                    <Badge
-                      variant="outline"
-                      className={`font-medium border ${statusColors[deal.status] || ''}`}
-                    >
-                      {deal.status}
-                    </Badge>
-                  </TableCell>
-                  <TableCell>
-                    <MilestoneCell milestone={milestone} />
-                  </TableCell>
-                  <TableCell className="text-right font-mono">
-                    {formatCurrency(deal.deal_value)}
-                  </TableCell>
-                  <TableCell>{formatDate(deal.close_date)}</TableCell>
+                  {isVisible('deal_number') && (
+                    <TableCell className="font-medium">
+                      {deal.deal_number || '-'}
+                    </TableCell>
+                  )}
+                  {isVisible('address') && (
+                    <TableCell>
+                      <div className="flex flex-col">
+                        <span className="font-medium">{deal.address}</span>
+                        <span className="text-xs text-muted-foreground">
+                          {deal.city}{deal.submarket && `, ${deal.submarket}`}
+                        </span>
+                      </div>
+                    </TableCell>
+                  )}
+                  {isVisible('type') && (
+                    <TableCell>
+                      <Badge
+                        variant="outline"
+                        className={`font-medium border ${dealTypeColors[deal.deal_type] || ''}`}
+                      >
+                        {deal.deal_type}
+                      </Badge>
+                    </TableCell>
+                  )}
+                  {isVisible('status') && (
+                    <TableCell>
+                      <Badge
+                        variant="outline"
+                        className={`font-medium border ${statusColors[deal.status] || ''}`}
+                      >
+                        {deal.status}
+                      </Badge>
+                    </TableCell>
+                  )}
+                  {isVisible('milestone') && (
+                    <TableCell>
+                      <MilestoneCell milestone={milestone} />
+                    </TableCell>
+                  )}
+                  {isVisible('value') && (
+                    <TableCell className="text-right font-mono">
+                      {formatCurrency(deal.deal_value)}
+                    </TableCell>
+                  )}
+                  {isVisible('close_date') && (
+                    <TableCell>{formatDate(deal.close_date)}</TableCell>
+                  )}
                   <TableCell>
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
