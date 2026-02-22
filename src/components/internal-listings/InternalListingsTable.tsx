@@ -20,6 +20,7 @@ import { ConfirmDialog } from '@/components/common/ConfirmDialog';
 import { formatNumber, formatCurrency } from '@/lib/format';
 import { MoreHorizontal, Eye, Pencil, Trash2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { differenceInDays, differenceInWeeks, differenceInMonths, parseISO } from 'date-fns';
 import { InternalListing } from '@/hooks/useInternalListings';
 
 interface InternalListingsTableProps {
@@ -44,6 +45,26 @@ const dealTypeColors: Record<string, string> = {
   Both: 'bg-violet-100 text-violet-800 border-violet-300',
 };
 
+function UpdatedCell({ updatedAt }: { updatedAt: string }) {
+  const now = new Date();
+  const date = parseISO(updatedAt);
+  const days = differenceInDays(now, date);
+  const isStale = days > 30;
+
+  let label: string;
+  if (days === 0) label = 'Today';
+  else if (days === 1) label = '1d ago';
+  else if (days < 7) label = `${days}d ago`;
+  else if (days < 30) label = `${differenceInWeeks(now, date)}w ago`;
+  else label = `${differenceInMonths(now, date)}mo ago`;
+
+  return (
+    <span className={cn('text-xs', isStale ? 'text-warning-foreground font-semibold' : 'text-muted-foreground')}>
+      {label}
+    </span>
+  );
+}
+
 export function InternalListingsTable({
   listings,
   onEdit,
@@ -67,12 +88,12 @@ export function InternalListingsTable({
         <TableHeader>
           <TableRow>
             <TableHead>Address</TableHead>
-            <TableHead>City</TableHead>
             <TableHead>Type</TableHead>
             <TableHead className="text-right">Size (SF)</TableHead>
             <TableHead>Deal</TableHead>
             <TableHead className="text-right">Asking</TableHead>
             <TableHead>Status</TableHead>
+            <TableHead className="hidden md:table-cell">Updated</TableHead>
             <TableHead>Agent</TableHead>
             <TableHead className="w-[60px]"></TableHead>
           </TableRow>
@@ -120,9 +141,11 @@ export function InternalListingsTable({
                       {listing.listing_number && (
                         <span className="text-xs text-muted-foreground">#{listing.listing_number}</span>
                       )}
+                      <span className="text-xs text-muted-foreground">
+                        {listing.submarket}{listing.submarket && listing.city ? ', ' : ''}{listing.city}
+                      </span>
                     </div>
                   </TableCell>
-                  <TableCell>{listing.city}</TableCell>
                   <TableCell>
                     {listing.property_type && (
                       <span className="text-sm">{listing.property_type}</span>
@@ -153,6 +176,9 @@ export function InternalListingsTable({
                     >
                       {listing.status}
                     </Badge>
+                  </TableCell>
+                  <TableCell className="hidden md:table-cell">
+                    <UpdatedCell updatedAt={listing.updated_at} />
                   </TableCell>
                   <TableCell>
                     {listing.assigned_agent?.name || (
