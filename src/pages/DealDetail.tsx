@@ -12,7 +12,7 @@ import { DealViewCard } from '@/components/deals/detail/DealViewCard';
 import { DealImportantDatesSection } from '@/components/deals/detail/DealImportantDatesSection';
 import { DealDocumentsCard } from '@/components/deals/detail/DealDocumentsCard';
 import { DealFinancialSummaryCard } from '@/components/deals/detail/DealFinancialSummaryCard';
-import { DealEditDialog } from '@/components/deals/detail/DealEditDialog';
+import { DealFormDialog } from '@/components/deals/DealFormDialog';
 import { GenerateDealSheetDialog } from '@/components/deals/GenerateDealSheetDialog';
 import { GenerateDealSummaryDialog } from '@/components/deals/GenerateDealSummaryDialog';
 import { ConfirmDialog } from '@/components/common/ConfirmDialog';
@@ -149,7 +149,7 @@ export default function DealDetail() {
       </div>
 
       {/* Edit Dialog */}
-      <DealEditDialog 
+      <DealFormDialog 
         open={editOpen} 
         onOpenChange={setEditOpen} 
         deal={deal} 
