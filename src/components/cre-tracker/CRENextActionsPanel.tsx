@@ -115,8 +115,8 @@ export function CRENextActionsPanel({ prospects, dealDates, isLoading }: CRENext
 
         if (
           (timeFilter === 'overdue' && isOverdue) ||
-          (timeFilter === '7days' && (isOverdue || inWindow7)) ||
-          (timeFilter === '30days' && (isOverdue || inWindow30))
+          (timeFilter === '7days' && inWindow7) ||
+          (timeFilter === '30days' && inWindow30)
         ) {
           result.push({
             id: `prospect-${p.id}`,
@@ -142,8 +142,8 @@ export function CRENextActionsPanel({ prospects, dealDates, isLoading }: CRENext
 
         if (
           (timeFilter === 'overdue' && isOverdue) ||
-          (timeFilter === '7days' && (isOverdue || inWindow7)) ||
-          (timeFilter === '30days' && (isOverdue || inWindow30))
+          (timeFilter === '7days' && inWindow7) ||
+          (timeFilter === '30days' && inWindow30)
         ) {
           result.push({
             id: dd.id,
