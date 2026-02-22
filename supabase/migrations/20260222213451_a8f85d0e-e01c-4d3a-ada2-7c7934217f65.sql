@@ -1,0 +1,1 @@
+ALTER TABLE public.deals ALTER COLUMN size_sf TYPE numeric USING size_sf::numeric;
