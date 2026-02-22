@@ -79,7 +79,7 @@ export function DealBasicSection({ deal, onUpdate }: DealBasicSectionProps) {
             <Input value={deal.submarket || ''} disabled className="bg-muted" />
           </div>
           <div className="space-y-2">
-            <Label>Size (SF)</Label>
+            <Label>Size ({(deal as any).is_land_deal ? 'Ac' : 'SF'})</Label>
             <Input 
               value={deal.size_sf?.toLocaleString() || '—'} 
               disabled 

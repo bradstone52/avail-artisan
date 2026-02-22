@@ -92,6 +92,7 @@ export interface Deal {
   city: string;
   submarket: string;
   size_sf?: number | null;
+  is_land_deal?: boolean;
   deal_value?: number | null;
   commission_percent?: number | null;
   close_date?: string | null;
@@ -158,6 +159,7 @@ export interface DealFormData {
   city: string;
   submarket: string;
   size_sf?: number | null;
+  is_land_deal?: boolean;
   deal_value?: number | null;
   commission_percent?: number;
   close_date?: string | null;

@@ -23,6 +23,7 @@ import {
   CollapsibleTrigger,
 } from '@/components/ui/collapsible';
 import { FormattedNumberInput } from '@/components/common/FormattedNumberInput';
+import { Switch } from '@/components/ui/switch';
 import { ListingCombobox } from '@/components/deals/ListingCombobox';
 import { useCreateDeal, useUpdateDeal } from '@/hooks/useDeals';
 import { useAgents } from '@/hooks/useAgents';
@@ -45,6 +46,7 @@ interface ExtendedDealFormData {
   city: string;
   submarket: string;
   size_sf?: number;
+  is_land_deal?: boolean;
   deal_value?: number;
   commission_percent?: number;
   close_date?: string;
@@ -82,6 +84,7 @@ const EMPTY_FORM: ExtendedDealFormData = {
   city: '',
   submarket: '',
   size_sf: undefined,
+  is_land_deal: false,
   deal_value: undefined,
   commission_percent: 3,
   close_date: '',
@@ -128,6 +131,7 @@ export function DealFormDialog({ open, onOpenChange, deal }: DealFormDialogProps
 
   useEffect(() => {
     if (deal) {
+      const isLand = !!(deal as any).is_land_deal;
       setFormData({
         deal_number: deal.deal_number || '',
         deal_type: deal.deal_type as DealType,
@@ -135,6 +139,7 @@ export function DealFormDialog({ open, onOpenChange, deal }: DealFormDialogProps
         city: deal.city,
         submarket: deal.submarket,
         size_sf: deal.size_sf ?? undefined,
+        is_land_deal: isLand,
         deal_value: deal.deal_value ?? undefined,
         commission_percent: deal.commission_percent ?? 3,
         close_date: deal.close_date || '',
@@ -157,6 +162,7 @@ export function DealFormDialog({ open, onOpenChange, deal }: DealFormDialogProps
         clearview_percent: deal.clearview_percent ?? 1.5,
         gst_rate: deal.gst_rate ?? 5,
       });
+      setSizeUnit(isLand ? 'AC' : 'SF');
       // Auto-open sections that have data
       setPartiesOpen(!!(deal.seller_name || deal.buyer_name));
       setAgentsOpen(!!(deal.listing_brokerage_id || deal.selling_brokerage_id || deal.cv_agent_id));
@@ -164,6 +170,7 @@ export function DealFormDialog({ open, onOpenChange, deal }: DealFormDialogProps
       setSelectedListing(null);
     } else {
       setFormData({ ...EMPTY_FORM });
+      setSizeUnit('SF');
       setPartiesOpen(false);
       setAgentsOpen(false);
       setFinancialOpen(false);
@@ -250,11 +257,12 @@ export function DealFormDialog({ open, onOpenChange, deal }: DealFormDialogProps
     e.preventDefault();
 
     try {
-      const { size_sf, ...dealData } = formData;
+      const { size_sf, is_land_deal, ...dealData } = formData;
       const roundedSize = size_sf != null ? Math.round(size_sf) : undefined;
       const submitData = {
         ...dealData,
         size_sf: roundedSize,
+        is_land_deal: is_land_deal || false,
         // Normalize empty strings to null for optional fields
         seller_name: dealData.seller_name || null,
         buyer_name: dealData.buyer_name || null,
@@ -376,9 +384,21 @@ export function DealFormDialog({ open, onOpenChange, deal }: DealFormDialogProps
             </div>
           </div>
 
+          <div className="flex items-center gap-3">
+            <Switch
+              id="is_land_deal"
+              checked={formData.is_land_deal || false}
+              onCheckedChange={(checked) => {
+                update({ is_land_deal: checked });
+                setSizeUnit(checked ? 'AC' : 'SF');
+              }}
+            />
+            <Label htmlFor="is_land_deal" className="cursor-pointer">Land Deal</Label>
+          </div>
+
           <div className="grid grid-cols-3 gap-4">
             <div className="space-y-2">
-              <Label>Size</Label>
+              <Label>Size ({formData.is_land_deal ? 'Ac' : 'SF'})</Label>
               {hasLinkedListing ? (
                 <Input
                   value={formData.size_sf ? `${formData.size_sf.toLocaleString()} ${sizeUnit}` : ''}
@@ -389,7 +409,7 @@ export function DealFormDialog({ open, onOpenChange, deal }: DealFormDialogProps
                 <FormattedNumberInput
                   value={formData.size_sf}
                   onChange={(value) => update({ size_sf: value ?? undefined })}
-                  suffix=" SF"
+                  suffix={formData.is_land_deal ? ' Ac' : ' SF'}
                 />
               )}
             </div>

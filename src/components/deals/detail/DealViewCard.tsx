@@ -153,7 +153,7 @@ export function DealViewCard({ deal, onEdit }: DealViewCardProps) {
           {deal.deal_number && <Field label="Deal Number">{deal.deal_number}</Field>}
           <Field label="City">{deal.city || '—'}</Field>
           <Field label="Submarket">{deal.submarket || '—'}</Field>
-          <Field label="Size (SF)">{formatNumber(deal.size_sf)}</Field>
+          <Field label={deal.is_land_deal ? 'Size (Ac)' : 'Size (SF)'}>{formatNumber(deal.size_sf)}</Field>
           <Field label="Deal Value">{formatCurrency(deal.deal_value)}</Field>
           <Field label="Close Date">{formatDate(deal.close_date)}</Field>
           <Field label="Effective Date">{formatDate((deal as any).effective_date)}</Field>

@@ -406,7 +406,7 @@ export function DealSheetPDF({ deal, conditions, deposits, getAgent, getBrokerag
           {/* Row 4: Values */}
           <View style={styles.summaryRowLast}>
             <View style={[styles.summaryCell, { flex: 2 }]}>
-              <Text style={styles.summaryValue}>{deal.size_sf ? `${formatNumber(deal.size_sf)} SF` : '—'}</Text>
+              <Text style={styles.summaryValue}>{deal.size_sf ? `${formatNumber(deal.size_sf)} ${(deal as any).is_land_deal ? 'Ac' : 'SF'}` : '—'}</Text>
             </View>
             <View style={[styles.summaryCellLast, { flex: 3 }]}>
               {conditions.length > 0 ? (
