@@ -25,8 +25,10 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { ConfirmDialog } from '@/components/common/ConfirmDialog';
+import { ColumnsDropdown } from '@/components/common/ColumnsDropdown';
 import { formatDate, formatNumber, formatCurrency } from '@/lib/format';
 import { useDeleteProspect } from '@/hooks/useProspects';
+import { useTableColumnPrefs } from '@/hooks/useTableColumnPrefs';
 import { Eye, Pencil, Trash2, Search, X, MoreHorizontal } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { differenceInDays, parseISO, addDays } from 'date-fns';
@@ -40,6 +42,13 @@ interface ProspectsTableProps {
 
 const PROSPECT_TYPES = ['All', 'Tenant', 'Buyer', 'Listing'];
 const FOLLOW_UP_FILTERS = ['All', 'Overdue', 'Next 7', 'Next 30'];
+
+const PROSPECTS_COLUMNS = [
+  { id: 'name', label: 'Name', defaultVisible: true },
+  { id: 'type', label: 'Type', defaultVisible: true },
+  { id: 'requirement', label: 'Requirement', defaultVisible: true },
+  { id: 'follow_up', label: 'Follow-up Due', defaultVisible: true },
+];
 
 const prospectTypeColors: Record<string, string> = {
   Tenant: 'bg-cyan-100 text-cyan-800 border-cyan-300',
@@ -113,6 +122,8 @@ export function ProspectsTable({ prospects, isLoading, onEdit }: ProspectsTableP
   const [searchQuery, setSearchQuery] = useState('');
   const [typeFilter, setTypeFilter] = useState('All');
   const [followUpFilter, setFollowUpFilter] = useState('All');
+
+  const { isVisible, toggle, reset, columns } = useTableColumnPrefs('prospects', PROSPECTS_COLUMNS);
 
   const handleDelete = async () => {
     if (deleteId) {
@@ -208,6 +219,8 @@ export function ProspectsTable({ prospects, isLoading, onEdit }: ProspectsTableP
           </SelectContent>
         </Select>
 
+        <ColumnsDropdown columns={columns} isVisible={isVisible} toggle={toggle} reset={reset} />
+
         {hasActiveFilters && (
           <Button variant="ghost" size="sm" onClick={clearFilters}>
             <X className="w-4 h-4 mr-1" />
@@ -231,10 +244,10 @@ export function ProspectsTable({ prospects, isLoading, onEdit }: ProspectsTableP
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Name</TableHead>
-              <TableHead>Type</TableHead>
-              <TableHead>Requirement</TableHead>
-              <TableHead>Follow-up Due</TableHead>
+              {isVisible('name') && <TableHead>Name</TableHead>}
+              {isVisible('type') && <TableHead>Type</TableHead>}
+              {isVisible('requirement') && <TableHead>Requirement</TableHead>}
+              {isVisible('follow_up') && <TableHead>Follow-up Due</TableHead>}
               <TableHead className="w-[60px]"></TableHead>
             </TableRow>
           </TableHeader>
@@ -268,32 +281,40 @@ export function ProspectsTable({ prospects, isLoading, onEdit }: ProspectsTableP
                   onClick={() => setSelectedRowId(isSelected ? null : prospect.id)}
                   onDoubleClick={() => navigate(`/prospects/${prospect.id}`)}
                 >
-                  <TableCell>
-                    <div className="flex flex-col">
-                      <span className="font-medium">{prospect.name}</span>
-                      {prospect.company && (
-                        <span className="text-xs text-muted-foreground">{prospect.company}</span>
+                  {isVisible('name') && (
+                    <TableCell>
+                      <div className="flex flex-col">
+                        <span className="font-medium">{prospect.name}</span>
+                        {prospect.company && (
+                          <span className="text-xs text-muted-foreground">{prospect.company}</span>
+                        )}
+                      </div>
+                    </TableCell>
+                  )}
+                  {isVisible('type') && (
+                    <TableCell>
+                      {prospect.prospect_type ? (
+                        <Badge
+                          variant="outline"
+                          className={`font-medium border ${prospectTypeColors[prospect.prospect_type] || ''}`}
+                        >
+                          {prospect.prospect_type}
+                        </Badge>
+                      ) : (
+                        <span className="text-muted-foreground">-</span>
                       )}
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    {prospect.prospect_type ? (
-                      <Badge
-                        variant="outline"
-                        className={`font-medium border ${prospectTypeColors[prospect.prospect_type] || ''}`}
-                      >
-                        {prospect.prospect_type}
-                      </Badge>
-                    ) : (
-                      <span className="text-muted-foreground">-</span>
-                    )}
-                  </TableCell>
-                  <TableCell>
-                    <RequirementCell prospect={prospect} />
-                  </TableCell>
-                  <TableCell>
-                    <FollowUpDueCell date={prospect.follow_up_date} />
-                  </TableCell>
+                    </TableCell>
+                  )}
+                  {isVisible('requirement') && (
+                    <TableCell>
+                      <RequirementCell prospect={prospect} />
+                    </TableCell>
+                  )}
+                  {isVisible('follow_up') && (
+                    <TableCell>
+                      <FollowUpDueCell date={prospect.follow_up_date} />
+                    </TableCell>
+                  )}
                   <TableCell>
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
