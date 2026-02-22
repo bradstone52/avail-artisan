@@ -68,7 +68,7 @@ export default function ProspectDetail() {
         {/* Header */}
         <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 mb-6">
           <div className="flex items-center gap-4">
-            <Button onClick={() => navigate('/prospects')} variant="outline" size="sm">
+            <Button onClick={() => navigate(-1)} variant="outline" size="sm">
               <ArrowLeft className="w-4 h-4 mr-2" />
               Back
             </Button>
