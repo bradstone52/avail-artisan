@@ -258,10 +258,12 @@ export function DealFormDialog({ open, onOpenChange, deal }: DealFormDialogProps
 
     try {
       const { size_sf, is_land_deal, ...dealData } = formData;
-      const roundedSize = size_sf != null ? Math.round(size_sf) : undefined;
+      const parsedSize = size_sf != null 
+        ? (is_land_deal ? parseFloat(Number(size_sf).toFixed(2)) : Math.round(size_sf))
+        : undefined;
       const submitData = {
         ...dealData,
-        size_sf: roundedSize,
+        size_sf: parsedSize,
         is_land_deal: is_land_deal || false,
         // Normalize empty strings to null for optional fields
         seller_name: dealData.seller_name || null,
