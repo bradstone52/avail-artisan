@@ -18,8 +18,10 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { ConfirmDialog } from '@/components/common/ConfirmDialog';
 import { ColumnsDropdown } from '@/components/common/ColumnsDropdown';
+import { DensityToggle } from '@/components/common/DensityToggle';
 import { formatNumber, formatCurrency } from '@/lib/format';
 import { useTableColumnPrefs } from '@/hooks/useTableColumnPrefs';
+import { useTableDensity } from '@/hooks/useTableDensity';
 import { MoreHorizontal, Eye, Pencil, Trash2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { differenceInDays, differenceInWeeks, differenceInMonths, parseISO } from 'date-fns';
@@ -89,6 +91,9 @@ export function InternalListingsTable({
   const [selectedRowId, setSelectedRowId] = useState<string | null>(null);
 
   const { isVisible, toggle, reset, columns } = useTableColumnPrefs('internal-listings', LISTINGS_COLUMNS);
+  const { density, toggle: toggleDensity, isCompact } = useTableDensity('internal-listings');
+  const cellPadding = isCompact ? 'py-1 text-xs' : '';
+  const headPadding = isCompact ? 'py-1.5 text-xs' : '';
 
   const handleDelete = () => {
     if (deleteId) {
@@ -103,20 +108,21 @@ export function InternalListingsTable({
     <>
       <div className="flex flex-wrap items-center gap-3 mb-4">
         <ColumnsDropdown columns={columns} isVisible={isVisible} toggle={toggle} reset={reset} />
+        <DensityToggle density={density} toggle={toggleDensity} />
       </div>
 
       <Table>
         <TableHeader>
           <TableRow>
-            {isVisible('address') && <TableHead>Address</TableHead>}
-            {isVisible('type') && <TableHead>Type</TableHead>}
-            {isVisible('size') && <TableHead className="text-right">Size (SF)</TableHead>}
-            {isVisible('deal') && <TableHead>Deal</TableHead>}
-            {isVisible('asking') && <TableHead className="text-right">Asking</TableHead>}
-            {isVisible('status') && <TableHead>Status</TableHead>}
-            {isVisible('updated') && <TableHead className="hidden md:table-cell">Updated</TableHead>}
-            {isVisible('agent') && <TableHead>Agent</TableHead>}
-            <TableHead className="w-[60px]"></TableHead>
+             {isVisible('address') && <TableHead className={headPadding}>Address</TableHead>}
+            {isVisible('type') && <TableHead className={headPadding}>Type</TableHead>}
+            {isVisible('size') && <TableHead className={cn('text-right', headPadding)}>Size (SF)</TableHead>}
+            {isVisible('deal') && <TableHead className={headPadding}>Deal</TableHead>}
+            {isVisible('asking') && <TableHead className={cn('text-right', headPadding)}>Asking</TableHead>}
+            {isVisible('status') && <TableHead className={headPadding}>Status</TableHead>}
+            {isVisible('updated') && <TableHead className={cn('hidden md:table-cell', headPadding)}>Updated</TableHead>}
+            {isVisible('agent') && <TableHead className={headPadding}>Agent</TableHead>}
+            <TableHead className={cn('w-[60px]', headPadding)}></TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -157,32 +163,34 @@ export function InternalListingsTable({
                   onDoubleClick={() => navigate(`/internal-listings/${listing.id}`)}
                 >
                   {isVisible('address') && (
-                    <TableCell className="font-medium">
+                    <TableCell className={cn('font-medium', cellPadding)}>
                       <div className="flex flex-col">
                         <span>{listing.display_address || listing.address}</span>
-                        {listing.listing_number && (
+                        {!isCompact && listing.listing_number && (
                           <span className="text-xs text-muted-foreground">#{listing.listing_number}</span>
                         )}
-                        <span className="text-xs text-muted-foreground">
-                          {listing.submarket}{listing.submarket && listing.city ? ', ' : ''}{listing.city}
-                        </span>
+                        {!isCompact && (
+                          <span className="text-xs text-muted-foreground">
+                            {listing.submarket}{listing.submarket && listing.city ? ', ' : ''}{listing.city}
+                          </span>
+                        )}
                       </div>
                     </TableCell>
                   )}
                   {isVisible('type') && (
-                    <TableCell>
+                    <TableCell className={cellPadding}>
                       {listing.property_type && (
                         <span className="text-sm">{listing.property_type}</span>
                       )}
                     </TableCell>
                   )}
                   {isVisible('size') && (
-                    <TableCell className="text-right font-mono">
+                    <TableCell className={cn('text-right font-mono', cellPadding)}>
                       {listing.size_sf ? formatNumber(listing.size_sf) : '-'}
                     </TableCell>
                   )}
                   {isVisible('deal') && (
-                    <TableCell>
+                    <TableCell className={cellPadding}>
                       <Badge
                         variant="outline"
                         className={`font-medium border ${dealTypeColors[listing.deal_type] || ''}`}
@@ -192,7 +200,7 @@ export function InternalListingsTable({
                     </TableCell>
                   )}
                   {isVisible('asking') && (
-                    <TableCell className="text-right font-mono">
+                    <TableCell className={cn('text-right font-mono', cellPadding)}>
                       {listing.deal_type === 'Sale' && listing.asking_sale_price
                         ? formatCurrency(listing.asking_sale_price)
                         : listing.asking_rent_psf
@@ -201,7 +209,7 @@ export function InternalListingsTable({
                     </TableCell>
                   )}
                   {isVisible('status') && (
-                    <TableCell>
+                    <TableCell className={cellPadding}>
                       <Badge
                         variant="outline"
                         className={`font-medium border ${statusColors[listing.status] || ''}`}
@@ -211,18 +219,18 @@ export function InternalListingsTable({
                     </TableCell>
                   )}
                   {isVisible('updated') && (
-                    <TableCell className="hidden md:table-cell">
+                    <TableCell className={cn('hidden md:table-cell', cellPadding)}>
                       <UpdatedCell updatedAt={listing.updated_at} />
                     </TableCell>
                   )}
                   {isVisible('agent') && (
-                    <TableCell>
+                    <TableCell className={cellPadding}>
                       {listing.assigned_agent?.name || (
                         <span className="text-muted-foreground">Unassigned</span>
                       )}
                     </TableCell>
                   )}
-                  <TableCell>
+                  <TableCell className={cellPadding}>
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
                         <Button variant="ghost" size="icon" className="h-8 w-8">
