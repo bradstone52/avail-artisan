@@ -1,0 +1,1 @@
+ALTER TABLE public.deals ADD COLUMN is_land_deal boolean NOT NULL DEFAULT false;

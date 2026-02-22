@@ -407,7 +407,8 @@ export function GenerateDealSheetDialog({ open, onOpenChange, deal }: GenerateDe
   // Calculate size display
   const getSizeDisplay = () => {
     if (!deal.size_sf) return '—';
-    return `${deal.size_sf.toLocaleString()} SF`;
+    const unit = (deal as any).is_land_deal ? 'Ac' : 'SF';
+    return `${deal.size_sf.toLocaleString()} ${unit}`;
   };
 
   // Tab navigation

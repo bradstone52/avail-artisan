@@ -147,7 +147,8 @@ export function GenerateDealSummaryDialog({ open, onOpenChange, deal }: Generate
       let description = '';
       if (deal.size_sf) {
         const formattedSf = deal.size_sf.toLocaleString();
-        description = `${formattedSf} SF`;
+        const unit = (deal as any).is_land_deal ? 'Ac' : 'SF';
+        description = `${formattedSf} ${unit}`;
       }
       setPropertyDescription(description);
       

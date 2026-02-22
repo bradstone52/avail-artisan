@@ -409,6 +409,7 @@ export type Database = {
           effective_date: string | null
           gst_rate: number | null
           id: string
+          is_land_deal: boolean
           lease_value: number | null
           listing_agent1_id: string | null
           listing_agent2_id: string | null
@@ -449,6 +450,7 @@ export type Database = {
           effective_date?: string | null
           gst_rate?: number | null
           id?: string
+          is_land_deal?: boolean
           lease_value?: number | null
           listing_agent1_id?: string | null
           listing_agent2_id?: string | null
@@ -489,6 +491,7 @@ export type Database = {
           effective_date?: string | null
           gst_rate?: number | null
           id?: string
+          is_land_deal?: boolean
           lease_value?: number | null
           listing_agent1_id?: string | null
           listing_agent2_id?: string | null
