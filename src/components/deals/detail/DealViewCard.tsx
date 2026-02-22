@@ -103,9 +103,9 @@ export function DealViewCard({ deal, onEdit }: DealViewCardProps) {
   };
 
   const Field = ({ label, children }: { label: string; children: React.ReactNode }) => (
-    <div>
-      <p className="text-sm text-muted-foreground mb-1">{label}</p>
-      <div className="font-medium">{children}</div>
+    <div className="flex items-center justify-between gap-2 py-0.5">
+      <span className="text-xs text-muted-foreground whitespace-nowrap">{label}</span>
+      <div className="text-sm font-medium text-right truncate">{children}</div>
     </div>
   );
 
@@ -129,9 +129,9 @@ export function DealViewCard({ deal, onEdit }: DealViewCardProps) {
           )}
         </div>
       </CardHeader>
-      <CardContent className="space-y-6">
+      <CardContent className="space-y-3">
         {/* Core fields */}
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-2 gap-x-6 gap-y-0">
           <Field label="Type">
             <Badge variant="secondary" className="bg-amber-100 text-amber-800 hover:bg-amber-100">
               {deal.deal_type || 'Lease'}
@@ -161,9 +161,9 @@ export function DealViewCard({ deal, onEdit }: DealViewCardProps) {
 
         {/* Parties */}
         {hasParties && (
-          <div className="border-t pt-4">
-            <h4 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground mb-3">Parties</h4>
-            <div className="grid grid-cols-2 gap-4">
+          <div className="border-t pt-3">
+            <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-1">Parties</h4>
+            <div className="grid grid-cols-2 gap-x-6 gap-y-0">
               <Field label="Vendor / Seller">{deal.seller_name || '—'}</Field>
               <Field label="Purchaser / Buyer">{deal.buyer_name || '—'}</Field>
               <Field label="Seller Brokerage">{getBrokerageName(deal.seller_brokerage_id)}</Field>
@@ -174,9 +174,9 @@ export function DealViewCard({ deal, onEdit }: DealViewCardProps) {
 
         {/* Agents */}
         {hasAgents && (
-          <div className="border-t pt-4">
-            <h4 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground mb-3">Agents</h4>
-            <div className="grid grid-cols-2 gap-4">
+          <div className="border-t pt-3">
+            <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-1">Agents</h4>
+            <div className="grid grid-cols-2 gap-x-6 gap-y-0">
               {deal.listing_brokerage_id && (
                 <>
                   <Field label="Listing Brokerage">{getBrokerageName(deal.listing_brokerage_id)}</Field>
@@ -202,9 +202,9 @@ export function DealViewCard({ deal, onEdit }: DealViewCardProps) {
 
         {/* Commission Split */}
         {hasFinancials && (
-          <div className="border-t pt-4">
-            <h4 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground mb-3">Commission</h4>
-            <div className="grid grid-cols-2 gap-4">
+          <div className="border-t pt-3">
+            <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-1">Commission</h4>
+            <div className="grid grid-cols-2 gap-x-6 gap-y-0">
               <Field label="Commission Rate">{formatPercent(deal.commission_percent)}</Field>
               <Field label="GST Rate">{formatPercent(deal.gst_rate)}</Field>
               <Field label="Other Brokerage %">{formatPercent(deal.other_brokerage_percent)}</Field>
@@ -215,7 +215,7 @@ export function DealViewCard({ deal, onEdit }: DealViewCardProps) {
 
         {/* Linked Property */}
         {linkedProperty && (
-          <div className="border-t pt-4">
+          <div className="border-t pt-3">
             <Field label="Linked Property">
               <Button variant="link" className="p-0 h-auto" asChild>
                 <Link to={`/properties/${linkedProperty.id}`} className="flex items-center gap-1 text-primary">
@@ -229,9 +229,9 @@ export function DealViewCard({ deal, onEdit }: DealViewCardProps) {
 
         {/* Notes */}
         {deal.notes && (
-          <div className="border-t pt-4">
-            <p className="text-sm text-muted-foreground mb-1">Notes</p>
-            <p className="text-sm">{deal.notes}</p>
+          <div className="border-t pt-3">
+            <p className="text-xs text-muted-foreground mb-0.5">Notes</p>
+            <p className="text-xs">{deal.notes}</p>
           </div>
         )}
       </CardContent>
