@@ -109,7 +109,7 @@ export default function CRETracker() {
             />
           </TabsContent>
           <TabsContent value="deals" className="mt-4">
-            <CREDealsTab deals={deals} />
+            <CREDealsTab deals={deals} importantDates={dealDates} />
           </TabsContent>
           <TabsContent value="prospects" className="mt-4">
             <CREProspectsTab />
