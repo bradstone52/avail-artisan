@@ -14,6 +14,8 @@ import { Link } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { useAgents } from '@/hooks/useAgents';
+import { useBrokerages } from '@/hooks/useBrokerages';
 import type { Deal } from '@/types/database';
 
 interface DealViewCardProps {
@@ -25,6 +27,8 @@ const DEAL_STATUSES = ['Conditional', 'Firm', 'Closed'];
 
 export function DealViewCard({ deal, onEdit }: DealViewCardProps) {
   const queryClient = useQueryClient();
+  const { data: agents } = useAgents();
+  const { data: brokerages } = useBrokerages();
 
   const formatNumber = (num: number | null | undefined) => {
     if (!num) return '—';
@@ -41,28 +45,42 @@ export function DealViewCard({ deal, onEdit }: DealViewCardProps) {
     }).format(value);
   };
 
+  const formatPercent = (value: number | null | undefined) => {
+    if (value === null || value === undefined) return '—';
+    return `${value}%`;
+  };
+
+  const formatDate = (dateStr: string | null | undefined) => {
+    if (!dateStr) return '—';
+    return format(new Date(dateStr + 'T00:00:00'), 'MMM d, yyyy');
+  };
+
+  const getAgentName = (id: string | null | undefined) => {
+    if (!id || !agents) return '—';
+    return agents.find(a => a.id === id)?.name || '—';
+  };
+
+  const getBrokerageName = (id: string | null | undefined) => {
+    if (!id || !brokerages) return '—';
+    return brokerages.find(b => b.id === id)?.name || '—';
+  };
+
   // Fetch linked property if listing_id exists
   const { data: linkedProperty } = useQuery({
     queryKey: ['linked-property', deal.listing_id],
     queryFn: async () => {
       if (!deal.listing_id) return null;
-      
-      // First get the market listing
       const { data: listing } = await supabase
         .from('market_listings')
         .select('address')
         .eq('id', deal.listing_id)
         .single();
-      
       if (!listing) return null;
-      
-      // Find matching property by address
       const { data: property } = await supabase
         .from('properties')
         .select('id, name, address')
         .ilike('address', listing.address)
         .maybeSingle();
-      
       return property;
     },
     enabled: !!deal.listing_id,
@@ -74,9 +92,7 @@ export function DealViewCard({ deal, onEdit }: DealViewCardProps) {
         .from('deals')
         .update({ status: newStatus })
         .eq('id', deal.id);
-
       if (error) throw error;
-
       queryClient.invalidateQueries({ queryKey: ['deals'] });
       queryClient.invalidateQueries({ queryKey: ['deals', deal.id] });
       toast.success(`Status updated to ${newStatus}`);
@@ -85,6 +101,17 @@ export function DealViewCard({ deal, onEdit }: DealViewCardProps) {
       toast.error('Failed to update status');
     }
   };
+
+  const Field = ({ label, children }: { label: string; children: React.ReactNode }) => (
+    <div>
+      <p className="text-sm text-muted-foreground mb-1">{label}</p>
+      <div className="font-medium">{children}</div>
+    </div>
+  );
+
+  const hasParties = deal.seller_name || deal.buyer_name || deal.seller_brokerage_id || deal.buyer_brokerage_id;
+  const hasAgents = deal.listing_brokerage_id || deal.selling_brokerage_id || deal.cv_agent_id;
+  const hasFinancials = deal.commission_percent || deal.other_brokerage_percent || deal.clearview_percent;
 
   return (
     <Card>
@@ -102,47 +129,15 @@ export function DealViewCard({ deal, onEdit }: DealViewCardProps) {
           )}
         </div>
       </CardHeader>
-      <CardContent>
+      <CardContent className="space-y-6">
+        {/* Core fields */}
         <div className="grid grid-cols-2 gap-4">
-          <div>
-            <p className="text-sm text-muted-foreground mb-1">Type</p>
-            <Badge 
-              variant="secondary" 
-              className="bg-amber-100 text-amber-800 hover:bg-amber-100"
-            >
+          <Field label="Type">
+            <Badge variant="secondary" className="bg-amber-100 text-amber-800 hover:bg-amber-100">
               {deal.deal_type || 'Lease'}
             </Badge>
-          </div>
-          
-          <div>
-            <p className="text-sm text-muted-foreground mb-1">Address</p>
-            <p className="font-medium">{deal.address}</p>
-          </div>
-          
-          <div>
-            <p className="text-sm text-muted-foreground mb-1">Size (SF)</p>
-            <p className="font-medium">{formatNumber(deal.size_sf)}</p>
-          </div>
-          
-          <div>
-            <p className="text-sm text-muted-foreground mb-1">City</p>
-            <p className="font-medium">{deal.city || '—'}</p>
-          </div>
-          
-          <div>
-            <p className="text-sm text-muted-foreground mb-1">Submarket</p>
-            <p className="font-medium">{deal.submarket || '—'}</p>
-          </div>
-          
-          <div>
-            <p className="text-sm text-muted-foreground mb-1">Close Date</p>
-            <p className="font-medium">
-              {deal.close_date ? format(new Date(deal.close_date + 'T00:00:00'), 'MMM d, yyyy') : '—'}
-            </p>
-          </div>
-          
-          <div>
-            <p className="text-sm text-muted-foreground mb-1">Status</p>
+          </Field>
+          <Field label="Status">
             <Select value={deal.status} onValueChange={handleStatusChange}>
               <SelectTrigger className="w-[140px] h-8">
                 <SelectValue />
@@ -153,52 +148,88 @@ export function DealViewCard({ deal, onEdit }: DealViewCardProps) {
                 ))}
               </SelectContent>
             </Select>
-          </div>
-          
-          {deal.deal_number && (
-            <div>
-              <p className="text-sm text-muted-foreground mb-1">Deal Number</p>
-              <p className="font-medium">{deal.deal_number}</p>
-            </div>
-          )}
-
-          <div>
-            <p className="text-sm text-muted-foreground mb-1">Vendor</p>
-            <p className="font-medium">{deal.seller_name || '—'}</p>
-          </div>
-          
-          <div>
-            <p className="text-sm text-muted-foreground mb-1">Purchaser</p>
-            <p className="font-medium">{deal.buyer_name || '—'}</p>
-          </div>
-          
-          <div>
-            <p className="text-sm text-muted-foreground mb-1">Deal Value</p>
-            <p className="font-medium">{formatCurrency(deal.deal_value)}</p>
-          </div>
-          
-          <div>
-            <p className="text-sm text-muted-foreground mb-1">Effective Date</p>
-            <p className="font-medium">
-              {(deal as any).effective_date ? format(new Date((deal as any).effective_date + 'T00:00:00'), 'MMM d, yyyy') : '—'}
-            </p>
-          </div>
+          </Field>
+          <Field label="Address">{deal.address}</Field>
+          {deal.deal_number && <Field label="Deal Number">{deal.deal_number}</Field>}
+          <Field label="City">{deal.city || '—'}</Field>
+          <Field label="Submarket">{deal.submarket || '—'}</Field>
+          <Field label="Size (SF)">{formatNumber(deal.size_sf)}</Field>
+          <Field label="Deal Value">{formatCurrency(deal.deal_value)}</Field>
+          <Field label="Close Date">{formatDate(deal.close_date)}</Field>
+          <Field label="Effective Date">{formatDate((deal as any).effective_date)}</Field>
         </div>
-        
-        {linkedProperty && (
-          <div className="mt-4 pt-4 border-t">
-            <p className="text-sm text-muted-foreground mb-1">Linked Property</p>
-            <Button variant="link" className="p-0 h-auto" asChild>
-              <Link to={`/properties/${linkedProperty.id}`} className="flex items-center gap-1 text-primary">
-                {linkedProperty.name || linkedProperty.address}
-                <ExternalLink className="w-3 h-3" />
-              </Link>
-            </Button>
+
+        {/* Parties */}
+        {hasParties && (
+          <div className="border-t pt-4">
+            <h4 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground mb-3">Parties</h4>
+            <div className="grid grid-cols-2 gap-4">
+              <Field label="Vendor / Seller">{deal.seller_name || '—'}</Field>
+              <Field label="Purchaser / Buyer">{deal.buyer_name || '—'}</Field>
+              <Field label="Seller Brokerage">{getBrokerageName(deal.seller_brokerage_id)}</Field>
+              <Field label="Buyer Brokerage">{getBrokerageName(deal.buyer_brokerage_id)}</Field>
+            </div>
           </div>
         )}
-        
+
+        {/* Agents */}
+        {hasAgents && (
+          <div className="border-t pt-4">
+            <h4 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground mb-3">Agents</h4>
+            <div className="grid grid-cols-2 gap-4">
+              {deal.listing_brokerage_id && (
+                <>
+                  <Field label="Listing Brokerage">{getBrokerageName(deal.listing_brokerage_id)}</Field>
+                  <div />
+                  <Field label="Listing Agent 1">{getAgentName(deal.listing_agent1_id)}</Field>
+                  <Field label="Listing Agent 2">{getAgentName(deal.listing_agent2_id)}</Field>
+                </>
+              )}
+              {deal.selling_brokerage_id && (
+                <>
+                  <Field label="Selling Brokerage">{getBrokerageName(deal.selling_brokerage_id)}</Field>
+                  <div />
+                  <Field label="Selling Agent 1">{getAgentName(deal.selling_agent1_id)}</Field>
+                  <Field label="Selling Agent 2">{getAgentName(deal.selling_agent2_id)}</Field>
+                </>
+              )}
+              {deal.cv_agent_id && (
+                <Field label="ClearView Agent">{getAgentName(deal.cv_agent_id)}</Field>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Commission Split */}
+        {hasFinancials && (
+          <div className="border-t pt-4">
+            <h4 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground mb-3">Commission</h4>
+            <div className="grid grid-cols-2 gap-4">
+              <Field label="Commission Rate">{formatPercent(deal.commission_percent)}</Field>
+              <Field label="GST Rate">{formatPercent(deal.gst_rate)}</Field>
+              <Field label="Other Brokerage %">{formatPercent(deal.other_brokerage_percent)}</Field>
+              <Field label="ClearView %">{formatPercent(deal.clearview_percent)}</Field>
+            </div>
+          </div>
+        )}
+
+        {/* Linked Property */}
+        {linkedProperty && (
+          <div className="border-t pt-4">
+            <Field label="Linked Property">
+              <Button variant="link" className="p-0 h-auto" asChild>
+                <Link to={`/properties/${linkedProperty.id}`} className="flex items-center gap-1 text-primary">
+                  {linkedProperty.name || linkedProperty.address}
+                  <ExternalLink className="w-3 h-3" />
+                </Link>
+              </Button>
+            </Field>
+          </div>
+        )}
+
+        {/* Notes */}
         {deal.notes && (
-          <div className="mt-4 pt-4 border-t">
+          <div className="border-t pt-4">
             <p className="text-sm text-muted-foreground mb-1">Notes</p>
             <p className="text-sm">{deal.notes}</p>
           </div>
