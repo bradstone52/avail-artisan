@@ -2,6 +2,8 @@ import { CREStatsCards } from './CREStatsCards';
 import { CRECalendarSection, CalendarEvent } from './CRECalendarSection';
 import { CRENextActionsPanel } from './CRENextActionsPanel';
 import type { Deal } from '@/types/database';
+import type { DealImportantDate } from '@/hooks/useAllDealImportantDates';
+import type { Prospect } from '@/types/prospect';
 
 interface DealStats {
   count: number;
@@ -21,6 +23,10 @@ interface CREOverviewTabProps {
   upcomingEventsCount: number;
   dealBreakdown: DealBreakdown;
   calendarDates: CalendarEvent[];
+  prospects: Prospect[] | undefined;
+  prospectsLoading: boolean;
+  dealDates: DealImportantDate[];
+  dealDatesLoading: boolean;
 }
 
 export function CREOverviewTab({
@@ -29,10 +35,18 @@ export function CREOverviewTab({
   upcomingEventsCount,
   dealBreakdown,
   calendarDates,
+  prospects,
+  prospectsLoading,
+  dealDates,
+  dealDatesLoading,
 }: CREOverviewTabProps) {
   return (
     <div className="space-y-6">
-      <CRENextActionsPanel />
+      <CRENextActionsPanel
+        prospects={prospects}
+        dealDates={dealDates}
+        isLoading={prospectsLoading || dealDatesLoading}
+      />
       <CREStatsCards
         activeDealsCount={activeDealsCount}
         closedDealsCount={closedDealsCount}

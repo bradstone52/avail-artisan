@@ -27,7 +27,7 @@ function parseTab(value: string | null): CRETab {
 
 export default function CRETracker() {
   const { data: deals = [] } = useDeals();
-  const { data: dealDates = [] } = useAllDealImportantDates(365);
+  const { data: dealDates = [], isLoading: dealDatesLoading } = useAllDealImportantDates(365);
   const upcomingFollowUps = useUpcomingFollowUps(365);
   const { data: prospects, isLoading: prospectsLoading } = useProspects();
   const { listings, isLoading: listingsLoading } = useInternalListings();
@@ -102,6 +102,10 @@ export default function CRETracker() {
               upcomingEventsCount={next30DaysEvents.length}
               dealBreakdown={dealBreakdown}
               calendarDates={calendarDates}
+              prospects={prospects}
+              prospectsLoading={prospectsLoading}
+              dealDates={dealDates}
+              dealDatesLoading={dealDatesLoading}
             />
           </TabsContent>
           <TabsContent value="deals" className="mt-4">

@@ -13,10 +13,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { useProspects } from '@/hooks/useProspects';
-import { useAllDealImportantDates } from '@/hooks/useAllDealImportantDates';
 import { differenceInCalendarDays, format } from 'date-fns';
 import { cn } from '@/lib/utils';
+import type { DealImportantDate } from '@/hooks/useAllDealImportantDates';
+import type { Prospect } from '@/types/prospect';
 
 type TimeFilter = 'overdue' | '7days' | '30days';
 type SourceFilter = 'all' | 'follow-ups' | 'deal-dates';
@@ -85,15 +85,16 @@ function dateLabel(itemDate: Date, today: Date): { text: string; isOverdue: bool
   return { text: format(itemDate, 'MMM d, yyyy'), isOverdue: false };
 }
 
-export function CRENextActionsPanel() {
+interface CRENextActionsPanelProps {
+  prospects: Prospect[] | undefined;
+  dealDates: DealImportantDate[];
+  isLoading: boolean;
+}
+
+export function CRENextActionsPanel({ prospects, dealDates, isLoading }: CRENextActionsPanelProps) {
   const [timeFilter, setTimeFilter] = React.useState<TimeFilter>('overdue');
   const [sourceFilter, setSourceFilter] = React.useState<SourceFilter>('all');
   const navigate = useNavigate();
-
-  const { data: prospects, isLoading: prospectsLoading } = useProspects();
-  const { data: dealDates = [], isLoading: datesLoading } = useAllDealImportantDates(365);
-
-  const isLoading = prospectsLoading || datesLoading;
 
   const today = React.useMemo(() => getTodayEdmonton(), []);
 
