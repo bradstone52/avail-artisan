@@ -30,9 +30,9 @@ export function DealViewCard({ deal, onEdit }: DealViewCardProps) {
   const { data: agents } = useAgents();
   const { data: brokerages } = useBrokerages();
 
-  const formatNumber = (num: number | null | undefined) => {
+  const formatNumber = (num: number | null | undefined, decimals = 0) => {
     if (!num) return '—';
-    return num.toLocaleString();
+    return num.toLocaleString(undefined, { minimumFractionDigits: decimals, maximumFractionDigits: decimals });
   };
 
   const formatCurrency = (value: number | null | undefined) => {
@@ -155,7 +155,7 @@ export function DealViewCard({ deal, onEdit }: DealViewCardProps) {
             {deal.deal_number && <Field label="Deal Number">{deal.deal_number}</Field>}
             <Field label="City">{deal.city || '—'}</Field>
             <Field label="Submarket">{deal.submarket || '—'}</Field>
-            <Field label={deal.is_land_deal ? 'Size (Ac)' : 'Size (SF)'}>{formatNumber(deal.size_sf)}</Field>
+            <Field label={deal.is_land_deal ? 'Size (Ac)' : 'Size (SF)'}>{formatNumber(deal.size_sf, deal.is_land_deal ? 2 : 0)}</Field>
             <Field label="Deal Value">{formatCurrency(deal.deal_value)}</Field>
             <Field label="Close Date">{formatDate(deal.close_date)}</Field>
             <Field label="Effective Date">{formatDate((deal as any).effective_date)}</Field>
