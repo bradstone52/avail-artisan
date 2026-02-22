@@ -3,6 +3,28 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 
+/**
+ * After any change to prospect_follow_up_dates, sync the parent
+ * prospects.follow_up_date with the earliest non-completed upcoming date
+ * (or the most recent past date if none are upcoming).
+ */
+async function syncProspectFollowUpDate(prospectId: string) {
+  // Fetch all non-completed follow-up dates for this prospect, ordered by date
+  const { data: dates } = await supabase
+    .from('prospect_follow_up_dates')
+    .select('date')
+    .eq('prospect_id', prospectId)
+    .eq('completed', false)
+    .order('date', { ascending: true });
+
+  const nextDate = dates && dates.length > 0 ? dates[0].date : null;
+
+  await supabase
+    .from('prospects')
+    .update({ follow_up_date: nextDate })
+    .eq('id', prospectId);
+}
+
 export interface ProspectFollowUpDate {
   id: string;
   prospect_id: string;
@@ -59,8 +81,10 @@ export function useCreateFollowUpDate() {
       if (error) throw error;
       return data as ProspectFollowUpDate;
     },
-    onSuccess: (data) => {
+    onSuccess: async (data) => {
+      await syncProspectFollowUpDate(data.prospect_id);
       queryClient.invalidateQueries({ queryKey: ['prospect-follow-up-dates', data.prospect_id] });
+      queryClient.invalidateQueries({ queryKey: ['prospects'] });
       toast.success('Follow-up date added');
     },
     onError: (error) => {
@@ -89,8 +113,10 @@ export function useUpdateFollowUpDate() {
       if (error) throw error;
       return { ...data, prospectId } as ProspectFollowUpDate & { prospectId: string };
     },
-    onSuccess: (data) => {
+    onSuccess: async (data) => {
+      await syncProspectFollowUpDate(data.prospectId);
       queryClient.invalidateQueries({ queryKey: ['prospect-follow-up-dates', data.prospectId] });
+      queryClient.invalidateQueries({ queryKey: ['prospects'] });
       toast.success('Follow-up date updated');
     },
     onError: (error) => {
@@ -113,8 +139,10 @@ export function useDeleteFollowUpDate() {
       if (error) throw error;
       return { prospectId };
     },
-    onSuccess: (data) => {
+    onSuccess: async (data) => {
+      await syncProspectFollowUpDate(data.prospectId);
       queryClient.invalidateQueries({ queryKey: ['prospect-follow-up-dates', data.prospectId] });
+      queryClient.invalidateQueries({ queryKey: ['prospects'] });
       toast.success('Follow-up date removed');
     },
     onError: (error) => {
@@ -139,8 +167,10 @@ export function useToggleFollowUpDateCompleted() {
       if (error) throw error;
       return { ...data, prospectId } as ProspectFollowUpDate & { prospectId: string };
     },
-    onSuccess: (data) => {
+    onSuccess: async (data) => {
+      await syncProspectFollowUpDate(data.prospectId);
       queryClient.invalidateQueries({ queryKey: ['prospect-follow-up-dates', data.prospectId] });
+      queryClient.invalidateQueries({ queryKey: ['prospects'] });
     },
     onError: (error) => {
       console.error('Error toggling follow-up date:', error);
