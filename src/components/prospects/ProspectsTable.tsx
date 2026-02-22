@@ -26,9 +26,11 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { ConfirmDialog } from '@/components/common/ConfirmDialog';
 import { ColumnsDropdown } from '@/components/common/ColumnsDropdown';
+import { DensityToggle } from '@/components/common/DensityToggle';
 import { formatDate, formatNumber, formatCurrency } from '@/lib/format';
 import { useDeleteProspect } from '@/hooks/useProspects';
 import { useTableColumnPrefs } from '@/hooks/useTableColumnPrefs';
+import { useTableDensity } from '@/hooks/useTableDensity';
 import { Eye, Pencil, Trash2, Search, X, MoreHorizontal } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { differenceInDays, parseISO, addDays } from 'date-fns';
@@ -124,6 +126,9 @@ export function ProspectsTable({ prospects, isLoading, onEdit }: ProspectsTableP
   const [followUpFilter, setFollowUpFilter] = useState('All');
 
   const { isVisible, toggle, reset, columns } = useTableColumnPrefs('prospects', PROSPECTS_COLUMNS);
+  const { density, toggle: toggleDensity, isCompact } = useTableDensity('prospects');
+  const cellPadding = isCompact ? 'py-1 text-xs' : '';
+  const headPadding = isCompact ? 'py-1.5 text-xs' : '';
 
   const handleDelete = async () => {
     if (deleteId) {
@@ -220,6 +225,7 @@ export function ProspectsTable({ prospects, isLoading, onEdit }: ProspectsTableP
         </Select>
 
         <ColumnsDropdown columns={columns} isVisible={isVisible} toggle={toggle} reset={reset} />
+        <DensityToggle density={density} toggle={toggleDensity} />
 
         {hasActiveFilters && (
           <Button variant="ghost" size="sm" onClick={clearFilters}>
@@ -244,11 +250,11 @@ export function ProspectsTable({ prospects, isLoading, onEdit }: ProspectsTableP
         <Table>
           <TableHeader>
             <TableRow>
-              {isVisible('name') && <TableHead>Name</TableHead>}
-              {isVisible('type') && <TableHead>Type</TableHead>}
-              {isVisible('requirement') && <TableHead>Requirement</TableHead>}
-              {isVisible('follow_up') && <TableHead>Follow-up Due</TableHead>}
-              <TableHead className="w-[60px]"></TableHead>
+              {isVisible('name') && <TableHead className={headPadding}>Name</TableHead>}
+              {isVisible('type') && <TableHead className={headPadding}>Type</TableHead>}
+              {isVisible('requirement') && <TableHead className={headPadding}>Requirement</TableHead>}
+              {isVisible('follow_up') && <TableHead className={headPadding}>Follow-up Due</TableHead>}
+              <TableHead className={cn('w-[60px]', headPadding)}></TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -282,17 +288,17 @@ export function ProspectsTable({ prospects, isLoading, onEdit }: ProspectsTableP
                   onDoubleClick={() => navigate(`/prospects/${prospect.id}`)}
                 >
                   {isVisible('name') && (
-                    <TableCell>
+                    <TableCell className={cellPadding}>
                       <div className="flex flex-col">
                         <span className="font-medium">{prospect.name}</span>
-                        {prospect.company && (
+                        {!isCompact && prospect.company && (
                           <span className="text-xs text-muted-foreground">{prospect.company}</span>
                         )}
                       </div>
                     </TableCell>
                   )}
                   {isVisible('type') && (
-                    <TableCell>
+                    <TableCell className={cellPadding}>
                       {prospect.prospect_type ? (
                         <Badge
                           variant="outline"
@@ -306,16 +312,16 @@ export function ProspectsTable({ prospects, isLoading, onEdit }: ProspectsTableP
                     </TableCell>
                   )}
                   {isVisible('requirement') && (
-                    <TableCell>
+                    <TableCell className={cellPadding}>
                       <RequirementCell prospect={prospect} />
                     </TableCell>
                   )}
                   {isVisible('follow_up') && (
-                    <TableCell>
+                    <TableCell className={cellPadding}>
                       <FollowUpDueCell date={prospect.follow_up_date} />
                     </TableCell>
                   )}
-                  <TableCell>
+                  <TableCell className={cellPadding}>
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
                         <Button variant="ghost" size="icon" className="h-8 w-8">

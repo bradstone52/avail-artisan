@@ -26,9 +26,11 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { ConfirmDialog } from '@/components/common/ConfirmDialog';
 import { ColumnsDropdown } from '@/components/common/ColumnsDropdown';
+import { DensityToggle } from '@/components/common/DensityToggle';
 import { formatCurrency, formatDate } from '@/lib/format';
 import { useDeleteDeal } from '@/hooks/useDeals';
 import { useTableColumnPrefs } from '@/hooks/useTableColumnPrefs';
+import { useTableDensity } from '@/hooks/useTableDensity';
 import { Eye, Pencil, Trash2, Search, X, MoreHorizontal, ArrowUpDown } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { differenceInDays, parseISO } from 'date-fns';
@@ -123,6 +125,9 @@ export function DealsTable({ deals, isLoading, onEdit, importantDates }: DealsTa
   const [sortBy, setSortBy] = useState('milestone');
 
   const { isVisible, toggle, reset, columns } = useTableColumnPrefs('deals', DEALS_COLUMNS);
+  const { density, toggle: toggleDensity, isCompact } = useTableDensity('deals');
+  const cellPadding = isCompact ? 'py-1 text-xs' : '';
+  const headPadding = isCompact ? 'py-1.5 text-xs' : '';
 
   const handleDelete = async () => {
     if (deleteId) {
@@ -244,6 +249,7 @@ export function DealsTable({ deals, isLoading, onEdit, importantDates }: DealsTa
         </Select>
 
         <ColumnsDropdown columns={columns} isVisible={isVisible} toggle={toggle} reset={reset} />
+        <DensityToggle density={density} toggle={toggleDensity} />
 
         {hasActiveFilters && (
           <Button variant="ghost" size="sm" onClick={clearFilters}>
@@ -268,14 +274,14 @@ export function DealsTable({ deals, isLoading, onEdit, importantDates }: DealsTa
         <Table>
           <TableHeader>
             <TableRow>
-              {isVisible('deal_number') && <TableHead>Deal #</TableHead>}
-              {isVisible('address') && <TableHead>Address</TableHead>}
-              {isVisible('type') && <TableHead>Type</TableHead>}
-              {isVisible('status') && <TableHead>Status</TableHead>}
-              {isVisible('milestone') && <TableHead>Next Milestone</TableHead>}
-              {isVisible('value') && <TableHead className="text-right">Value</TableHead>}
-              {isVisible('close_date') && <TableHead>Close Date</TableHead>}
-              <TableHead className="w-[60px]"></TableHead>
+              {isVisible('deal_number') && <TableHead className={headPadding}>Deal #</TableHead>}
+              {isVisible('address') && <TableHead className={headPadding}>Address</TableHead>}
+              {isVisible('type') && <TableHead className={headPadding}>Type</TableHead>}
+              {isVisible('status') && <TableHead className={headPadding}>Status</TableHead>}
+              {isVisible('milestone') && <TableHead className={headPadding}>Next Milestone</TableHead>}
+              {isVisible('value') && <TableHead className={cn('text-right', headPadding)}>Value</TableHead>}
+              {isVisible('close_date') && <TableHead className={headPadding}>Close Date</TableHead>}
+              <TableHead className={cn('w-[60px]', headPadding)}></TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -311,22 +317,24 @@ export function DealsTable({ deals, isLoading, onEdit, importantDates }: DealsTa
                   onDoubleClick={() => navigate(`/deals/${deal.id}`)}
                 >
                   {isVisible('deal_number') && (
-                    <TableCell className="font-medium">
+                    <TableCell className={cn('font-medium', cellPadding)}>
                       {deal.deal_number || '-'}
                     </TableCell>
                   )}
                   {isVisible('address') && (
-                    <TableCell>
+                    <TableCell className={cellPadding}>
                       <div className="flex flex-col">
                         <span className="font-medium">{deal.address}</span>
-                        <span className="text-xs text-muted-foreground">
-                          {deal.city}{deal.submarket && `, ${deal.submarket}`}
-                        </span>
+                        {!isCompact && (
+                          <span className="text-xs text-muted-foreground">
+                            {deal.city}{deal.submarket && `, ${deal.submarket}`}
+                          </span>
+                        )}
                       </div>
                     </TableCell>
                   )}
                   {isVisible('type') && (
-                    <TableCell>
+                    <TableCell className={cellPadding}>
                       <Badge
                         variant="outline"
                         className={`font-medium border ${dealTypeColors[deal.deal_type] || ''}`}
@@ -336,7 +344,7 @@ export function DealsTable({ deals, isLoading, onEdit, importantDates }: DealsTa
                     </TableCell>
                   )}
                   {isVisible('status') && (
-                    <TableCell>
+                    <TableCell className={cellPadding}>
                       <Badge
                         variant="outline"
                         className={`font-medium border ${statusColors[deal.status] || ''}`}
@@ -346,19 +354,19 @@ export function DealsTable({ deals, isLoading, onEdit, importantDates }: DealsTa
                     </TableCell>
                   )}
                   {isVisible('milestone') && (
-                    <TableCell>
+                    <TableCell className={cellPadding}>
                       <MilestoneCell milestone={milestone} />
                     </TableCell>
                   )}
                   {isVisible('value') && (
-                    <TableCell className="text-right font-mono">
+                    <TableCell className={cn('text-right font-mono', cellPadding)}>
                       {formatCurrency(deal.deal_value)}
                     </TableCell>
                   )}
                   {isVisible('close_date') && (
-                    <TableCell>{formatDate(deal.close_date)}</TableCell>
+                    <TableCell className={cellPadding}>{formatDate(deal.close_date)}</TableCell>
                   )}
-                  <TableCell>
+                  <TableCell className={cellPadding}>
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
                         <Button variant="ghost" size="icon" className="h-8 w-8">
