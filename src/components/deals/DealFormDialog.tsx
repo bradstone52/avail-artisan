@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -17,10 +17,19 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from '@/components/ui/collapsible';
 import { FormattedNumberInput } from '@/components/common/FormattedNumberInput';
 import { ListingCombobox } from '@/components/deals/ListingCombobox';
 import { useCreateDeal, useUpdateDeal } from '@/hooks/useDeals';
+import { useAgents } from '@/hooks/useAgents';
+import { useBrokerages } from '@/hooks/useBrokerages';
 import { MarketListing } from '@/hooks/useMarketListings';
+import { ChevronDown } from 'lucide-react';
+import { cn } from '@/lib/utils';
 import type { Deal, DealFormData, DealType, DealStatus } from '@/types/database';
 
 interface DealFormDialogProps {
@@ -39,39 +48,78 @@ interface ExtendedDealFormData {
   deal_value?: number;
   commission_percent?: number;
   close_date?: string;
+  effective_date?: string;
   status: string;
   listing_id?: string;
   property_id?: string;
   notes?: string;
+  // Party fields
+  seller_name?: string;
+  buyer_name?: string;
+  seller_brokerage_id?: string;
+  buyer_brokerage_id?: string;
+  // Agent fields
+  listing_brokerage_id?: string;
+  listing_agent1_id?: string;
+  listing_agent2_id?: string;
+  selling_brokerage_id?: string;
+  selling_agent1_id?: string;
+  selling_agent2_id?: string;
+  cv_agent_id?: string;
+  // Financial fields
+  other_brokerage_percent?: number;
+  clearview_percent?: number;
+  gst_rate?: number;
 }
 
 const dealTypes: DealType[] = ['Lease', 'Sale', 'Sublease', 'Renewal', 'Expansion'];
 const createDealStatuses = ['Conditional', 'Firm', 'Closed'];
 
+const EMPTY_FORM: ExtendedDealFormData = {
+  deal_number: '',
+  deal_type: 'Lease',
+  address: '',
+  city: '',
+  submarket: '',
+  size_sf: undefined,
+  deal_value: undefined,
+  commission_percent: 3,
+  close_date: '',
+  effective_date: '',
+  status: 'Conditional',
+  listing_id: undefined,
+  notes: '',
+  seller_name: '',
+  buyer_name: '',
+  seller_brokerage_id: undefined,
+  buyer_brokerage_id: undefined,
+  listing_brokerage_id: undefined,
+  listing_agent1_id: undefined,
+  listing_agent2_id: undefined,
+  selling_brokerage_id: undefined,
+  selling_agent1_id: undefined,
+  selling_agent2_id: undefined,
+  cv_agent_id: undefined,
+  other_brokerage_percent: 1.5,
+  clearview_percent: 1.5,
+  gst_rate: 5,
+};
+
 export function DealFormDialog({ open, onOpenChange, deal }: DealFormDialogProps) {
   const createDeal = useCreateDeal();
   const updateDeal = useUpdateDeal();
+  const { data: agents } = useAgents();
+  const { data: brokerages } = useBrokerages();
   const isEditing = !!deal;
 
-  const [formData, setFormData] = useState<ExtendedDealFormData>({
-    deal_number: '',
-    deal_type: 'Lease',
-    address: '',
-    city: '',
-    submarket: '',
-    size_sf: undefined,
-    deal_value: undefined,
-    commission_percent: 3,
-    close_date: '',
-    status: 'Conditional',
-    listing_id: undefined,
-    notes: '',
-  });
-
-  // Track size unit for display
+  const [formData, setFormData] = useState<ExtendedDealFormData>({ ...EMPTY_FORM });
   const [sizeUnit, setSizeUnit] = useState<'SF' | 'AC'>('SF');
-
   const [selectedListing, setSelectedListing] = useState<MarketListing | null>(null);
+
+  // Collapsible section states
+  const [partiesOpen, setPartiesOpen] = useState(false);
+  const [agentsOpen, setAgentsOpen] = useState(false);
+  const [financialOpen, setFinancialOpen] = useState(false);
 
   // Calculate commission amount
   const calculatedCommission = formData.deal_value && formData.commission_percent
@@ -90,28 +138,35 @@ export function DealFormDialog({ open, onOpenChange, deal }: DealFormDialogProps
         deal_value: deal.deal_value ?? undefined,
         commission_percent: deal.commission_percent ?? 3,
         close_date: deal.close_date || '',
+        effective_date: (deal as any).effective_date || '',
         status: deal.status as DealStatus,
         listing_id: deal.listing_id ?? undefined,
         notes: deal.notes || '',
+        seller_name: deal.seller_name || '',
+        buyer_name: deal.buyer_name || '',
+        seller_brokerage_id: deal.seller_brokerage_id ?? undefined,
+        buyer_brokerage_id: deal.buyer_brokerage_id ?? undefined,
+        listing_brokerage_id: deal.listing_brokerage_id ?? undefined,
+        listing_agent1_id: deal.listing_agent1_id ?? undefined,
+        listing_agent2_id: deal.listing_agent2_id ?? undefined,
+        selling_brokerage_id: deal.selling_brokerage_id ?? undefined,
+        selling_agent1_id: deal.selling_agent1_id ?? undefined,
+        selling_agent2_id: deal.selling_agent2_id ?? undefined,
+        cv_agent_id: deal.cv_agent_id ?? undefined,
+        other_brokerage_percent: deal.other_brokerage_percent ?? 1.5,
+        clearview_percent: deal.clearview_percent ?? 1.5,
+        gst_rate: deal.gst_rate ?? 5,
       });
-      // Note: We don't have the full listing object when editing, so selectedListing stays null
-      // The address fields will show the saved values but be editable if no listing_id
+      // Auto-open sections that have data
+      setPartiesOpen(!!(deal.seller_name || deal.buyer_name));
+      setAgentsOpen(!!(deal.listing_brokerage_id || deal.selling_brokerage_id || deal.cv_agent_id));
+      setFinancialOpen(!!(deal.other_brokerage_percent || deal.clearview_percent));
       setSelectedListing(null);
     } else {
-      setFormData({
-        deal_number: '',
-        deal_type: 'Lease',
-        address: '',
-        city: '',
-        submarket: '',
-        size_sf: undefined,
-        deal_value: undefined,
-        commission_percent: 3,
-        close_date: '',
-        status: 'Conditional',
-        listing_id: undefined,
-        notes: '',
-      });
+      setFormData({ ...EMPTY_FORM });
+      setPartiesOpen(false);
+      setAgentsOpen(false);
+      setFinancialOpen(false);
       setSelectedListing(null);
     }
   }, [deal, open]);
@@ -119,27 +174,24 @@ export function DealFormDialog({ open, onOpenChange, deal }: DealFormDialogProps
   const handleListingChange = (listing: MarketListing | null) => {
     setSelectedListing(listing);
     if (listing) {
-      // Map listing_type to deal_type
       let dealType: DealType = 'Lease';
       if (listing.listing_type === 'Sale') dealType = 'Sale';
       else if (listing.listing_type === 'Sublease') dealType = 'Sublease';
-      
-      // Auto-populate size: prefer size_sf, fall back to land_acres (keep as acres, don't convert)
+
       let size: number | undefined = undefined;
       let unit: 'SF' | 'AC' = 'SF';
-      
+
       if (listing.size_sf && listing.size_sf > 0) {
         size = listing.size_sf;
         unit = 'SF';
       } else if (listing.land_acres) {
-        // Parse land_acres (it's a string) and keep as acres
         const acres = parseFloat(listing.land_acres);
         if (!isNaN(acres) && acres > 0) {
           size = acres;
           unit = 'AC';
         }
       }
-      
+
       setSizeUnit(unit);
       setFormData(prev => ({
         ...prev,
@@ -163,15 +215,64 @@ export function DealFormDialog({ open, onOpenChange, deal }: DealFormDialogProps
     }
   };
 
+  // Agent helpers
+  const getAgentsForBrokerage = (brokerageId: string | undefined, excludeId?: string) => {
+    if (!brokerageId || !agents) return [];
+    return agents.filter(a => a.brokerage_id === brokerageId && (!excludeId || a.id !== excludeId));
+  };
+
+  const listingAgents1 = useMemo(() => getAgentsForBrokerage(formData.listing_brokerage_id), [formData.listing_brokerage_id, agents]);
+  const listingAgents2 = useMemo(() => getAgentsForBrokerage(formData.listing_brokerage_id, formData.listing_agent1_id), [formData.listing_brokerage_id, formData.listing_agent1_id, agents]);
+  const sellingAgents1 = useMemo(() => getAgentsForBrokerage(formData.selling_brokerage_id), [formData.selling_brokerage_id, agents]);
+  const sellingAgents2 = useMemo(() => getAgentsForBrokerage(formData.selling_brokerage_id, formData.selling_agent1_id), [formData.selling_brokerage_id, formData.selling_agent1_id, agents]);
+
+  const cvAgents = useMemo(() => {
+    return agents?.filter(a => {
+      const brokerage = brokerages?.find(b => b.id === a.brokerage_id);
+      return brokerage?.name?.toLowerCase().includes('clearview');
+    }) || [];
+  }, [agents, brokerages]);
+
+  // Clear agent selections when brokerage changes
+  useEffect(() => {
+    if (formData.listing_agent1_id && formData.listing_agent2_id === formData.listing_agent1_id) {
+      setFormData(prev => ({ ...prev, listing_agent2_id: undefined }));
+    }
+  }, [formData.listing_agent1_id]);
+
+  useEffect(() => {
+    if (formData.selling_agent1_id && formData.selling_agent2_id === formData.selling_agent1_id) {
+      setFormData(prev => ({ ...prev, selling_agent2_id: undefined }));
+    }
+  }, [formData.selling_agent1_id]);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     try {
       const { size_sf, ...dealData } = formData;
-      // size_sf is integer in DB — round to nearest whole number if present
       const roundedSize = size_sf != null ? Math.round(size_sf) : undefined;
-      const submitData = { ...dealData, size_sf: roundedSize } as DealFormData & { size_sf?: number };
-      
+      const submitData = {
+        ...dealData,
+        size_sf: roundedSize,
+        // Normalize empty strings to null for optional fields
+        seller_name: dealData.seller_name || null,
+        buyer_name: dealData.buyer_name || null,
+        seller_brokerage_id: dealData.seller_brokerage_id || null,
+        buyer_brokerage_id: dealData.buyer_brokerage_id || null,
+        listing_brokerage_id: dealData.listing_brokerage_id || null,
+        listing_agent1_id: dealData.listing_agent1_id || null,
+        listing_agent2_id: dealData.listing_agent2_id || null,
+        selling_brokerage_id: dealData.selling_brokerage_id || null,
+        selling_agent1_id: dealData.selling_agent1_id || null,
+        selling_agent2_id: dealData.selling_agent2_id || null,
+        cv_agent_id: dealData.cv_agent_id || null,
+        effective_date: dealData.effective_date || null,
+        other_brokerage_percent: dealData.other_brokerage_percent ?? null,
+        clearview_percent: dealData.clearview_percent ?? null,
+        gst_rate: dealData.gst_rate ?? null,
+      } as DealFormData & { size_sf?: number };
+
       if (isEditing && deal) {
         await updateDeal.mutateAsync({ id: deal.id, ...submitData });
       } else {
@@ -185,6 +286,8 @@ export function DealFormDialog({ open, onOpenChange, deal }: DealFormDialogProps
 
   const isSubmitting = createDeal.isPending || updateDeal.isPending;
   const hasLinkedListing = !!selectedListing || (isEditing && !!deal?.listing_id);
+
+  const update = (fields: Partial<ExtendedDealFormData>) => setFormData(prev => ({ ...prev, ...fields }));
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -215,7 +318,7 @@ export function DealFormDialog({ open, onOpenChange, deal }: DealFormDialogProps
               <Input
                 id="deal_number"
                 value={formData.deal_number}
-                onChange={(e) => setFormData({ ...formData, deal_number: e.target.value })}
+                onChange={(e) => update({ deal_number: e.target.value })}
                 placeholder="Optional"
               />
             </div>
@@ -223,7 +326,7 @@ export function DealFormDialog({ open, onOpenChange, deal }: DealFormDialogProps
               <Label htmlFor="deal_type">Deal Type</Label>
               <Select
                 value={formData.deal_type}
-                onValueChange={(value) => setFormData({ ...formData, deal_type: value as DealType })}
+                onValueChange={(value) => update({ deal_type: value as DealType })}
                 disabled={hasLinkedListing}
               >
                 <SelectTrigger className={hasLinkedListing ? 'bg-muted' : ''}>
@@ -243,7 +346,7 @@ export function DealFormDialog({ open, onOpenChange, deal }: DealFormDialogProps
             <Input
               id="address"
               value={formData.address}
-              onChange={(e) => setFormData({ ...formData, address: e.target.value })}
+              onChange={(e) => update({ address: e.target.value })}
               required
               disabled={hasLinkedListing}
               className={hasLinkedListing ? 'bg-muted' : ''}
@@ -256,7 +359,7 @@ export function DealFormDialog({ open, onOpenChange, deal }: DealFormDialogProps
               <Input
                 id="city"
                 value={formData.city}
-                onChange={(e) => setFormData({ ...formData, city: e.target.value })}
+                onChange={(e) => update({ city: e.target.value })}
                 disabled={hasLinkedListing}
                 className={hasLinkedListing ? 'bg-muted' : ''}
               />
@@ -266,7 +369,7 @@ export function DealFormDialog({ open, onOpenChange, deal }: DealFormDialogProps
               <Input
                 id="submarket"
                 value={formData.submarket}
-                onChange={(e) => setFormData({ ...formData, submarket: e.target.value })}
+                onChange={(e) => update({ submarket: e.target.value })}
                 disabled={hasLinkedListing}
                 className={hasLinkedListing ? 'bg-muted' : ''}
               />
@@ -285,7 +388,7 @@ export function DealFormDialog({ open, onOpenChange, deal }: DealFormDialogProps
               ) : (
                 <FormattedNumberInput
                   value={formData.size_sf}
-                  onChange={(value) => setFormData({ ...formData, size_sf: value ?? undefined })}
+                  onChange={(value) => update({ size_sf: value ?? undefined })}
                   suffix=" SF"
                 />
               )}
@@ -294,7 +397,7 @@ export function DealFormDialog({ open, onOpenChange, deal }: DealFormDialogProps
               <Label htmlFor="status">Status</Label>
               <Select
                 value={formData.status}
-                onValueChange={(value) => setFormData({ ...formData, status: value as DealStatus })}
+                onValueChange={(value) => update({ status: value as DealStatus })}
               >
                 <SelectTrigger>
                   <SelectValue />
@@ -312,9 +415,19 @@ export function DealFormDialog({ open, onOpenChange, deal }: DealFormDialogProps
                 id="close_date"
                 type="date"
                 value={formData.close_date}
-                onChange={(e) => setFormData({ ...formData, close_date: e.target.value })}
+                onChange={(e) => update({ close_date: e.target.value })}
               />
             </div>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="effective_date">Effective Date</Label>
+            <Input
+              id="effective_date"
+              type="date"
+              value={formData.effective_date}
+              onChange={(e) => update({ effective_date: e.target.value })}
+            />
           </div>
 
           <div className="grid grid-cols-3 gap-4">
@@ -322,7 +435,7 @@ export function DealFormDialog({ open, onOpenChange, deal }: DealFormDialogProps
               <Label>Deal Value</Label>
               <FormattedNumberInput
                 value={formData.deal_value}
-                onChange={(value) => setFormData({ ...formData, deal_value: value ?? undefined })}
+                onChange={(value) => update({ deal_value: value ?? undefined })}
                 prefix="$"
               />
             </div>
@@ -330,7 +443,7 @@ export function DealFormDialog({ open, onOpenChange, deal }: DealFormDialogProps
               <Label>Commission %</Label>
               <FormattedNumberInput
                 value={formData.commission_percent}
-                onChange={(value) => setFormData({ ...formData, commission_percent: value ?? undefined })}
+                onChange={(value) => update({ commission_percent: value ?? undefined })}
                 suffix="%"
                 max={100}
               />
@@ -345,12 +458,174 @@ export function DealFormDialog({ open, onOpenChange, deal }: DealFormDialogProps
             </div>
           </div>
 
+          {/* ── Parties Section ── */}
+          <CollapsibleSection title="Parties" open={partiesOpen} onOpenChange={setPartiesOpen}>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Vendor / Seller</Label>
+                <Input
+                  value={formData.seller_name}
+                  onChange={(e) => update({ seller_name: e.target.value })}
+                  placeholder="Seller name"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Seller Brokerage</Label>
+                <BrokerageSelect
+                  value={formData.seller_brokerage_id}
+                  onChange={(v) => update({ seller_brokerage_id: v })}
+                  brokerages={brokerages}
+                />
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Purchaser / Buyer</Label>
+                <Input
+                  value={formData.buyer_name}
+                  onChange={(e) => update({ buyer_name: e.target.value })}
+                  placeholder="Buyer name"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Buyer Brokerage</Label>
+                <BrokerageSelect
+                  value={formData.buyer_brokerage_id}
+                  onChange={(v) => update({ buyer_brokerage_id: v })}
+                  brokerages={brokerages}
+                />
+              </div>
+            </div>
+          </CollapsibleSection>
+
+          {/* ── Agents Section ── */}
+          <CollapsibleSection title="Agents" open={agentsOpen} onOpenChange={setAgentsOpen}>
+            <div className="space-y-4">
+              {/* Listing Side */}
+              <div className="space-y-2">
+                <p className="text-sm font-medium text-muted-foreground">Listing Side</p>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label>Brokerage</Label>
+                    <BrokerageSelect
+                      value={formData.listing_brokerage_id}
+                      onChange={(v) => update({ listing_brokerage_id: v, listing_agent1_id: undefined, listing_agent2_id: undefined })}
+                      brokerages={brokerages}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Agent 1</Label>
+                    <AgentSelect
+                      value={formData.listing_agent1_id}
+                      onChange={(v) => update({ listing_agent1_id: v })}
+                      agents={listingAgents1}
+                      disabled={!formData.listing_brokerage_id}
+                    />
+                  </div>
+                </div>
+                {formData.listing_agent1_id && listingAgents2.length > 0 && (
+                  <div className="grid grid-cols-2 gap-4">
+                    <div />
+                    <div className="space-y-2">
+                      <Label>Agent 2</Label>
+                      <AgentSelect
+                        value={formData.listing_agent2_id}
+                        onChange={(v) => update({ listing_agent2_id: v })}
+                        agents={listingAgents2}
+                      />
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Selling Side */}
+              <div className="space-y-2">
+                <p className="text-sm font-medium text-muted-foreground">Selling Side</p>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label>Brokerage</Label>
+                    <BrokerageSelect
+                      value={formData.selling_brokerage_id}
+                      onChange={(v) => update({ selling_brokerage_id: v, selling_agent1_id: undefined, selling_agent2_id: undefined })}
+                      brokerages={brokerages}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Agent 1</Label>
+                    <AgentSelect
+                      value={formData.selling_agent1_id}
+                      onChange={(v) => update({ selling_agent1_id: v })}
+                      agents={sellingAgents1}
+                      disabled={!formData.selling_brokerage_id}
+                    />
+                  </div>
+                </div>
+                {formData.selling_agent1_id && sellingAgents2.length > 0 && (
+                  <div className="grid grid-cols-2 gap-4">
+                    <div />
+                    <div className="space-y-2">
+                      <Label>Agent 2</Label>
+                      <AgentSelect
+                        value={formData.selling_agent2_id}
+                        onChange={(v) => update({ selling_agent2_id: v })}
+                        agents={sellingAgents2}
+                      />
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* CV Agent */}
+              <div className="space-y-2">
+                <Label>Clearview Agent</Label>
+                <AgentSelect
+                  value={formData.cv_agent_id}
+                  onChange={(v) => update({ cv_agent_id: v })}
+                  agents={cvAgents}
+                />
+              </div>
+            </div>
+          </CollapsibleSection>
+
+          {/* ── Financial Split Section ── */}
+          <CollapsibleSection title="Commission Split" open={financialOpen} onOpenChange={setFinancialOpen}>
+            <div className="grid grid-cols-3 gap-4">
+              <div className="space-y-2">
+                <Label>Other Brokerage %</Label>
+                <FormattedNumberInput
+                  value={formData.other_brokerage_percent}
+                  onChange={(value) => update({ other_brokerage_percent: value ?? undefined })}
+                  suffix="%"
+                  max={100}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Clearview %</Label>
+                <FormattedNumberInput
+                  value={formData.clearview_percent}
+                  onChange={(value) => update({ clearview_percent: value ?? undefined })}
+                  suffix="%"
+                  max={100}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>GST Rate %</Label>
+                <FormattedNumberInput
+                  value={formData.gst_rate}
+                  onChange={(value) => update({ gst_rate: value ?? undefined })}
+                  suffix="%"
+                  max={100}
+                />
+              </div>
+            </div>
+          </CollapsibleSection>
+
           <div className="space-y-2">
             <Label htmlFor="notes">Notes</Label>
             <Textarea
               id="notes"
               value={formData.notes}
-              onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+              onChange={(e) => update({ notes: e.target.value })}
               rows={3}
             />
           </div>
@@ -366,5 +641,88 @@ export function DealFormDialog({ open, onOpenChange, deal }: DealFormDialogProps
         </form>
       </DialogContent>
     </Dialog>
+  );
+}
+
+/* ── Helper Components ── */
+
+function CollapsibleSection({
+  title,
+  open,
+  onOpenChange,
+  children,
+}: {
+  title: string;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  children: React.ReactNode;
+}) {
+  return (
+    <Collapsible open={open} onOpenChange={onOpenChange} className="border rounded-lg">
+      <CollapsibleTrigger className="flex items-center justify-between w-full px-4 py-3 text-sm font-medium hover:bg-muted/50 rounded-lg">
+        {title}
+        <ChevronDown className={cn('h-4 w-4 text-muted-foreground transition-transform', open && 'rotate-180')} />
+      </CollapsibleTrigger>
+      <CollapsibleContent className="px-4 pb-4 space-y-4">
+        {children}
+      </CollapsibleContent>
+    </Collapsible>
+  );
+}
+
+function BrokerageSelect({
+  value,
+  onChange,
+  brokerages,
+}: {
+  value: string | undefined;
+  onChange: (value: string | undefined) => void;
+  brokerages: any[] | undefined;
+}) {
+  return (
+    <Select
+      value={value || '__none__'}
+      onValueChange={(v) => onChange(v === '__none__' ? undefined : v)}
+    >
+      <SelectTrigger>
+        <SelectValue placeholder="Select brokerage" />
+      </SelectTrigger>
+      <SelectContent>
+        <SelectItem value="__none__">None</SelectItem>
+        {brokerages?.map((b) => (
+          <SelectItem key={b.id} value={b.id}>{b.name}</SelectItem>
+        ))}
+      </SelectContent>
+    </Select>
+  );
+}
+
+function AgentSelect({
+  value,
+  onChange,
+  agents,
+  disabled,
+}: {
+  value: string | undefined;
+  onChange: (value: string | undefined) => void;
+  agents: any[];
+  disabled?: boolean;
+}) {
+  return (
+    <Select
+      value={value || '__none__'}
+      onValueChange={(v) => onChange(v === '__none__' ? undefined : v)}
+      disabled={disabled}
+    >
+      <SelectTrigger className={disabled ? 'bg-muted' : ''}>
+        <SelectValue placeholder="Select agent" />
+      </SelectTrigger>
+      <SelectContent>
+        <SelectItem value="__none__">None</SelectItem>
+        {agents.map((a) => (
+          <SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>
+        ))}
+      </SelectContent>
+    </Select>
   );
 }
