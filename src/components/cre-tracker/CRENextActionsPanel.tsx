@@ -5,7 +5,9 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { Skeleton } from '@/components/ui/skeleton';
-import { AlertTriangle, ArrowRight, ChevronRight, Filter } from 'lucide-react';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import { AlertTriangle, ArrowRight, CalendarClock, ChevronRight, Filter } from 'lucide-react';
+import { RescheduleFollowUpDialog } from './RescheduleFollowUpDialog';
 import {
   Select,
   SelectContent,
@@ -94,6 +96,7 @@ interface CRENextActionsPanelProps {
 export function CRENextActionsPanel({ prospects, dealDates, isLoading }: CRENextActionsPanelProps) {
   const [timeFilter, setTimeFilter] = React.useState<TimeFilter>('overdue');
   const [sourceFilter, setSourceFilter] = React.useState<SourceFilter>('all');
+  const [rescheduleItem, setRescheduleItem] = React.useState<{ prospectId: string; name: string; dateStr: string } | null>(null);
   const navigate = useNavigate();
 
   const today = React.useMemo(() => getTodayEdmonton(), []);
@@ -298,6 +301,24 @@ export function CRENextActionsPanel({ prospects, dealDates, isLoading }: CRENext
                   )}>
                     {label.text}
                   </span>
+                  {item.type === 'follow-up' && item.source === 'prospect' && (
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity shrink-0"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setRescheduleItem({ prospectId: item.entityId, name: item.title, dateStr: item.dateStr });
+                          }}
+                        >
+                          <CalendarClock className="h-3.5 w-3.5" />
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent side="left">Reschedule</TooltipContent>
+                    </Tooltip>
+                  )}
                   <ChevronRight className="h-4 w-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity shrink-0" />
                 </li>
               );
@@ -314,6 +335,14 @@ export function CRENextActionsPanel({ prospects, dealDates, isLoading }: CRENext
           </Button>
         </div>
       </CardContent>
+
+      <RescheduleFollowUpDialog
+        open={!!rescheduleItem}
+        onOpenChange={(open) => !open && setRescheduleItem(null)}
+        prospectId={rescheduleItem?.prospectId ?? ''}
+        prospectName={rescheduleItem?.name ?? ''}
+        currentDate={rescheduleItem?.dateStr ?? ''}
+      />
     </Card>
   );
 }
