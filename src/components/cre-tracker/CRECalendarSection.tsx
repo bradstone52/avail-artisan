@@ -73,7 +73,7 @@ export function CRECalendarSection({ calendarDates }: CRECalendarSectionProps) {
       </CardHeader>
       <CardContent>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div className="flex justify-center">
+          <div className="flex flex-col items-center">
             <CalendarComponent
               mode="single"
               selected={selectedDate}
