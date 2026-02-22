@@ -10,16 +10,10 @@ import {
 } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
 import { ConfirmDialog } from '@/components/common/ConfirmDialog';
 import { formatDate, formatNumber } from '@/lib/format';
 import { useDeleteProspect } from '@/hooks/useProspects';
-import { Eye, Pencil, Trash2, MoreHorizontal } from 'lucide-react';
+import { Eye, Pencil, Trash2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { Prospect } from '@/types/prospect';
 
@@ -78,7 +72,7 @@ export function ProspectsTable({ prospects, isLoading, onEdit }: ProspectsTableP
               <TableHead>Source</TableHead>
               <TableHead className="text-right">Required Size</TableHead>
               <TableHead>Follow-up</TableHead>
-              <TableHead className="w-[60px]"></TableHead>
+              <TableHead className="w-[120px]"></TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -143,45 +137,46 @@ export function ProspectsTable({ prospects, isLoading, onEdit }: ProspectsTableP
                   </TableCell>
                   <TableCell>{formatDate(prospect.follow_up_date)}</TableCell>
                   <TableCell>
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
-                        <Button variant="ghost" size="icon" className="h-8 w-8">
-                          <MoreHorizontal className="h-4 w-4" />
+                    <div className="flex items-center gap-1">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8"
+                        title="View Details"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          navigate(`/prospects/${prospect.id}`);
+                        }}
+                      >
+                        <Eye className="h-4 w-4" />
+                      </Button>
+                      {onEdit && (
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8"
+                          title="Edit"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onEdit(prospect);
+                          }}
+                        >
+                          <Pencil className="h-4 w-4" />
                         </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuItem
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            navigate(`/prospects/${prospect.id}`);
-                          }}
-                        >
-                          <Eye className="mr-2 h-4 w-4" />
-                          View Details
-                        </DropdownMenuItem>
-                        {onEdit && (
-                          <DropdownMenuItem
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              onEdit(prospect);
-                            }}
-                          >
-                            <Pencil className="mr-2 h-4 w-4" />
-                            Edit
-                          </DropdownMenuItem>
-                        )}
-                        <DropdownMenuItem
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setDeleteId(prospect.id);
-                          }}
-                          className="text-destructive focus:text-destructive"
-                        >
-                          <Trash2 className="mr-2 h-4 w-4" />
-                          Delete
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
+                      )}
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 text-destructive hover:text-destructive"
+                        title="Delete"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setDeleteId(prospect.id);
+                        }}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
                   </TableCell>
                 </TableRow>
               );
