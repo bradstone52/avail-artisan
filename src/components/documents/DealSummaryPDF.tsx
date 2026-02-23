@@ -197,7 +197,7 @@ export function DealSummaryPDF({
             <Text style={s.contactItem}>Email: brad@cvpartners.ca</Text>
           </View>
           <View style={s.contactBlock}>
-            <Text style={s.contactItem}><Text style={s.contactBold}>Doug Johannson</Text>, Partner &amp; Associate Broker</Text>
+            <Text style={s.contactItem}><Text style={s.contactBold}>Doug Johannson</Text>, Partner &amp; Senior Vice President</Text>
             <Text style={s.contactItem}>ClearView Commercial Realty Inc.</Text>
             <Text style={s.contactItem}>Phone: 403-470-8875</Text>
             <Text style={s.contactItem}>Email: doug@cvpartners.ca</Text>
