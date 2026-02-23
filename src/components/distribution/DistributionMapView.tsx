@@ -521,7 +521,7 @@ export function DistributionMapView({
       {/* Main content - flex-1 min-h-0 is critical to prevent overflow */}
       <main className="flex-1 min-h-0 flex overflow-hidden">
         {/* Left panel - fixed width, internal scroll only */}
-        <div className="w-[600px] max-w-[60vw] min-w-[400px] h-full flex flex-col border-r-2 border-foreground">
+        <div className="w-[700px] max-w-[60vw] min-w-[400px] h-full flex flex-col border-r-2 border-foreground">
           {/* Search - sticky top */}
           <div className="shrink-0 p-3 border-b-2 border-foreground bg-card">
             <div className="relative">
@@ -597,10 +597,10 @@ export function DistributionMapView({
                     } data-[marker-hover=true]:bg-accent/30`}
                   >
                     <td className="p-3">
-                      <div className="font-semibold text-foreground truncate max-w-[180px]">
+                      <div className="font-semibold text-foreground">
                         {listing.property_name || listing.display_address || listing.address}
                       </div>
-                      <div className="text-xs text-muted-foreground truncate max-w-[180px]">
+                      <div className="text-xs text-muted-foreground">
                         {formatSubmarket(listing.submarket)}
                       </div>
                     </td>
