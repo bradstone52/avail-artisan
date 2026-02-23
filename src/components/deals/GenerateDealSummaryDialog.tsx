@@ -510,62 +510,63 @@ export function GenerateDealSummaryDialog({ open, onOpenChange, deal }: Generate
 
   // Render deposits list - conditionally wrapped in ScrollArea
   const depositsContent = (
-    <div className="space-y-4">
+    <div className="space-y-2">
       {deposits.map((deposit, index) => (
         <Card key={deposit.id}>
-          <CardContent className="p-4 space-y-4">
+          <CardContent className="p-3 space-y-2">
             <div className="flex justify-between items-center">
-              <span className="font-medium">
+              <span className="font-medium text-sm">
                 {index === 0 ? 'First Deposit' : index === 1 ? 'Second Deposit' : index === 2 ? 'Third Deposit' : `Deposit ${index + 1}`}
               </span>
               {deposits.length > 1 && (
                 <Button
                   variant="ghost"
                   size="icon"
+                  className="h-7 w-7 text-destructive hover:text-destructive"
                   onClick={() => removeDeposit(deposit.id)}
-                  className="text-destructive hover:text-destructive"
                 >
-                  <Trash2 className="h-4 w-4" />
+                  <Trash2 className="h-3.5 w-3.5" />
                 </Button>
               )}
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label>Amount</Label>
+            <div className="grid grid-cols-2 gap-2">
+              <div className="space-y-1">
+                <Label className="text-xs">Amount</Label>
                 <div className="relative">
-                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">$</span>
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">$</span>
                   <Input 
                     value={deposit.amountDisplay}
                     onChange={(e) => handleDepositAmountChange(deposit.id, e.target.value)}
-                    className="pl-7"
+                    className="pl-7 h-8 text-sm"
                     placeholder="0.00"
                   />
                 </div>
               </div>
-              <div className="space-y-2">
-                <Label>Payable To</Label>
+              <div className="space-y-1">
+                <Label className="text-xs">Payable To</Label>
                 <Input 
                   value={deposit.payableTo}
                   onChange={(e) => updateDeposit(deposit.id, { payableTo: e.target.value })}
                   placeholder="e.g., Seller's Lawyer"
+                  className="h-8 text-sm"
                 />
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label>Due Date</Label>
+            <div className="grid grid-cols-2 gap-2">
+              <div className="space-y-1">
+                <Label className="text-xs">Due Date</Label>
                 <Popover>
                   <PopoverTrigger asChild>
                     <Button
                       variant="outline"
                       className={cn(
-                        "w-full justify-start text-left font-normal",
+                        "w-full justify-start text-left font-normal h-8 text-sm",
                         !deposit.dueDate && "text-muted-foreground"
                       )}
                     >
-                      <CalendarIcon className="mr-2 h-4 w-4" />
+                      <CalendarIcon className="mr-2 h-3.5 w-3.5" />
                       {deposit.dueDate ? format(deposit.dueDate, "yyyy-MM-dd") : "yyyy - mm - dd"}
                     </Button>
                   </PopoverTrigger>
@@ -580,14 +581,14 @@ export function GenerateDealSummaryDialog({ open, onOpenChange, deal }: Generate
                   </PopoverContent>
                 </Popover>
               </div>
-              <div className="space-y-2">
-                <Label>Due Time</Label>
-                <div className="flex gap-2">
+              <div className="space-y-1">
+                <Label className="text-xs">Due Time</Label>
+                <div className="flex gap-1">
                   <Select 
                     value={deposit.dueHour} 
                     onValueChange={(v) => updateDeposit(deposit.id, { dueHour: v })}
                   >
-                    <SelectTrigger className="w-[70px]">
+                    <SelectTrigger className="w-[60px] h-8 text-sm">
                       <SelectValue placeholder="Hr" />
                     </SelectTrigger>
                     <SelectContent>
@@ -600,7 +601,7 @@ export function GenerateDealSummaryDialog({ open, onOpenChange, deal }: Generate
                     value={deposit.dueMinute} 
                     onValueChange={(v) => updateDeposit(deposit.id, { dueMinute: v })}
                   >
-                    <SelectTrigger className="w-[70px]">
+                    <SelectTrigger className="w-[60px] h-8 text-sm">
                       <SelectValue placeholder=":00" />
                     </SelectTrigger>
                     <SelectContent>
@@ -613,7 +614,7 @@ export function GenerateDealSummaryDialog({ open, onOpenChange, deal }: Generate
                     value={deposit.duePeriod} 
                     onValueChange={(v) => updateDeposit(deposit.id, { duePeriod: v })}
                   >
-                    <SelectTrigger className="w-[70px]">
+                    <SelectTrigger className="w-[60px] h-8 text-sm">
                       <SelectValue placeholder="PM" />
                     </SelectTrigger>
                     <SelectContent>
@@ -631,9 +632,9 @@ export function GenerateDealSummaryDialog({ open, onOpenChange, deal }: Generate
       <Button 
         variant="outline" 
         onClick={addDeposit}
-        className="w-full"
+        className="w-full h-8 text-sm"
       >
-        <Plus className="h-4 w-4 mr-2" />
+        <Plus className="h-3.5 w-3.5 mr-1" />
         ADD DEPOSIT
       </Button>
     </div>
@@ -641,37 +642,37 @@ export function GenerateDealSummaryDialog({ open, onOpenChange, deal }: Generate
 
   // Render actions list - conditionally wrapped in ScrollArea
   const actionsContent = (
-    <div className="space-y-4">
+    <div className="space-y-2">
       {actions.map((action, index) => (
         <Card key={action.id}>
-          <CardContent className="p-4 space-y-4">
+          <CardContent className="p-3 space-y-2">
             <div className="flex justify-between items-center">
-              <span className="font-medium">Action {index + 1}</span>
+              <span className="font-medium text-sm">Action {index + 1}</span>
               {actions.length > 1 && (
                 <Button
                   variant="ghost"
                   size="icon"
+                  className="h-7 w-7 text-destructive hover:text-destructive"
                   onClick={() => removeAction(action.id)}
-                  className="text-destructive hover:text-destructive"
                 >
-                  <Trash2 className="h-4 w-4" />
+                  <Trash2 className="h-3.5 w-3.5" />
                 </Button>
               )}
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label>Due Date</Label>
+            <div className="grid grid-cols-2 gap-2">
+              <div className="space-y-1">
+                <Label className="text-xs">Due Date</Label>
                 <Popover>
                   <PopoverTrigger asChild>
                     <Button
                       variant="outline"
                       className={cn(
-                        "w-full justify-start text-left font-normal",
+                        "w-full justify-start text-left font-normal h-8 text-sm",
                         !action.dueDate && "text-muted-foreground"
                       )}
                     >
-                      <CalendarIcon className="mr-2 h-4 w-4" />
+                      <CalendarIcon className="mr-2 h-3.5 w-3.5" />
                       {action.dueDate ? format(action.dueDate, "yyyy-MM-dd") : "yyyy - mm - dd"}
                     </Button>
                   </PopoverTrigger>
@@ -686,14 +687,14 @@ export function GenerateDealSummaryDialog({ open, onOpenChange, deal }: Generate
                   </PopoverContent>
                 </Popover>
               </div>
-              <div className="space-y-2">
-                <Label>Due Time</Label>
-                <div className="flex gap-2">
+              <div className="space-y-1">
+                <Label className="text-xs">Due Time</Label>
+                <div className="flex gap-1">
                   <Select 
                     value={action.dueHour} 
                     onValueChange={(v) => updateAction(action.id, { dueHour: v })}
                   >
-                    <SelectTrigger className="w-[70px]">
+                    <SelectTrigger className="w-[60px] h-8 text-sm">
                       <SelectValue placeholder="Hr" />
                     </SelectTrigger>
                     <SelectContent>
@@ -706,7 +707,7 @@ export function GenerateDealSummaryDialog({ open, onOpenChange, deal }: Generate
                     value={action.dueMinute} 
                     onValueChange={(v) => updateAction(action.id, { dueMinute: v })}
                   >
-                    <SelectTrigger className="w-[70px]">
+                    <SelectTrigger className="w-[60px] h-8 text-sm">
                       <SelectValue placeholder=":00" />
                     </SelectTrigger>
                     <SelectContent>
@@ -719,7 +720,7 @@ export function GenerateDealSummaryDialog({ open, onOpenChange, deal }: Generate
                     value={action.duePeriod} 
                     onValueChange={(v) => updateAction(action.id, { duePeriod: v })}
                   >
-                    <SelectTrigger className="w-[70px]">
+                    <SelectTrigger className="w-[60px] h-8 text-sm">
                       <SelectValue placeholder="PM" />
                     </SelectTrigger>
                     <SelectContent>
@@ -731,19 +732,19 @@ export function GenerateDealSummaryDialog({ open, onOpenChange, deal }: Generate
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label>Date Met</Label>
+            <div className="grid grid-cols-2 gap-2">
+              <div className="space-y-1">
+                <Label className="text-xs">Date Met</Label>
                 <Popover>
                   <PopoverTrigger asChild>
                     <Button
                       variant="outline"
                       className={cn(
-                        "w-full justify-start text-left font-normal",
+                        "w-full justify-start text-left font-normal h-8 text-sm",
                         !action.dateMet && "text-muted-foreground"
                       )}
                     >
-                      <CalendarIcon className="mr-2 h-4 w-4" />
+                      <CalendarIcon className="mr-2 h-3.5 w-3.5" />
                       {action.dateMet ? format(action.dateMet, "yyyy-MM-dd") : "yyyy - mm - dd"}
                     </Button>
                   </PopoverTrigger>
@@ -758,13 +759,13 @@ export function GenerateDealSummaryDialog({ open, onOpenChange, deal }: Generate
                   </PopoverContent>
                 </Popover>
               </div>
-              <div className="space-y-2">
-                <Label>Acting Party</Label>
+              <div className="space-y-1">
+                <Label className="text-xs">Acting Party</Label>
                 <Select 
                   value={action.actingParty} 
                   onValueChange={(v) => updateAction(action.id, { actingParty: v })}
                 >
-                  <SelectTrigger>
+                  <SelectTrigger className="h-8 text-sm">
                     <SelectValue placeholder="Select party" />
                   </SelectTrigger>
                   <SelectContent>
@@ -776,13 +777,13 @@ export function GenerateDealSummaryDialog({ open, onOpenChange, deal }: Generate
               </div>
             </div>
 
-            <div className="space-y-2">
-              <Label>Action Description</Label>
+            <div className="space-y-1">
+              <Label className="text-xs">Action Description</Label>
               <Textarea 
                 value={action.description}
                 onChange={(e) => updateAction(action.id, { description: e.target.value })}
                 placeholder="e.g., Waiver of Conditions"
-                className="min-h-[60px]"
+                className="min-h-[40px] text-sm"
               />
             </div>
           </CardContent>
@@ -792,9 +793,9 @@ export function GenerateDealSummaryDialog({ open, onOpenChange, deal }: Generate
       <Button 
         variant="outline" 
         onClick={addAction}
-        className="w-full"
+        className="w-full h-8 text-sm"
       >
-        <Plus className="h-4 w-4 mr-2" />
+        <Plus className="h-3.5 w-3.5 mr-1" />
         ADD ACTION
       </Button>
     </div>
@@ -823,64 +824,69 @@ export function GenerateDealSummaryDialog({ open, onOpenChange, deal }: Generate
         </DialogHeader>
 
         <Tabs defaultValue="basic" className="flex-1 flex flex-col min-h-0">
-          <TabsList className="w-full grid grid-cols-3">
-            <TabsTrigger value="basic">Basic Info</TabsTrigger>
-            <TabsTrigger value="deposits">Deposits</TabsTrigger>
-            <TabsTrigger value="conditions">Conditions</TabsTrigger>
+          <TabsList className="w-full grid grid-cols-3 h-9">
+            <TabsTrigger value="basic" className="text-sm">Basic Info</TabsTrigger>
+            <TabsTrigger value="deposits" className="text-sm">Deposits</TabsTrigger>
+            <TabsTrigger value="conditions" className="text-sm">Conditions</TabsTrigger>
           </TabsList>
 
-          <div className="flex-1 mt-4 overflow-y-auto min-h-0">
+          <div className="flex-1 mt-3 overflow-y-auto min-h-0">
             {/* Basic Info Tab */}
-            <TabsContent value="basic" className="space-y-4 m-0">
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label>Vendor</Label>
+            <TabsContent value="basic" className="space-y-2 m-0">
+              <div className="grid grid-cols-2 gap-2">
+                <div className="space-y-1">
+                  <Label className="text-xs">Vendor</Label>
                   <Input 
                     value={vendor} 
                     onChange={(e) => setVendor(e.target.value)}
                     placeholder="Vendor name"
+                    className="h-8 text-sm"
                   />
                 </div>
-                <div className="space-y-2">
-                  <Label>Purchaser</Label>
+                <div className="space-y-1">
+                  <Label className="text-xs">Purchaser</Label>
                   <Input 
                     value={purchaser}
                     onChange={(e) => setPurchaser(e.target.value)}
                     placeholder="Buyer/Purchaser name"
+                    className="h-8 text-sm"
                   />
                 </div>
               </div>
 
-              <div className="space-y-2">
-                <Label>Property Address</Label>
-                <Input 
-                  value={propertyAddress}
-                  onChange={(e) => setPropertyAddress(e.target.value)}
-                />
+              <div className="grid grid-cols-2 gap-2">
+                <div className="space-y-1">
+                  <Label className="text-xs">Property Address</Label>
+                  <Input 
+                    value={propertyAddress}
+                    onChange={(e) => setPropertyAddress(e.target.value)}
+                    className="h-8 text-sm"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-xs">Property Description</Label>
+                  <Input 
+                    value={propertyDescription}
+                    onChange={(e) => setPropertyDescription(e.target.value)}
+                    placeholder="e.g., 100,000 SF on 2.2 AC"
+                    className="h-8 text-sm"
+                  />
+                </div>
               </div>
 
-              <div className="space-y-2">
-                <Label>Property Description</Label>
-                <Input 
-                  value={propertyDescription}
-                  onChange={(e) => setPropertyDescription(e.target.value)}
-                  placeholder="e.g., 100,000 SF on 2.2 AC"
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label>Effective Date</Label>
+              <div className="grid grid-cols-2 gap-2">
+                <div className="space-y-1">
+                  <Label className="text-xs">Effective Date</Label>
                   <Popover>
                     <PopoverTrigger asChild>
                       <Button
                         variant="outline"
                         className={cn(
-                          "w-full justify-start text-left font-normal",
+                          "w-full justify-start text-left font-normal h-8 text-sm",
                           !effectiveDate && "text-muted-foreground"
                         )}
                       >
-                        <CalendarIcon className="mr-2 h-4 w-4" />
+                        <CalendarIcon className="mr-2 h-3.5 w-3.5" />
                         {effectiveDate ? format(effectiveDate, "yyyy-MM-dd") : "yyyy - mm - dd"}
                       </Button>
                     </PopoverTrigger>
@@ -895,18 +901,18 @@ export function GenerateDealSummaryDialog({ open, onOpenChange, deal }: Generate
                     </PopoverContent>
                   </Popover>
                 </div>
-                <div className="space-y-2">
-                  <Label>Closing Date</Label>
+                <div className="space-y-1">
+                  <Label className="text-xs">Closing Date</Label>
                   <Popover>
                     <PopoverTrigger asChild>
                       <Button
                         variant="outline"
                         className={cn(
-                          "w-full justify-start text-left font-normal",
+                          "w-full justify-start text-left font-normal h-8 text-sm",
                           !closingDate && "text-muted-foreground"
                         )}
                       >
-                        <CalendarIcon className="mr-2 h-4 w-4" />
+                        <CalendarIcon className="mr-2 h-3.5 w-3.5" />
                         {closingDate ? format(closingDate, "yyyy-MM-dd") : "yyyy - mm - dd"}
                       </Button>
                     </PopoverTrigger>
@@ -923,14 +929,14 @@ export function GenerateDealSummaryDialog({ open, onOpenChange, deal }: Generate
                 </div>
               </div>
 
-              <div className="space-y-2">
-                <Label>Purchase Price</Label>
+              <div className="space-y-1">
+                <Label className="text-xs">Purchase Price</Label>
                 <div className="relative">
-                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">$</span>
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">$</span>
                   <Input 
                     value={purchasePriceDisplay}
                     onChange={handlePurchasePriceChange}
-                    className="pl-7"
+                    className="pl-7 h-8 text-sm"
                     placeholder="0.00"
                   />
                 </div>
@@ -940,14 +946,14 @@ export function GenerateDealSummaryDialog({ open, onOpenChange, deal }: Generate
             {/* Deposits Tab */}
             <TabsContent value="deposits" className="m-0 h-full">
               {deposits.length > 1 ? (
-                <ScrollArea className="h-[350px] pr-4">
+                <ScrollArea className="h-[300px] pr-3">
                   {depositsContent}
                 </ScrollArea>
               ) : (
-                <div className="pr-4">{depositsContent}</div>
+                <div className="pr-3">{depositsContent}</div>
               )}
 
-              <div className="space-y-2 pt-4 border-t mt-4">
+              <div className="space-y-1 pt-3 border-t mt-3 text-sm">
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Total Deposits:</span>
                   <span>{formatCurrency(totalDeposits)}</span>
@@ -965,13 +971,13 @@ export function GenerateDealSummaryDialog({ open, onOpenChange, deal }: Generate
 
             {/* Conditions Tab */}
             <TabsContent value="conditions" className="m-0 h-full">
-              <p className="text-sm text-muted-foreground mb-4">
+              <p className="text-xs text-muted-foreground mb-2">
                 Edit conditions that will appear on the Deal Summary.
               </p>
-              <div className="space-y-3">
+              <div className="space-y-2">
                 {localConditions.map((condition, index) => (
                   <Card key={condition.id}>
-                    <CardContent className="p-4 space-y-3">
+                    <CardContent className="p-3 space-y-2">
                       <div className="flex justify-between items-center">
                         <div className="flex items-center gap-2">
                           <Checkbox
@@ -986,52 +992,55 @@ export function GenerateDealSummaryDialog({ open, onOpenChange, deal }: Generate
                           <Button
                             variant="ghost"
                             size="icon"
+                            className="h-7 w-7 text-destructive hover:text-destructive"
                             onClick={() => removeCondition(condition.id)}
-                            className="text-destructive hover:text-destructive"
                           >
-                            <Trash2 className="h-4 w-4" />
+                            <Trash2 className="h-3.5 w-3.5" />
                           </Button>
                         )}
                       </div>
-                      <div className="space-y-2">
-                        <Label>Description</Label>
-                        <Input
-                          value={condition.description}
-                          onChange={(e) => updateCondition(condition.id, { description: e.target.value })}
-                          placeholder="Enter condition description..."
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label>Removal Date</Label>
-                        <Popover>
-                          <PopoverTrigger asChild>
-                            <Button
-                              variant="outline"
-                              className={cn(
-                                "w-full justify-start text-left font-normal",
-                                !condition.dueDate && "text-muted-foreground"
-                              )}
-                            >
-                              <CalendarIcon className="mr-2 h-4 w-4" />
-                              {condition.dueDate ? format(condition.dueDate, "yyyy-MM-dd") : "yyyy - mm - dd"}
-                            </Button>
-                          </PopoverTrigger>
-                          <PopoverContent className="w-auto p-0" align="start">
-                            <Calendar
-                              mode="single"
-                              selected={condition.dueDate}
-                              onSelect={(date) => updateCondition(condition.id, { dueDate: date })}
-                              initialFocus
-                              className="pointer-events-auto"
-                            />
-                          </PopoverContent>
-                        </Popover>
+                      <div className="grid grid-cols-2 gap-2">
+                        <div className="space-y-1">
+                          <Label className="text-xs">Description</Label>
+                          <Input
+                            value={condition.description}
+                            onChange={(e) => updateCondition(condition.id, { description: e.target.value })}
+                            placeholder="Enter condition description..."
+                            className="h-8 text-sm"
+                          />
+                        </div>
+                        <div className="space-y-1">
+                          <Label className="text-xs">Removal Date</Label>
+                          <Popover>
+                            <PopoverTrigger asChild>
+                              <Button
+                                variant="outline"
+                                className={cn(
+                                  "w-full justify-start text-left font-normal h-8 text-sm",
+                                  !condition.dueDate && "text-muted-foreground"
+                                )}
+                              >
+                                <CalendarIcon className="mr-2 h-3.5 w-3.5" />
+                                {condition.dueDate ? format(condition.dueDate, "yyyy-MM-dd") : "yyyy - mm - dd"}
+                              </Button>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-auto p-0" align="start">
+                              <Calendar
+                                mode="single"
+                                selected={condition.dueDate}
+                                onSelect={(date) => updateCondition(condition.id, { dueDate: date })}
+                                initialFocus
+                                className="pointer-events-auto"
+                              />
+                            </PopoverContent>
+                          </Popover>
+                        </div>
                       </div>
                     </CardContent>
                   </Card>
                 ))}
-                <Button variant="outline" onClick={addCondition} className="w-full">
-                  <Plus className="h-4 w-4 mr-2" />
+                <Button variant="outline" onClick={addCondition} className="w-full h-8 text-sm">
+                  <Plus className="h-3.5 w-3.5 mr-1" />
                   ADD CONDITION
                 </Button>
               </div>
@@ -1040,12 +1049,12 @@ export function GenerateDealSummaryDialog({ open, onOpenChange, deal }: Generate
           </div>
         </Tabs>
 
-        <div className="flex justify-end gap-2 pt-4 border-t">
-          <Button variant="outline" onClick={() => onOpenChange(false)}>
+        <div className="flex justify-end gap-2 pt-3 border-t">
+          <Button variant="outline" size="sm" onClick={() => onOpenChange(false)}>
             CANCEL
           </Button>
-          <Button onClick={handleGeneratePdf} disabled={generating}>
-            <Download className="w-4 h-4 mr-2" />
+          <Button size="sm" onClick={handleGeneratePdf} disabled={generating}>
+            <Download className="w-3.5 h-3.5 mr-1.5" />
             {generating ? 'Generating...' : 'GENERATE & DOWNLOAD'}
           </Button>
         </div>
