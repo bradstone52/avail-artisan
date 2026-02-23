@@ -222,7 +222,7 @@ export function DealViewCard({ deal, onEdit }: DealViewCardProps) {
 
         {/* Lawyers */}
         {hasLawyers && (
-          <div className="rounded-md bg-orange-50 dark:bg-orange-950/20 p-3">
+          <div className="rounded-md bg-orange-100 dark:bg-orange-950/30 p-3">
             <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-1">Lawyers</h4>
             <div className="grid grid-cols-2 gap-x-6 gap-y-0">
               <Field label={`${sellerLabel}'s Lawyer`}>{(deal as any).seller_lawyer_name || '—'}</Field>
