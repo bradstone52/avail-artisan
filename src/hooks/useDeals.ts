@@ -62,6 +62,10 @@ export function useCreateDeal() {
       const sanitizedData = {
         ...formData,
         close_date: formData.close_date || null,
+        commencement_date: formData.commencement_date || null,
+        expiry_date: formData.expiry_date || null,
+        lease_rate_psf: formData.lease_rate_psf ?? null,
+        lease_term_months: formData.lease_term_months ?? null,
         user_id: user.id,
         org_id: org.id,
       };
@@ -95,6 +99,10 @@ export function useUpdateDeal() {
       const sanitizedData = {
         ...formData,
         close_date: formData.close_date || null,
+        commencement_date: formData.commencement_date || null,
+        expiry_date: formData.expiry_date || null,
+        lease_rate_psf: formData.lease_rate_psf ?? null,
+        lease_term_months: formData.lease_term_months ?? null,
       };
 
       const { data, error } = await supabase

@@ -47,6 +47,10 @@ interface ExtendedDealFormData {
   submarket: string;
   size_sf?: number;
   is_land_deal?: boolean;
+  lease_rate_psf?: number;
+  lease_term_months?: number;
+  commencement_date?: string;
+  expiry_date?: string;
   deal_value?: number;
   commission_percent?: number;
   close_date?: string;
@@ -96,6 +100,10 @@ const EMPTY_FORM: ExtendedDealFormData = {
   submarket: '',
   size_sf: undefined,
   is_land_deal: false,
+  lease_rate_psf: undefined,
+  lease_term_months: undefined,
+  commencement_date: '',
+  expiry_date: '',
   deal_value: undefined,
   commission_percent: 3,
   close_date: '',
@@ -161,6 +169,10 @@ export function DealFormDialog({ open, onOpenChange, deal }: DealFormDialogProps
         submarket: deal.submarket,
         size_sf: deal.size_sf ?? undefined,
         is_land_deal: isLand,
+        lease_rate_psf: (deal as any).lease_rate_psf ?? undefined,
+        lease_term_months: (deal as any).lease_term_months ?? undefined,
+        commencement_date: (deal as any).commencement_date || '',
+        expiry_date: (deal as any).expiry_date || '',
         deal_value: deal.deal_value ?? undefined,
         commission_percent: deal.commission_percent ?? 3,
         close_date: deal.close_date || '',
@@ -319,6 +331,10 @@ export function DealFormDialog({ open, onOpenChange, deal }: DealFormDialogProps
         selling_agent2_id: dealData.selling_agent2_id || null,
         cv_agent_id: dealData.cv_agent_id || null,
         effective_date: dealData.effective_date || null,
+        lease_rate_psf: dealData.lease_rate_psf ?? null,
+        lease_term_months: dealData.lease_term_months ?? null,
+        commencement_date: dealData.commencement_date || null,
+        expiry_date: dealData.expiry_date || null,
         other_brokerage_percent: dealData.other_brokerage_percent ?? null,
         clearview_percent: dealData.clearview_percent ?? null,
         gst_rate: dealData.gst_rate ?? null,
@@ -339,6 +355,10 @@ export function DealFormDialog({ open, onOpenChange, deal }: DealFormDialogProps
   const hasLinkedListing = !!selectedListing || (isEditing && !!deal?.listing_id);
 
   const update = (fields: Partial<ExtendedDealFormData>) => setFormData(prev => ({ ...prev, ...fields }));
+
+  const isLeaseDeal = ['Lease', 'Sublease', 'Renewal', 'Expansion'].includes(formData.deal_type);
+  const sellerLabel = isLeaseDeal ? 'Landlord' : (formData.use_purchaser_vendor ? 'Vendor' : 'Seller');
+  const buyerLabel = isLeaseDeal ? 'Tenant' : (formData.use_purchaser_vendor ? 'Purchaser' : 'Buyer');
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -439,15 +459,17 @@ export function DealFormDialog({ open, onOpenChange, deal }: DealFormDialogProps
               />
               <Label htmlFor="is_land_deal" className="cursor-pointer">Land Deal</Label>
             </div>
-            <Button
-              type="button"
-              variant={formData.use_purchaser_vendor ? 'default' : 'secondary'}
-              size="sm"
-              onClick={() => update({ use_purchaser_vendor: !formData.use_purchaser_vendor })}
-              className="whitespace-nowrap"
-            >
-              {formData.use_purchaser_vendor ? 'Purchaser/Vendor' : 'Buyer/Seller'}
-            </Button>
+            {!isLeaseDeal && (
+              <Button
+                type="button"
+                variant={formData.use_purchaser_vendor ? 'default' : 'secondary'}
+                size="sm"
+                onClick={() => update({ use_purchaser_vendor: !formData.use_purchaser_vendor })}
+                className="whitespace-nowrap"
+              >
+                {formData.use_purchaser_vendor ? 'Purchaser/Vendor' : 'Buyer/Seller'}
+              </Button>
+            )}
           </div>
 
           <div className="grid grid-cols-3 gap-4">
@@ -494,15 +516,49 @@ export function DealFormDialog({ open, onOpenChange, deal }: DealFormDialogProps
             </div>
           </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="effective_date">Effective Date</Label>
-            <Input
-              id="effective_date"
-              type="date"
-              value={formData.effective_date}
-              onChange={(e) => update({ effective_date: e.target.value })}
-            />
+          <div className={isLeaseDeal ? 'grid grid-cols-2 gap-4' : ''}>
+            <div className="space-y-2">
+              <Label htmlFor="effective_date">{isLeaseDeal ? 'Commencement Date' : 'Effective Date'}</Label>
+              <Input
+                id="effective_date"
+                type="date"
+                value={isLeaseDeal ? formData.commencement_date : formData.effective_date}
+                onChange={(e) => update(isLeaseDeal ? { commencement_date: e.target.value } : { effective_date: e.target.value })}
+              />
+            </div>
+            {isLeaseDeal && (
+              <div className="space-y-2">
+                <Label htmlFor="expiry_date">Expiry Date</Label>
+                <Input
+                  id="expiry_date"
+                  type="date"
+                  value={formData.expiry_date}
+                  onChange={(e) => update({ expiry_date: e.target.value })}
+                />
+              </div>
+            )}
           </div>
+
+          {isLeaseDeal && (
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Lease Rate PSF</Label>
+                <FormattedNumberInput
+                  value={formData.lease_rate_psf}
+                  onChange={(value) => update({ lease_rate_psf: value ?? undefined })}
+                  prefix="$"
+                  suffix="/SF"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Lease Term (Months)</Label>
+                <FormattedNumberInput
+                  value={formData.lease_term_months}
+                  onChange={(value) => update({ lease_term_months: value ?? undefined })}
+                />
+              </div>
+            </div>
+          )}
 
           <div className="grid grid-cols-3 gap-4">
             <div className="space-y-2">
@@ -536,15 +592,15 @@ export function DealFormDialog({ open, onOpenChange, deal }: DealFormDialogProps
           <CollapsibleSection title="Parties" open={partiesOpen} onOpenChange={setPartiesOpen}>
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label>{formData.use_purchaser_vendor ? 'Vendor' : 'Seller'}</Label>
+                <Label>{sellerLabel}</Label>
                 <Input
                   value={formData.seller_name}
                   onChange={(e) => update({ seller_name: e.target.value })}
-                  placeholder={formData.use_purchaser_vendor ? 'Vendor name' : 'Seller name'}
+                  placeholder={`${sellerLabel} name`}
                 />
               </div>
               <div className="space-y-2">
-                <Label>{formData.use_purchaser_vendor ? 'Vendor' : 'Seller'} Brokerage</Label>
+                <Label>{sellerLabel} Brokerage</Label>
                 <BrokerageSelect
                   value={formData.seller_brokerage_id}
                   onChange={(v) => update({ seller_brokerage_id: v })}
@@ -554,15 +610,15 @@ export function DealFormDialog({ open, onOpenChange, deal }: DealFormDialogProps
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label>{formData.use_purchaser_vendor ? 'Purchaser' : 'Buyer'}</Label>
+                <Label>{buyerLabel}</Label>
                 <Input
                   value={formData.buyer_name}
                   onChange={(e) => update({ buyer_name: e.target.value })}
-                  placeholder={formData.use_purchaser_vendor ? 'Purchaser name' : 'Buyer name'}
+                  placeholder={`${buyerLabel} name`}
                 />
               </div>
               <div className="space-y-2">
-                <Label>{formData.use_purchaser_vendor ? 'Purchaser' : 'Buyer'} Brokerage</Label>
+                <Label>{buyerLabel} Brokerage</Label>
                 <BrokerageSelect
                   value={formData.buyer_brokerage_id}
                   onChange={(v) => update({ buyer_brokerage_id: v })}
@@ -578,7 +634,7 @@ export function DealFormDialog({ open, onOpenChange, deal }: DealFormDialogProps
             open={lawyersOpen} 
             onOpenChange={setLawyersOpen}
           >
-            <p className="text-sm font-medium text-muted-foreground">{formData.use_purchaser_vendor ? "Vendor's" : "Seller's"} Lawyer</p>
+            <p className="text-sm font-medium text-muted-foreground">{sellerLabel}'s Lawyer</p>
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label>Name</Label>
@@ -599,7 +655,7 @@ export function DealFormDialog({ open, onOpenChange, deal }: DealFormDialogProps
                 <Input value={formData.seller_lawyer_email} onChange={(e) => update({ seller_lawyer_email: e.target.value })} placeholder="Email" />
               </div>
             </div>
-            <p className="text-sm font-medium text-muted-foreground mt-2">{formData.use_purchaser_vendor ? "Purchaser's" : "Buyer's"} Lawyer</p>
+            <p className="text-sm font-medium text-muted-foreground mt-2">{buyerLabel}'s Lawyer</p>
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label>Name</Label>
@@ -664,7 +720,7 @@ export function DealFormDialog({ open, onOpenChange, deal }: DealFormDialogProps
 
               {/* Selling Side */}
               <div className="space-y-2">
-                <p className="text-sm font-medium text-muted-foreground">Selling Side</p>
+                <p className="text-sm font-medium text-muted-foreground">{isLeaseDeal ? 'Leasing' : 'Selling'} Side</p>
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label>Brokerage</Label>

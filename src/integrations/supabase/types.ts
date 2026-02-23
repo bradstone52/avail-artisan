@@ -401,6 +401,7 @@ export type Database = {
           clearview_percent: number | null
           close_date: string | null
           closing_date: string | null
+          commencement_date: string | null
           commission_percent: number | null
           conditions: string | null
           created_at: string
@@ -411,9 +412,12 @@ export type Database = {
           deposit_amount: number | null
           deposit_due_date: string | null
           effective_date: string | null
+          expiry_date: string | null
           gst_rate: number | null
           id: string
           is_land_deal: boolean
+          lease_rate_psf: number | null
+          lease_term_months: number | null
           lease_value: number | null
           listing_agent1_id: string | null
           listing_agent2_id: string | null
@@ -451,6 +455,7 @@ export type Database = {
           clearview_percent?: number | null
           close_date?: string | null
           closing_date?: string | null
+          commencement_date?: string | null
           commission_percent?: number | null
           conditions?: string | null
           created_at?: string
@@ -461,9 +466,12 @@ export type Database = {
           deposit_amount?: number | null
           deposit_due_date?: string | null
           effective_date?: string | null
+          expiry_date?: string | null
           gst_rate?: number | null
           id?: string
           is_land_deal?: boolean
+          lease_rate_psf?: number | null
+          lease_term_months?: number | null
           lease_value?: number | null
           listing_agent1_id?: string | null
           listing_agent2_id?: string | null
@@ -501,6 +509,7 @@ export type Database = {
           clearview_percent?: number | null
           close_date?: string | null
           closing_date?: string | null
+          commencement_date?: string | null
           commission_percent?: number | null
           conditions?: string | null
           created_at?: string
@@ -511,9 +520,12 @@ export type Database = {
           deposit_amount?: number | null
           deposit_due_date?: string | null
           effective_date?: string | null
+          expiry_date?: string | null
           gst_rate?: number | null
           id?: string
           is_land_deal?: boolean
+          lease_rate_psf?: number | null
+          lease_term_months?: number | null
           lease_value?: number | null
           listing_agent1_id?: string | null
           listing_agent2_id?: string | null
