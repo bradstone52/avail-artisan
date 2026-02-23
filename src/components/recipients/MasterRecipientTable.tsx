@@ -12,7 +12,7 @@ import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Pencil, Trash2, Search, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
 import { Recipient } from "@/hooks/useRecipients";
-
+import { cn } from "@/lib/utils";
 interface MasterRecipientTableProps {
   recipients: Recipient[];
   selectedIds: Set<string>;
@@ -160,8 +160,8 @@ export function MasterRecipientTable({
       )}
 
       {/* Table */}
-      <div className="border rounded-lg overflow-hidden">
-        <Table>
+      <div>
+        <Table stickyHeader>
           <TableHeader>
             <TableRow>
               <TableHead className="w-[50px]">
@@ -204,7 +204,15 @@ export function MasterRecipientTable({
           </TableHeader>
           <TableBody>
             {filteredRecipients.map((recipient) => (
-              <TableRow key={recipient.id}>
+              <TableRow
+                key={recipient.id}
+                className={cn(
+                  "cursor-pointer !border-b-2 !border-foreground",
+                  selectedIds.has(recipient.id)
+                    ? "!bg-secondary outline outline-2 outline-amber-600"
+                    : "hover:!bg-pink-200 hover:outline hover:outline-2 hover:outline-pink-500"
+                )}
+              >
                 <TableCell>
                   <Checkbox
                     checked={selectedIds.has(recipient.id)}
