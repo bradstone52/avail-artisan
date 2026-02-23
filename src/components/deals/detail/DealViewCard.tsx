@@ -136,7 +136,7 @@ export function DealViewCard({ deal, onEdit }: DealViewCardProps) {
       <CardContent className="space-y-2 p-4 pt-0">
         {/* Core fields */}
         <div className="rounded-md bg-muted/40 p-3">
-          <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-1">Overview</h4>
+          <h4 className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-1">Overview</h4>
           <div className="grid grid-cols-2 gap-x-6 gap-y-0">
             <Field label="Type">
               <Badge variant="secondary" className="bg-secondary text-secondary-foreground hover:bg-secondary/80 text-xs">
@@ -169,7 +169,7 @@ export function DealViewCard({ deal, onEdit }: DealViewCardProps) {
         {/* Parties */}
         {hasParties && (
           <div className="rounded-md bg-accent/30 p-3">
-            <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-1">Parties</h4>
+            <h4 className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-1">Parties</h4>
             <div className="grid grid-cols-2 gap-x-6 gap-y-0">
               <Field label={sellerLabel}>{deal.seller_name || '—'}</Field>
               <Field label={buyerLabel}>{deal.buyer_name || '—'}</Field>
@@ -182,7 +182,7 @@ export function DealViewCard({ deal, onEdit }: DealViewCardProps) {
         {/* Agents */}
         {hasAgents && (
           <div className="rounded-md bg-muted/40 p-3">
-            <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-1">Agents</h4>
+            <h4 className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-1">Agents</h4>
             <div className="grid grid-cols-2 gap-x-6 gap-y-0">
               {deal.listing_brokerage_id && (
                 <>
@@ -210,7 +210,7 @@ export function DealViewCard({ deal, onEdit }: DealViewCardProps) {
         {/* Commission Split */}
         {hasFinancials && (
           <div className="rounded-md bg-accent/30 p-3">
-            <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-1">Commission</h4>
+            <h4 className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-1">Commission</h4>
             <div className="grid grid-cols-2 gap-x-6 gap-y-0">
               <Field label="Commission Rate">{formatPercent(deal.commission_percent)}</Field>
               <Field label="GST Rate">{formatPercent(deal.gst_rate)}</Field>
@@ -223,7 +223,7 @@ export function DealViewCard({ deal, onEdit }: DealViewCardProps) {
         {/* Lawyers */}
         {hasLawyers && (
           <div className="rounded-md bg-orange-100 dark:bg-orange-950/30 p-3">
-            <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-1">Lawyers</h4>
+            <h4 className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-1">Lawyers</h4>
             <div className="grid grid-cols-2 gap-x-6 gap-y-0">
               <Field label={`${sellerLabel}'s Lawyer`}>{(deal as any).seller_lawyer_name || '—'}</Field>
               <Field label={`${buyerLabel}'s Lawyer`}>{(deal as any).buyer_lawyer_name || '—'}</Field>
