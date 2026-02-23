@@ -760,6 +760,21 @@ export function GenerateDealSummaryDialog({ open, onOpenChange, deal }: Generate
     </div>
   );
 
+  // Safety: ensure scroll lock is removed when dialog closes
+  useEffect(() => {
+    if (!open) {
+      // Remove any stale scroll locks from Radix Dialog
+      document.body.style.pointerEvents = '';
+      document.body.style.overflow = '';
+      const scrollLocked = document.querySelector('[data-scroll-locked]');
+      if (scrollLocked) {
+        scrollLocked.removeAttribute('data-scroll-locked');
+        (scrollLocked as HTMLElement).style.pointerEvents = '';
+        (scrollLocked as HTMLElement).style.overflow = '';
+      }
+    }
+  }, [open]);
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-2xl max-h-[90vh] flex flex-col">
