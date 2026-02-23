@@ -181,7 +181,7 @@ export function DealSummaryPDF({
   sellerLawyer, buyerLawyer,
   dealType, leaseRatePsf, leaseTermMonths, commencementDate, expiryDate,
 }: DealSummaryPDFProps) {
-  const isLease = ['lease', 'sublease', 'renewal', 'expansion'].includes(dealType?.toLowerCase() || '');
+  const isLease = ['lease', 'sublease', 'renewal'].includes(dealType?.toLowerCase() || '');
   const sellerLabel = isLease ? 'Landlord' : (usePurchaserVendor ? 'Vendor' : 'Seller');
   const buyerLabel = isLease ? 'Tenant' : (usePurchaserVendor ? 'Purchaser' : 'Buyer');
   const agentLabel = isLease ? 'Leasing' : 'Selling';

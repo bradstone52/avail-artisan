@@ -90,7 +90,7 @@ interface ExtendedDealFormData {
   gst_rate?: number;
 }
 
-const dealTypes: DealType[] = ['Lease', 'Sale', 'Sublease', 'Renewal', 'Expansion'];
+const dealTypes: DealType[] = ['Lease', 'Sale', 'Sublease', 'Renewal'];
 const createDealStatuses = ['Conditional', 'Firm', 'Closed'];
 
 const EMPTY_FORM: ExtendedDealFormData = {
@@ -357,7 +357,7 @@ export function DealFormDialog({ open, onOpenChange, deal }: DealFormDialogProps
 
   const update = (fields: Partial<ExtendedDealFormData>) => setFormData(prev => ({ ...prev, ...fields }));
 
-  const isLeaseDeal = ['Lease', 'Sublease', 'Renewal', 'Expansion'].includes(formData.deal_type);
+  const isLeaseDeal = ['Lease', 'Sublease', 'Renewal'].includes(formData.deal_type);
 
   // Auto-calculate lease term from commencement & expiry dates
   const leaseTermManuallyEdited = useRef(false);

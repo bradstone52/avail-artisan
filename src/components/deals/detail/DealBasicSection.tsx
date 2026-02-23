@@ -13,7 +13,7 @@ interface DealBasicSectionProps {
   onUpdate: (data: { id: string } & Partial<Deal>) => Promise<Deal>;
 }
 
-const dealTypes: DealType[] = ['Lease', 'Sale', 'Sublease', 'Renewal', 'Expansion'];
+const dealTypes: DealType[] = ['Lease', 'Sale', 'Sublease', 'Renewal'];
 const dealStatuses: DealStatus[] = ['Active', 'Under Contract', 'Closed', 'Lost', 'On Hold'];
 
 export function DealBasicSection({ deal, onUpdate }: DealBasicSectionProps) {
@@ -88,7 +88,7 @@ export function DealBasicSection({ deal, onUpdate }: DealBasicSectionProps) {
           </div>
         </div>
 
-        {['Lease', 'Sublease', 'Renewal', 'Expansion'].includes(deal.deal_type) && (
+        {['Lease', 'Sublease', 'Renewal'].includes(deal.deal_type) && (
           <div className="grid grid-cols-2 gap-4">
             {(deal as any).lease_rate_psf != null && (
               <div className="space-y-2">
