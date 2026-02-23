@@ -220,7 +220,7 @@ export function DealSummaryPDF({
 
         {/* ── TRANSACTION PARTIES + PROPERTY DETAILS ── */}
         <View style={s.twoCol}>
-          <View style={{ width: '38%' }}>
+          <View style={{ width: '55%' }}>
             <Text style={s.sectionTitle}>Transaction Parties</Text>
             <View style={[s.card, { marginBottom: 4 }]}>  
               <Text style={s.cardLabel}>{sellerLabel}</Text>
@@ -231,7 +231,7 @@ export function DealSummaryPDF({
               <Text style={s.cardValue}>{purchaser || 'To be confirmed'}</Text>
             </View>
           </View>
-          <View style={{ width: '60%' }}>
+          <View style={{ width: '43%' }}>
             <Text style={s.sectionTitle}>Property Details</Text>
             <View style={s.table}>
               <View style={s.propRow}>
