@@ -94,7 +94,7 @@ export function GenerateDealSheetDialog({ open, onOpenChange, deal }: GenerateDe
   const [clearviewPercent, setClearviewPercent] = useState(deal.clearview_percent || 1.5);
   const [gstRate, setGstRate] = useState(deal.gst_rate || 5);
   const [closingDate, setClosingDate] = useState<Date | undefined>(
-    deal.close_date ? new Date(deal.close_date) : undefined
+    deal.close_date ? new Date(deal.close_date + 'T00:00:00') : undefined
   );
 
   // Local conditions & deposits
