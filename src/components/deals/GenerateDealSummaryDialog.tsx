@@ -391,6 +391,18 @@ export function GenerateDealSummaryDialog({ open, onOpenChange, deal }: Generate
         listingAgents,
         sellingAgents,
         usePurchaserVendor: !!(deal as any).use_purchaser_vendor,
+        sellerLawyer: {
+          name: deal.seller_lawyer_name,
+          firm: deal.seller_lawyer_firm,
+          phone: deal.seller_lawyer_phone,
+          email: deal.seller_lawyer_email,
+        },
+        buyerLawyer: {
+          name: deal.buyer_lawyer_name,
+          firm: deal.buyer_lawyer_firm,
+          phone: deal.buyer_lawyer_phone,
+          email: deal.buyer_lawyer_email,
+        },
         contacts: [],
       };
 
