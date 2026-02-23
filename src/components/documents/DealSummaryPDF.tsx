@@ -84,9 +84,9 @@ const s = StyleSheet.create({
   headerRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 },
   logo: { width: 160, height: 40, objectFit: 'contain' },
   subtitle: { fontSize: 11, color: MUTED, marginBottom: 8 },
-  contactRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 6, paddingBottom: 6, borderBottomWidth: 1, borderBottomColor: ORANGE },
-  contactItem: { fontSize: 7.5 },
-  contactBold: { fontWeight: 'bold', fontSize: 7.5 },
+  contactRow: { marginBottom: 6, paddingBottom: 6, borderBottomWidth: 1, borderBottomColor: ORANGE },
+  contactItem: { fontSize: 7, marginBottom: 2 },
+  contactBold: { fontWeight: 'bold', fontSize: 7 },
   
   // Section title
   sectionTitle: { fontSize: 9, fontWeight: 'bold', marginTop: 10, marginBottom: 4 },
@@ -375,20 +375,6 @@ export function DealSummaryPDF({
           </View>
         )}
 
-        {/* ── CONTACT FOOTER ── */}
-        <Text style={s.sectionTitle}>Contact</Text>
-        <View style={s.contactFooter}>
-          <View style={s.contactCard}>
-            <Text style={s.contactCardName}>Brad Stone</Text>
-            <Text style={s.contactCardDetail}>ClearView Commercial Realty Inc.</Text>
-            <Text style={s.contactCardDetail}>brad@cvpartners.ca  |  (403) 613-2898</Text>
-          </View>
-          <View style={s.contactCard}>
-            <Text style={s.contactCardName}>Doug Johannson</Text>
-            <Text style={s.contactCardDetail}>ClearView Commercial Realty Inc.</Text>
-            <Text style={s.contactCardDetail}>doug@cvpartners.ca  |  (403) 470-8875</Text>
-          </View>
-        </View>
       </Page>
     </Document>
   );
