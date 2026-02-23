@@ -52,7 +52,8 @@ const MUTED = '#666666';
 
 // ── styles ───────────────────────────────────────────────
 const s = StyleSheet.create({
-  page: { padding: 30, paddingBottom: 30, fontSize: 8, fontFamily: 'Helvetica', color: DARK },
+  page: { padding: 30, paddingBottom: 40, fontSize: 8, fontFamily: 'Helvetica', color: DARK },
+  pageNumber: { position: 'absolute', bottom: 15, right: 30, fontSize: 7, color: MUTED },
 
   // Header
   headerRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 },
@@ -167,6 +168,7 @@ export function DealSheetPDF({ deal, conditions, deposits, getAgent, getBrokerag
   return (
     <Document>
       <Page size="LETTER" style={s.page}>
+        <Text style={s.pageNumber} render={({ pageNumber, totalPages }) => totalPages > 1 ? `${pageNumber} of ${totalPages}` : ''} fixed />
         {/* ── HEADER ── */}
         <View style={s.headerRow}>
           <Image src={clearviewLogo} style={s.logo} />
