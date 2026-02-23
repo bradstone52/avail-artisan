@@ -32,7 +32,7 @@ export function DealFinancialSummaryCard({ deal }: DealFinancialSummaryCardProps
   const totalCommission = commissionBeforeGST + gstOnCommission;
 
   // Split calculations
-  const otherBrokeragePercent = deal.other_brokerage_percent || 0;
+  const otherBrokeragePercent = deal.other_brokerage_percent ?? 0;
   const clearviewPercent = deal.clearview_percent || 0;
   
   const otherBrokerageCommission = dealValue * (otherBrokeragePercent / 100);

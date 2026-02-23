@@ -31,7 +31,7 @@ export function DealFinancialSection({ deal, onUpdate }: DealFinancialSectionPro
   const gstOnCommission = commissionBeforeGST * (formData.gst_rate || 0) / 100;
   const totalCommission = commissionBeforeGST + gstOnCommission;
 
-  const otherBrokerageRate = formData.other_brokerage_percent || 0;
+  const otherBrokerageRate = formData.other_brokerage_percent ?? 0;
   const otherCommissionBeforeGST = formData.deal_value ? (formData.deal_value * otherBrokerageRate) / 100 : 0;
   const otherGST = otherCommissionBeforeGST * (formData.gst_rate || 0) / 100;
   const otherTotal = otherCommissionBeforeGST + otherGST;

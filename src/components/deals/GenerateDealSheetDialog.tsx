@@ -93,8 +93,8 @@ export function GenerateDealSheetDialog({ open, onOpenChange, deal }: GenerateDe
   const [buyerBrokerageId, setBuyerBrokerageId] = useState(deal.buyer_brokerage_id || '');
   const [dealValue, setDealValue] = useState(deal.deal_value || 0);
   const [commissionPercent, setCommissionPercent] = useState(deal.commission_percent || 3);
-  const [otherBrokeragePercent, setOtherBrokeragePercent] = useState(deal.other_brokerage_percent || 1.5);
-  const [clearviewPercent, setClearviewPercent] = useState(deal.clearview_percent || 1.5);
+  const [otherBrokeragePercent, setOtherBrokeragePercent] = useState(deal.other_brokerage_percent ?? 1.5);
+  const [clearviewPercent, setClearviewPercent] = useState(deal.clearview_percent ?? 1.5);
   const [gstRate, setGstRate] = useState(deal.gst_rate || 5);
   const [closingDate, setClosingDate] = useState<Date | undefined>(
     deal.close_date ? new Date(deal.close_date + 'T00:00:00') : undefined
