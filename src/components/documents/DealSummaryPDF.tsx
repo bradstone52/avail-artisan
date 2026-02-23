@@ -42,6 +42,7 @@ export interface DealSummaryPDFProps {
   importantDates?: DealSummaryImportantDate[];
   listingAgents?: DealSummaryAgent[];
   sellingAgents?: DealSummaryAgent[];
+  usePurchaserVendor?: boolean;
   // Legacy — kept for backward compat but unused
   actions?: any[];
   contacts?: any[];
@@ -160,7 +161,10 @@ export function DealSummaryPDF({
   deposits, purchasePrice, balanceOnClosing, closingDate,
   conditions = [], importantDates = [],
   listingAgents = [], sellingAgents = [],
+  usePurchaserVendor = false,
 }: DealSummaryPDFProps) {
+  const sellerLabel = usePurchaserVendor ? 'Vendor' : 'Seller';
+  const buyerLabel = usePurchaserVendor ? 'Purchaser' : 'Buyer';
   const validDeposits = deposits.filter(d => d.amount > 0);
   const totalDeposits = validDeposits.reduce((sum, d) => sum + d.amount, 0);
   const validConditions = conditions.filter(c => c.description);
@@ -210,11 +214,11 @@ export function DealSummaryPDF({
             <Text style={s.sectionTitle}>Transaction Parties</Text>
             <View style={{ flexDirection: 'row', gap: 6 }}>
               <View style={[s.card, { flex: 1 }]}>
-                <Text style={s.cardLabel}>Vendor</Text>
+                <Text style={s.cardLabel}>{sellerLabel}</Text>
                 <Text style={s.cardValue}>{vendor || 'To be confirmed'}</Text>
               </View>
               <View style={[s.card, { flex: 1 }]}>
-                <Text style={s.cardLabel}>Purchaser</Text>
+                <Text style={s.cardLabel}>{buyerLabel}</Text>
                 <Text style={s.cardValue}>{purchaser || 'To be confirmed'}</Text>
               </View>
             </View>

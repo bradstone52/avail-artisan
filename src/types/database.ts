@@ -119,6 +119,17 @@ export interface Deal {
   seller_brokerage_id?: string | null;
   buyer_name?: string | null;
   buyer_brokerage_id?: string | null;
+  // Lawyer fields
+  seller_lawyer_name?: string | null;
+  seller_lawyer_firm?: string | null;
+  seller_lawyer_phone?: string | null;
+  seller_lawyer_email?: string | null;
+  buyer_lawyer_name?: string | null;
+  buyer_lawyer_firm?: string | null;
+  buyer_lawyer_phone?: string | null;
+  buyer_lawyer_email?: string | null;
+  // Nomenclature toggle
+  use_purchaser_vendor?: boolean;
   // Financial fields
   other_brokerage_percent?: number | null;
   clearview_percent?: number | null;
@@ -173,6 +184,17 @@ export interface DealFormData {
   buyer_name?: string | null;
   seller_brokerage_id?: string | null;
   buyer_brokerage_id?: string | null;
+  // Lawyer fields
+  seller_lawyer_name?: string | null;
+  seller_lawyer_firm?: string | null;
+  seller_lawyer_phone?: string | null;
+  seller_lawyer_email?: string | null;
+  buyer_lawyer_name?: string | null;
+  buyer_lawyer_firm?: string | null;
+  buyer_lawyer_phone?: string | null;
+  buyer_lawyer_email?: string | null;
+  // Nomenclature toggle
+  use_purchaser_vendor?: boolean;
   // Agent fields
   listing_brokerage_id?: string | null;
   listing_agent1_id?: string | null;

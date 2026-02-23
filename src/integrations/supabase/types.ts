@@ -392,6 +392,10 @@ export type Database = {
         Row: {
           address: string
           buyer_brokerage_id: string | null
+          buyer_lawyer_email: string | null
+          buyer_lawyer_firm: string | null
+          buyer_lawyer_name: string | null
+          buyer_lawyer_phone: string | null
           buyer_name: string | null
           city: string | null
           clearview_percent: number | null
@@ -420,6 +424,10 @@ export type Database = {
           other_brokerage_percent: number | null
           property_id: string | null
           seller_brokerage_id: string | null
+          seller_lawyer_email: string | null
+          seller_lawyer_firm: string | null
+          seller_lawyer_name: string | null
+          seller_lawyer_phone: string | null
           seller_name: string | null
           selling_agent1_id: string | null
           selling_agent2_id: string | null
@@ -428,11 +436,16 @@ export type Database = {
           status: string
           submarket: string | null
           updated_at: string
+          use_purchaser_vendor: boolean
           user_id: string
         }
         Insert: {
           address: string
           buyer_brokerage_id?: string | null
+          buyer_lawyer_email?: string | null
+          buyer_lawyer_firm?: string | null
+          buyer_lawyer_name?: string | null
+          buyer_lawyer_phone?: string | null
           buyer_name?: string | null
           city?: string | null
           clearview_percent?: number | null
@@ -461,6 +474,10 @@ export type Database = {
           other_brokerage_percent?: number | null
           property_id?: string | null
           seller_brokerage_id?: string | null
+          seller_lawyer_email?: string | null
+          seller_lawyer_firm?: string | null
+          seller_lawyer_name?: string | null
+          seller_lawyer_phone?: string | null
           seller_name?: string | null
           selling_agent1_id?: string | null
           selling_agent2_id?: string | null
@@ -469,11 +486,16 @@ export type Database = {
           status?: string
           submarket?: string | null
           updated_at?: string
+          use_purchaser_vendor?: boolean
           user_id: string
         }
         Update: {
           address?: string
           buyer_brokerage_id?: string | null
+          buyer_lawyer_email?: string | null
+          buyer_lawyer_firm?: string | null
+          buyer_lawyer_name?: string | null
+          buyer_lawyer_phone?: string | null
           buyer_name?: string | null
           city?: string | null
           clearview_percent?: number | null
@@ -502,6 +524,10 @@ export type Database = {
           other_brokerage_percent?: number | null
           property_id?: string | null
           seller_brokerage_id?: string | null
+          seller_lawyer_email?: string | null
+          seller_lawyer_firm?: string | null
+          seller_lawyer_name?: string | null
+          seller_lawyer_phone?: string | null
           seller_name?: string | null
           selling_agent1_id?: string | null
           selling_agent2_id?: string | null
@@ -510,6 +536,7 @@ export type Database = {
           status?: string
           submarket?: string | null
           updated_at?: string
+          use_purchaser_vendor?: boolean
           user_id?: string
         }
         Relationships: [

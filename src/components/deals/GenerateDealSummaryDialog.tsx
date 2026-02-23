@@ -390,6 +390,7 @@ export function GenerateDealSummaryDialog({ open, onOpenChange, deal }: Generate
         })),
         listingAgents,
         sellingAgents,
+        usePurchaserVendor: !!(deal as any).use_purchaser_vendor,
         contacts: [],
       };
 
@@ -835,20 +836,20 @@ export function GenerateDealSummaryDialog({ open, onOpenChange, deal }: Generate
             <TabsContent value="basic" className="space-y-2 m-0">
               <div className="grid grid-cols-2 gap-2">
                 <div className="space-y-1">
-                  <Label className="text-xs">Vendor</Label>
+                  <Label className="text-xs">{(deal as any).use_purchaser_vendor ? 'Vendor' : 'Seller'}</Label>
                   <Input 
                     value={vendor} 
                     onChange={(e) => setVendor(e.target.value)}
-                    placeholder="Vendor name"
+                    placeholder={`${(deal as any).use_purchaser_vendor ? 'Vendor' : 'Seller'} name`}
                     className="h-8 text-sm"
                   />
                 </div>
                 <div className="space-y-1">
-                  <Label className="text-xs">Purchaser</Label>
+                  <Label className="text-xs">{(deal as any).use_purchaser_vendor ? 'Purchaser' : 'Buyer'}</Label>
                   <Input 
                     value={purchaser}
                     onChange={(e) => setPurchaser(e.target.value)}
-                    placeholder="Buyer/Purchaser name"
+                    placeholder={`${(deal as any).use_purchaser_vendor ? 'Purchaser' : 'Buyer'} name`}
                     className="h-8 text-sm"
                   />
                 </div>

@@ -60,6 +60,17 @@ interface ExtendedDealFormData {
   buyer_name?: string;
   seller_brokerage_id?: string;
   buyer_brokerage_id?: string;
+  // Lawyer fields
+  seller_lawyer_name?: string;
+  seller_lawyer_firm?: string;
+  seller_lawyer_phone?: string;
+  seller_lawyer_email?: string;
+  buyer_lawyer_name?: string;
+  buyer_lawyer_firm?: string;
+  buyer_lawyer_phone?: string;
+  buyer_lawyer_email?: string;
+  // Nomenclature toggle
+  use_purchaser_vendor?: boolean;
   // Agent fields
   listing_brokerage_id?: string;
   listing_agent1_id?: string;
@@ -96,6 +107,15 @@ const EMPTY_FORM: ExtendedDealFormData = {
   buyer_name: '',
   seller_brokerage_id: undefined,
   buyer_brokerage_id: undefined,
+  seller_lawyer_name: '',
+  seller_lawyer_firm: '',
+  seller_lawyer_phone: '',
+  seller_lawyer_email: '',
+  buyer_lawyer_name: '',
+  buyer_lawyer_firm: '',
+  buyer_lawyer_phone: '',
+  buyer_lawyer_email: '',
+  use_purchaser_vendor: false,
   listing_brokerage_id: undefined,
   listing_agent1_id: undefined,
   listing_agent2_id: undefined,
@@ -151,6 +171,15 @@ export function DealFormDialog({ open, onOpenChange, deal }: DealFormDialogProps
         buyer_name: deal.buyer_name || '',
         seller_brokerage_id: deal.seller_brokerage_id ?? undefined,
         buyer_brokerage_id: deal.buyer_brokerage_id ?? undefined,
+        seller_lawyer_name: (deal as any).seller_lawyer_name || '',
+        seller_lawyer_firm: (deal as any).seller_lawyer_firm || '',
+        seller_lawyer_phone: (deal as any).seller_lawyer_phone || '',
+        seller_lawyer_email: (deal as any).seller_lawyer_email || '',
+        buyer_lawyer_name: (deal as any).buyer_lawyer_name || '',
+        buyer_lawyer_firm: (deal as any).buyer_lawyer_firm || '',
+        buyer_lawyer_phone: (deal as any).buyer_lawyer_phone || '',
+        buyer_lawyer_email: (deal as any).buyer_lawyer_email || '',
+        use_purchaser_vendor: (deal as any).use_purchaser_vendor || false,
         listing_brokerage_id: deal.listing_brokerage_id ?? undefined,
         listing_agent1_id: deal.listing_agent1_id ?? undefined,
         listing_agent2_id: deal.listing_agent2_id ?? undefined,
@@ -270,6 +299,15 @@ export function DealFormDialog({ open, onOpenChange, deal }: DealFormDialogProps
         buyer_name: dealData.buyer_name || null,
         seller_brokerage_id: dealData.seller_brokerage_id || null,
         buyer_brokerage_id: dealData.buyer_brokerage_id || null,
+        seller_lawyer_name: dealData.seller_lawyer_name || null,
+        seller_lawyer_firm: dealData.seller_lawyer_firm || null,
+        seller_lawyer_phone: dealData.seller_lawyer_phone || null,
+        seller_lawyer_email: dealData.seller_lawyer_email || null,
+        buyer_lawyer_name: dealData.buyer_lawyer_name || null,
+        buyer_lawyer_firm: dealData.buyer_lawyer_firm || null,
+        buyer_lawyer_phone: dealData.buyer_lawyer_phone || null,
+        buyer_lawyer_email: dealData.buyer_lawyer_email || null,
+        use_purchaser_vendor: dealData.use_purchaser_vendor || false,
         listing_brokerage_id: dealData.listing_brokerage_id || null,
         listing_agent1_id: dealData.listing_agent1_id || null,
         listing_agent2_id: dealData.listing_agent2_id || null,
@@ -386,16 +424,28 @@ export function DealFormDialog({ open, onOpenChange, deal }: DealFormDialogProps
             </div>
           </div>
 
-          <div className="flex items-center gap-3">
-            <Switch
-              id="is_land_deal"
-              checked={formData.is_land_deal || false}
-              onCheckedChange={(checked) => {
-                update({ is_land_deal: checked });
-                setSizeUnit(checked ? 'AC' : 'SF');
-              }}
-            />
-            <Label htmlFor="is_land_deal" className="cursor-pointer">Land Deal</Label>
+          <div className="flex items-center gap-6">
+            <div className="flex items-center gap-3">
+              <Switch
+                id="is_land_deal"
+                checked={formData.is_land_deal || false}
+                onCheckedChange={(checked) => {
+                  update({ is_land_deal: checked });
+                  setSizeUnit(checked ? 'AC' : 'SF');
+                }}
+              />
+              <Label htmlFor="is_land_deal" className="cursor-pointer">Land Deal</Label>
+            </div>
+            <div className="flex items-center gap-3">
+              <Switch
+                id="use_purchaser_vendor"
+                checked={formData.use_purchaser_vendor || false}
+                onCheckedChange={(checked) => update({ use_purchaser_vendor: checked })}
+              />
+              <Label htmlFor="use_purchaser_vendor" className="cursor-pointer">
+                {formData.use_purchaser_vendor ? 'Purchaser/Vendor' : 'Buyer/Seller'}
+              </Label>
+            </div>
           </div>
 
           <div className="grid grid-cols-3 gap-4">
@@ -484,15 +534,15 @@ export function DealFormDialog({ open, onOpenChange, deal }: DealFormDialogProps
           <CollapsibleSection title="Parties" open={partiesOpen} onOpenChange={setPartiesOpen}>
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label>Vendor / Seller</Label>
+                <Label>{formData.use_purchaser_vendor ? 'Vendor' : 'Seller'}</Label>
                 <Input
                   value={formData.seller_name}
                   onChange={(e) => update({ seller_name: e.target.value })}
-                  placeholder="Seller name"
+                  placeholder={formData.use_purchaser_vendor ? 'Vendor name' : 'Seller name'}
                 />
               </div>
               <div className="space-y-2">
-                <Label>Seller Brokerage</Label>
+                <Label>{formData.use_purchaser_vendor ? 'Vendor' : 'Seller'} Brokerage</Label>
                 <BrokerageSelect
                   value={formData.seller_brokerage_id}
                   onChange={(v) => update({ seller_brokerage_id: v })}
@@ -502,20 +552,70 @@ export function DealFormDialog({ open, onOpenChange, deal }: DealFormDialogProps
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label>Purchaser / Buyer</Label>
+                <Label>{formData.use_purchaser_vendor ? 'Purchaser' : 'Buyer'}</Label>
                 <Input
                   value={formData.buyer_name}
                   onChange={(e) => update({ buyer_name: e.target.value })}
-                  placeholder="Buyer name"
+                  placeholder={formData.use_purchaser_vendor ? 'Purchaser name' : 'Buyer name'}
                 />
               </div>
               <div className="space-y-2">
-                <Label>Buyer Brokerage</Label>
+                <Label>{formData.use_purchaser_vendor ? 'Purchaser' : 'Buyer'} Brokerage</Label>
                 <BrokerageSelect
                   value={formData.buyer_brokerage_id}
                   onChange={(v) => update({ buyer_brokerage_id: v })}
                   brokerages={brokerages}
                 />
+              </div>
+            </div>
+          </CollapsibleSection>
+
+          {/* ── Lawyers Section ── */}
+          <CollapsibleSection 
+            title="Lawyers" 
+            open={!!(formData.seller_lawyer_name || formData.buyer_lawyer_name)} 
+            onOpenChange={() => {}}
+          >
+            <p className="text-sm font-medium text-muted-foreground">{formData.use_purchaser_vendor ? "Vendor's" : "Seller's"} Lawyer</p>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Name</Label>
+                <Input value={formData.seller_lawyer_name} onChange={(e) => update({ seller_lawyer_name: e.target.value })} placeholder="Lawyer name" />
+              </div>
+              <div className="space-y-2">
+                <Label>Firm</Label>
+                <Input value={formData.seller_lawyer_firm} onChange={(e) => update({ seller_lawyer_firm: e.target.value })} placeholder="Law firm" />
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Phone</Label>
+                <Input value={formData.seller_lawyer_phone} onChange={(e) => update({ seller_lawyer_phone: e.target.value })} placeholder="Phone" />
+              </div>
+              <div className="space-y-2">
+                <Label>Email</Label>
+                <Input value={formData.seller_lawyer_email} onChange={(e) => update({ seller_lawyer_email: e.target.value })} placeholder="Email" />
+              </div>
+            </div>
+            <p className="text-sm font-medium text-muted-foreground mt-2">{formData.use_purchaser_vendor ? "Purchaser's" : "Buyer's"} Lawyer</p>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Name</Label>
+                <Input value={formData.buyer_lawyer_name} onChange={(e) => update({ buyer_lawyer_name: e.target.value })} placeholder="Lawyer name" />
+              </div>
+              <div className="space-y-2">
+                <Label>Firm</Label>
+                <Input value={formData.buyer_lawyer_firm} onChange={(e) => update({ buyer_lawyer_firm: e.target.value })} placeholder="Law firm" />
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Phone</Label>
+                <Input value={formData.buyer_lawyer_phone} onChange={(e) => update({ buyer_lawyer_phone: e.target.value })} placeholder="Phone" />
+              </div>
+              <div className="space-y-2">
+                <Label>Email</Label>
+                <Input value={formData.buyer_lawyer_email} onChange={(e) => update({ buyer_lawyer_email: e.target.value })} placeholder="Email" />
               </div>
             </div>
           </CollapsibleSection>
