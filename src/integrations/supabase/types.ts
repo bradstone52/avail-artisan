@@ -3015,6 +3015,30 @@ export type Database = {
         }
         Relationships: []
       }
+      statutory_holidays: {
+        Row: {
+          created_at: string
+          holiday_date: string
+          id: string
+          jurisdiction: string
+          name: string
+        }
+        Insert: {
+          created_at?: string
+          holiday_date: string
+          id?: string
+          jurisdiction?: string
+          name: string
+        }
+        Update: {
+          created_at?: string
+          holiday_date?: string
+          id?: string
+          jurisdiction?: string
+          name?: string
+        }
+        Relationships: []
+      }
       sync_logs: {
         Row: {
           completed_at: string | null
