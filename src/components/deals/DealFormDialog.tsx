@@ -541,17 +541,27 @@ export function DealFormDialog({ open, onOpenChange, deal }: DealFormDialogProps
             </div>
           </div>
 
-          <div className={isLeaseDeal ? 'grid grid-cols-2 gap-4' : ''}>
-            <div className="space-y-2">
-              <Label htmlFor="effective_date">{isLeaseDeal ? 'Commencement Date' : 'Effective Date'}</Label>
-              <Input
-                id="effective_date"
-                type="date"
-                value={isLeaseDeal ? formData.commencement_date : formData.effective_date}
-                onChange={(e) => update(isLeaseDeal ? { commencement_date: e.target.value } : { effective_date: e.target.value })}
-              />
-            </div>
-            {isLeaseDeal && (
+          <div className="space-y-2">
+            <Label htmlFor="effective_date">Effective Date</Label>
+            <Input
+              id="effective_date"
+              type="date"
+              value={formData.effective_date}
+              onChange={(e) => update({ effective_date: e.target.value })}
+            />
+          </div>
+
+          {isLeaseDeal && (
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="commencement_date">Commencement Date</Label>
+                <Input
+                  id="commencement_date"
+                  type="date"
+                  value={formData.commencement_date}
+                  onChange={(e) => update({ commencement_date: e.target.value })}
+                />
+              </div>
               <div className="space-y-2">
                 <Label htmlFor="expiry_date">Expiry Date</Label>
                 <Input
@@ -561,8 +571,8 @@ export function DealFormDialog({ open, onOpenChange, deal }: DealFormDialogProps
                   onChange={(e) => update({ expiry_date: e.target.value })}
                 />
               </div>
-            )}
-          </div>
+            </div>
+          )}
 
           {isLeaseDeal && (
             <div className="grid grid-cols-2 gap-4">

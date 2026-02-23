@@ -4,8 +4,9 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Calendar, AlertCircle, Plus, Trash2, Check, CalendarPlus, Pencil } from 'lucide-react';
-import { format, isBefore } from 'date-fns';
+import { format, isBefore, addDays } from 'date-fns';
 import type { Deal } from '@/types/database';
 import type { DealCondition } from '@/hooks/useDealConditions';
 import type { DealDeposit } from '@/hooks/useDealDeposits';
@@ -44,6 +45,8 @@ export function DealImportantDatesSection({
   // Condition form state
   const [condDescription, setCondDescription] = useState('');
   const [condDueDate, setCondDueDate] = useState('');
+  const [condDateMode, setCondDateMode] = useState<'specific' | 'relative'>('specific');
+  const [condDaysFromEffective, setCondDaysFromEffective] = useState<number>(30);
   
   // Deposit form state
   const [depAmount, setDepAmount] = useState<number | null>(null);
@@ -67,6 +70,8 @@ export function DealImportantDatesSection({
     setAddType(null);
     setCondDescription('');
     setCondDueDate('');
+    setCondDateMode('specific');
+    setCondDaysFromEffective(30);
     setDepAmount(null);
     setDepHeldBy('');
     setDepDueDate('');
@@ -74,9 +79,18 @@ export function DealImportantDatesSection({
     setGenDueDate('');
   };
 
+  const effectiveDate = (deal as any).effective_date as string | null;
+
+  const computedCondDueDate = (() => {
+    if (condDateMode === 'specific') return condDueDate;
+    if (!effectiveDate) return '';
+    const result = addDays(new Date(effectiveDate), condDaysFromEffective);
+    return format(result, 'yyyy-MM-dd');
+  })();
+
   const handleAddCondition = async () => {
     if (!onAddCondition || !condDescription) return;
-    await onAddCondition({ description: condDescription, due_date: condDueDate || undefined });
+    await onAddCondition({ description: condDescription, due_date: computedCondDueDate || undefined });
     resetForm();
   };
 
@@ -324,13 +338,48 @@ export function DealImportantDatesSection({
               />
             </div>
             <div className="space-y-2">
-              <Label>Due Date</Label>
-              <Input
-                type="date"
-                value={condDueDate}
-                onChange={(e) => setCondDueDate(e.target.value)}
-              />
+              <Label>Due Date Method</Label>
+              <Select value={condDateMode} onValueChange={(v) => setCondDateMode(v as 'specific' | 'relative')}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="specific">Specific Date</SelectItem>
+                  <SelectItem value="relative" disabled={!effectiveDate}>
+                    Days from Effective Date{!effectiveDate ? ' (no effective date set)' : ''}
+                  </SelectItem>
+                </SelectContent>
+              </Select>
             </div>
+            {condDateMode === 'specific' ? (
+              <div className="space-y-2">
+                <Label>Due Date</Label>
+                <Input
+                  type="date"
+                  value={condDueDate}
+                  onChange={(e) => setCondDueDate(e.target.value)}
+                />
+              </div>
+            ) : (
+              <div className="space-y-2">
+                <Label>Days from Effective Date</Label>
+                <div className="flex items-center gap-3">
+                  <Input
+                    type="number"
+                    min={1}
+                    value={condDaysFromEffective}
+                    onChange={(e) => setCondDaysFromEffective(parseInt(e.target.value) || 0)}
+                    className="w-24"
+                  />
+                  <span className="text-sm text-muted-foreground">days</span>
+                  {computedCondDueDate && (
+                    <span className="text-sm font-medium">
+                      = {format(new Date(computedCondDueDate), 'MMMM d, yyyy')}
+                    </span>
+                  )}
+                </div>
+              </div>
+            )}
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={resetForm}>Cancel</Button>
