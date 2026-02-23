@@ -258,7 +258,7 @@ export function DealSheetPDF({ deal, conditions, deposits, getAgent, getBrokerag
             <Text style={s.sectionTitle}>Brokerages</Text>
             <View style={s.agentRow}>
               {listingBrokerage && (
-                <View style={[s.agentCard, { flex: 'none' as any, width: '48%' }]}>
+                <View style={s.agentCard}>
                   <Text style={s.agentRole}>Listing Brokerage</Text>
                   <Text style={s.agentName}>{listingBrokerage.name}</Text>
                   {listingBrokerage.address && <Text style={s.agentDetail}>{listingBrokerage.address}</Text>}
@@ -267,7 +267,7 @@ export function DealSheetPDF({ deal, conditions, deposits, getAgent, getBrokerag
                 </View>
               )}
               {sellingBrokerage && (
-                <View style={[s.agentCard, { flex: 'none' as any, width: '48%' }]}>
+                <View style={s.agentCard}>
                   <Text style={s.agentRole}>{agentLabel} Brokerage</Text>
                   <Text style={s.agentName}>{sellingBrokerage.name}</Text>
                   {sellingBrokerage.address && <Text style={s.agentDetail}>{sellingBrokerage.address}</Text>}
