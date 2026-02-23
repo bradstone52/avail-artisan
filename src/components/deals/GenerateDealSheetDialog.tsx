@@ -250,11 +250,11 @@ export function GenerateDealSheetDialog({ open, onOpenChange, deal }: GenerateDe
           seller_brokerage_id: sellerBrokerageId || null,
           buyer_name: buyerName || null,
           buyer_brokerage_id: buyerBrokerageId || null,
-          deal_value: dealValue || null,
-          commission_percent: commissionPercent || null,
-          other_brokerage_percent: otherBrokeragePercent || null,
-          clearview_percent: clearviewPercent || null,
-          gst_rate: gstRate || null,
+           deal_value: dealValue ?? null,
+           commission_percent: commissionPercent ?? null,
+           other_brokerage_percent: otherBrokeragePercent ?? null,
+           clearview_percent: clearviewPercent ?? null,
+           gst_rate: gstRate ?? null,
           close_date: closingDate ? format(closingDate, 'yyyy-MM-dd') : null,
         })
         .eq('id', deal.id);
@@ -317,11 +317,11 @@ export function GenerateDealSheetDialog({ open, onOpenChange, deal }: GenerateDe
         seller_brokerage_id: sellerBrokerageId || null,
         buyer_name: buyerName || null,
         buyer_brokerage_id: buyerBrokerageId || null,
-        deal_value: dealValue || null,
-        commission_percent: commissionPercent || null,
-        other_brokerage_percent: otherBrokeragePercent || null,
-        clearview_percent: clearviewPercent || null,
-        gst_rate: gstRate || null,
+        deal_value: dealValue ?? null,
+        commission_percent: commissionPercent ?? null,
+        other_brokerage_percent: otherBrokeragePercent ?? null,
+        clearview_percent: clearviewPercent ?? null,
+        gst_rate: gstRate ?? null,
       };
 
       const blob = await pdf(
