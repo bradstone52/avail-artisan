@@ -26,6 +26,7 @@ import {
 import { FormattedNumberInput } from '@/components/common/FormattedNumberInput';
 import { Switch } from '@/components/ui/switch';
 import { ListingCombobox } from '@/components/deals/ListingCombobox';
+import { PropertyCombobox } from '@/components/deals/PropertyCombobox';
 import { useCreateDeal, useUpdateDeal } from '@/hooks/useDeals';
 import { useAgents } from '@/hooks/useAgents';
 import { useBrokerages } from '@/hooks/useBrokerages';
@@ -112,6 +113,7 @@ const EMPTY_FORM: ExtendedDealFormData = {
   effective_date: '',
   status: 'Conditional',
   listing_id: undefined,
+  property_id: undefined,
   notes: '',
   seller_name: '',
   buyer_name: '',
@@ -181,6 +183,7 @@ export function DealFormDialog({ open, onOpenChange, deal }: DealFormDialogProps
         effective_date: (deal as any).effective_date || '',
         status: deal.status as DealStatus,
         listing_id: deal.listing_id ?? undefined,
+        property_id: deal.property_id ?? undefined,
         notes: deal.notes || '',
         seller_name: deal.seller_name || '',
         buyer_name: deal.buyer_name || '',
@@ -446,6 +449,18 @@ export function DealFormDialog({ open, onOpenChange, deal }: DealFormDialogProps
             />
             <p className="text-xs text-muted-foreground">
               Select a listing to auto-fill address details
+            </p>
+          </div>
+
+          {/* Property Selector */}
+          <div className="space-y-2">
+            <Label>Property</Label>
+            <PropertyCombobox
+              value={formData.property_id || null}
+              onChange={(propertyId) => update({ property_id: propertyId ?? undefined })}
+            />
+            <p className="text-xs text-muted-foreground">
+              Link to a property for tenant tracking on close
             </p>
           </div>
 
