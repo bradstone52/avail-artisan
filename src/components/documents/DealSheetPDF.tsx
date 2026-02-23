@@ -252,6 +252,33 @@ export function DealSheetPDF({ deal, conditions, deposits, getAgent, getBrokerag
           </View>
         </View>
 
+        {/* ── BROKERAGES ── */}
+        {(listingBrokerage || sellingBrokerage) && (
+          <View style={s.agentSection} wrap={false}>
+            <Text style={s.sectionTitle}>Brokerages</Text>
+            <View style={s.agentRow}>
+              {listingBrokerage && (
+                <View style={s.agentCard}>
+                  <Text style={s.agentRole}>Listing Brokerage</Text>
+                  <Text style={s.agentName}>{listingBrokerage.name}</Text>
+                  {listingBrokerage.address && <Text style={s.agentDetail}>{listingBrokerage.address}</Text>}
+                  {listingBrokerage.phone && <Text style={s.agentDetail}>{listingBrokerage.phone}</Text>}
+                  {listingBrokerage.email && <Text style={s.agentDetail}>{listingBrokerage.email}</Text>}
+                </View>
+              )}
+              {sellingBrokerage && (
+                <View style={s.agentCard}>
+                  <Text style={s.agentRole}>{agentLabel} Brokerage</Text>
+                  <Text style={s.agentName}>{sellingBrokerage.name}</Text>
+                  {sellingBrokerage.address && <Text style={s.agentDetail}>{sellingBrokerage.address}</Text>}
+                  {sellingBrokerage.phone && <Text style={s.agentDetail}>{sellingBrokerage.phone}</Text>}
+                  {sellingBrokerage.email && <Text style={s.agentDetail}>{sellingBrokerage.email}</Text>}
+                </View>
+              )}
+            </View>
+          </View>
+        )}
+
         {/* ── COMMISSION BREAKDOWN + DEPOSITS ── */}
         <View style={s.twoCol} wrap={false}>
           <View style={s.colHalf}>
@@ -381,34 +408,8 @@ export function DealSheetPDF({ deal, conditions, deposits, getAgent, getBrokerag
           </View>
         )}
 
-        {/* ── BROKERAGES ── */}
-        {(listingBrokerage || sellingBrokerage) && (
-          <View style={s.agentSection} wrap={false}>
-            <Text style={s.sectionTitle}>Brokerages</Text>
-            <View style={s.agentRow}>
-              {listingBrokerage && (
-                <View style={s.agentCard}>
-                  <Text style={s.agentRole}>Listing Brokerage</Text>
-                  <Text style={s.agentName}>{listingBrokerage.name}</Text>
-                  {listingBrokerage.address && <Text style={s.agentDetail}>{listingBrokerage.address}</Text>}
-                  {listingBrokerage.phone && <Text style={s.agentDetail}>{listingBrokerage.phone}</Text>}
-                  {listingBrokerage.email && <Text style={s.agentDetail}>{listingBrokerage.email}</Text>}
-                </View>
-              )}
-              {sellingBrokerage && (
-                <View style={s.agentCard}>
-                  <Text style={s.agentRole}>{agentLabel} Brokerage</Text>
-                  <Text style={s.agentName}>{sellingBrokerage.name}</Text>
-                  {sellingBrokerage.address && <Text style={s.agentDetail}>{sellingBrokerage.address}</Text>}
-                  {sellingBrokerage.phone && <Text style={s.agentDetail}>{sellingBrokerage.phone}</Text>}
-                  {sellingBrokerage.email && <Text style={s.agentDetail}>{sellingBrokerage.email}</Text>}
-                </View>
-              )}
-            </View>
-          </View>
-        )}
 
-        {/* ── AGENT CONTACTS ── */}
+
         {(listingAgent1 || listingAgent2 || sellingAgent1 || sellingAgent2) && (
           <View style={s.agentSection} wrap={false}>
             <Text style={s.sectionTitle}>Agent Contacts</Text>
