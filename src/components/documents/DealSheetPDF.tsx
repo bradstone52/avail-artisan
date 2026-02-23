@@ -42,9 +42,9 @@ const getTodayFormatted = () =>
 
 const depositLabel = (i: number) => ['First Deposit', 'Second Deposit', 'Third Deposit'][i] || `Deposit ${i + 1}`;
 
-// ── colors (matching Deal Summary) ───────────────────────
-const ORANGE = '#e8792b';
-const PEACH = '#fdf0e6';
+// ── colors (distinct from Deal Summary's orange) ─────────
+const NAVY = '#1e3a5f';
+const LIGHT_BLUE = '#e8f0fa';
 const GRAY_BG = '#f7f7f7';
 const BORDER = '#e0e0e0';
 const DARK = '#1a1a1a';
@@ -58,7 +58,7 @@ const s = StyleSheet.create({
   headerRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 },
   logo: { width: 160, height: 40, objectFit: 'contain' },
   subtitle: { fontSize: 12, fontWeight: 'bold', color: DARK, textAlign: 'center', backgroundColor: GRAY_BG, paddingVertical: 6, paddingHorizontal: 10, borderRadius: 3, marginBottom: 8 },
-  contactRow: { flexDirection: 'row', gap: 20, marginBottom: 6, paddingBottom: 6, borderBottomWidth: 1, borderBottomColor: ORANGE },
+  contactRow: { flexDirection: 'row', gap: 20, marginBottom: 6, paddingBottom: 6, borderBottomWidth: 1, borderBottomColor: NAVY },
   contactBlock: { flex: 1 },
   contactItem: { fontSize: 7, marginBottom: 1 },
   contactBold: { fontWeight: 'bold', fontSize: 7 },
@@ -83,7 +83,7 @@ const s = StyleSheet.create({
 
   // Financial summary cards
   finRow: { flexDirection: 'row', gap: 8, marginBottom: 6 },
-  finCard: { flex: 1, backgroundColor: PEACH, borderRadius: 3, padding: 8 },
+  finCard: { flex: 1, backgroundColor: LIGHT_BLUE, borderRadius: 3, padding: 8 },
   finLabel: { fontSize: 7.5, fontWeight: 'bold', marginBottom: 2 },
   finValue: { fontSize: 9, fontWeight: 'bold' },
 
@@ -124,7 +124,7 @@ const s = StyleSheet.create({
   agentDetail: { fontSize: 6.5, color: MUTED },
 
   // Comments
-  commentsSection: { marginTop: 8, borderTopWidth: 1, borderTopColor: ORANGE, paddingTop: 6 },
+  commentsSection: { marginTop: 8, borderTopWidth: 1, borderTopColor: NAVY, paddingTop: 6 },
   commentsText: { fontSize: 7.5, lineHeight: 1.4, color: MUTED },
 });
 
@@ -201,20 +201,18 @@ export function DealSheetPDF({ deal, conditions, deposits, getAgent, getBrokerag
 
         {/* ── TRANSACTION PARTIES + PROPERTY DETAILS ── */}
         <View style={s.twoCol}>
-          <View style={s.colHalf}>
+          <View style={{ width: '45%' }}>
             <Text style={s.sectionTitle}>Transaction Parties</Text>
-            <View style={{ flexDirection: 'row', gap: 6 }}>
-              <View style={[s.card, { flex: 1 }]}>
-                <Text style={s.cardLabel}>{sellerLabel}</Text>
-                <Text style={s.cardValue}>{deal.seller_name || 'To be confirmed'}</Text>
-              </View>
-              <View style={[s.card, { flex: 1 }]}>
-                <Text style={s.cardLabel}>{buyerLabel}</Text>
-                <Text style={s.cardValue}>{deal.buyer_name || 'To be confirmed'}</Text>
-              </View>
+            <View style={[s.card, { marginBottom: 4 }]}>
+              <Text style={s.cardLabel}>{sellerLabel}</Text>
+              <Text style={s.cardValue}>{deal.seller_name || 'To be confirmed'}</Text>
+            </View>
+            <View style={s.card}>
+              <Text style={s.cardLabel}>{buyerLabel}</Text>
+              <Text style={s.cardValue}>{deal.buyer_name || 'To be confirmed'}</Text>
             </View>
           </View>
-          <View style={s.colHalf}>
+          <View style={{ width: '55%' }}>
             <Text style={s.sectionTitle}>Property Details</Text>
             <View style={s.table}>
               <View style={s.propRow}>
