@@ -25,7 +25,8 @@ import {
   PopoverTrigger,
 } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
-import { Download, Plus, Trash2, CalendarIcon } from 'lucide-react';
+import { Download, Plus, Trash2, CalendarIcon, FileCheck } from 'lucide-react';
+import { Checkbox } from '@/components/ui/checkbox';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
 import { pdf } from '@react-pdf/renderer';
@@ -129,6 +130,15 @@ export function GenerateDealSummaryDialog({ open, onOpenChange, deal }: Generate
   // Actions state
   const [actions, setActions] = useState<LocalAction[]>([]);
 
+  // Local conditions state for live editing
+  interface LocalCondition {
+    id: string;
+    description: string;
+    dueDate: Date | undefined;
+    isSatisfied: boolean;
+  }
+  const [localConditions, setLocalConditions] = useState<LocalCondition[]>([]);
+
   // Format number with commas and 2 decimals for display
   const formatNumberWithCommas = (value: number): string => {
     if (!value || isNaN(value)) return '';
@@ -225,11 +235,23 @@ export function GenerateDealSummaryDialog({ open, onOpenChange, deal }: Generate
           description: a.description || '',
         })));
       } else {
-        // Initialize with one empty action
+      // Initialize with one empty action
         setActions([createEmptyAction()]);
       }
+
+      // Auto-populate conditions from existing data
+      if (existingConditions && existingConditions.length > 0) {
+        setLocalConditions(existingConditions.map(c => ({
+          id: crypto.randomUUID(),
+          description: c.description,
+          dueDate: c.due_date ? new Date(c.due_date + 'T00:00:00') : undefined,
+          isSatisfied: c.is_satisfied,
+        })));
+      } else {
+        setLocalConditions([createEmptyCondition()]);
+      }
     }
-  }, [open, deal, existingDeposits, existingActions]);
+  }, [open, deal, existingDeposits, existingActions, existingConditions]);
 
   const createEmptyDeposit = (): LocalDeposit => ({
     id: crypto.randomUUID(),
@@ -241,6 +263,21 @@ export function GenerateDealSummaryDialog({ open, onOpenChange, deal }: Generate
     dueMinute: '00',
     duePeriod: 'PM',
   });
+
+  const createEmptyCondition = (): LocalCondition => ({
+    id: crypto.randomUUID(),
+    description: '',
+    dueDate: undefined,
+    isSatisfied: false,
+  });
+
+  const addCondition = () => setLocalConditions([...localConditions, createEmptyCondition()]);
+  const removeCondition = (id: string) => {
+    if (localConditions.length > 1) setLocalConditions(localConditions.filter(c => c.id !== id));
+  };
+  const updateCondition = (id: string, updates: Partial<LocalCondition>) => {
+    setLocalConditions(localConditions.map(c => c.id === id ? { ...c, ...updates } : c));
+  };
 
   const createEmptyAction = (): LocalAction => ({
     id: crypto.randomUUID(),
@@ -338,10 +375,10 @@ export function GenerateDealSummaryDialog({ open, onOpenChange, deal }: Generate
           action: a.description,
         })),
         balanceOnClosing,
-        conditions: (existingConditions || []).map(c => ({
+        conditions: localConditions.filter(c => c.description).map(c => ({
           description: c.description,
-          due_date: c.due_date,
-          is_satisfied: c.is_satisfied,
+          due_date: c.dueDate ? format(c.dueDate, 'yyyy-MM-dd') : null,
+          is_satisfied: c.isSatisfied,
         })),
         importantDates: (existingImportantDates || []).map(d => ({
           description: d.description,
@@ -783,9 +820,10 @@ export function GenerateDealSummaryDialog({ open, onOpenChange, deal }: Generate
         </DialogHeader>
 
         <Tabs defaultValue="basic" className="flex-1 flex flex-col min-h-0">
-          <TabsList className="w-full grid grid-cols-2">
+          <TabsList className="w-full grid grid-cols-3">
             <TabsTrigger value="basic">Basic Info</TabsTrigger>
             <TabsTrigger value="deposits">Deposits</TabsTrigger>
+            <TabsTrigger value="conditions">Conditions</TabsTrigger>
           </TabsList>
 
           <div className="flex-1 mt-4 overflow-y-auto min-h-0">
@@ -919,6 +957,80 @@ export function GenerateDealSummaryDialog({ open, onOpenChange, deal }: Generate
                   <span>Balance on Closing:</span>
                   <span className="text-primary">{formatCurrency(balanceOnClosing)}</span>
                 </div>
+              </div>
+            </TabsContent>
+
+            {/* Conditions Tab */}
+            <TabsContent value="conditions" className="m-0 h-full">
+              <p className="text-sm text-muted-foreground mb-4">
+                Edit conditions that will appear on the Deal Summary.
+              </p>
+              <div className="space-y-3">
+                {localConditions.map((condition, index) => (
+                  <Card key={condition.id}>
+                    <CardContent className="p-4 space-y-3">
+                      <div className="flex justify-between items-center">
+                        <div className="flex items-center gap-2">
+                          <Checkbox
+                            checked={condition.isSatisfied}
+                            onCheckedChange={(checked) => updateCondition(condition.id, { isSatisfied: !!checked })}
+                          />
+                          <span className="font-medium text-sm">
+                            Condition {index + 1} {condition.isSatisfied ? '(Satisfied)' : ''}
+                          </span>
+                        </div>
+                        {localConditions.length > 1 && (
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => removeCondition(condition.id)}
+                            className="text-destructive hover:text-destructive"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        )}
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Description</Label>
+                        <Input
+                          value={condition.description}
+                          onChange={(e) => updateCondition(condition.id, { description: e.target.value })}
+                          placeholder="Enter condition description..."
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Removal Date</Label>
+                        <Popover>
+                          <PopoverTrigger asChild>
+                            <Button
+                              variant="outline"
+                              className={cn(
+                                "w-full justify-start text-left font-normal",
+                                !condition.dueDate && "text-muted-foreground"
+                              )}
+                            >
+                              <CalendarIcon className="mr-2 h-4 w-4" />
+                              {condition.dueDate ? format(condition.dueDate, "yyyy-MM-dd") : "yyyy - mm - dd"}
+                            </Button>
+                          </PopoverTrigger>
+                          <PopoverContent className="w-auto p-0" align="start">
+                            <Calendar
+                              mode="single"
+                              selected={condition.dueDate}
+                              onSelect={(date) => updateCondition(condition.id, { dueDate: date })}
+                              initialFocus
+                              className="pointer-events-auto"
+                            />
+                          </PopoverContent>
+                        </Popover>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+                <Button variant="outline" onClick={addCondition} className="w-full">
+                  <Plus className="h-4 w-4 mr-2" />
+                  ADD CONDITION
+                </Button>
               </div>
             </TabsContent>
 
