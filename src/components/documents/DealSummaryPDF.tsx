@@ -27,6 +27,13 @@ interface DealSummaryImportantDate {
   is_completed: boolean;
 }
 
+export interface DealSummaryLawyer {
+  name?: string | null;
+  firm?: string | null;
+  phone?: string | null;
+  email?: string | null;
+}
+
 export interface DealSummaryPDFProps {
   vendor: string;
   purchaser: string;
@@ -43,6 +50,8 @@ export interface DealSummaryPDFProps {
   listingAgents?: DealSummaryAgent[];
   sellingAgents?: DealSummaryAgent[];
   usePurchaserVendor?: boolean;
+  sellerLawyer?: DealSummaryLawyer;
+  buyerLawyer?: DealSummaryLawyer;
   // Legacy — kept for backward compat but unused
   actions?: any[];
   contacts?: any[];
@@ -162,6 +171,7 @@ export function DealSummaryPDF({
   conditions = [], importantDates = [],
   listingAgents = [], sellingAgents = [],
   usePurchaserVendor = false,
+  sellerLawyer, buyerLawyer,
 }: DealSummaryPDFProps) {
   const sellerLabel = usePurchaserVendor ? 'Vendor' : 'Seller';
   const buyerLabel = usePurchaserVendor ? 'Purchaser' : 'Buyer';
@@ -362,6 +372,33 @@ export function DealSummaryPDF({
               ))}
             </View>
           </>
+        )}
+
+        {/* ── LAWYER CONTACTS ── */}
+        {(sellerLawyer?.name || buyerLawyer?.name) && (
+          <View style={s.agentSection}>
+            <Text style={s.sectionTitle}>Lawyers</Text>
+            <View style={s.agentRow}>
+              {sellerLawyer?.name && (
+                <View style={s.agentCard}>
+                  <Text style={s.agentRole}>{usePurchaserVendor ? "Vendor's" : "Seller's"} Lawyer</Text>
+                  <Text style={s.agentName}>{sellerLawyer.name}</Text>
+                  {sellerLawyer.firm && <Text style={s.agentDetail}>{sellerLawyer.firm}</Text>}
+                  {sellerLawyer.phone && <Text style={s.agentDetail}>{sellerLawyer.phone}</Text>}
+                  {sellerLawyer.email && <Text style={s.agentDetail}>{sellerLawyer.email}</Text>}
+                </View>
+              )}
+              {buyerLawyer?.name && (
+                <View style={s.agentCard}>
+                  <Text style={s.agentRole}>{usePurchaserVendor ? "Purchaser's" : "Buyer's"} Lawyer</Text>
+                  <Text style={s.agentName}>{buyerLawyer.name}</Text>
+                  {buyerLawyer.firm && <Text style={s.agentDetail}>{buyerLawyer.firm}</Text>}
+                  {buyerLawyer.phone && <Text style={s.agentDetail}>{buyerLawyer.phone}</Text>}
+                  {buyerLawyer.email && <Text style={s.agentDetail}>{buyerLawyer.email}</Text>}
+                </View>
+              )}
+            </View>
+          </View>
         )}
 
         {/* ── AGENT CONTACTS ── */}
