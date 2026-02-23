@@ -121,35 +121,71 @@ export function useUpdateDeal() {
       queryClient.invalidateQueries({ queryKey: ['deals', data.id] });
       toast.success('Deal updated successfully');
 
-      // Auto-create tenant when a lease deal is closed
-      if (
-        data.status === 'Closed' &&
-        ['Lease', 'Sublease', 'Renewal'].includes(data.deal_type) &&
-        data.buyer_name &&
-        data.property_id &&
-        user?.id
-      ) {
+      if (data.status === 'Closed' && user?.id) {
+        // Auto-create transaction for ALL closed deals
         try {
-          // Check for existing tenant with same name on same property
-          const { data: existing } = await supabase
-            .from('property_tenants')
+          const { data: existingTxn } = await supabase
+            .from('transactions')
             .select('id')
-            .eq('property_id', data.property_id)
-            .eq('tenant_name', data.buyer_name)
+            .eq('address', data.address)
+            .eq('org_id', data.org_id!)
             .maybeSingle();
 
-          if (!existing) {
-            await supabase.from('property_tenants').insert({
-              property_id: data.property_id,
-              tenant_name: data.buyer_name,
-              size_sf: data.size_sf ? Math.round(Number(data.size_sf)) : null,
-              lease_expiry: data.expiry_date || null,
-              tracked_by: user.id,
+          if (!existingTxn) {
+            await supabase.from('transactions').insert({
+              transaction_type: data.deal_type,
+              address: data.address,
+              city: data.city || '',
+              submarket: data.submarket || '',
+              size_sf: data.size_sf ? Math.round(Number(data.size_sf)) : 0,
+              transaction_date: data.close_date || null,
+              closing_date: data.closing_date || null,
+              sale_price: data.deal_type === 'Sale' ? data.deal_value : null,
+              lease_rate_psf: data.lease_rate_psf || null,
+              lease_term_months: data.lease_term_months || null,
+              buyer_tenant_name: data.buyer_name || null,
+              seller_landlord_name: data.seller_name || null,
+              commission_percent: data.commission_percent || null,
+              notes: data.notes || null,
+              property_id: data.property_id || null,
+              org_id: data.org_id,
+              created_by: user.id,
             });
-            queryClient.invalidateQueries({ queryKey: ['all-tenants'] });
+            queryClient.invalidateQueries({ queryKey: ['transactions'] });
           }
         } catch (err) {
-          console.error('Auto-create tenant failed:', err);
+          console.error('Auto-create transaction failed:', err);
+          toast.error('Deal closed, but transaction record could not be created automatically');
+        }
+
+        // Auto-create tenant when a lease deal is closed
+        if (
+          ['Lease', 'Sublease', 'Renewal'].includes(data.deal_type) &&
+          data.buyer_name &&
+          data.property_id
+        ) {
+          try {
+            const { data: existing } = await supabase
+              .from('property_tenants')
+              .select('id')
+              .eq('property_id', data.property_id)
+              .eq('tenant_name', data.buyer_name)
+              .maybeSingle();
+
+            if (!existing) {
+              await supabase.from('property_tenants').insert({
+                property_id: data.property_id,
+                tenant_name: data.buyer_name,
+                size_sf: data.size_sf ? Math.round(Number(data.size_sf)) : null,
+                lease_expiry: data.expiry_date || null,
+                tracked_by: user.id,
+              });
+              queryClient.invalidateQueries({ queryKey: ['all-tenants'] });
+            }
+          } catch (err) {
+            console.error('Auto-create tenant failed:', err);
+            toast.error('Deal closed, but tenant record could not be created automatically');
+          }
         }
       }
     },
