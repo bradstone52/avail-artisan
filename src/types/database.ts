@@ -93,6 +93,10 @@ export interface Deal {
   submarket: string;
   size_sf?: number | null;
   is_land_deal?: boolean;
+  lease_rate_psf?: number | null;
+  lease_term_months?: number | null;
+  commencement_date?: string | null;
+  expiry_date?: string | null;
   deal_value?: number | null;
   commission_percent?: number | null;
   close_date?: string | null;
@@ -171,6 +175,10 @@ export interface DealFormData {
   submarket: string;
   size_sf?: number | null;
   is_land_deal?: boolean;
+  lease_rate_psf?: number | null;
+  lease_term_months?: number | null;
+  commencement_date?: string | null;
+  expiry_date?: string | null;
   deal_value?: number | null;
   commission_percent?: number;
   close_date?: string | null;

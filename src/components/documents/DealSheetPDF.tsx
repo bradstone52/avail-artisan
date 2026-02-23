@@ -156,11 +156,11 @@ export function DealSheetPDF({ deal, conditions, deposits, getAgent, getBrokerag
   const sellingAgent1 = getAgent(deal.selling_agent1_id);
   const sellingAgent2 = getAgent(deal.selling_agent2_id);
 
-  const isLease = deal.deal_type?.toLowerCase() === 'lease';
+  const isLease = ['lease', 'sublease', 'renewal', 'expansion'].includes(deal.deal_type?.toLowerCase() || '');
   const usePV = !!(deal as any).use_purchaser_vendor;
-  const sellerLabel = usePV ? 'Vendor' : 'Seller';
-  const buyerLabel = usePV ? 'Purchaser' : 'Buyer';
-  const valueLabel = isLease ? 'Lease Value' : 'Sale Price';
+  const sellerLabel = isLease ? 'Landlord' : (usePV ? 'Vendor' : 'Seller');
+  const buyerLabel = isLease ? 'Tenant' : (usePV ? 'Purchaser' : 'Buyer');
+  const valueLabel = isLease ? 'Deal Value' : 'Sale Price';
   const agentLabel = isLease ? 'Leasing' : 'Selling';
 
   const displayDeposits = deposits.slice(0, 3);
@@ -225,8 +225,32 @@ export function DealSheetPDF({ deal, conditions, deposits, getAgent, getBrokerag
                 <Text style={s.propLabel}>Premises Size</Text>
                 <Text style={s.propValue}>{deal.size_sf ? `${fmtNumber(deal.size_sf)} ${(deal as any).is_land_deal ? 'Ac' : 'SF'}` : '—'}</Text>
               </View>
+              {isLease && (deal as any).lease_rate_psf != null && (
+                <View style={s.propRow}>
+                  <Text style={s.propLabel}>Lease Rate PSF</Text>
+                  <Text style={s.propValue}>{`$${Number((deal as any).lease_rate_psf).toFixed(2)}/SF`}</Text>
+                </View>
+              )}
+              {isLease && (deal as any).lease_term_months != null && (
+                <View style={s.propRow}>
+                  <Text style={s.propLabel}>Lease Term</Text>
+                  <Text style={s.propValue}>{`${(deal as any).lease_term_months} months`}</Text>
+                </View>
+              )}
+              {isLease && (deal as any).commencement_date && (
+                <View style={s.propRow}>
+                  <Text style={s.propLabel}>Commencement Date</Text>
+                  <Text style={s.propValue}>{fmtDate((deal as any).commencement_date)}</Text>
+                </View>
+              )}
+              {isLease && (deal as any).expiry_date && (
+                <View style={s.propRow}>
+                  <Text style={s.propLabel}>Expiry Date</Text>
+                  <Text style={s.propValue}>{fmtDate((deal as any).expiry_date)}</Text>
+                </View>
+              )}
               <View style={s.propRowLast}>
-                <Text style={s.propLabel}>Closing Date</Text>
+                <Text style={s.propLabel}>{isLease ? 'Possession Date' : 'Closing Date'}</Text>
                 <Text style={s.propValue}>{fmtDate(deal.close_date) || '—'}</Text>
               </View>
             </View>

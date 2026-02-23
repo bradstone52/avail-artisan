@@ -394,6 +394,11 @@ export function GenerateDealSummaryDialog({ open, onOpenChange, deal }: Generate
         listingAgents,
         sellingAgents,
         usePurchaserVendor: !!(deal as any).use_purchaser_vendor,
+        dealType: deal.deal_type,
+        leaseRatePsf: (deal as any).lease_rate_psf,
+        leaseTermMonths: (deal as any).lease_term_months,
+        commencementDate: (deal as any).commencement_date,
+        expiryDate: (deal as any).expiry_date,
         sellerLawyer: {
           name: deal.seller_lawyer_name,
           firm: deal.seller_lawyer_firm,

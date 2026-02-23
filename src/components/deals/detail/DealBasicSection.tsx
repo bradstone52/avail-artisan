@@ -88,6 +88,35 @@ export function DealBasicSection({ deal, onUpdate }: DealBasicSectionProps) {
           </div>
         </div>
 
+        {['Lease', 'Sublease', 'Renewal', 'Expansion'].includes(deal.deal_type) && (
+          <div className="grid grid-cols-2 gap-4">
+            {(deal as any).lease_rate_psf != null && (
+              <div className="space-y-2">
+                <Label>Lease Rate PSF</Label>
+                <Input value={`$${Number((deal as any).lease_rate_psf).toFixed(2)}/SF`} disabled className="bg-muted" />
+              </div>
+            )}
+            {(deal as any).lease_term_months != null && (
+              <div className="space-y-2">
+                <Label>Lease Term</Label>
+                <Input value={`${(deal as any).lease_term_months} months`} disabled className="bg-muted" />
+              </div>
+            )}
+            {(deal as any).commencement_date && (
+              <div className="space-y-2">
+                <Label>Commencement Date</Label>
+                <Input value={(deal as any).commencement_date} disabled className="bg-muted" />
+              </div>
+            )}
+            {(deal as any).expiry_date && (
+              <div className="space-y-2">
+                <Label>Expiry Date</Label>
+                <Input value={(deal as any).expiry_date} disabled className="bg-muted" />
+              </div>
+            )}
+          </div>
+        )}
+
         <div className="space-y-2">
           <Label>Status</Label>
           <Select

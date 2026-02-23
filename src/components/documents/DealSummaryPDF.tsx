@@ -52,6 +52,12 @@ export interface DealSummaryPDFProps {
   usePurchaserVendor?: boolean;
   sellerLawyer?: DealSummaryLawyer;
   buyerLawyer?: DealSummaryLawyer;
+  // Lease-specific fields
+  dealType?: string;
+  leaseRatePsf?: number | null;
+  leaseTermMonths?: number | null;
+  commencementDate?: string | null;
+  expiryDate?: string | null;
   // Legacy — kept for backward compat but unused
   actions?: any[];
   contacts?: any[];
@@ -173,9 +179,12 @@ export function DealSummaryPDF({
   listingAgents = [], sellingAgents = [],
   usePurchaserVendor = false,
   sellerLawyer, buyerLawyer,
+  dealType, leaseRatePsf, leaseTermMonths, commencementDate, expiryDate,
 }: DealSummaryPDFProps) {
-  const sellerLabel = usePurchaserVendor ? 'Vendor' : 'Seller';
-  const buyerLabel = usePurchaserVendor ? 'Purchaser' : 'Buyer';
+  const isLease = ['lease', 'sublease', 'renewal', 'expansion'].includes(dealType?.toLowerCase() || '');
+  const sellerLabel = isLease ? 'Landlord' : (usePurchaserVendor ? 'Vendor' : 'Seller');
+  const buyerLabel = isLease ? 'Tenant' : (usePurchaserVendor ? 'Purchaser' : 'Buyer');
+  const agentLabel = isLease ? 'Leasing' : 'Selling';
   const validDeposits = deposits.filter(d => d.amount > 0);
   const totalDeposits = validDeposits.reduce((sum, d) => sum + d.amount, 0);
   const validConditions = conditions.filter(c => c.description);
@@ -183,7 +192,8 @@ export function DealSummaryPDF({
 
   // Build timeline events
   const timelineEvents: { date: string; label: string; detail: string }[] = [];
-  if (effectiveDate) timelineEvents.push({ date: effectiveDate, label: fmtDateShort(effectiveDate), detail: 'Effective Date — Agreement executed' });
+  const effectiveDateToUse = isLease ? commencementDate : effectiveDate;
+  if (effectiveDateToUse) timelineEvents.push({ date: effectiveDateToUse, label: fmtDateShort(effectiveDateToUse), detail: `${isLease ? 'Commencement Date' : 'Effective Date'} — Agreement executed` });
   validDeposits.forEach((d, i) => {
     if (d.due_date) timelineEvents.push({ date: d.due_date, label: fmtDateShort(d.due_date), detail: `${depositLabel(i)} — ${fmt(d.amount)}` });
   });
@@ -242,10 +252,28 @@ export function DealSummaryPDF({
                 <Text style={s.propLabel}>Description</Text>
                 <Text style={s.propValue}>{propertyDescription || ' '}</Text>
               </View>
-              <View style={s.propRowLast}>
-                <Text style={s.propLabel}>Effective Date</Text>
-                <Text style={s.propValue}>{fmtDate(effectiveDate) || ' '}</Text>
+              <View style={isLease ? s.propRow : s.propRowLast}>
+                <Text style={s.propLabel}>{isLease ? 'Commencement Date' : 'Effective Date'}</Text>
+                <Text style={s.propValue}>{fmtDate(isLease ? commencementDate : effectiveDate) || ' '}</Text>
               </View>
+              {isLease && leaseRatePsf != null && (
+                <View style={s.propRow}>
+                  <Text style={s.propLabel}>Lease Rate PSF</Text>
+                  <Text style={s.propValue}>{`$${Number(leaseRatePsf).toFixed(2)}/SF`}</Text>
+                </View>
+              )}
+              {isLease && leaseTermMonths != null && (
+                <View style={s.propRow}>
+                  <Text style={s.propLabel}>Lease Term</Text>
+                  <Text style={s.propValue}>{`${leaseTermMonths} months`}</Text>
+                </View>
+              )}
+              {isLease && expiryDate && (
+                <View style={s.propRowLast}>
+                  <Text style={s.propLabel}>Expiry Date</Text>
+                  <Text style={s.propValue}>{fmtDate(expiryDate)}</Text>
+                </View>
+              )}
             </View>
           </View>
         </View>
@@ -255,7 +283,7 @@ export function DealSummaryPDF({
           <Text style={s.sectionTitle}>Financial Summary</Text>
           <View style={s.finRow}>
             <View style={s.finCard}>
-              <Text style={s.finLabel}>Purchase Price</Text>
+              <Text style={s.finLabel}>{isLease ? 'Deal Value' : 'Purchase Price'}</Text>
               <Text style={s.finValue}>{fmt(purchasePrice)}</Text>
             </View>
             <View style={s.finCard}>
@@ -295,7 +323,7 @@ export function DealSummaryPDF({
             <Text style={s.sectionTitle}>Closing Details</Text>
             <View style={s.table}>
               <View style={s.propRow}>
-                <Text style={[s.propLabel, { width: '50%' }]}>Purchase Price</Text>
+                <Text style={[s.propLabel, { width: '50%' }]}>{isLease ? 'Deal Value' : 'Purchase Price'}</Text>
                 <Text style={[s.propValue, { width: '50%' }]}>{fmt(purchasePrice)}</Text>
               </View>
               <View style={s.propRow}>
@@ -381,7 +409,7 @@ export function DealSummaryPDF({
             <View style={s.agentRow}>
               {sellerLawyer?.name && (
                 <View style={s.agentCard}>
-                  <Text style={s.agentRole}>{usePurchaserVendor ? "Vendor's" : "Seller's"} Lawyer</Text>
+                  <Text style={s.agentRole}>{sellerLabel}'s Lawyer</Text>
                   <Text style={s.agentName}>{sellerLawyer.name}</Text>
                   {sellerLawyer.firm && <Text style={s.agentDetail}>{sellerLawyer.firm}</Text>}
                   {sellerLawyer.phone && <Text style={s.agentDetail}>{sellerLawyer.phone}</Text>}
@@ -390,7 +418,7 @@ export function DealSummaryPDF({
               )}
               {buyerLawyer?.name && (
                 <View style={s.agentCard}>
-                  <Text style={s.agentRole}>{usePurchaserVendor ? "Purchaser's" : "Buyer's"} Lawyer</Text>
+                  <Text style={s.agentRole}>{buyerLabel}'s Lawyer</Text>
                   <Text style={s.agentName}>{buyerLawyer.name}</Text>
                   {buyerLawyer.firm && <Text style={s.agentDetail}>{buyerLawyer.firm}</Text>}
                   {buyerLawyer.phone && <Text style={s.agentDetail}>{buyerLawyer.phone}</Text>}
@@ -417,7 +445,7 @@ export function DealSummaryPDF({
               ))}
               {sellingAgents.map((a, i) => (
                 <View style={s.agentCard} key={`sa-${i}`}>
-                  <Text style={s.agentRole}>Selling / Leasing Agent</Text>
+                  <Text style={s.agentRole}>{agentLabel} Agent</Text>
                   <Text style={s.agentName}>{a.name}</Text>
                   {a.brokerage && <Text style={s.agentDetail}>{a.brokerage}</Text>}
                   {a.email && <Text style={s.agentDetail}>{a.email}</Text>}
