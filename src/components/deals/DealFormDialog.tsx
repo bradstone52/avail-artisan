@@ -436,16 +436,15 @@ export function DealFormDialog({ open, onOpenChange, deal }: DealFormDialogProps
               />
               <Label htmlFor="is_land_deal" className="cursor-pointer">Land Deal</Label>
             </div>
-            <div className="flex items-center gap-3">
-              <Switch
-                id="use_purchaser_vendor"
-                checked={formData.use_purchaser_vendor || false}
-                onCheckedChange={(checked) => update({ use_purchaser_vendor: checked })}
-              />
-              <Label htmlFor="use_purchaser_vendor" className="cursor-pointer">
-                {formData.use_purchaser_vendor ? 'Purchaser/Vendor' : 'Buyer/Seller'}
-              </Label>
-            </div>
+            <Button
+              type="button"
+              variant={formData.use_purchaser_vendor ? 'default' : 'outline'}
+              size="sm"
+              onClick={() => update({ use_purchaser_vendor: !formData.use_purchaser_vendor })}
+              className="whitespace-nowrap"
+            >
+              {formData.use_purchaser_vendor ? 'Purchaser/Vendor' : 'Buyer/Seller'}
+            </Button>
           </div>
 
           <div className="grid grid-cols-3 gap-4">
