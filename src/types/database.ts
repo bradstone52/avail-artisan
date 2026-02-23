@@ -1,7 +1,7 @@
 export type ListingType = 'Lease' | 'Sale' | 'Sublease';
 export type ListingStatus = 'Active' | 'Under Contract' | 'Sold/Leased' | 'Unknown/Removed';
 export type DealSource = 'Direct' | 'Referral' | 'Marketing' | 'Cold Call' | 'Website' | 'Other';
-export type DealType = 'Lease' | 'Sale' | 'Sublease' | 'Renewal' | 'Expansion';
+export type DealType = 'Lease' | 'Sale' | 'Sublease' | 'Renewal';
 export type DealStatus = 'Active' | 'Under Contract' | 'Closed' | 'Lost' | 'On Hold';
 
 export interface Listing {
