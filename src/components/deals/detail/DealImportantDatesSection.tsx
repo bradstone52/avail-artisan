@@ -47,7 +47,7 @@ export function DealImportantDatesSection({
   const [condDueDate, setCondDueDate] = useState('');
   const [condDateMode, setCondDateMode] = useState<'specific' | 'relative'>('specific');
   const [condDaysFromEffective, setCondDaysFromEffective] = useState<number>(30);
-  
+  const [condDayType, setCondDayType] = useState<'calendar' | 'business'>('calendar');
   // Deposit form state
   const [depAmount, setDepAmount] = useState<number | null>(null);
   const [depHeldBy, setDepHeldBy] = useState('');
@@ -72,6 +72,7 @@ export function DealImportantDatesSection({
     setCondDueDate('');
     setCondDateMode('specific');
     setCondDaysFromEffective(30);
+    setCondDayType('calendar');
     setDepAmount(null);
     setDepHeldBy('');
     setDepDueDate('');
@@ -81,10 +82,24 @@ export function DealImportantDatesSection({
 
   const effectiveDate = (deal as any).effective_date as string | null;
 
+  const addBusinessDays = (startDate: Date, days: number): Date => {
+    let current = new Date(startDate);
+    let added = 0;
+    while (added < days) {
+      current.setDate(current.getDate() + 1);
+      const dow = current.getDay();
+      if (dow !== 0 && dow !== 6) added++;
+    }
+    return current;
+  };
+
   const computedCondDueDate = (() => {
     if (condDateMode === 'specific') return condDueDate;
     if (!effectiveDate) return '';
-    const result = addDays(new Date(effectiveDate), condDaysFromEffective);
+    const start = new Date(effectiveDate);
+    const result = condDayType === 'business'
+      ? addBusinessDays(start, condDaysFromEffective)
+      : addDays(start, condDaysFromEffective);
     return format(result, 'yyyy-MM-dd');
   })();
 
@@ -361,21 +376,35 @@ export function DealImportantDatesSection({
                 />
               </div>
             ) : (
-              <div className="space-y-2">
-                <Label>Days from Effective Date</Label>
-                <div className="flex items-center gap-3">
-                  <Input
-                    type="number"
-                    min={1}
-                    value={condDaysFromEffective}
-                    onChange={(e) => setCondDaysFromEffective(parseInt(e.target.value) || 0)}
-                    className="w-24"
-                  />
-                  <span className="text-sm text-muted-foreground">days</span>
+              <div className="space-y-3">
+                <div className="space-y-2">
+                  <Label>Day Type</Label>
+                  <Select value={condDayType} onValueChange={(v) => setCondDayType(v as 'calendar' | 'business')}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="calendar">Calendar Days</SelectItem>
+                      <SelectItem value="business">Business Days</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label>{condDayType === 'business' ? 'Business' : 'Calendar'} Days from Effective Date</Label>
+                  <div className="flex items-center gap-3">
+                    <Input
+                      type="number"
+                      min={1}
+                      value={condDaysFromEffective}
+                      onChange={(e) => setCondDaysFromEffective(parseInt(e.target.value) || 0)}
+                      className="w-24"
+                    />
+                    <span className="text-sm text-muted-foreground">{condDayType === 'business' ? 'business days' : 'days'}</span>
+                  </div>
                   {computedCondDueDate && (
-                    <span className="text-sm font-medium">
-                      = {format(new Date(computedCondDueDate), 'MMMM d, yyyy')}
-                    </span>
+                    <p className="text-sm font-medium text-muted-foreground">
+                      Due date: {format(new Date(computedCondDueDate), 'MMMM d, yyyy')}
+                    </p>
                   )}
                 </div>
               </div>
