@@ -1,21 +1,18 @@
 import { Document, Page, Text, View, Image, StyleSheet } from '@react-pdf/renderer';
-
-// Import logo
 import clearviewLogo from '@/assets/clearview-logo.png';
+
+export interface DealSummaryAgent {
+  name: string;
+  email?: string;
+  phone?: string;
+  brokerage?: string;
+}
 
 interface DealSummaryDeposit {
   amount: number;
   payable_to: string;
   due_date: string;
   due_time?: string;
-}
-
-interface DealSummaryAction {
-  due_date: string;
-  due_time?: string;
-  date_met?: string;
-  acting_party: string;
-  action: string;
 }
 
 interface DealSummaryCondition {
@@ -30,7 +27,7 @@ interface DealSummaryImportantDate {
   is_completed: boolean;
 }
 
-interface DealSummaryPDFProps {
+export interface DealSummaryPDFProps {
   vendor: string;
   purchaser: string;
   propertyAddress: string;
@@ -40,415 +37,356 @@ interface DealSummaryPDFProps {
   purchasePrice: number;
   balanceOnClosing: number;
   closingDate?: string | null;
-  actions: DealSummaryAction[];
   conditions?: DealSummaryCondition[];
   importantDates?: DealSummaryImportantDate[];
-  contacts: { name: string; email?: string; phone?: string }[];
+  listingAgents?: DealSummaryAgent[];
+  sellingAgents?: DealSummaryAgent[];
+  // Legacy — kept for backward compat but unused
+  actions?: any[];
+  contacts?: any[];
   logoBase64?: string;
 }
 
-const styles = StyleSheet.create({
-  // PAGE: Letter size, 40px padding, extra bottom padding for footer
-  page: {
-    padding: 40,
-    paddingBottom: 100,
-    fontSize: 10,
-    fontFamily: 'Helvetica',
-    position: 'relative',
-  },
+// ── helpers ──────────────────────────────────────────────
+const fmt = (v: number | null | undefined): string => {
+  if (v == null) return '';
+  return new Intl.NumberFormat('en-CA', { style: 'currency', currency: 'CAD', minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(v);
+};
 
-  // HEADER: Logo and title side by side, left aligned
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'flex-start',
-    alignItems: 'center',
-    marginBottom: 20,
-  },
-  logo: {
-    width: 200,
-    height: 50,
-    objectFit: 'contain',
-  },
-  title: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    marginLeft: 10,
-  },
+const fmtDate = (d: string | null | undefined): string => {
+  if (!d) return '';
+  try {
+    return new Date(d + (d.includes('T') ? '' : 'T00:00:00')).toLocaleDateString('en-CA', { year: 'numeric', month: 'long', day: 'numeric' });
+  } catch { return ''; }
+};
 
-  // MAIN TABLE: Two-column layout (35% label, 65% value)
-  dealDetailsTable: {
-    width: '100%',
-    borderWidth: 1,
-    borderColor: '#000',
-    borderStyle: 'solid',
-  },
-  dealRow: {
-    flexDirection: 'row',
-    borderBottomWidth: 1,
-    borderBottomColor: '#000',
-    borderBottomStyle: 'solid',
-  },
-  dealRowLast: {
-    flexDirection: 'row',
-  },
-  labelCell: {
-    width: '35%',
-    padding: 6,
-    backgroundColor: '#f5f5f5',
-    borderRightWidth: 1,
-    borderRightColor: '#000',
-    borderRightStyle: 'solid',
-    fontWeight: 'bold',
-  },
-  valueCell: {
-    width: '65%',
-    padding: 6,
-  },
+const fmtDateShort = (d: string | null | undefined): string => {
+  if (!d) return '';
+  try {
+    return new Date(d + (d.includes('T') ? '' : 'T00:00:00')).toLocaleDateString('en-CA', { year: 'numeric', month: 'short', day: 'numeric' });
+  } catch { return ''; }
+};
 
-  // ACTIONS TABLE: Four columns
-  actionsTable: {
-    width: '100%',
-    borderWidth: 1,
-    borderColor: '#000',
-    borderStyle: 'solid',
-    marginTop: 20,
-  },
-  actionsHeaderRow: {
-    flexDirection: 'row',
-    backgroundColor: '#e0e0e0',
-    borderBottomWidth: 1,
-    borderBottomColor: '#000',
-    borderBottomStyle: 'solid',
-  },
-  actionsRow: {
-    flexDirection: 'row',
-    borderBottomWidth: 1,
-    borderBottomColor: '#000',
-    borderBottomStyle: 'solid',
-  },
-  actionsRowLast: {
-    flexDirection: 'row',
-  },
-  actionsCellHeader: {
-    padding: 6,
-    fontWeight: 'bold',
-    fontSize: 9,
-    borderRightWidth: 1,
-    borderRightColor: '#000',
-    borderRightStyle: 'solid',
-    textAlign: 'center',
-  },
-  actionsCell: {
-    padding: 6,
-    fontSize: 9,
-    borderRightWidth: 1,
-    borderRightColor: '#000',
-    borderRightStyle: 'solid',
-    textAlign: 'center',
-  },
-  actionsCellLast: {
-    padding: 6,
-    fontSize: 9,
-    textAlign: 'center',
-  },
+const depositLabel = (i: number) => ['First Deposit', 'Second Deposit', 'Third Deposit'][i] || `Deposit ${i + 1}`;
 
-  // Column widths for actions table
-  dueDateCol: { width: '20%' },
-  dateMetCol: { width: '20%' },
-  actingPartyCol: { width: '20%' },
-  actionCol: { width: '40%' },
+const ORANGE = '#e8792b';
+const PEACH = '#fdf0e6';
+const GRAY_BG = '#f7f7f7';
+const BORDER = '#e0e0e0';
+const DARK = '#1a1a1a';
+const MUTED = '#666666';
 
-  // CONDITIONS / IMPORTANT DATES TABLE: Three columns
-  conditionsTable: {
-    width: '100%',
-    borderWidth: 1,
-    borderColor: '#000',
-    borderStyle: 'solid',
-    marginTop: 20,
-  },
-  conditionsTitle: {
-    fontSize: 11,
-    fontWeight: 'bold',
-    marginTop: 20,
-    marginBottom: 4,
-  },
-  condDescCol: { width: '50%' },
-  condDateCol: { width: '30%' },
-  condStatusCol: { width: '20%' },
-
-  // FOOTER: Yellow/orange background, fixed to bottom
-  contactsSection: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    backgroundColor: '#fbaf15',
-    paddingTop: 15,
-    paddingBottom: 15,
-    paddingLeft: 40,
-    paddingRight: 40,
-  },
-  contactsTable: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-  },
-  contactColumn: {
-    flex: 1,
-  },
-  contactName: {
-    fontWeight: 'bold',
-    marginBottom: 2,
-    color: '#ffffff',
-    fontSize: 10,
-  },
-  contactDetail: {
-    fontSize: 9,
-    marginBottom: 1,
-    color: '#ffffff',
-  },
+// ── styles ───────────────────────────────────────────────
+const s = StyleSheet.create({
+  page: { padding: 30, paddingBottom: 30, fontSize: 8, fontFamily: 'Helvetica', color: DARK },
+  
+  // Header
+  headerRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 },
+  logo: { width: 160, height: 40, objectFit: 'contain' },
+  subtitle: { fontSize: 11, color: MUTED, marginBottom: 8 },
+  contactRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 6, paddingBottom: 6, borderBottomWidth: 1, borderBottomColor: ORANGE },
+  contactItem: { fontSize: 7.5 },
+  contactBold: { fontWeight: 'bold', fontSize: 7.5 },
+  
+  // Section title
+  sectionTitle: { fontSize: 9, fontWeight: 'bold', marginTop: 10, marginBottom: 4 },
+  
+  // Two-column layout
+  twoCol: { flexDirection: 'row', gap: 12 },
+  colHalf: { width: '48%' },
+  colLeft: { width: '42%' },
+  colRight: { width: '56%' },
+  
+  // Cards
+  card: { borderWidth: 1, borderColor: BORDER, borderRadius: 3, padding: 8, marginBottom: 4 },
+  cardLabel: { fontSize: 8, fontWeight: 'bold', marginBottom: 2 },
+  cardValue: { fontSize: 8, color: MUTED },
+  
+  // Financial summary cards
+  finRow: { flexDirection: 'row', gap: 8, marginBottom: 6 },
+  finCard: { flex: 1, backgroundColor: PEACH, borderRadius: 3, padding: 8 },
+  finLabel: { fontSize: 7.5, fontWeight: 'bold', marginBottom: 2 },
+  finValue: { fontSize: 9, fontWeight: 'bold' },
+  
+  // Table
+  table: { borderWidth: 1, borderColor: BORDER, borderRadius: 3, marginBottom: 4 },
+  tableHeader: { flexDirection: 'row', backgroundColor: GRAY_BG, borderBottomWidth: 1, borderBottomColor: BORDER, padding: 5 },
+  tableRow: { flexDirection: 'row', padding: 5, borderBottomWidth: 1, borderBottomColor: BORDER },
+  tableRowLast: { flexDirection: 'row', padding: 5 },
+  tableHeaderCell: { fontSize: 7.5, fontWeight: 'bold' },
+  tableCell: { fontSize: 7.5 },
+  
+  // Property details table
+  propRow: { flexDirection: 'row', borderBottomWidth: 1, borderBottomColor: BORDER },
+  propRowLast: { flexDirection: 'row' },
+  propLabel: { width: '40%', padding: 5, fontWeight: 'bold', fontSize: 7.5, backgroundColor: GRAY_BG },
+  propValue: { width: '60%', padding: 5, fontSize: 7.5 },
+  
+  // Timeline
+  timelineContainer: { paddingLeft: 10, marginBottom: 4 },
+  timelineItem: { flexDirection: 'row', marginBottom: 0 },
+  timelineLine: { width: 16, alignItems: 'center', position: 'relative' },
+  timelineDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: ORANGE, marginTop: 2 },
+  timelineConnector: { width: 2, backgroundColor: BORDER, flex: 1, marginLeft: 3, marginRight: 3 },
+  timelineContent: { flex: 1, paddingLeft: 6, paddingBottom: 6 },
+  timelineDate: { fontSize: 8, fontWeight: 'bold', marginBottom: 1 },
+  timelineDesc: { fontSize: 7, color: MUTED },
+  
+  // Conditions table columns
+  condDesc: { width: '50%' },
+  condDate: { width: '30%' },
+  condStatus: { width: '20%' },
+  
+  // Contact footer
+  contactFooter: { flexDirection: 'row', gap: 8, marginTop: 6 },
+  contactCard: { flex: 1, borderWidth: 1, borderColor: BORDER, borderRadius: 3, padding: 6 },
+  contactCardName: { fontSize: 8, fontWeight: 'bold', marginBottom: 1 },
+  contactCardDetail: { fontSize: 7, color: MUTED, marginBottom: 1 },
+  
+  // Agent section
+  agentSection: { marginTop: 6 },
+  agentRow: { flexDirection: 'row', gap: 8, marginBottom: 4 },
+  agentCard: { flex: 1, borderWidth: 1, borderColor: BORDER, borderRadius: 3, padding: 6, backgroundColor: GRAY_BG },
+  agentRole: { fontSize: 6.5, color: MUTED, marginBottom: 1, textTransform: 'uppercase' as any },
+  agentName: { fontSize: 7.5, fontWeight: 'bold', marginBottom: 1 },
+  agentDetail: { fontSize: 6.5, color: MUTED },
 });
 
-// Currency: CAD with 2 decimals
-const formatCurrency = (value: number | null | undefined): string => {
-  if (value === null || value === undefined) return '';
-  return new Intl.NumberFormat('en-CA', {
-    style: 'currency',
-    currency: 'CAD',
-    minimumFractionDigits: 2,
-  }).format(value);
-};
-
-// Date: "January 28, 2026" format
-const formatDate = (date: string | null | undefined): string => {
-  if (!date) return '';
-  try {
-    return new Date(date + (date.includes('T') ? '' : 'T00:00:00')).toLocaleDateString('en-CA', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric',
-    });
-  } catch {
-    return '';
-  }
-};
-
-// Get deposit label
-const getDepositLabel = (index: number): string => {
-  const labels = ['First Deposit', 'Second Deposit', 'Third Deposit'];
-  return labels[index] || `Deposit ${index + 1}`;
-};
-
+// ── Component ────────────────────────────────────────────
 export function DealSummaryPDF({
-  vendor,
-  purchaser,
-  propertyAddress,
-  propertyDescription,
-  effectiveDate,
-  deposits,
-  purchasePrice,
-  balanceOnClosing,
-  closingDate,
-  actions,
-  conditions = [],
-  importantDates = [],
-  contacts,
+  vendor, purchaser, propertyAddress, propertyDescription, effectiveDate,
+  deposits, purchasePrice, balanceOnClosing, closingDate,
+  conditions = [], importantDates = [],
+  listingAgents = [], sellingAgents = [],
 }: DealSummaryPDFProps) {
-  // Filter out empty deposits
   const validDeposits = deposits.filter(d => d.amount > 0);
-  // Filter out empty actions
-  const validActions = actions.filter(a => a.action || a.due_date);
-  // Filter conditions and dates
+  const totalDeposits = validDeposits.reduce((sum, d) => sum + d.amount, 0);
   const validConditions = conditions.filter(c => c.description);
   const validDates = importantDates.filter(d => d.description);
-  // Count rows to determine which is last
-  const baseRows = 8; // Vendor, Purchaser, Address, Description, Effective Date, Purchase Price, Balance, Closing Date
-  const totalRows = baseRows + validDeposits.length;
+
+  // Build timeline events
+  const timelineEvents: { date: string; label: string; detail: string }[] = [];
+  if (effectiveDate) timelineEvents.push({ date: effectiveDate, label: fmtDateShort(effectiveDate), detail: 'Effective Date — Agreement executed' });
+  validDeposits.forEach((d, i) => {
+    if (d.due_date) timelineEvents.push({ date: d.due_date, label: fmtDateShort(d.due_date), detail: `${depositLabel(i)} — ${fmt(d.amount)}` });
+  });
+  validConditions.forEach(c => {
+    if (c.due_date) timelineEvents.push({ date: c.due_date, label: fmtDateShort(c.due_date), detail: `Condition — ${c.description}` });
+  });
+  if (closingDate) timelineEvents.push({ date: closingDate, label: fmtDateShort(closingDate), detail: `Closing — Balance of ${fmt(balanceOnClosing)}` });
+  // Add post-closing
+  if (closingDate) timelineEvents.push({ date: 'z-post', label: 'Post-Closing', detail: 'Title transfer and possession' });
+  // Sort by date
+  timelineEvents.sort((a, b) => a.date.localeCompare(b.date));
 
   return (
     <Document>
-      <Page size="LETTER" style={styles.page}>
-        {/* === HEADER === */}
-        <View style={styles.header}>
-          <Image src={clearviewLogo} style={styles.logo} />
-          <Text style={styles.title}>Deal Summary</Text>
+      <Page size="LETTER" style={s.page}>
+        {/* ── HEADER ── */}
+        <View style={s.headerRow}>
+          <Image src={clearviewLogo} style={s.logo} />
+        </View>
+        <Text style={s.subtitle}>Deal Summary: {propertyAddress || '« Address »'}</Text>
+        <View style={s.contactRow}>
+          <Text style={s.contactItem}><Text style={s.contactBold}>Brad Stone</Text> — ClearView Commercial Realty Inc.  |  brad@cvpartners.ca  |  (403) 613-2898</Text>
+          <Text style={s.contactItem}><Text style={s.contactBold}>Doug Johannson</Text> — ClearView Commercial Realty Inc.  |  doug@cvpartners.ca  |  (403) 470-8875</Text>
         </View>
 
-        {/* === DEAL DETAILS TABLE === */}
-        <View style={styles.dealDetailsTable}>
-          {/* Row: Vendor */}
-          <View style={styles.dealRow}>
-            <Text style={styles.labelCell}>Vendor:</Text>
-            <Text style={styles.valueCell}>{vendor || ' '}</Text>
-          </View>
-
-          {/* Row: Purchaser */}
-          <View style={styles.dealRow}>
-            <Text style={styles.labelCell}>Purchaser:</Text>
-            <Text style={styles.valueCell}>{purchaser || ' '}</Text>
-          </View>
-
-          {/* Row: Property Address */}
-          <View style={styles.dealRow}>
-            <Text style={styles.labelCell}>Property Address:</Text>
-            <Text style={styles.valueCell}>{propertyAddress || ' '}</Text>
-          </View>
-
-          {/* Row: Property Description */}
-          <View style={styles.dealRow}>
-            <Text style={styles.labelCell}>Property Description:</Text>
-            <Text style={styles.valueCell}>{propertyDescription || ' '}</Text>
-          </View>
-
-          {/* Row: Effective Date */}
-          <View style={styles.dealRow}>
-            <Text style={styles.labelCell}>Effective Date:</Text>
-            <Text style={styles.valueCell}>{effectiveDate ? formatDate(effectiveDate) : ' '}</Text>
-          </View>
-
-          {/* Dynamic Rows: Deposits - formatted as "Amount payable to Payee on Date by Time" */}
-          {validDeposits.map((deposit, index) => (
-            <View style={styles.dealRow} key={index}>
-              <Text style={styles.labelCell}>{getDepositLabel(index)}:</Text>
-              <Text style={styles.valueCell}>
-                {formatCurrency(deposit.amount)}
-                {deposit.payable_to ? ` payable to ${deposit.payable_to}` : ''}
-                {deposit.due_date ? ` on ${formatDate(deposit.due_date)}` : ''}
-                {deposit.due_time ? ` by ${deposit.due_time}` : ''}
-              </Text>
-            </View>
-          ))}
-
-          {/* Row: Purchase Price */}
-          <View style={styles.dealRow}>
-            <Text style={styles.labelCell}>Purchase Price:</Text>
-            <Text style={styles.valueCell}>{formatCurrency(purchasePrice)}</Text>
-          </View>
-
-          {/* Row: Balance on Closing */}
-          <View style={styles.dealRow}>
-            <Text style={styles.labelCell}>Balance on Closing:</Text>
-            <Text style={styles.valueCell}>{formatCurrency(balanceOnClosing)}</Text>
-          </View>
-
-          {/* Row: Closing Date (LAST ROW - no bottom border) */}
-          <View style={styles.dealRowLast}>
-            <Text style={styles.labelCell}>Closing Date:</Text>
-            <Text style={styles.valueCell}>{closingDate ? formatDate(closingDate) : ' '}</Text>
-          </View>
-        </View>
-
-        {/* === ACTIONS TABLE (only if actions exist) === */}
-        {validActions.length > 0 && (
-          <View style={styles.actionsTable}>
-            {/* Header Row */}
-            <View style={styles.actionsHeaderRow}>
-              <Text style={[styles.actionsCellHeader, styles.dueDateCol]}>Due Date</Text>
-              <Text style={[styles.actionsCellHeader, styles.dateMetCol]}>Date Met</Text>
-              <Text style={[styles.actionsCellHeader, styles.actingPartyCol]}>Acting Party</Text>
-              <Text style={[styles.actionsCellHeader, styles.actionCol, { borderRightWidth: 0 }]}>Action</Text>
-            </View>
-
-            {/* Data Rows */}
-            {validActions.map((action, index) => (
-              <View
-                style={index === validActions.length - 1 ? styles.actionsRowLast : styles.actionsRow}
-                key={index}
-              >
-                <Text style={[styles.actionsCell, styles.dueDateCol]}>
-                  {formatDate(action.due_date)}
-                  {action.due_time ? `, by ${action.due_time}` : ''}
-                </Text>
-                <Text style={[styles.actionsCell, styles.dateMetCol]}>
-                  {action.date_met ? formatDate(action.date_met) : ' '}
-                </Text>
-                <Text style={[styles.actionsCell, styles.actingPartyCol]}>
-                  {action.acting_party || ' '}
-                </Text>
-                <Text style={[styles.actionsCellLast, styles.actionCol]}>
-                  {action.action || ' '}
-                </Text>
+        {/* ── TRANSACTION PARTIES + PROPERTY DETAILS ── */}
+        <View style={s.twoCol}>
+          <View style={s.colLeft}>
+            <Text style={s.sectionTitle}>Transaction Parties</Text>
+            <View style={{ flexDirection: 'row', gap: 6 }}>
+              <View style={[s.card, { flex: 1 }]}>
+                <Text style={s.cardLabel}>Vendor</Text>
+                <Text style={s.cardValue}>{vendor || 'To be confirmed'}</Text>
               </View>
-            ))}
+              <View style={[s.card, { flex: 1 }]}>
+                <Text style={s.cardLabel}>Purchaser</Text>
+                <Text style={s.cardValue}>{purchaser || 'To be confirmed'}</Text>
+              </View>
+            </View>
           </View>
-        )}
+          <View style={s.colRight}>
+            <Text style={s.sectionTitle}>Property Details</Text>
+            <View style={s.table}>
+              <View style={s.propRow}>
+                <Text style={s.propLabel}>Address</Text>
+                <Text style={s.propValue}>{propertyAddress || ' '}</Text>
+              </View>
+              <View style={s.propRow}>
+                <Text style={s.propLabel}>Description</Text>
+                <Text style={s.propValue}>{propertyDescription || ' '}</Text>
+              </View>
+              <View style={s.propRowLast}>
+                <Text style={s.propLabel}>Effective Date</Text>
+                <Text style={s.propValue}>{fmtDate(effectiveDate) || ' '}</Text>
+              </View>
+            </View>
+          </View>
+        </View>
 
-        {/* === CONDITIONS TABLE (only if conditions exist) === */}
+        {/* ── FINANCIAL SUMMARY ── */}
+        <Text style={s.sectionTitle}>Financial Summary</Text>
+        <View style={s.finRow}>
+          <View style={s.finCard}>
+            <Text style={s.finLabel}>Purchase Price</Text>
+            <Text style={s.finValue}>{fmt(purchasePrice)}</Text>
+          </View>
+          <View style={s.finCard}>
+            <Text style={s.finLabel}>Total Deposits</Text>
+            <Text style={s.finValue}>{fmt(totalDeposits)}</Text>
+          </View>
+          <View style={s.finCard}>
+            <Text style={s.finLabel}>Balance on Closing</Text>
+            <Text style={s.finValue}>{fmt(balanceOnClosing)}</Text>
+          </View>
+        </View>
+
+        {/* ── DEPOSIT SCHEDULE + TIMELINE ── */}
+        <View style={s.twoCol}>
+          <View style={s.colLeft}>
+            {validDeposits.length > 0 && (
+              <>
+                <Text style={s.sectionTitle}>Deposit Schedule</Text>
+                <View style={s.table}>
+                  <View style={s.tableHeader}>
+                    <Text style={[s.tableHeaderCell, { width: '35%' }]}>Deposit</Text>
+                    <Text style={[s.tableHeaderCell, { width: '30%' }]}>Amount</Text>
+                    <Text style={[s.tableHeaderCell, { width: '35%' }]}>Due Date</Text>
+                  </View>
+                  {validDeposits.map((d, i) => (
+                    <View style={i === validDeposits.length - 1 ? s.tableRowLast : s.tableRow} key={i}>
+                      <Text style={[s.tableCell, { width: '35%' }]}>{depositLabel(i)}</Text>
+                      <Text style={[s.tableCell, { width: '30%' }]}>{fmt(d.amount)}</Text>
+                      <Text style={[s.tableCell, { width: '35%' }]}>{fmtDateShort(d.due_date)}</Text>
+                    </View>
+                  ))}
+                </View>
+              </>
+            )}
+
+            <Text style={s.sectionTitle}>Closing Details</Text>
+            <View style={s.table}>
+              <View style={s.propRow}>
+                <Text style={[s.propLabel, { width: '50%' }]}>Purchase Price</Text>
+                <Text style={[s.propValue, { width: '50%' }]}>{fmt(purchasePrice)}</Text>
+              </View>
+              <View style={s.propRow}>
+                <Text style={[s.propLabel, { width: '50%' }]}>Balance Due on Closing</Text>
+                <Text style={[s.propValue, { width: '50%' }]}>{fmt(balanceOnClosing)}</Text>
+              </View>
+              <View style={s.propRowLast}>
+                <Text style={[s.propLabel, { width: '50%' }]}>Closing Date</Text>
+                <Text style={[s.propValue, { width: '50%' }]}>{fmtDate(closingDate) || ' '}</Text>
+              </View>
+            </View>
+          </View>
+
+          <View style={s.colRight}>
+            {timelineEvents.length > 0 && (
+              <>
+                <Text style={s.sectionTitle}>Key Transaction Timeline</Text>
+                <View style={s.timelineContainer}>
+                  {timelineEvents.map((evt, i) => (
+                    <View style={s.timelineItem} key={i}>
+                      <View style={s.timelineLine}>
+                        <View style={s.timelineDot} />
+                        {i < timelineEvents.length - 1 && <View style={s.timelineConnector} />}
+                      </View>
+                      <View style={s.timelineContent}>
+                        <Text style={s.timelineDate}>{evt.label}</Text>
+                        <Text style={s.timelineDesc}>{evt.detail}</Text>
+                      </View>
+                    </View>
+                  ))}
+                </View>
+              </>
+            )}
+          </View>
+        </View>
+
+        {/* ── CONDITIONS ── */}
         {validConditions.length > 0 && (
           <>
-            <Text style={styles.conditionsTitle}>Conditions</Text>
-            <View style={styles.conditionsTable}>
-              <View style={styles.actionsHeaderRow}>
-                <Text style={[styles.actionsCellHeader, styles.condDescCol]}>Description</Text>
-                <Text style={[styles.actionsCellHeader, styles.condDateCol]}>Due Date</Text>
-                <Text style={[styles.actionsCellHeader, styles.condStatusCol, { borderRightWidth: 0 }]}>Status</Text>
+            <Text style={s.sectionTitle}>Conditions</Text>
+            <View style={s.table}>
+              <View style={s.tableHeader}>
+                <Text style={[s.tableHeaderCell, s.condDesc]}>Description</Text>
+                <Text style={[s.tableHeaderCell, s.condDate]}>Due Date</Text>
+                <Text style={[s.tableHeaderCell, s.condStatus]}>Status</Text>
               </View>
-              {validConditions.map((cond, index) => (
-                <View
-                  style={index === validConditions.length - 1 ? styles.actionsRowLast : styles.actionsRow}
-                  key={index}
-                >
-                  <Text style={[styles.actionsCell, styles.condDescCol, { textAlign: 'left' }]}>
-                    {cond.description}
-                  </Text>
-                  <Text style={[styles.actionsCell, styles.condDateCol]}>
-                    {cond.due_date ? formatDate(cond.due_date) : ' '}
-                  </Text>
-                  <Text style={[styles.actionsCellLast, styles.condStatusCol]}>
-                    {cond.is_satisfied ? 'Satisfied' : 'Pending'}
-                  </Text>
+              {validConditions.map((c, i) => (
+                <View style={i === validConditions.length - 1 ? s.tableRowLast : s.tableRow} key={i}>
+                  <Text style={[s.tableCell, s.condDesc]}>{c.description}</Text>
+                  <Text style={[s.tableCell, s.condDate]}>{fmtDate(c.due_date)}</Text>
+                  <Text style={[s.tableCell, s.condStatus]}>{c.is_satisfied ? 'Satisfied' : 'Pending'}</Text>
                 </View>
               ))}
             </View>
           </>
         )}
 
-        {/* === IMPORTANT DATES TABLE (only if dates exist) === */}
+        {/* ── IMPORTANT DATES ── */}
         {validDates.length > 0 && (
           <>
-            <Text style={styles.conditionsTitle}>Important Dates</Text>
-            <View style={styles.conditionsTable}>
-              <View style={styles.actionsHeaderRow}>
-                <Text style={[styles.actionsCellHeader, styles.condDescCol]}>Description</Text>
-                <Text style={[styles.actionsCellHeader, styles.condDateCol]}>Due Date</Text>
-                <Text style={[styles.actionsCellHeader, styles.condStatusCol, { borderRightWidth: 0 }]}>Status</Text>
+            <Text style={s.sectionTitle}>Important Dates</Text>
+            <View style={s.table}>
+              <View style={s.tableHeader}>
+                <Text style={[s.tableHeaderCell, s.condDesc]}>Description</Text>
+                <Text style={[s.tableHeaderCell, s.condDate]}>Due Date</Text>
+                <Text style={[s.tableHeaderCell, s.condStatus]}>Status</Text>
               </View>
-              {validDates.map((date, index) => (
-                <View
-                  style={index === validDates.length - 1 ? styles.actionsRowLast : styles.actionsRow}
-                  key={index}
-                >
-                  <Text style={[styles.actionsCell, styles.condDescCol, { textAlign: 'left' }]}>
-                    {date.description}
-                  </Text>
-                  <Text style={[styles.actionsCell, styles.condDateCol]}>
-                    {date.due_date ? formatDate(date.due_date) : ' '}
-                  </Text>
-                  <Text style={[styles.actionsCellLast, styles.condStatusCol]}>
-                    {date.is_completed ? 'Completed' : 'Pending'}
-                  </Text>
+              {validDates.map((d, i) => (
+                <View style={i === validDates.length - 1 ? s.tableRowLast : s.tableRow} key={i}>
+                  <Text style={[s.tableCell, s.condDesc]}>{d.description}</Text>
+                  <Text style={[s.tableCell, s.condDate]}>{fmtDate(d.due_date)}</Text>
+                  <Text style={[s.tableCell, s.condStatus]}>{d.is_completed ? 'Completed' : 'Pending'}</Text>
                 </View>
               ))}
             </View>
           </>
         )}
 
-        {/* === FOOTER: Contact Information (fixed to bottom) === */}
-        <View style={styles.contactsSection} fixed>
-          <View style={styles.contactsTable}>
-            <View style={styles.contactColumn}>
-              <Text style={styles.contactName}>BRAD STONE</Text>
-              <Text style={styles.contactDetail}>brad@cvpartners.ca</Text>
-              <Text style={styles.contactDetail}>(403) 613-2898</Text>
+        {/* ── AGENT CONTACTS ── */}
+        {(listingAgents.length > 0 || sellingAgents.length > 0) && (
+          <View style={s.agentSection}>
+            <Text style={s.sectionTitle}>Agent Contacts</Text>
+            <View style={s.agentRow}>
+              {listingAgents.map((a, i) => (
+                <View style={s.agentCard} key={`la-${i}`}>
+                  <Text style={s.agentRole}>Listing Agent</Text>
+                  <Text style={s.agentName}>{a.name}</Text>
+                  {a.brokerage && <Text style={s.agentDetail}>{a.brokerage}</Text>}
+                  {a.email && <Text style={s.agentDetail}>{a.email}</Text>}
+                  {a.phone && <Text style={s.agentDetail}>{a.phone}</Text>}
+                </View>
+              ))}
+              {sellingAgents.map((a, i) => (
+                <View style={s.agentCard} key={`sa-${i}`}>
+                  <Text style={s.agentRole}>Selling / Leasing Agent</Text>
+                  <Text style={s.agentName}>{a.name}</Text>
+                  {a.brokerage && <Text style={s.agentDetail}>{a.brokerage}</Text>}
+                  {a.email && <Text style={s.agentDetail}>{a.email}</Text>}
+                  {a.phone && <Text style={s.agentDetail}>{a.phone}</Text>}
+                </View>
+              ))}
             </View>
-            <View style={styles.contactColumn}>
-              <Text style={styles.contactName}>DOUG JOHANNSON</Text>
-              <Text style={styles.contactDetail}>doug@cvpartners.ca</Text>
-              <Text style={styles.contactDetail}>(403) 470-8875</Text>
-            </View>
-            <View style={styles.contactColumn}>
-              <Text style={styles.contactName}>ANGEL PILOR</Text>
-              <Text style={styles.contactDetail}>angel@cvpartners.ca</Text>
-            </View>
+          </View>
+        )}
+
+        {/* ── CONTACT FOOTER ── */}
+        <Text style={s.sectionTitle}>Contact</Text>
+        <View style={s.contactFooter}>
+          <View style={s.contactCard}>
+            <Text style={s.contactCardName}>Brad Stone</Text>
+            <Text style={s.contactCardDetail}>ClearView Commercial Realty Inc.</Text>
+            <Text style={s.contactCardDetail}>brad@cvpartners.ca  |  (403) 613-2898</Text>
+          </View>
+          <View style={s.contactCard}>
+            <Text style={s.contactCardName}>Doug Johannson</Text>
+            <Text style={s.contactCardDetail}>ClearView Commercial Realty Inc.</Text>
+            <Text style={s.contactCardDetail}>doug@cvpartners.ca  |  (403) 470-8875</Text>
           </View>
         </View>
       </Page>
