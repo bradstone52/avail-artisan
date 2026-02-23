@@ -131,11 +131,11 @@ const s = StyleSheet.create({
 
 // ── Component ────────────────────────────────────────────
 export function DealSheetPDF({ deal, conditions, deposits, getAgent, getBrokerage }: DealSheetPDFProps) {
-  const dealValue = deal.deal_value || 0;
-  const commissionRate = deal.commission_percent || 0;
-  const otherRate = deal.other_brokerage_percent || 0;
-  const cvRate = deal.clearview_percent || 0;
-  const gstRate = deal.gst_rate || 5;
+  const dealValue = deal.deal_value ?? 0;
+  const commissionRate = deal.commission_percent ?? 0;
+  const otherRate = deal.other_brokerage_percent ?? 0;
+  const cvRate = deal.clearview_percent ?? 0;
+  const gstRate = deal.gst_rate ?? 5;
 
   const totalCommission = dealValue * commissionRate / 100;
   const totalGST = totalCommission * gstRate / 100;
