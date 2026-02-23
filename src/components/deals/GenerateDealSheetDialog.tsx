@@ -791,14 +791,23 @@ export function GenerateDealSheetDialog({ open, onOpenChange, deal }: GenerateDe
                                   <PopoverTrigger asChild>
                                     <Button variant="outline" size="sm" className="w-[140px] justify-start text-left font-normal">
                                       <CalendarIcon className="mr-2 h-4 w-4" />
-                                      {condition.due_date ? format(new Date(condition.due_date), 'PP') : 'Due date'}
+                                      {condition.due_date ? format(new Date(condition.due_date + 'T00:00:00'), 'PP') : 'Due date'}
                                     </Button>
                                   </PopoverTrigger>
                                   <PopoverContent className="w-auto p-0" align="start">
                                     <Calendar
                                       mode="single"
-                                      selected={condition.due_date ? new Date(condition.due_date) : undefined}
-                                      onSelect={(date) => handleConditionChange(index, 'due_date', date ? date.toISOString().split('T')[0] : null)}
+                                      selected={condition.due_date ? new Date(condition.due_date + 'T00:00:00') : undefined}
+                                      onSelect={(date) => {
+                                        if (date) {
+                                          const y = date.getFullYear();
+                                          const m = String(date.getMonth() + 1).padStart(2, '0');
+                                          const d = String(date.getDate()).padStart(2, '0');
+                                          handleConditionChange(index, 'due_date', `${y}-${m}-${d}`);
+                                        } else {
+                                          handleConditionChange(index, 'due_date', null);
+                                        }
+                                      }}
                                       className="pointer-events-auto"
                                     />
                                   </PopoverContent>
@@ -1059,7 +1068,7 @@ export function GenerateDealSheetDialog({ open, onOpenChange, deal }: GenerateDe
                     <div className="space-y-2 text-sm">
                       {localConditions.filter(c => c.description).map((c, i) => (
                         <div key={i}>
-                          Condition {i + 1} - {c.description} {c.due_date && `— ${format(new Date(c.due_date), 'PPP')}`}
+                          Condition {i + 1} - {c.description} {c.due_date && `— ${format(new Date(c.due_date + 'T00:00:00'), 'PPP')}`}
                         </div>
                       ))}
                     </div>
