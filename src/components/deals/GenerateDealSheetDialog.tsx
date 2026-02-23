@@ -47,6 +47,7 @@ interface LocalCondition {
   id?: string;
   description: string;
   due_date: string | null;
+  is_satisfied?: boolean;
   isNew?: boolean;
 }
 
@@ -54,6 +55,8 @@ interface LocalDeposit {
   id?: string;
   amount: number;
   held_by: string;
+  due_date?: string | null;
+  received?: boolean;
   isNew?: boolean;
 }
 
@@ -122,6 +125,7 @@ export function GenerateDealSheetDialog({ open, onOpenChange, deal }: GenerateDe
         id: c.id,
         description: c.description,
         due_date: c.due_date,
+        is_satisfied: c.is_satisfied,
       })));
     }
   }, [conditionIds]);
@@ -132,6 +136,8 @@ export function GenerateDealSheetDialog({ open, onOpenChange, deal }: GenerateDe
         id: d.id,
         amount: d.amount,
         held_by: d.held_by || '',
+        due_date: d.due_date,
+        received: d.received,
       })));
     }
   }, [depositIds]);
@@ -326,7 +332,7 @@ export function GenerateDealSheetDialog({ open, onOpenChange, deal }: GenerateDe
             deal_id: deal.id,
             description: c.description,
             due_date: c.due_date,
-            is_satisfied: false,
+            is_satisfied: c.is_satisfied || false,
             created_at: '',
           }))}
           deposits={localDeposits.filter(d => d.amount > 0).map(d => ({
@@ -334,8 +340,8 @@ export function GenerateDealSheetDialog({ open, onOpenChange, deal }: GenerateDe
             deal_id: deal.id,
             amount: d.amount,
             held_by: d.held_by,
-            due_date: null,
-            received: false,
+             due_date: d.due_date || null,
+             received: d.received || false,
             created_at: '',
           }))}
           getAgent={getAgent}
