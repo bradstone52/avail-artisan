@@ -209,7 +209,7 @@ export function DealFormDialog({ open, onOpenChange, deal }: DealFormDialogProps
       // Auto-open sections that have data
       setPartiesOpen(!!(deal.seller_name || deal.buyer_name));
       setAgentsOpen(!!(deal.listing_brokerage_id || deal.selling_brokerage_id || deal.cv_agent_id));
-      setFinancialOpen(!!(deal.other_brokerage_percent || deal.clearview_percent));
+      setFinancialOpen(deal.other_brokerage_percent != null || deal.clearview_percent != null);
       setLawyersOpen(!!((deal as any).seller_lawyer_name || (deal as any).buyer_lawyer_name));
       setSelectedListing(null);
     } else {
