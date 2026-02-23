@@ -1,4 +1,5 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
+import { differenceInMonths } from 'date-fns';
 import {
   Dialog,
   DialogContent,
@@ -357,6 +358,27 @@ export function DealFormDialog({ open, onOpenChange, deal }: DealFormDialogProps
   const update = (fields: Partial<ExtendedDealFormData>) => setFormData(prev => ({ ...prev, ...fields }));
 
   const isLeaseDeal = ['Lease', 'Sublease', 'Renewal', 'Expansion'].includes(formData.deal_type);
+
+  // Auto-calculate lease term from commencement & expiry dates
+  const leaseTermManuallyEdited = useRef(false);
+  
+  useEffect(() => {
+    // Reset manual flag when dialog opens
+    leaseTermManuallyEdited.current = false;
+  }, [open]);
+
+  useEffect(() => {
+    if (leaseTermManuallyEdited.current) return;
+    if (!isLeaseDeal) return;
+    const start = formData.commencement_date;
+    const end = formData.expiry_date;
+    if (start && end) {
+      const months = differenceInMonths(new Date(end), new Date(start));
+      if (months > 0) {
+        setFormData(prev => ({ ...prev, lease_term_months: months }));
+      }
+    }
+  }, [formData.commencement_date, formData.expiry_date, isLeaseDeal]);
   const sellerLabel = isLeaseDeal ? 'Landlord' : (formData.use_purchaser_vendor ? 'Vendor' : 'Seller');
   const buyerLabel = isLeaseDeal ? 'Tenant' : (formData.use_purchaser_vendor ? 'Purchaser' : 'Buyer');
 
@@ -554,7 +576,10 @@ export function DealFormDialog({ open, onOpenChange, deal }: DealFormDialogProps
                 <Label>Lease Term (Months)</Label>
                 <FormattedNumberInput
                   value={formData.lease_term_months}
-                  onChange={(value) => update({ lease_term_months: value ?? undefined })}
+                  onChange={(value) => {
+                    leaseTermManuallyEdited.current = true;
+                    update({ lease_term_months: value ?? undefined });
+                  }}
                 />
               </div>
             </div>
