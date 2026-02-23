@@ -143,6 +143,7 @@ export function DealFormDialog({ open, onOpenChange, deal }: DealFormDialogProps
   const [partiesOpen, setPartiesOpen] = useState(false);
   const [agentsOpen, setAgentsOpen] = useState(false);
   const [financialOpen, setFinancialOpen] = useState(false);
+  const [lawyersOpen, setLawyersOpen] = useState(false);
 
   // Calculate commission amount
   const calculatedCommission = formData.deal_value && formData.commission_percent
@@ -196,6 +197,7 @@ export function DealFormDialog({ open, onOpenChange, deal }: DealFormDialogProps
       setPartiesOpen(!!(deal.seller_name || deal.buyer_name));
       setAgentsOpen(!!(deal.listing_brokerage_id || deal.selling_brokerage_id || deal.cv_agent_id));
       setFinancialOpen(!!(deal.other_brokerage_percent || deal.clearview_percent));
+      setLawyersOpen(!!((deal as any).seller_lawyer_name || (deal as any).buyer_lawyer_name));
       setSelectedListing(null);
     } else {
       setFormData({ ...EMPTY_FORM });
@@ -203,6 +205,7 @@ export function DealFormDialog({ open, onOpenChange, deal }: DealFormDialogProps
       setPartiesOpen(false);
       setAgentsOpen(false);
       setFinancialOpen(false);
+      setLawyersOpen(false);
       setSelectedListing(null);
     }
   }, [deal, open]);
@@ -572,8 +575,8 @@ export function DealFormDialog({ open, onOpenChange, deal }: DealFormDialogProps
           {/* ── Lawyers Section ── */}
           <CollapsibleSection 
             title="Lawyers" 
-            open={!!(formData.seller_lawyer_name || formData.buyer_lawyer_name)} 
-            onOpenChange={() => {}}
+            open={lawyersOpen} 
+            onOpenChange={setLawyersOpen}
           >
             <p className="text-sm font-medium text-muted-foreground">{formData.use_purchaser_vendor ? "Vendor's" : "Seller's"} Lawyer</p>
             <div className="grid grid-cols-2 gap-4">
