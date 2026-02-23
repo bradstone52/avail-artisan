@@ -57,6 +57,7 @@ interface LocalDeposit {
   dueHour: string;
   dueMinute: string;
   duePeriod: string;
+  received: boolean;
 }
 
 interface LocalAction {
@@ -219,6 +220,7 @@ export function GenerateDealSummaryDialog({ open, onOpenChange, deal }: Generate
           dueHour: '4',
           dueMinute: '00',
           duePeriod: 'PM',
+          received: d.received || false,
         })));
       } else {
         setDeposits([createEmptyDeposit()]);
@@ -264,6 +266,7 @@ export function GenerateDealSummaryDialog({ open, onOpenChange, deal }: Generate
     dueHour: '4',
     dueMinute: '00',
     duePeriod: 'PM',
+    received: false,
   });
 
   const createEmptyCondition = (): LocalCondition => ({
@@ -421,7 +424,7 @@ export function GenerateDealSummaryDialog({ open, onOpenChange, deal }: Generate
           held_by: d.payableTo || null,
           due_date: d.dueDate ? format(d.dueDate, 'yyyy-MM-dd') : null,
           due_time: d.dueHour ? `${d.dueHour}:${d.dueMinute} ${d.duePeriod}` : null,
-          received: false,
+          received: d.received || false,
         }));
 
         const { error: depositError } = await supabase
