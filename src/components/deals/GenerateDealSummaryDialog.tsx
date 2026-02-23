@@ -601,7 +601,7 @@ export function GenerateDealSummaryDialog({ open, onOpenChange, deal }: Generate
                     value={deposit.dueHour} 
                     onValueChange={(v) => updateDeposit(deposit.id, { dueHour: v })}
                   >
-                    <SelectTrigger className="w-[60px] h-8 text-sm">
+                    <SelectTrigger className="w-[72px] h-8 text-sm">
                       <SelectValue placeholder="Hr" />
                     </SelectTrigger>
                     <SelectContent>
@@ -614,7 +614,7 @@ export function GenerateDealSummaryDialog({ open, onOpenChange, deal }: Generate
                     value={deposit.dueMinute} 
                     onValueChange={(v) => updateDeposit(deposit.id, { dueMinute: v })}
                   >
-                    <SelectTrigger className="w-[60px] h-8 text-sm">
+                    <SelectTrigger className="w-[72px] h-8 text-sm">
                       <SelectValue placeholder=":00" />
                     </SelectTrigger>
                     <SelectContent>
@@ -627,7 +627,7 @@ export function GenerateDealSummaryDialog({ open, onOpenChange, deal }: Generate
                     value={deposit.duePeriod} 
                     onValueChange={(v) => updateDeposit(deposit.id, { duePeriod: v })}
                   >
-                    <SelectTrigger className="w-[60px] h-8 text-sm">
+                    <SelectTrigger className="w-[72px] h-8 text-sm">
                       <SelectValue placeholder="PM" />
                     </SelectTrigger>
                     <SelectContent>
@@ -707,7 +707,7 @@ export function GenerateDealSummaryDialog({ open, onOpenChange, deal }: Generate
                     value={action.dueHour} 
                     onValueChange={(v) => updateAction(action.id, { dueHour: v })}
                   >
-                    <SelectTrigger className="w-[60px] h-8 text-sm">
+                    <SelectTrigger className="w-[72px] h-8 text-sm">
                       <SelectValue placeholder="Hr" />
                     </SelectTrigger>
                     <SelectContent>
@@ -720,7 +720,7 @@ export function GenerateDealSummaryDialog({ open, onOpenChange, deal }: Generate
                     value={action.dueMinute} 
                     onValueChange={(v) => updateAction(action.id, { dueMinute: v })}
                   >
-                    <SelectTrigger className="w-[60px] h-8 text-sm">
+                    <SelectTrigger className="w-[72px] h-8 text-sm">
                       <SelectValue placeholder=":00" />
                     </SelectTrigger>
                     <SelectContent>
@@ -733,7 +733,7 @@ export function GenerateDealSummaryDialog({ open, onOpenChange, deal }: Generate
                     value={action.duePeriod} 
                     onValueChange={(v) => updateAction(action.id, { duePeriod: v })}
                   >
-                    <SelectTrigger className="w-[60px] h-8 text-sm">
+                    <SelectTrigger className="w-[72px] h-8 text-sm">
                       <SelectValue placeholder="PM" />
                     </SelectTrigger>
                     <SelectContent>
