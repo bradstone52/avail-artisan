@@ -92,6 +92,7 @@ export function useCreateDeal() {
 
 export function useUpdateDeal() {
   const queryClient = useQueryClient();
+  const { user } = useAuth();
 
   return useMutation({
     mutationFn: async ({ id, ...formData }: DealFormData & { id: string }) => {
@@ -115,10 +116,42 @@ export function useUpdateDeal() {
       if (error) throw error;
       return data as Deal;
     },
-    onSuccess: (data) => {
+    onSuccess: async (data) => {
       queryClient.invalidateQueries({ queryKey: ['deals'] });
       queryClient.invalidateQueries({ queryKey: ['deals', data.id] });
       toast.success('Deal updated successfully');
+
+      // Auto-create tenant when a lease deal is closed
+      if (
+        data.status === 'Closed' &&
+        ['Lease', 'Sublease', 'Renewal'].includes(data.deal_type) &&
+        data.buyer_name &&
+        data.property_id &&
+        user?.id
+      ) {
+        try {
+          // Check for existing tenant with same name on same property
+          const { data: existing } = await supabase
+            .from('property_tenants')
+            .select('id')
+            .eq('property_id', data.property_id)
+            .eq('tenant_name', data.buyer_name)
+            .maybeSingle();
+
+          if (!existing) {
+            await supabase.from('property_tenants').insert({
+              property_id: data.property_id,
+              tenant_name: data.buyer_name,
+              size_sf: data.size_sf ? Math.round(Number(data.size_sf)) : null,
+              lease_expiry: data.expiry_date || null,
+              tracked_by: user.id,
+            });
+            queryClient.invalidateQueries({ queryKey: ['all-tenants'] });
+          }
+        } catch (err) {
+          console.error('Auto-create tenant failed:', err);
+        }
+      }
     },
     onError: (error) => {
       console.error('Error updating deal:', error);
