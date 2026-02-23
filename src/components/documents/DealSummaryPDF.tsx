@@ -190,8 +190,6 @@ export function DealSummaryPDF({
     if (c.due_date) timelineEvents.push({ date: c.due_date, label: fmtDateShort(c.due_date), detail: `Condition — ${c.description}` });
   });
   if (closingDate) timelineEvents.push({ date: closingDate, label: fmtDateShort(closingDate), detail: `Closing — Balance of ${fmt(balanceOnClosing)}` });
-  // Add post-closing
-  if (closingDate) timelineEvents.push({ date: 'z-post', label: 'Post-Closing', detail: 'Title transfer and possession' });
   // Sort by date
   timelineEvents.sort((a, b) => a.date.localeCompare(b.date));
 
