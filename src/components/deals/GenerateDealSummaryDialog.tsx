@@ -34,6 +34,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useQueryClient } from '@tanstack/react-query';
 import { DealSummaryPDF } from '@/components/documents/DealSummaryPDF';
+import type { DealSummaryAgent } from '@/components/documents/DealSummaryPDF';
 import { useDealDeposits } from '@/hooks/useDealDeposits';
 import { useDealSummaryActions } from '@/hooks/useDealSummaryActions';
 import { useDealConditions } from '@/hooks/useDealConditions';
@@ -76,6 +77,41 @@ export function GenerateDealSummaryDialog({ open, onOpenChange, deal }: Generate
   const { conditions: existingConditions } = useDealConditions(deal.id);
   const { importantDates: existingImportantDates } = useDealImportantDates(deal.id);
   const [generating, setGenerating] = useState(false);
+  const [listingAgents, setListingAgents] = useState<DealSummaryAgent[]>([]);
+  const [sellingAgents, setSellingAgents] = useState<DealSummaryAgent[]>([]);
+
+  // Fetch agent details when dialog opens
+  useEffect(() => {
+    if (!open) return;
+    const fetchAgents = async () => {
+      const agentIds = [deal.listing_agent1_id, deal.listing_agent2_id, deal.selling_agent1_id, deal.selling_agent2_id].filter(Boolean) as string[];
+      const brokerageIds = [deal.listing_brokerage_id, deal.selling_brokerage_id].filter(Boolean) as string[];
+      
+      let agentsMap: Record<string, any> = {};
+      let brokeragesMap: Record<string, any> = {};
+      
+      if (agentIds.length > 0) {
+        const { data } = await supabase.from('agents').select('id, name, email, phone, brokerage_id').in('id', agentIds);
+        if (data) data.forEach(a => { agentsMap[a.id] = a; });
+      }
+      if (brokerageIds.length > 0) {
+        const { data } = await supabase.from('brokerages').select('id, name').in('id', brokerageIds);
+        if (data) data.forEach(b => { brokeragesMap[b.id] = b; });
+      }
+      
+      const buildAgent = (agentId: string | null, brokerageId: string | null): DealSummaryAgent | null => {
+        if (!agentId) return null;
+        const a = agentsMap[agentId];
+        if (!a) return null;
+        const brokerage = a.brokerage_id ? brokeragesMap[a.brokerage_id]?.name : (brokerageId ? brokeragesMap[brokerageId]?.name : undefined);
+        return { name: a.name, email: a.email || undefined, phone: a.phone || undefined, brokerage };
+      };
+      
+      setListingAgents([buildAgent(deal.listing_agent1_id, deal.listing_brokerage_id), buildAgent(deal.listing_agent2_id, deal.listing_brokerage_id)].filter(Boolean) as DealSummaryAgent[]);
+      setSellingAgents([buildAgent(deal.selling_agent1_id, deal.selling_brokerage_id), buildAgent(deal.selling_agent2_id, deal.selling_brokerage_id)].filter(Boolean) as DealSummaryAgent[]);
+    };
+    fetchAgents();
+  }, [open, deal]);
 
   // Basic Info state
   const [vendor, setVendor] = useState('Clearview Commercial Realty Inc.');
@@ -312,7 +348,9 @@ export function GenerateDealSummaryDialog({ open, onOpenChange, deal }: Generate
           due_date: d.due_date,
           is_completed: d.is_completed,
         })),
-        contacts: [{ name: 'Clearview Commercial Realty Inc.' }], // Default contact for footer
+        listingAgents,
+        sellingAgents,
+        contacts: [],
       };
 
       // Save deposits to database for Important Dates tracking
