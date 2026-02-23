@@ -200,7 +200,7 @@ export function DealSheetPDF({ deal, conditions, deposits, getAgent, getBrokerag
         </View>
 
         {/* ── TRANSACTION PARTIES + PROPERTY DETAILS ── */}
-        <View style={s.twoCol}>
+        <View style={s.twoCol} wrap={false}>
           <View style={{ width: '45%' }}>
             <Text style={s.sectionTitle}>Transaction Parties</Text>
             <View style={[s.card, { marginBottom: 4 }]}>
@@ -232,24 +232,26 @@ export function DealSheetPDF({ deal, conditions, deposits, getAgent, getBrokerag
         </View>
 
         {/* ── FINANCIAL SUMMARY ── */}
-        <Text style={s.sectionTitle}>Financial Summary</Text>
-        <View style={s.finRow}>
-          <View style={s.finCard}>
-            <Text style={s.finLabel}>{valueLabel}</Text>
-            <Text style={s.finValue}>{fmtCurrency(dealValue)}</Text>
-          </View>
-          <View style={s.finCard}>
-            <Text style={s.finLabel}>Commission ({commissionRate}%)</Text>
-            <Text style={s.finValue}>{fmtCurrency(totalCommission)}</Text>
-          </View>
-          <View style={s.finCard}>
-            <Text style={s.finLabel}>Total w/ GST</Text>
-            <Text style={s.finValue}>{fmtCurrency(totalWithGST)}</Text>
+        <View wrap={false}>
+          <Text style={s.sectionTitle}>Financial Summary</Text>
+          <View style={s.finRow}>
+            <View style={s.finCard}>
+              <Text style={s.finLabel}>{valueLabel}</Text>
+              <Text style={s.finValue}>{fmtCurrency(dealValue)}</Text>
+            </View>
+            <View style={s.finCard}>
+              <Text style={s.finLabel}>Commission ({commissionRate}%)</Text>
+              <Text style={s.finValue}>{fmtCurrency(totalCommission)}</Text>
+            </View>
+            <View style={s.finCard}>
+              <Text style={s.finLabel}>Total w/ GST</Text>
+              <Text style={s.finValue}>{fmtCurrency(totalWithGST)}</Text>
+            </View>
           </View>
         </View>
 
         {/* ── COMMISSION BREAKDOWN + DEPOSITS ── */}
-        <View style={s.twoCol}>
+        <View style={s.twoCol} wrap={false}>
           <View style={s.colHalf}>
             <Text style={s.sectionTitle}>Commission Breakdown</Text>
             <View style={s.table}>
@@ -352,7 +354,7 @@ export function DealSheetPDF({ deal, conditions, deposits, getAgent, getBrokerag
 
         {/* ── LAWYERS ── */}
         {(deal.seller_lawyer_name || deal.buyer_lawyer_name) && (
-          <View style={s.agentSection}>
+          <View style={s.agentSection} wrap={false}>
             <Text style={s.sectionTitle}>Lawyers</Text>
             <View style={s.agentRow}>
               {deal.seller_lawyer_name && (
@@ -379,7 +381,7 @@ export function DealSheetPDF({ deal, conditions, deposits, getAgent, getBrokerag
 
         {/* ── AGENT CONTACTS ── */}
         {(listingAgent1 || listingAgent2 || sellingAgent1 || sellingAgent2) && (
-          <View style={s.agentSection}>
+          <View style={s.agentSection} wrap={false}>
             <Text style={s.sectionTitle}>Agent Contacts</Text>
             <View style={s.agentRow}>
               {listingAgent1 && (
@@ -424,7 +426,7 @@ export function DealSheetPDF({ deal, conditions, deposits, getAgent, getBrokerag
 
         {/* ── COMMENTS ── */}
         {deal.notes && (
-          <View style={s.commentsSection}>
+          <View style={s.commentsSection} wrap={false}>
             <Text style={s.sectionTitle}>Comments</Text>
             <Text style={s.commentsText}>{deal.notes}</Text>
           </View>
