@@ -123,22 +123,22 @@ export function DealEditDialog({ open, onOpenChange, deal }: DealEditDialogProps
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="seller_name">Vendor</Label>
+            <Label htmlFor="seller_name">{(deal as any).use_purchaser_vendor ? 'Vendor' : 'Seller'}</Label>
             <Input
               id="seller_name"
               value={sellerName}
               onChange={(e) => setSellerName(e.target.value)}
-              placeholder="e.g., Clearview Commercial Realty Inc."
+              placeholder={`e.g., ${(deal as any).use_purchaser_vendor ? 'Vendor name' : 'Clearview Commercial Realty Inc.'}`}
             />
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="buyer_name">Purchaser</Label>
+            <Label htmlFor="buyer_name">{(deal as any).use_purchaser_vendor ? 'Purchaser' : 'Buyer'}</Label>
             <Input
               id="buyer_name"
               value={buyerName}
               onChange={(e) => setBuyerName(e.target.value)}
-              placeholder="Buyer / Purchaser name"
+              placeholder={`${(deal as any).use_purchaser_vendor ? 'Purchaser' : 'Buyer'} name`}
             />
           </div>
 

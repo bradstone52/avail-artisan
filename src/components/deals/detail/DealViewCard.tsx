@@ -112,6 +112,10 @@ export function DealViewCard({ deal, onEdit }: DealViewCardProps) {
   const hasParties = deal.seller_name || deal.buyer_name || deal.seller_brokerage_id || deal.buyer_brokerage_id;
   const hasAgents = deal.listing_brokerage_id || deal.selling_brokerage_id || deal.cv_agent_id;
   const hasFinancials = deal.commission_percent || deal.other_brokerage_percent || deal.clearview_percent;
+  const hasLawyers = (deal as any).seller_lawyer_name || (deal as any).seller_lawyer_firm || (deal as any).buyer_lawyer_name || (deal as any).buyer_lawyer_firm;
+  const usePV = !!(deal as any).use_purchaser_vendor;
+  const sellerLabel = usePV ? 'Vendor' : 'Seller';
+  const buyerLabel = usePV ? 'Purchaser' : 'Buyer';
 
   return (
     <Card>
@@ -167,10 +171,10 @@ export function DealViewCard({ deal, onEdit }: DealViewCardProps) {
           <div className="rounded-md bg-accent/30 p-3">
             <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-1">Parties</h4>
             <div className="grid grid-cols-2 gap-x-6 gap-y-0">
-              <Field label="Vendor / Seller">{deal.seller_name || '—'}</Field>
-              <Field label="Purchaser / Buyer">{deal.buyer_name || '—'}</Field>
-              <Field label="Seller Brokerage">{getBrokerageName(deal.seller_brokerage_id)}</Field>
-              <Field label="Buyer Brokerage">{getBrokerageName(deal.buyer_brokerage_id)}</Field>
+              <Field label={sellerLabel}>{deal.seller_name || '—'}</Field>
+              <Field label={buyerLabel}>{deal.buyer_name || '—'}</Field>
+              <Field label={`${sellerLabel} Brokerage`}>{getBrokerageName(deal.seller_brokerage_id)}</Field>
+              <Field label={`${buyerLabel} Brokerage`}>{getBrokerageName(deal.buyer_brokerage_id)}</Field>
             </div>
           </div>
         )}
@@ -212,6 +216,23 @@ export function DealViewCard({ deal, onEdit }: DealViewCardProps) {
               <Field label="GST Rate">{formatPercent(deal.gst_rate)}</Field>
               <Field label="Other Brokerage %">{formatPercent(deal.other_brokerage_percent)}</Field>
               <Field label="ClearView %">{formatPercent(deal.clearview_percent)}</Field>
+            </div>
+          </div>
+        )}
+
+        {/* Lawyers */}
+        {hasLawyers && (
+          <div className="rounded-md bg-accent/30 p-3">
+            <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-1">Lawyers</h4>
+            <div className="grid grid-cols-2 gap-x-6 gap-y-0">
+              <Field label={`${sellerLabel}'s Lawyer`}>{(deal as any).seller_lawyer_name || '—'}</Field>
+              <Field label={`${buyerLabel}'s Lawyer`}>{(deal as any).buyer_lawyer_name || '—'}</Field>
+              <Field label="Firm">{(deal as any).seller_lawyer_firm || '—'}</Field>
+              <Field label="Firm">{(deal as any).buyer_lawyer_firm || '—'}</Field>
+              <Field label="Phone">{(deal as any).seller_lawyer_phone || '—'}</Field>
+              <Field label="Phone">{(deal as any).buyer_lawyer_phone || '—'}</Field>
+              <Field label="Email">{(deal as any).seller_lawyer_email || '—'}</Field>
+              <Field label="Email">{(deal as any).buyer_lawyer_email || '—'}</Field>
             </div>
           </div>
         )}

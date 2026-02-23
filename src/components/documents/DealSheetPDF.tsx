@@ -339,6 +339,9 @@ export function DealSheetPDF({ deal, conditions, deposits, getAgent, getBrokerag
   const sellingAgent2 = getAgent(deal.selling_agent2_id);
 
   const isLease = deal.deal_type?.toLowerCase() === 'lease';
+  const usePV = !!(deal as any).use_purchaser_vendor;
+  const sellerLabel = usePV ? 'VENDOR' : 'SELLER';
+  const buyerLabel = usePV ? 'PURCHASER' : 'BUYER';
   const valueLabel = isLease ? 'Lease Value' : 'Sale Price';
   const agentLabel = isLease ? 'Leasing' : 'Selling';
 
@@ -426,7 +429,7 @@ export function DealSheetPDF({ deal, conditions, deposits, getAgent, getBrokerag
         <View style={styles.twoColumn}>
           {/* Seller Box - Yellow */}
           <View style={[styles.infoBox, styles.sellerBox, { marginRight: 5, flex: 1 }]}>
-            <Text style={styles.infoTitle}>SELLER INFORMATION</Text>
+            <Text style={styles.infoTitle}>{sellerLabel} INFORMATION</Text>
             <View style={styles.infoRow}>
               <Text style={styles.infoLabel}>Name:</Text>
               <Text style={styles.infoValue}>{deal.seller_name || '—'}</Text>
@@ -457,7 +460,7 @@ export function DealSheetPDF({ deal, conditions, deposits, getAgent, getBrokerag
 
           {/* Buyer Box - Blue */}
           <View style={[styles.infoBox, styles.buyerBox, { marginLeft: 5, flex: 1 }]}>
-            <Text style={styles.infoTitle}>BUYER INFORMATION</Text>
+            <Text style={styles.infoTitle}>{buyerLabel} INFORMATION</Text>
             <View style={styles.infoRow}>
               <Text style={styles.infoLabel}>Name:</Text>
               <Text style={styles.infoValue}>{deal.buyer_name || '—'}</Text>
