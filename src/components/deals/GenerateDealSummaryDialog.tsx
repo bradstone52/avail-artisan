@@ -118,6 +118,7 @@ export function GenerateDealSummaryDialog({ open, onOpenChange, deal }: Generate
   const [vendor, setVendor] = useState('Clearview Commercial Realty Inc.');
   const [purchaser, setPurchaser] = useState('');
   const [propertyAddress, setPropertyAddress] = useState('');
+  const [propertyCity, setPropertyCity] = useState('');
   const [propertyDescription, setPropertyDescription] = useState('');
   const [effectiveDate, setEffectiveDate] = useState<Date | undefined>(undefined);
   const [closingDate, setClosingDate] = useState<Date | undefined>(undefined);
@@ -188,6 +189,7 @@ export function GenerateDealSummaryDialog({ open, onOpenChange, deal }: Generate
       // Transfer buyer name from deal (set by Deal Sheet) to Purchaser
       setPurchaser(deal.buyer_name || '');
       setPropertyAddress(deal.address || '');
+      setPropertyCity(deal.city || '');
       
       // Build property description from size/acres
       let description = '';
@@ -357,6 +359,7 @@ export function GenerateDealSummaryDialog({ open, onOpenChange, deal }: Generate
         vendor,
         purchaser,
         propertyAddress,
+        propertyCity,
         propertyDescription,
         effectiveDate: effectiveDate ? format(effectiveDate, 'yyyy-MM-dd') : null,
         closingDate: closingDate ? format(closingDate, 'yyyy-MM-dd') : null,

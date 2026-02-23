@@ -31,6 +31,7 @@ export interface DealSummaryPDFProps {
   vendor: string;
   purchaser: string;
   propertyAddress: string;
+  propertyCity?: string;
   propertyDescription: string;
   effectiveDate?: string | null;
   deposits: DealSummaryDeposit[];
@@ -83,7 +84,7 @@ const s = StyleSheet.create({
   // Header
   headerRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 },
   logo: { width: 160, height: 40, objectFit: 'contain' },
-  subtitle: { fontSize: 11, color: MUTED, marginBottom: 8 },
+  subtitle: { fontSize: 12, fontWeight: 'bold', color: DARK, textAlign: 'center', backgroundColor: GRAY_BG, paddingVertical: 6, paddingHorizontal: 10, borderRadius: 3, marginBottom: 8 },
   contactRow: { flexDirection: 'row', gap: 20, marginBottom: 6, paddingBottom: 6, borderBottomWidth: 1, borderBottomColor: ORANGE },
   contactBlock: { flex: 1 },
   contactItem: { fontSize: 7, marginBottom: 1 },
@@ -155,7 +156,7 @@ const s = StyleSheet.create({
 
 // ── Component ────────────────────────────────────────────
 export function DealSummaryPDF({
-  vendor, purchaser, propertyAddress, propertyDescription, effectiveDate,
+  vendor, purchaser, propertyAddress, propertyCity, propertyDescription, effectiveDate,
   deposits, purchasePrice, balanceOnClosing, closingDate,
   conditions = [], importantDates = [],
   listingAgents = [], sellingAgents = [],
@@ -187,7 +188,7 @@ export function DealSummaryPDF({
         <View style={s.headerRow}>
           <Image src={clearviewLogo} style={s.logo} />
         </View>
-        <Text style={s.subtitle}>Deal Summary: {propertyAddress || '« Address »'}</Text>
+        <Text style={s.subtitle}>Deal Summary: {[propertyAddress, propertyCity].filter(Boolean).join(', ') || '« Address »'}</Text>
         <View style={s.contactRow}>
           <View style={s.contactBlock}>
             <Text style={s.contactItem}><Text style={s.contactBold}>Brad Stone</Text>, Partner &amp; Associate Broker</Text>
