@@ -1,12 +1,11 @@
 import { useEffect, useState } from "react";
-import { useSearchParams, useNavigate, useLocation } from "react-router-dom";
+import { useSearchParams, useLocation } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { AlertCircle } from "lucide-react";
 import { DistributionMapView, MapListing } from "@/components/distribution/DistributionMapView";
 
 export default function PublicDistributionMap() {
   const [searchParams] = useSearchParams();
-  const navigate = useNavigate();
   const location = useLocation();
   const token = searchParams.get("token");
 
@@ -23,14 +22,14 @@ export default function PublicDistributionMap() {
     }
   }, [token]);
 
-  // Block navigation to other routes
+  // Block navigation to other routes — use window.location to avoid React Router auth checks
   useEffect(() => {
     const storedToken = sessionStorage.getItem("map_share_token");
     const isValidMapPath = location.pathname.includes("/public/distribution-map");
     if (storedToken && !isValidMapPath) {
-      navigate(`/public/distribution-map?token=${storedToken}`, { replace: true });
+      window.location.replace(`/public/distribution-map?token=${storedToken}`);
     }
-  }, [location, navigate]);
+  }, [location]);
 
   // Fetch listings and Mapbox token
   useEffect(() => {
