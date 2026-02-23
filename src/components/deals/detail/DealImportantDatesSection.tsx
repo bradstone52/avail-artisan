@@ -13,6 +13,7 @@ import type { DealDeposit } from '@/hooks/useDealDeposits';
 import type { DealSummaryAction } from '@/hooks/useDealSummaryActions';
 import type { DealImportantDate } from '@/hooks/useDealImportantDates';
 import { FormattedNumberInput } from '@/components/common/FormattedNumberInput';
+import { useStatutoryHolidays } from '@/hooks/useStatutoryHolidays';
 
 interface DealImportantDatesSectionProps {
   deal: Deal;
@@ -82,25 +83,19 @@ export function DealImportantDatesSection({
 
   const effectiveDate = (deal as any).effective_date as string | null;
 
-  const addBusinessDays = (startDate: Date, days: number): Date => {
-    let current = new Date(startDate);
-    let added = 0;
-    while (added < days) {
-      current.setDate(current.getDate() + 1);
-      const dow = current.getDay();
-      if (dow !== 0 && dow !== 6) added++;
-    }
-    return current;
-  };
+  const { addBusinessDays } = useStatutoryHolidays();
 
   const computedCondDueDate = (() => {
     if (condDateMode === 'specific') return condDueDate;
     if (!effectiveDate) return '';
-    const start = new Date(effectiveDate);
+    const start = new Date(effectiveDate + 'T00:00:00');
     const result = condDayType === 'business'
       ? addBusinessDays(start, condDaysFromEffective)
       : addDays(start, condDaysFromEffective);
-    return format(result, 'yyyy-MM-dd');
+    const y = result.getFullYear();
+    const m = String(result.getMonth() + 1).padStart(2, '0');
+    const d = String(result.getDate()).padStart(2, '0');
+    return `${y}-${m}-${d}`;
   })();
 
   const handleAddCondition = async () => {
