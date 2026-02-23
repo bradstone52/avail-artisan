@@ -1,181 +1,59 @@
 
-# Phase 3: Inquiry & Lead Tracking ✅ COMPLETED (Includes Tours)
 
-## Overview
-Implemented inquiry and lead tracking for internal listings, allowing users to track prospects, manage pipeline stages, and log activity touchpoints. Also includes property tour logging functionality.
+## Lease-Specific Deal Form + PDF Changes
 
----
+### 1. Database Migration
 
-## Implementation Steps
+Add four columns to the `deals` table:
 
-### Step 1: Database Schema ✅
-Created two tables for inquiry tracking:
+```sql
+ALTER TABLE deals
+  ADD COLUMN lease_rate_psf numeric,
+  ADD COLUMN lease_term_months integer,
+  ADD COLUMN commencement_date date,
+  ADD COLUMN expiry_date date;
+```
 
-**`internal_listing_inquiries`:**
-| Column | Type | Notes |
-|--------|------|-------|
-| id | UUID | Primary key |
-| listing_id | UUID | FK to internal_listings |
-| org_id | UUID | For RLS |
-| contact_name | TEXT | Required |
-| contact_email | TEXT | Optional |
-| contact_phone | TEXT | Optional |
-| contact_company | TEXT | Optional |
-| source | TEXT | Lead source (Direct, Website, Signage, etc.) |
-| stage | TEXT | Pipeline stage |
-| assigned_broker_id | UUID | FK to agents |
-| notes | TEXT | General notes |
-| next_follow_up | DATE | Follow-up reminder |
-| created_at/updated_at | TIMESTAMPTZ | Auto-managed |
+### 2. Type Updates (`src/types/database.ts`)
 
-**`internal_listing_inquiry_timeline`:**
-| Column | Type | Notes |
-|--------|------|-------|
-| id | UUID | Primary key |
-| inquiry_id | UUID | FK to inquiries |
-| org_id | UUID | For RLS |
-| event_type | TEXT | Call, Email, Tour, etc. |
-| notes | TEXT | Event notes |
-| event_date | TIMESTAMPTZ | When event occurred |
+Add `lease_rate_psf`, `lease_term_months`, `commencement_date`, `expiry_date` to both `Deal` and `DealFormData` interfaces.
 
-### Step 2: RLS Policies ✅
-Organization-based access control through internal_listings relationship.
+### 3. Form Changes (`src/components/deals/DealFormDialog.tsx`)
 
-### Step 3: Data Hook ✅
-Created `useInternalListingInquiries.ts` with:
-- `useInternalListingInquiries(listingId)` - CRUD for inquiries
-- `useInquiryTimeline(inquiryId)` - CRUD for timeline events
-- Constants: INQUIRY_SOURCES, INQUIRY_STAGES, TIMELINE_EVENT_TYPES
+Define `isLeaseDeal` when deal type is Lease, Sublease, Renewal, or Expansion:
 
-### Step 4: UI Components ✅
-- `InquiriesSection.tsx` - Main tab component with pipeline filter
-- `InquiryCard.tsx` - Individual inquiry display with expandable timeline
-- `InquiryTimeline.tsx` - Activity log with add/delete
-- `InquiryFormDialog.tsx` - Create/edit inquiry form
+- **Labels**: Seller becomes "Landlord", Buyer becomes "Tenant" (parties, brokerages, lawyers)
+- **Hide**: Purchaser/Vendor toggle for lease deals
+- **New fields** (lease only): Lease Rate PSF ($/SF), Lease Term (months), Commencement Date, Expiry Date
+- **Relabel**: "Effective Date" becomes "Commencement Date" for lease deals
+- **Keep**: Deal Value and Commission fields visible for all deal types
+- Add new fields to `EMPTY_FORM`, form initialization, and submit handler
 
-### Step 5: Integration ✅
-Replaced placeholder in Inquiries tab of InternalListingDetail.tsx
+### 4. Hook Updates (`src/hooks/useDeals.ts`)
 
----
+Include new fields in create/update mutations, sanitizing nulls for dates.
 
-## Features
+### 5. Detail View (`src/components/deals/detail/DealBasicSection.tsx`)
 
-### Pipeline Stages
-New → Contacted → Tour Booked → Tour Completed → Offer Sent → LOI Pending → Completed/Lost
+Display lease-specific fields (Lease Rate PSF, Lease Term, Commencement Date, Expiry Date) when present.
 
-### Lead Sources
-Direct, Website, Signage, Email Blast, LoopNet, CoStar, Referral, Cold Call, Trade Show, Other
+### 6. Deal Sheet PDF (`src/components/documents/DealSheetPDF.tsx`)
 
-### Timeline Event Types
-Call, Email, Tour, Meeting, Offer, LOI, Note, Other
+- Expand `isLease` to match Sublease, Renewal, Expansion (case-insensitive)
+- Override labels: Landlord/Tenant for lease deals (ignoring Purchaser/Vendor toggle)
+- "Selling Brokerage" becomes "Leasing Brokerage", "Selling Agent" becomes "Leasing Agent"
+- Keep "Deal Value" (not "Lease Value") for lease deals
+- Add Property Details rows: Lease Rate PSF, Lease Term, Commencement Date, Expiry Date
+- Relabel "Closing Date" to "Possession Date" for lease deals
 
----
+### 7. Deal Summary PDF (`src/components/documents/DealSummaryPDF.tsx`)
 
-## Files Created/Modified
+- Add new props: `dealType`, `leaseRatePsf`, `leaseTermMonths`, `commencementDate`, `expiryDate`
+- Same label logic as Deal Sheet (Landlord/Tenant, Leasing Agent, etc.)
+- Add lease field rows in Property Details
+- Relabel "Effective Date" to "Commencement Date"
 
-| Action | File |
-|--------|------|
-| ✅ Created | `src/hooks/useInternalListingInquiries.ts` |
-| ✅ Created | `src/hooks/useInternalListingTours.ts` |
-| ✅ Created | `src/components/internal-listings/InquiryCard.tsx` |
-| ✅ Created | `src/components/internal-listings/InquiryTimeline.tsx` |
-| ✅ Created | `src/components/internal-listings/InquiryFormDialog.tsx` |
-| ✅ Created | `src/components/internal-listings/InquiriesSection.tsx` |
-| ✅ Created | `src/components/internal-listings/TourFormDialog.tsx` |
-| ✅ Created | `src/components/internal-listings/ToursSection.tsx` |
-| ✅ Modified | `src/pages/InternalListingDetail.tsx` |
-| ✅ Created | Database migrations for inquiry + tour tables + RLS |
+### 8. Deal Summary Dialog (`src/components/deals/GenerateDealSummaryDialog.tsx`)
 
----
+- Pass new deal fields to `DealSummaryPDF` component
 
-# Phase 2: Document Management for Internal Listings ✅ COMPLETED
-
-## Overview
-Implement full document management capabilities for internal listings, allowing users to upload, view, download, and delete documents associated with each listing.
-
----
-
-## Files Created/Modified
-
-| Action | File |
-|--------|------|
-| ✅ Created | `src/hooks/useInternalListingDocuments.ts` |
-| ✅ Created | `src/components/internal-listings/InternalListingDocumentsSection.tsx` |
-| ✅ Modified | `src/pages/InternalListingDetail.tsx` |
-| ✅ Created | Database migration for table + RLS |
-| ✅ Created | Storage policy migration |
-
----
-
-# Phase 4: AI Marketing & IDML Brochure Generation ✅ COMPLETED
-
-## Overview
-Implemented AI-powered marketing content generation and brochure creation for internal listings.
-
-## Features
-- **AI Marketing Copy**: Generates headline, tagline, description, highlights, and confidential broker pitch using Lovable AI (Gemini)
-- **PDF Brochure**: Professional two-column layout with property specs, pricing, and marketing content
-- **InDesign Export**: JSON data export compatible with Adobe InDesign Data Merge
-- **Content Editing**: Full inline editing of AI-generated content before export
-- **Confidential Toggle**: Option to include/exclude broker notes from exports
-
-## Files Created/Modified
-
-| Action | File |
-|--------|------|
-| ✅ Created | `supabase/functions/generate-listing-marketing/index.ts` |
-| ✅ Created | `src/components/internal-listings/ListingBrochurePDF.tsx` |
-| ✅ Created | `src/components/internal-listings/MarketingSection.tsx` |
-| ✅ Modified | `src/pages/InternalListingDetail.tsx` |
-| ✅ Modified | `supabase/config.toml` |
-
----
-
-# Phase 6: Market Intelligence ✅ COMPLETED
-
-## Overview
-Implemented market intelligence features for internal listings, providing comparable listing tracking and pricing indicators to help brokers benchmark their listings against the market.
-
-## Features
-
-### Pricing Indicators
-- **Rent Position**: Shows if your asking rent is below/at/above market average with percentage difference
-- **Sale Position**: Shows if your asking sale price (per SF) is below/at/above market average
-- Visual color-coded indicators (green = below, blue = at, amber = above)
-
-### Market Summary
-- Total active comparable listings count
-- Average size in submarket
-- Rent range (min-max) for comparable listings
-- Average sale price per SF
-
-### Comparable Listings
-- Fetches active market listings in same submarket within ±30% size range (min 20,000 SF variance)
-- Displays address, size, asking rate, clear height, and loading info
-- Shows broker source for competitive intelligence
-
-### Recent Transactions
-- Shows deals closed in the last 24 months in the same submarket
-- Links to transaction detail pages for full history
-- Displays transaction type, price, and buyer/tenant info
-
-## Files Created/Modified
-
-| Action | File |
-|--------|------|
-| ✅ Created | `src/hooks/useMarketIntelligence.ts` |
-| ✅ Created | `src/components/internal-listings/MarketIntelligenceSection.tsx` |
-| ✅ Modified | `src/pages/InternalListingDetail.tsx` |
-
----
-
-# Future Phases
-
-## Phase 5: Smart Validation
-- Data integrity checks for listings
-
-## Phase 7: Analytics & Audit Trail
-- View tracking and performance metrics
-
-## Phase 8: Owner Portal
-- Secure, read-only access for landlords
