@@ -777,19 +777,19 @@ export function GenerateDealSummaryDialog({ open, onOpenChange, deal }: Generate
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[90vh] flex flex-col">
+      <DialogContent className="max-w-2xl max-h-[85vh] flex flex-col overflow-hidden">
         <DialogHeader>
           <DialogTitle>Generate Deal Summary</DialogTitle>
         </DialogHeader>
 
-        <Tabs defaultValue="basic" className="flex-1 flex flex-col">
+        <Tabs defaultValue="basic" className="flex-1 flex flex-col min-h-0">
           <TabsList className="w-full grid grid-cols-3">
             <TabsTrigger value="basic">Basic Info</TabsTrigger>
             <TabsTrigger value="deposits">Deposits</TabsTrigger>
             <TabsTrigger value="actions">Actions</TabsTrigger>
           </TabsList>
 
-          <div className="flex-1 mt-4">
+          <div className="flex-1 mt-4 overflow-y-auto min-h-0">
             {/* Basic Info Tab */}
             <TabsContent value="basic" className="space-y-4 m-0">
               <div className="grid grid-cols-2 gap-4">
