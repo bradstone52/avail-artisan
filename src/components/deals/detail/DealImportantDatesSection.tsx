@@ -398,7 +398,7 @@ export function DealImportantDatesSection({
                   </div>
                   {computedCondDueDate && (
                     <p className="text-sm font-medium text-muted-foreground">
-                      Due date: {format(new Date(computedCondDueDate), 'MMMM d, yyyy')}
+                      Due date: {format(new Date(computedCondDueDate + 'T00:00:00'), 'MMMM d, yyyy')}
                     </p>
                   )}
                 </div>
