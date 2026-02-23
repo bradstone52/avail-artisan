@@ -124,12 +124,19 @@ export function useUpdateDeal() {
       if (data.status === 'Closed' && user?.id) {
         // Auto-create transaction for ALL closed deals
         try {
-          const { data: existingTxn } = await supabase
+          // Prefer property_id match (more reliable than address) to avoid duplicates
+          let existingTxnQuery = supabase
             .from('transactions')
             .select('id')
-            .eq('address', data.address)
-            .eq('org_id', data.org_id!)
-            .maybeSingle();
+            .eq('org_id', data.org_id!);
+
+          if (data.property_id) {
+            existingTxnQuery = existingTxnQuery.eq('property_id', data.property_id);
+          } else {
+            existingTxnQuery = existingTxnQuery.eq('address', data.address);
+          }
+
+          const { data: existingTxn } = await existingTxnQuery.maybeSingle();
 
           if (!existingTxn) {
             await supabase.from('transactions').insert({
