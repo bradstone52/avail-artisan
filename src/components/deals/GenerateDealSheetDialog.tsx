@@ -1034,12 +1034,12 @@ export function GenerateDealSheetDialog({ open, onOpenChange, deal }: GenerateDe
                   <h5 className="font-medium mb-3">Parties</h5>
                   <div className="grid grid-cols-2 gap-6 text-sm">
                     <div>
-                      <div className="font-medium mb-2">Seller</div>
+                      <div className="font-medium mb-2">{sellerLabel}</div>
                       <div><span className="text-muted-foreground">Name:</span> {sellerName || '—'}</div>
                       <div><span className="text-muted-foreground">Brokerage:</span> {sellerBrokerage?.name || '—'}</div>
                     </div>
                     <div>
-                      <div className="font-medium mb-2">Buyer</div>
+                      <div className="font-medium mb-2">{buyerLabel}</div>
                       <div><span className="text-muted-foreground">Name:</span> {buyerName || '—'}</div>
                       <div><span className="text-muted-foreground">Brokerage:</span> {buyerBrokerage?.name || '—'}</div>
                     </div>
