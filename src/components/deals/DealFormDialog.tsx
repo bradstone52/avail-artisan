@@ -373,7 +373,10 @@ export function DealFormDialog({ open, onOpenChange, deal }: DealFormDialogProps
     const start = formData.commencement_date;
     const end = formData.expiry_date;
     if (start && end) {
-      const months = differenceInMonths(new Date(end), new Date(start));
+      // Add 1 day to expiry to handle lease convention (e.g. May 1 – Apr 30 = 120 months)
+      const endDate = new Date(end);
+      endDate.setDate(endDate.getDate() + 1);
+      const months = differenceInMonths(endDate, new Date(start));
       if (months > 0) {
         setFormData(prev => ({ ...prev, lease_term_months: months }));
       }
