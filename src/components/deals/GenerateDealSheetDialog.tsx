@@ -97,6 +97,10 @@ export function GenerateDealSheetDialog({ open, onOpenChange, deal }: GenerateDe
     deal.close_date ? new Date(deal.close_date + 'T00:00:00') : undefined
   );
 
+  const usePV = !!(deal as any).use_purchaser_vendor;
+  const sellerLabel = usePV ? 'Vendor' : 'Seller';
+  const buyerLabel = usePV ? 'Purchaser' : 'Buyer';
+
   // Local conditions & deposits
   const [localConditions, setLocalConditions] = useState<LocalCondition[]>([]);
   const [localDeposits, setLocalDeposits] = useState<LocalDeposit[]>([]);
@@ -676,20 +680,20 @@ export function GenerateDealSheetDialog({ open, onOpenChange, deal }: GenerateDe
 
                   {/* Parties Tab */}
                   <TabsContent value="parties" className="mt-0 space-y-6">
-                    {/* Seller */}
+                    {/* Seller/Vendor */}
                     <div className="space-y-4">
-                      <h4 className="font-medium">Seller Information</h4>
+                      <h4 className="font-medium">{sellerLabel} Information</h4>
                       <div className="grid grid-cols-2 gap-4">
                         <div className="space-y-2">
-                          <Label>Seller Name</Label>
+                          <Label>{sellerLabel} Name</Label>
                           <Input
                             value={sellerName}
                             onChange={(e) => setSellerName(e.target.value)}
-                            placeholder="Enter seller name"
+                            placeholder={`Enter ${sellerLabel.toLowerCase()} name`}
                           />
                         </div>
                         <div className="space-y-2">
-                          <Label>Seller Brokerage</Label>
+                          <Label>{sellerLabel} Brokerage</Label>
                           <Select 
                             value={sellerBrokerageId} 
                             onValueChange={(v) => v === '__add_new__' ? handleOpenAddBrokerage('seller') : setSellerBrokerageId(v)}
@@ -714,20 +718,20 @@ export function GenerateDealSheetDialog({ open, onOpenChange, deal }: GenerateDe
 
                     <Separator />
 
-                    {/* Buyer */}
+                    {/* Buyer/Purchaser */}
                     <div className="space-y-4">
-                      <h4 className="font-medium">Buyer Information</h4>
+                      <h4 className="font-medium">{buyerLabel} Information</h4>
                       <div className="grid grid-cols-2 gap-4">
                         <div className="space-y-2">
-                          <Label>Buyer Name</Label>
+                          <Label>{buyerLabel} Name</Label>
                           <Input
                             value={buyerName}
                             onChange={(e) => setBuyerName(e.target.value)}
-                            placeholder="Enter buyer name"
+                            placeholder={`Enter ${buyerLabel.toLowerCase()} name`}
                           />
                         </div>
                         <div className="space-y-2">
-                          <Label>Buyer Brokerage</Label>
+                          <Label>{buyerLabel} Brokerage</Label>
                           <Select 
                             value={buyerBrokerageId} 
                             onValueChange={(v) => v === '__add_new__' ? handleOpenAddBrokerage('buyer') : setBuyerBrokerageId(v)}
