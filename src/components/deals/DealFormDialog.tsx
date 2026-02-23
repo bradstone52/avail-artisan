@@ -438,7 +438,7 @@ export function DealFormDialog({ open, onOpenChange, deal }: DealFormDialogProps
             </div>
             <Button
               type="button"
-              variant={formData.use_purchaser_vendor ? 'default' : 'outline'}
+              variant={formData.use_purchaser_vendor ? 'default' : 'secondary'}
               size="sm"
               onClick={() => update({ use_purchaser_vendor: !formData.use_purchaser_vendor })}
               className="whitespace-nowrap"
