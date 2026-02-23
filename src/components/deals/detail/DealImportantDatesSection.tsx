@@ -262,7 +262,8 @@ export function DealImportantDatesSection({
                   key={d.id} 
                   className={`flex items-center text-sm px-3 py-2.5 ${
                     d.isSatisfied ? 'bg-green-50 dark:bg-green-950/20' :
-                    d.isPast ? 'bg-destructive/10 text-destructive' : ''
+                    d.isPast ? 'bg-destructive/10 text-destructive' :
+                    d.type === 'closing' ? 'bg-muted font-medium' : ''
                   }`}
                 >
                   <div className="flex items-center gap-2 flex-1 min-w-0">
