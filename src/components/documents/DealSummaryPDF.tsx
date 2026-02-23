@@ -308,7 +308,7 @@ export function DealSummaryPDF({
           <View style={[s.colRight, { justifyContent: 'flex-start' }]}>
             {timelineEvents.length > 0 && (
               <>
-                <Text style={s.sectionTitle}>Key Transaction Timeline</Text>
+                <Text style={s.sectionTitle}>Transaction Timeline</Text>
                 <View style={[s.timelineContainer, { flex: 1, justifyContent: 'space-between' }]}>
                   {timelineEvents.map((evt, i) => (
                     <View style={[s.timelineItem, { flex: 1 }]} key={i}>
