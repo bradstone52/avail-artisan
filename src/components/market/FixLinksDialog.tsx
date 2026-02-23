@@ -27,6 +27,7 @@ export function FixLinksDialog({ open, onOpenChange, listings, onListingUpdated 
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editingLink, setEditingLink] = useState('');
   const [savingId, setSavingId] = useState<string | null>(null);
+  const [markingOkId, setMarkingOkId] = useState<string | null>(null);
   
   const hasAnyLink = (l: MarketListing) => (l.link && l.link !== '') || (l.brochure_link && l.brochure_link !== '');
 
@@ -189,6 +190,24 @@ export function FixLinksDialog({ open, onOpenChange, listings, onListingUpdated 
   };
 
 
+  const handleMarkOk = async (listingId: string) => {
+    setMarkingOkId(listingId);
+    try {
+      const { error } = await supabase
+        .from('market_listings')
+        .update({ link_status: 'ok' })
+        .eq('id', listingId);
+      if (error) throw error;
+      toast.success('Link marked as OK');
+      onListingUpdated();
+    } catch (err) {
+      console.error('Error marking link OK:', err);
+      toast.error('Failed to update link status');
+    } finally {
+      setMarkingOkId(null);
+    }
+  };
+
   const startEditing = (listing: MarketListing) => {
     setEditingId(listing.id);
     setEditingLink(listing.link || '');
@@ -281,6 +300,18 @@ export function FixLinksDialog({ open, onOpenChange, listings, onListingUpdated 
               >
                 Enter Link
               </Button>
+              {listing.issue === 'restricted' && (
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => handleMarkOk(listing.id)}
+                  disabled={markingOkId === listing.id}
+                  className="h-7 text-xs text-green-600 border-green-300 hover:bg-green-50"
+                >
+                  {markingOkId === listing.id ? <Loader2 className="w-3 h-3 animate-spin" /> : <Check className="w-3 h-3" />}
+                  Mark OK
+                </Button>
+              )}
             </div>
           )}
         </div>
