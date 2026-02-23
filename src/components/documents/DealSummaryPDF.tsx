@@ -84,8 +84,9 @@ const s = StyleSheet.create({
   headerRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 },
   logo: { width: 160, height: 40, objectFit: 'contain' },
   subtitle: { fontSize: 11, color: MUTED, marginBottom: 8 },
-  contactRow: { marginBottom: 6, paddingBottom: 6, borderBottomWidth: 1, borderBottomColor: ORANGE },
-  contactItem: { fontSize: 7, marginBottom: 2 },
+  contactRow: { flexDirection: 'row', gap: 20, marginBottom: 6, paddingBottom: 6, borderBottomWidth: 1, borderBottomColor: ORANGE },
+  contactBlock: { flex: 1 },
+  contactItem: { fontSize: 7, marginBottom: 1 },
   contactBold: { fontWeight: 'bold', fontSize: 7 },
   
   // Section title
@@ -188,8 +189,18 @@ export function DealSummaryPDF({
         </View>
         <Text style={s.subtitle}>Deal Summary: {propertyAddress || '« Address »'}</Text>
         <View style={s.contactRow}>
-          <Text style={s.contactItem}><Text style={s.contactBold}>Brad Stone</Text> — ClearView Commercial Realty Inc.  |  brad@cvpartners.ca  |  (403) 613-2898</Text>
-          <Text style={s.contactItem}><Text style={s.contactBold}>Doug Johannson</Text> — ClearView Commercial Realty Inc.  |  doug@cvpartners.ca  |  (403) 470-8875</Text>
+          <View style={s.contactBlock}>
+            <Text style={s.contactItem}><Text style={s.contactBold}>Brad Stone</Text>, Partner &amp; Associate Broker</Text>
+            <Text style={s.contactItem}>ClearView Commercial Realty Inc.</Text>
+            <Text style={s.contactItem}>Phone: 403-613-2898</Text>
+            <Text style={s.contactItem}>Email: brad@cvpartners.ca</Text>
+          </View>
+          <View style={s.contactBlock}>
+            <Text style={s.contactItem}><Text style={s.contactBold}>Doug Johannson</Text>, Partner &amp; Associate Broker</Text>
+            <Text style={s.contactItem}>ClearView Commercial Realty Inc.</Text>
+            <Text style={s.contactItem}>Phone: 403-470-8875</Text>
+            <Text style={s.contactItem}>Email: doug@cvpartners.ca</Text>
+          </View>
         </View>
 
         {/* ── TRANSACTION PARTIES + PROPERTY DETAILS ── */}
