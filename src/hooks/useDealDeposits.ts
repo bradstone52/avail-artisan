@@ -58,19 +58,35 @@ export function useDealDeposits(dealId: string | undefined) {
   };
 
   const updateDeposit = async (id: string, updates: Partial<DealDeposit>) => {
+    // Optimistically update the cache
+    const previousDeposits = queryClient.getQueryData<DealDeposit[]>(['deal_deposits', dealId]);
+    if (previousDeposits) {
+      queryClient.setQueryData<DealDeposit[]>(['deal_deposits', dealId], 
+        previousDeposits.map(d => d.id === id ? { ...d, ...updates } : d)
+      );
+    }
+
     try {
-      const { error } = await supabase
+      const { error, data } = await supabase
         .from('deal_deposits')
         .update(updates)
-        .eq('id', id);
+        .eq('id', id)
+        .select();
 
       if (error) throw error;
+      if (!data || data.length === 0) {
+        throw new Error('No rows updated — you may not have permission');
+      }
 
       queryClient.invalidateQueries({ queryKey: ['deal_deposits', dealId] });
       toast.success('Deposit updated');
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error updating deposit:', error);
-      toast.error('Failed to update deposit');
+      // Rollback optimistic update
+      if (previousDeposits) {
+        queryClient.setQueryData(['deal_deposits', dealId], previousDeposits);
+      }
+      toast.error(error?.message || 'Failed to update deposit');
     }
   };
 
