@@ -824,10 +824,10 @@ export function GenerateDealSummaryDialog({ open, onOpenChange, deal }: Generate
         </DialogHeader>
 
         <Tabs defaultValue="basic" className="flex-1 flex flex-col min-h-0">
-          <TabsList className="w-full grid grid-cols-3 h-9">
-            <TabsTrigger value="basic" className="text-sm">Basic Info</TabsTrigger>
-            <TabsTrigger value="deposits" className="text-sm">Deposits</TabsTrigger>
-            <TabsTrigger value="conditions" className="text-sm">Conditions</TabsTrigger>
+          <TabsList className="w-full grid grid-cols-3 h-9 border-0 shadow-none bg-muted/50">
+            <TabsTrigger value="basic" className="text-xs data-[state=active]:shadow-none data-[state=active]:border data-[state=active]:border-border">Basic Info</TabsTrigger>
+            <TabsTrigger value="deposits" className="text-xs data-[state=active]:shadow-none data-[state=active]:border data-[state=active]:border-border">Deposits</TabsTrigger>
+            <TabsTrigger value="conditions" className="text-xs data-[state=active]:shadow-none data-[state=active]:border data-[state=active]:border-border">Conditions</TabsTrigger>
           </TabsList>
 
           <div className="flex-1 mt-3 overflow-y-auto min-h-0">
