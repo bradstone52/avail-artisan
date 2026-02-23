@@ -1,59 +1,28 @@
 
 
-## Lease-Specific Deal Form + PDF Changes
+## Remove "Expansion" Deal Type
 
-### 1. Database Migration
+Remove "Expansion" from the available deal types, keeping the remaining four: **Lease**, **Sale**, **Sublease**, **Renewal**.
 
-Add four columns to the `deals` table:
+### Changes
 
-```sql
-ALTER TABLE deals
-  ADD COLUMN lease_rate_psf numeric,
-  ADD COLUMN lease_term_months integer,
-  ADD COLUMN commencement_date date,
-  ADD COLUMN expiry_date date;
-```
+**1. `src/types/database.ts`**
+- Update `DealType` from `'Lease' | 'Sale' | 'Sublease' | 'Renewal' | 'Expansion'` to `'Lease' | 'Sale' | 'Sublease' | 'Renewal'`
 
-### 2. Type Updates (`src/types/database.ts`)
+**2. `src/components/deals/DealFormDialog.tsx`**
+- Remove `'Expansion'` from the `dealTypes` array
+- Remove `'Expansion'` from the `isLeaseDeal` check
 
-Add `lease_rate_psf`, `lease_term_months`, `commencement_date`, `expiry_date` to both `Deal` and `DealFormData` interfaces.
+**3. `src/components/deals/detail/DealBasicSection.tsx`**
+- Remove `'Expansion'` from the `dealTypes` array
+- Remove `'Expansion'` from the lease-type check on the display conditional
 
-### 3. Form Changes (`src/components/deals/DealFormDialog.tsx`)
+**4. `src/components/documents/DealSheetPDF.tsx`**
+- Remove `'expansion'` from the `isLease` check
 
-Define `isLeaseDeal` when deal type is Lease, Sublease, Renewal, or Expansion:
+**5. `src/components/documents/DealSummaryPDF.tsx`**
+- Remove `'expansion'` from the `isLease` check
 
-- **Labels**: Seller becomes "Landlord", Buyer becomes "Tenant" (parties, brokerages, lawyers)
-- **Hide**: Purchaser/Vendor toggle for lease deals
-- **New fields** (lease only): Lease Rate PSF ($/SF), Lease Term (months), Commencement Date, Expiry Date
-- **Relabel**: "Effective Date" becomes "Commencement Date" for lease deals
-- **Keep**: Deal Value and Commission fields visible for all deal types
-- Add new fields to `EMPTY_FORM`, form initialization, and submit handler
-
-### 4. Hook Updates (`src/hooks/useDeals.ts`)
-
-Include new fields in create/update mutations, sanitizing nulls for dates.
-
-### 5. Detail View (`src/components/deals/detail/DealBasicSection.tsx`)
-
-Display lease-specific fields (Lease Rate PSF, Lease Term, Commencement Date, Expiry Date) when present.
-
-### 6. Deal Sheet PDF (`src/components/documents/DealSheetPDF.tsx`)
-
-- Expand `isLease` to match Sublease, Renewal, Expansion (case-insensitive)
-- Override labels: Landlord/Tenant for lease deals (ignoring Purchaser/Vendor toggle)
-- "Selling Brokerage" becomes "Leasing Brokerage", "Selling Agent" becomes "Leasing Agent"
-- Keep "Deal Value" (not "Lease Value") for lease deals
-- Add Property Details rows: Lease Rate PSF, Lease Term, Commencement Date, Expiry Date
-- Relabel "Closing Date" to "Possession Date" for lease deals
-
-### 7. Deal Summary PDF (`src/components/documents/DealSummaryPDF.tsx`)
-
-- Add new props: `dealType`, `leaseRatePsf`, `leaseTermMonths`, `commencementDate`, `expiryDate`
-- Same label logic as Deal Sheet (Landlord/Tenant, Leasing Agent, etc.)
-- Add lease field rows in Property Details
-- Relabel "Effective Date" to "Commencement Date"
-
-### 8. Deal Summary Dialog (`src/components/deals/GenerateDealSummaryDialog.tsx`)
-
-- Pass new deal fields to `DealSummaryPDF` component
+### Existing Data
+Any existing deals already saved with the "Expansion" type will remain in the database and display correctly, but "Expansion" will no longer appear as an option when creating or editing deals.
 
