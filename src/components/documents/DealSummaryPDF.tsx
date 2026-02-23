@@ -249,24 +249,26 @@ export function DealSummaryPDF({
         </View>
 
         {/* ── FINANCIAL SUMMARY ── */}
-        <Text style={s.sectionTitle}>Financial Summary</Text>
-        <View style={s.finRow}>
-          <View style={s.finCard}>
-            <Text style={s.finLabel}>Purchase Price</Text>
-            <Text style={s.finValue}>{fmt(purchasePrice)}</Text>
-          </View>
-          <View style={s.finCard}>
-            <Text style={s.finLabel}>Total Deposits</Text>
-            <Text style={s.finValue}>{fmt(totalDeposits)}</Text>
-          </View>
-          <View style={s.finCard}>
-            <Text style={s.finLabel}>Balance on Closing</Text>
-            <Text style={s.finValue}>{fmt(balanceOnClosing)}</Text>
+        <View wrap={false}>
+          <Text style={s.sectionTitle}>Financial Summary</Text>
+          <View style={s.finRow}>
+            <View style={s.finCard}>
+              <Text style={s.finLabel}>Purchase Price</Text>
+              <Text style={s.finValue}>{fmt(purchasePrice)}</Text>
+            </View>
+            <View style={s.finCard}>
+              <Text style={s.finLabel}>Total Deposits</Text>
+              <Text style={s.finValue}>{fmt(totalDeposits)}</Text>
+            </View>
+            <View style={s.finCard}>
+              <Text style={s.finLabel}>Balance on Closing</Text>
+              <Text style={s.finValue}>{fmt(balanceOnClosing)}</Text>
+            </View>
           </View>
         </View>
 
         {/* ── DEPOSIT SCHEDULE + TIMELINE ── */}
-        <View style={s.twoCol}>
+        <View style={s.twoCol} wrap={false}>
           <View style={s.colLeft}>
             {validDeposits.length > 0 && (
               <>
@@ -330,7 +332,7 @@ export function DealSummaryPDF({
 
         {/* ── CONDITIONS ── */}
         {validConditions.length > 0 && (
-          <>
+          <View wrap={false}>
             <Text style={s.sectionTitle}>Conditions</Text>
             <View style={s.table}>
               <View style={s.tableHeader}>
@@ -346,12 +348,12 @@ export function DealSummaryPDF({
                 </View>
               ))}
             </View>
-          </>
+          </View>
         )}
 
         {/* ── IMPORTANT DATES ── */}
         {validDates.length > 0 && (
-          <>
+          <View wrap={false}>
             <Text style={s.sectionTitle}>Important Dates</Text>
             <View style={s.table}>
               <View style={s.tableHeader}>
@@ -367,12 +369,12 @@ export function DealSummaryPDF({
                 </View>
               ))}
             </View>
-          </>
+          </View>
         )}
 
         {/* ── LAWYER CONTACTS ── */}
         {(sellerLawyer?.name || buyerLawyer?.name) && (
-          <View style={s.agentSection}>
+          <View style={s.agentSection} wrap={false}>
             <Text style={s.sectionTitle}>Lawyers</Text>
             <View style={s.agentRow}>
               {sellerLawyer?.name && (
@@ -399,7 +401,7 @@ export function DealSummaryPDF({
 
         {/* ── AGENT CONTACTS ── */}
         {(listingAgents.length > 0 || sellingAgents.length > 0) && (
-          <View style={s.agentSection}>
+          <View style={s.agentSection} wrap={false}>
             <Text style={s.sectionTitle}>Agent Contacts</Text>
             <View style={s.agentRow}>
               {listingAgents.map((a, i) => (
