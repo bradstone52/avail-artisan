@@ -1,28 +1,34 @@
 
+## Auto-Create Tenant When Deal Status Changes to "Closed"
 
-## Remove "Expansion" Deal Type
+When a deal's status is changed to "Closed" (and it's a lease-type deal), automatically create a tenant record in `property_tenants`.
 
-Remove "Expansion" from the available deal types, keeping the remaining four: **Lease**, **Sale**, **Sublease**, **Renewal**.
+### How It Works
 
-### Changes
+1. The `useUpdateDeal` mutation in `src/hooks/useDeals.ts` will be enhanced
+2. After a successful update, it checks:
+   - Is the deal a lease-type? (Lease, Sublease, or Renewal)
+   - Is the new status "Closed"?
+   - Does the deal have a `buyer_name` (tenant)?
+   - Does the deal have a `property_id`?
+3. If all conditions are met, it queries `property_tenants` to check for an existing tenant with the same name on the same property
+4. If no duplicate exists, it inserts a new tenant record with: `tenant_name`, `property_id`, `size_sf`, `lease_expiry` (from the deal's expiry date), and `tracked_by`
+5. Invalidates the `all-tenants` cache so the Tenants hub updates immediately
 
-**1. `src/types/database.ts`**
-- Update `DealType` from `'Lease' | 'Sale' | 'Sublease' | 'Renewal' | 'Expansion'` to `'Lease' | 'Sale' | 'Sublease' | 'Renewal'`
+### Technical Details
 
-**2. `src/components/deals/DealFormDialog.tsx`**
-- Remove `'Expansion'` from the `dealTypes` array
-- Remove `'Expansion'` from the `isLeaseDeal` check
+**File: `src/hooks/useDeals.ts`**
 
-**3. `src/components/deals/detail/DealBasicSection.tsx`**
-- Remove `'Expansion'` from the `dealTypes` array
-- Remove `'Expansion'` from the lease-type check on the display conditional
+- Import `useAuth` is already present
+- Modify `useUpdateDeal` to accept user context (need to add `useAuth` inside the hook)
+- In `onSuccess`, add async logic that:
+  - Checks `data.status === 'Closed'` and `['Lease', 'Sublease', 'Renewal'].includes(data.deal_type)`
+  - Checks `data.buyer_name` and `data.property_id` are present
+  - Queries `property_tenants` for duplicate check
+  - Inserts a new record if none found
+  - Invalidates `['all-tenants']` query key
+- The `DealEditDialog` (and `DealFormDialog`) both use `useUpdateDeal`, so this will work regardless of which edit path the user takes
 
-**4. `src/components/documents/DealSheetPDF.tsx`**
-- Remove `'expansion'` from the `isLease` check
+### No Database Changes Needed
 
-**5. `src/components/documents/DealSummaryPDF.tsx`**
-- Remove `'expansion'` from the `isLease` check
-
-### Existing Data
-Any existing deals already saved with the "Expansion" type will remain in the database and display correctly, but "Expansion" will no longer appear as an option when creating or editing deals.
-
+The `property_tenants` table already has all required columns and RLS policies allow inserts when the user owns the property.
