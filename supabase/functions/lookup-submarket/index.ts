@@ -253,9 +253,27 @@ serve(async (req) => {
     }
 
     const { lat, lng, address } = await req.json();
-    if (typeof lat !== 'number' || typeof lng !== 'number') {
-      return new Response(JSON.stringify({ error: 'lat and lng are required numbers' }), {
+    
+    // Support address-only mode (no coordinates needed)
+    const hasCoords = typeof lat === 'number' && typeof lng === 'number';
+    const hasAddress = address && typeof address === 'string';
+
+    if (!hasCoords && !hasAddress) {
+      return new Response(JSON.stringify({ error: 'Provide lat/lng or address' }), {
         status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
+    }
+
+    // Address-only mode: skip coordinate checks, go straight to City API
+    if (!hasCoords && hasAddress) {
+      console.log(`[Lookup] Address-only mode for: "${address}"`);
+      const cityResult = await lookupCommunityFromCityApi(address);
+      return new Response(JSON.stringify({
+        submarket: cityResult || null,
+        insideCity: !!cityResult,
+        source: cityResult ? 'city_api' : null,
+      }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       });
     }
 
@@ -294,7 +312,7 @@ serve(async (req) => {
     if (!submarket || looksLikeCodeName(submarket)) {
       console.log(`[Lookup] ArcGIS result "${submarket}" looks like a code — trying City API fallback`);
       
-      if (address && typeof address === 'string') {
+      if (hasAddress) {
         const cityResult = await lookupCommunityFromCityApi(address);
         if (cityResult) {
           submarket = cityResult;

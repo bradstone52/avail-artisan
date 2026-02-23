@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useRef } from 'react';
+import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { differenceInMonths } from 'date-fns';
 import {
   Dialog,
@@ -32,6 +32,7 @@ import { useBrokerages } from '@/hooks/useBrokerages';
 import { MarketListing } from '@/hooks/useMarketListings';
 import { ChevronDown } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { supabase } from '@/integrations/supabase/client';
 import type { Deal, DealFormData, DealType, DealStatus } from '@/types/database';
 
 interface DealFormDialogProps {
@@ -382,6 +383,46 @@ export function DealFormDialog({ open, onOpenChange, deal }: DealFormDialogProps
       }
     }
   }, [formData.commencement_date, formData.expiry_date, isLeaseDeal]);
+
+  // Auto-lookup submarket for Calgary addresses
+  const submarketLookupTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [submarketLoading, setSubmarketLoading] = useState(false);
+
+  const lookupSubmarket = useCallback(async (address: string) => {
+    if (!address.trim()) return;
+    setSubmarketLoading(true);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) return;
+      const { data, error } = await supabase.functions.invoke('lookup-submarket', {
+        body: { address }
+      });
+      if (!error && data?.submarket) {
+        setFormData(prev => ({ ...prev, submarket: data.submarket }));
+      }
+    } catch (err) {
+      console.error('Submarket lookup failed:', err);
+    } finally {
+      setSubmarketLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    // Only auto-lookup when not linked to a listing and city is Calgary
+    if (hasLinkedListing) return;
+    if (formData.city.toLowerCase() !== 'calgary') return;
+    if (!formData.address.trim()) return;
+
+    if (submarketLookupTimer.current) clearTimeout(submarketLookupTimer.current);
+    submarketLookupTimer.current = setTimeout(() => {
+      lookupSubmarket(formData.address);
+    }, 800);
+
+    return () => {
+      if (submarketLookupTimer.current) clearTimeout(submarketLookupTimer.current);
+    };
+  }, [formData.address, formData.city, hasLinkedListing, lookupSubmarket]);
+
   const sellerLabel = isLeaseDeal ? 'Landlord' : (formData.use_purchaser_vendor ? 'Vendor' : 'Seller');
   const buyerLabel = isLeaseDeal ? 'Tenant' : (formData.use_purchaser_vendor ? 'Purchaser' : 'Buyer');
 
@@ -461,7 +502,7 @@ export function DealFormDialog({ open, onOpenChange, deal }: DealFormDialogProps
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="submarket">Submarket</Label>
+              <Label htmlFor="submarket">Submarket {submarketLoading && <span className="text-xs text-muted-foreground ml-1">(looking up...)</span>}</Label>
               <Input
                 id="submarket"
                 value={formData.submarket}
