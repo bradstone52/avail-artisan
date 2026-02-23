@@ -783,10 +783,9 @@ export function GenerateDealSummaryDialog({ open, onOpenChange, deal }: Generate
         </DialogHeader>
 
         <Tabs defaultValue="basic" className="flex-1 flex flex-col min-h-0">
-          <TabsList className="w-full grid grid-cols-3">
+          <TabsList className="w-full grid grid-cols-2">
             <TabsTrigger value="basic">Basic Info</TabsTrigger>
             <TabsTrigger value="deposits">Deposits</TabsTrigger>
-            <TabsTrigger value="actions">Actions</TabsTrigger>
           </TabsList>
 
           <div className="flex-1 mt-4 overflow-y-auto min-h-0">
@@ -923,20 +922,6 @@ export function GenerateDealSummaryDialog({ open, onOpenChange, deal }: Generate
               </div>
             </TabsContent>
 
-            {/* Actions Tab */}
-            <TabsContent value="actions" className="m-0 h-full">
-              <p className="text-sm text-muted-foreground mb-4">
-                Add due dates and actions to track deal milestones.
-              </p>
-
-              {actions.length > 1 ? (
-                <ScrollArea className="h-[350px] pr-4">
-                  {actionsContent}
-                </ScrollArea>
-              ) : (
-                <div className="pr-4">{actionsContent}</div>
-              )}
-            </TabsContent>
           </div>
         </Tabs>
 
