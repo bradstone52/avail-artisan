@@ -220,20 +220,18 @@ export function DealSummaryPDF({
 
         {/* ── TRANSACTION PARTIES + PROPERTY DETAILS ── */}
         <View style={s.twoCol}>
-          <View style={s.colLeft}>
+          <View style={{ width: '38%' }}>
             <Text style={s.sectionTitle}>Transaction Parties</Text>
-            <View style={{ flexDirection: 'row', gap: 6 }}>
-              <View style={[s.card, { flex: 1 }]}>
-                <Text style={s.cardLabel}>{sellerLabel}</Text>
-                <Text style={s.cardValue}>{vendor || 'To be confirmed'}</Text>
-              </View>
-              <View style={[s.card, { flex: 1 }]}>
-                <Text style={s.cardLabel}>{buyerLabel}</Text>
-                <Text style={s.cardValue}>{purchaser || 'To be confirmed'}</Text>
-              </View>
+            <View style={[s.card, { marginBottom: 4 }]}>  
+              <Text style={s.cardLabel}>{sellerLabel}</Text>
+              <Text style={s.cardValue}>{vendor || 'To be confirmed'}</Text>
+            </View>
+            <View style={s.card}>
+              <Text style={s.cardLabel}>{buyerLabel}</Text>
+              <Text style={s.cardValue}>{purchaser || 'To be confirmed'}</Text>
             </View>
           </View>
-          <View style={s.colRight}>
+          <View style={{ width: '60%' }}>
             <Text style={s.sectionTitle}>Property Details</Text>
             <View style={s.table}>
               <View style={s.propRow}>
