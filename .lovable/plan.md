@@ -1,149 +1,129 @@
 
-# Prospects Page Enhancement + Dormant Prospect Email Digest
+# RocketReach Contact Finder Module
 
-This plan covers all four improvements in one implementation pass:
+## Overview
 
-1. Priority flagging + Last Contacted tracking (with Log Contact button)
-2. Contact details visible in the table
-3. Prospect tasks with email reminders
-4. Twice-weekly email digest for dormant prospects (Monday + Thursday)
+Build a "Contact Finder" panel within the CRE Tracker, accessible as a new tab, that lets users search for professionals by name + company (or browse employees at a company) via the RocketReach API. Found contacts can optionally be saved as a **Prospect Ideas** record.
 
 ---
 
-## 1. Database Migration
+## Step 1 — Secure the API Key
 
-Two new columns on the `prospects` table (confirmed they don't exist yet):
-- `priority` — text, nullable (`'High'`, `'Medium'`, `'Low'`)
-- `last_contacted_at` — timestamptz, nullable
+First, the API key will be requested via the secrets tool. The key is stored securely on the backend and accessed only from a Supabase Edge Function — it is never exposed to the browser.
 
-New table: `prospect_tasks`
+**Where to get your key:** Log in to RocketReach → Account Settings → Generate New API Key.
+
+---
+
+## Step 2 — Backend Edge Function
+
+A new edge function `supabase/functions/rocketreach-lookup/index.ts` will proxy all API calls to RocketReach. This keeps the API key server-side.
+
+**Two operations supported:**
+
+| Operation | RocketReach Endpoint | Use Case |
+|---|---|---|
+| `person_lookup` | `GET /v3/person/lookup` | Look up a specific person by name + company or LinkedIn URL |
+| `people_search` | `POST /v3/searches/people` | Search all people at a company by name/title |
+
+**Request shape from frontend:**
+```json
+{ "operation": "person_lookup", "name": "Jane Smith", "company": "CBRE" }
+{ "operation": "people_search", "company": "JLL", "title": "leasing" }
 ```
-prospect_tasks
-  id              uuid PK default gen_random_uuid()
-  prospect_id     uuid NOT NULL → prospects(id) ON DELETE CASCADE
-  org_id          uuid nullable
-  created_by      uuid nullable (user_id)
-  title           text NOT NULL
-  notes           text nullable
-  due_date        date nullable
-  completed       boolean default false
-  reminder_at     timestamptz nullable   ← triggers email on this date/time
-  reminder_sent   boolean default false
-  created_at      timestamptz default now()
-  updated_at      timestamptz default now()
+
+**Returns:** Normalized results with `name`, `title`, `company`, `emails[]`, `phones[]`, `linkedin_url`.
+
+---
+
+## Step 3 — Database: `prospect_ideas` Table
+
+A new table `prospect_ideas` will store saved contacts found via RocketReach.
+
+```sql
+CREATE TABLE public.prospect_ideas (
+  id          uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  org_id      uuid REFERENCES public.orgs(id) ON DELETE CASCADE,
+  created_by  uuid NOT NULL,
+  name        text NOT NULL,
+  title       text,
+  company     text,
+  email       text,
+  phone       text,
+  linkedin_url text,
+  notes       text,
+  source      text DEFAULT 'RocketReach',
+  created_at  timestamptz DEFAULT now(),
+  updated_at  timestamptz DEFAULT now()
+);
 ```
 
-RLS policies on `prospect_tasks` mirror `prospect_follow_up_dates` — checking that the parent prospect belongs to the user's org via `get_user_org_ids(auth.uid())`.
+RLS policies will restrict all access to authenticated org members only.
 
 ---
 
-## 2. New Edge Functions
+## Step 4 — Frontend Components
 
-### A. `send-prospect-task-reminders`
-- Runs every 15 minutes via pg_cron
-- Queries `prospect_tasks` where `reminder_at <= now()` AND `reminder_sent = false` AND `completed = false`
-- Joins to `prospects` (name) and `profiles` (email of `created_by`)
-- Sends one email per task creator via Resend: subject "Reminder: [task title] — [prospect name]"
-- Sets `reminder_sent = true` after sending
-- Uses existing `RESEND_API_KEY` and `listings@logistics-space.net` sender
+### New Tab in CRE Tracker
 
-### B. `dormant-prospects-digest`
-- Runs on a cron schedule: **Monday and Thursday at 8:00 AM MST (15:00 UTC)**
-- Cron expression: `0 15 * * 1,4`
-- Logic:
-  1. Calculates a threshold date = 14 days ago (2 weeks without contact)
-  2. Queries active prospects per org where `last_contacted_at` is older than 14 days OR is null AND prospect `status != 'Closed'`
-  3. Groups by `user_id` — each agent in the org gets their own email listing only their prospects
-  4. Fetches each agent's email from `profiles`
-  5. Sends a digest email to each agent via Resend
-- Email format: table of dormant prospects showing Name, Company, Type, Days Since Contact, Follow-up Date
-- Skips agents with no dormant prospects (no empty emails)
+A new **"Contact Finder"** tab will be added to the CRE Tracker alongside Deals, Prospects, etc.
 
----
+### `ContactFinderTab` Component
 
-## 3. Frontend Changes
+Two search modes via a toggle:
 
-### `src/types/prospect.ts`
-- Add `priority?: string | null` to `Prospect` interface
-- Add `last_contacted_at?: string | null` to `Prospect` interface
-- Add `priority?: string`, `email?: string`, `phone?: string` to `ProspectFormData`
+**Mode 1 — Person Lookup**
+- Fields: Name, Company/Domain
+- Button: "Look Up"
+- Returns a single result card with name, title, emails, phones
 
-### `src/hooks/useProspects.ts`
-- Add `useLogProspectContact()` mutation — sets `last_contacted_at = now()` for a given prospect ID
-- Update `sanitizeProspectData` to include `priority`, `email`, `phone`
+**Mode 2 — Company Search**
+- Fields: Company Name, optional Title/Role filter
+- Button: "Search"
+- Returns a list of matching people at that company
 
-### `src/hooks/useProspectTasks.ts` (new file)
-- `useProspectTasks(prospectId)` — query hook
-- `useCreateTask()` — insert mutation
-- `useUpdateTask()` — update mutation
-- `useDeleteTask()` — delete mutation
-- `useToggleTaskCompleted()` — toggle completed mutation
+### Result Cards
 
-### `src/components/prospects/ProspectsTable.tsx`
-**New/changed columns:**
-- **Priority** — colour-coded badge inline: Red chip = High, Yellow = Medium, Blue = Low, none = no badge
-- **Contact** — phone number and email shown as a sub-line beneath the prospect name (already in same column), with clickable `tel:` and `mailto:` links
-- **Last Contacted** — relative label ("Today", "3d ago", "Never") with a small `Phone` icon button for one-tap log contact (uses `e.stopPropagation()` to avoid row navigation)
+Each result card shows:
+- Name + title + company
+- Email(s) with copy button
+- Phone(s) with copy button
+- LinkedIn URL if available
+- **"Save as Prospect Idea"** button → opens a small confirm/edit sheet to save to `prospect_ideas`
 
-**Filter bar additions:**
-- Priority dropdown: All / High / Medium / Low
+### Prospect Ideas List
 
-**Sort order update:**
-- Priority descending (High → Medium → Low → None) then `follow_up_date` ascending
-
-### `src/components/prospects/ProspectFormDialog.tsx`
-- Add **Priority** select field (High / Medium / Low)
-- Add **Email** field (already in DB, currently missing from form)
-- Add **Phone** field (already in DB, currently missing from form)
-
-### `src/components/prospects/ProspectTasksSection.tsx` (new file)
-A new section for the prospect detail page:
-- List of tasks with title, due date, completion checkbox
-- Add Task button → inline form within the section (no dialog needed for simplicity)
-- Each task row shows: checkbox, title, due date, optional reminder indicator, delete button
-- Completed tasks struck-through and sorted to the bottom
-- Optional email reminder date + time selector per task
-
-### `src/components/prospects/TaskFormDialog.tsx` (new file)
-Small dialog for adding/editing a task:
-- Title (required text input)
-- Notes (optional textarea)
-- Due Date (date picker)
-- Email reminder — date + time ("Send me an email reminder on…"), optional
-
-### `src/pages/ProspectDetail.tsx`
-- Add `ProspectTasksSection` component to the detail layout
-
-### `src/components/prospects/ProspectViewCard.tsx`
-- Display `priority` badge
-- Display `last_contacted_at` with relative label
-- Display `email` and `phone` as clickable links
+Below the search panel, a collapsible section shows previously saved Prospect Ideas from the `prospect_ideas` table, with columns: Name, Title, Company, Email, Phone, Saved date. Each row has a "Convert to Prospect" action that pre-fills the standard Prospect form.
 
 ---
 
-## 4. Cron Scheduling
+## Step 5 — Navigation
 
-Both cron jobs are set up via the `supabase--read-query` insert tool (not migrations) since they contain project-specific URLs and the anon key:
-
-**Task reminders:** every 15 minutes
-**Dormant digest:** `0 15 * * 1,4` — 15:00 UTC = 8:00 AM MST, Monday + Thursday
+Add **"Contact Finder"** as a new tab item in the CRE Tracker tab list (alongside Overview, Deals, Prospects, etc.).
 
 ---
 
-## Technical Summary
+## Technical Details
 
-**Files to create:**
-- `supabase/functions/send-prospect-task-reminders/index.ts`
-- `supabase/functions/dormant-prospects-digest/index.ts`
-- `src/hooks/useProspectTasks.ts`
-- `src/components/prospects/ProspectTasksSection.tsx`
-- `src/components/prospects/TaskFormDialog.tsx`
-- DB migration (new columns + new table)
+- **Auth**: Edge function validates the user JWT via `supabase.auth.getClaims()` before proxying requests
+- **CORS**: Standard CORS headers applied to all edge function responses
+- **Error handling**: RocketReach rate limit (429) and no-result (404) errors surfaced cleanly to the UI
+- **Credits**: RocketReach only charges credits for successful lookups — the UI will note this
+- **Hook**: `useContactFinder` hook wraps the edge function call with loading/error state
+- **Hook**: `useProspectIdeas` hook for CRUD on the `prospect_ideas` table
 
-**Files to modify:**
-- `src/types/prospect.ts`
-- `src/hooks/useProspects.ts`
-- `src/components/prospects/ProspectsTable.tsx`
-- `src/components/prospects/ProspectFormDialog.tsx`
-- `src/components/prospects/ProspectViewCard.tsx`
-- `src/pages/ProspectDetail.tsx`
+---
+
+## Files to Create/Modify
+
+| File | Action |
+|---|---|
+| `supabase/functions/rocketreach-lookup/index.ts` | Create — API proxy edge function |
+| `src/pages/CRETracker.tsx` | Modify — add Contact Finder tab |
+| `src/components/cre-tracker/ContactFinderTab.tsx` | Create — main tab component |
+| `src/components/cre-tracker/ContactResultCard.tsx` | Create — individual result card |
+| `src/components/cre-tracker/ProspectIdeasSection.tsx` | Create — saved ideas list |
+| `src/hooks/useContactFinder.ts` | Create — edge function wrapper hook |
+| `src/hooks/useProspectIdeas.ts` | Create — CRUD hook for prospect_ideas |
+| DB migration | Create — `prospect_ideas` table + RLS |
+
