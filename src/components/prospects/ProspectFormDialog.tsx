@@ -207,18 +207,18 @@ export function ProspectFormDialog({ open, onOpenChange, prospect }: ProspectFor
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="priority">Priority</Label>
-                  <Select
-                    value={formData.priority || ''}
-                    onValueChange={(value) => setFormData({ ...formData, priority: value || undefined })}
+                   <Select
+                    value={formData.priority || 'none'}
+                    onValueChange={(value) => setFormData({ ...formData, priority: value === 'none' ? '' : value })}
                   >
                     <SelectTrigger>
                       <SelectValue placeholder="Select priority" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="">None</SelectItem>
-                      <SelectItem value="High">High</SelectItem>
-                      <SelectItem value="Medium">Medium</SelectItem>
-                      <SelectItem value="Low">Low</SelectItem>
+                      <SelectItem value="none">None</SelectItem>
+                      <SelectItem value="A">A (High)</SelectItem>
+                      <SelectItem value="B">B (Medium)</SelectItem>
+                      <SelectItem value="C">C (Low)</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
