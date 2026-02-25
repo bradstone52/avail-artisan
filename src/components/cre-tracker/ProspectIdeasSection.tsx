@@ -7,6 +7,12 @@ import { ProspectFormDialog } from '@/components/prospects/ProspectFormDialog';
 import { format } from 'date-fns';
 import { AddProspectIdeaDialog } from './AddProspectIdeaDialog';
 
+function formatPhone(phone: string): string {
+  const cleaned = phone.replace(/\D/g, '');
+  const match = cleaned.match(/^(\d{3})(\d{3})(\d{4})$/);
+  return match ? `(${match[1]}) ${match[2]}-${match[3]}` : phone;
+}
+
 export function ProspectIdeasSection() {
   const { ideas, isLoading, deleteIdea } = useProspectIdeas();
   const [expanded, setExpanded] = useState(true);
@@ -69,7 +75,7 @@ export function ProspectIdeasSection() {
                       <td className="p-3 text-muted-foreground">{idea.title ?? '—'}</td>
                       <td className="p-3 text-muted-foreground">{idea.company ?? '—'}</td>
                       <td className="p-3 text-muted-foreground truncate max-w-[180px]">{idea.email ?? '—'}</td>
-                      <td className="p-3 text-muted-foreground">{idea.phone ?? '—'}</td>
+                      <td className="p-3 text-muted-foreground">{idea.phone ? formatPhone(idea.phone) : '—'}</td>
                       <td className="p-3 text-muted-foreground text-xs">
                         {format(new Date(idea.created_at), 'MMM d, yyyy')}
                       </td>

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Search, User, Building2, Loader2, AlertCircle, Info } from 'lucide-react';
+import { Search, User, Building2, Loader2, AlertCircle, Info, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -12,17 +12,16 @@ type SearchMode = 'person' | 'company';
 
 export function ContactFinderTab() {
   const [mode, setMode] = useState<SearchMode>('person');
-
-  // Person lookup state
   const [personName, setPersonName] = useState('');
   const [personCompany, setPersonCompany] = useState('');
-
-  // Company search state
   const [companyName, setCompanyName] = useState('');
   const [titleFilter, setTitleFilter] = useState('');
+  const [lastCompanySearch, setLastCompanySearch] = useState<{ company: string; title?: string } | null>(null);
 
-  const { loading, error, personResult, peopleResults, lookupPerson, searchPeople, clearResults } = useContactFinder();
+  const { loading, error, personResult, peopleResults, totalResults, currentPage, pageSize, lookupPerson, searchPeople, clearResults } = useContactFinder();
   const { addIdea } = useProspectIdeas();
+
+  const totalPages = Math.ceil(totalResults / pageSize);
 
   const handlePersonLookup = (e: React.FormEvent) => {
     e.preventDefault();
@@ -33,7 +32,15 @@ export function ContactFinderTab() {
   const handleCompanySearch = (e: React.FormEvent) => {
     e.preventDefault();
     if (!companyName.trim()) return;
-    searchPeople({ company: companyName.trim(), title: titleFilter.trim() || undefined });
+    const params = { company: companyName.trim(), title: titleFilter.trim() || undefined };
+    setLastCompanySearch(params);
+    searchPeople({ ...params, page: 1 });
+  };
+
+  const handlePageChange = (page: number) => {
+    if (!lastCompanySearch) return;
+    searchPeople({ ...lastCompanySearch, page });
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   const handleSave = (contact: ContactResult) => {
@@ -50,6 +57,7 @@ export function ContactFinderTab() {
 
   const switchMode = (m: SearchMode) => {
     setMode(m);
+    setLastCompanySearch(null);
     clearResults();
   };
 
@@ -175,7 +183,7 @@ export function ContactFinderTab() {
         </div>
       )}
 
-      {/* Results */}
+      {/* Person result */}
       {!loading && mode === 'person' && personResult !== null && (
         <div className="space-y-3">
           <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Result</p>
@@ -187,26 +195,58 @@ export function ContactFinderTab() {
         </div>
       )}
 
-      {!loading && mode === 'person' && personResult === null && !error && !loading && (
-        // Only show "no result" message if a search was completed
-        null
-      )}
-
-      {!loading && mode === 'company' && peopleResults.length > 0 && (
+      {/* Company results */}
+      {mode === 'company' && (peopleResults.length > 0 || loading) && (
         <div className="space-y-3">
-          <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-            {peopleResults.length} Result{peopleResults.length !== 1 ? 's' : ''}
-          </p>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-            {peopleResults.map((contact, i) => (
-              <ContactResultCard
-                key={contact.id ?? i}
-                contact={contact}
-                onSave={handleSave}
-                isSaving={addIdea.isPending}
-              />
-            ))}
-          </div>
+          {!loading && (
+            <div className="flex items-center justify-between">
+              <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                {peopleResults.length} of {totalResults.toLocaleString()} Result{totalResults !== 1 ? 's' : ''}
+              </p>
+              {totalPages > 1 && (
+                <div className="flex items-center gap-2">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="h-7 w-7 p-0 border-2 border-foreground"
+                    disabled={currentPage <= 1}
+                    onClick={() => handlePageChange(currentPage - 1)}
+                  >
+                    <ChevronLeft className="w-3.5 h-3.5" />
+                  </Button>
+                  <span className="text-xs font-bold text-muted-foreground">
+                    Page {currentPage} of {totalPages}
+                  </span>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="h-7 w-7 p-0 border-2 border-foreground"
+                    disabled={currentPage >= totalPages}
+                    onClick={() => handlePageChange(currentPage + 1)}
+                  >
+                    <ChevronRight className="w-3.5 h-3.5" />
+                  </Button>
+                </div>
+              )}
+            </div>
+          )}
+          {loading ? (
+            <div className="flex items-center justify-center py-10 text-muted-foreground gap-2">
+              <Loader2 className="w-4 h-4 animate-spin" />
+              <span className="text-sm">Loading contacts…</span>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              {peopleResults.map((contact, i) => (
+                <ContactResultCard
+                  key={contact.id ?? i}
+                  contact={contact}
+                  onSave={handleSave}
+                  isSaving={addIdea.isPending}
+                />
+              ))}
+            </div>
+          )}
         </div>
       )}
 
