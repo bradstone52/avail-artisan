@@ -24,7 +24,8 @@ import {
   Package,
   Settings,
   Briefcase,
-  UserSearch
+  UserSearch,
+  ContactRound
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -70,6 +71,7 @@ const navigation: NavigationEntry[] = [
       { name: 'Prospects', href: '/cre-tracker?tab=prospects', icon: UserSearch },
       { name: 'Internal Listings', href: '/cre-tracker?tab=listings', icon: FileSpreadsheet },
       { name: 'BrokerageDB', href: '/cre-tracker?tab=contacts', icon: Users },
+      { name: 'Contact Finder', href: '/cre-tracker?tab=contact-finder', icon: ContactRound },
     ]
   },
   { name: 'Properties', href: '/properties', icon: Building2 },
