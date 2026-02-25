@@ -156,8 +156,10 @@ export function ProspectViewCard({ prospect, onEdit }: ProspectViewCardProps) {
         
         {prospect.notes && (
           <div className="mt-4 pt-4 border-t">
-            <p className="text-sm text-muted-foreground mb-1">Notes</p>
-            <p className="text-sm whitespace-pre-wrap">{prospect.notes}</p>
+            <p className="text-sm text-muted-foreground mb-2">Notes</p>
+            <div className="bg-muted rounded-md px-3 py-2.5 border border-border">
+              <p className="text-sm whitespace-pre-wrap">{prospect.notes}</p>
+            </div>
           </div>
         )}
       </CardContent>
