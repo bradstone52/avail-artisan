@@ -116,6 +116,7 @@ export function useUpdateProspectTask() {
     },
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['prospect_tasks', data.prospect_id] });
+      queryClient.invalidateQueries({ queryKey: ['prospect_tasks_all'] });
     },
     onError: (error) => {
       console.error('Error updating task:', error);
