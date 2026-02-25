@@ -380,19 +380,22 @@ export function ProspectsTable({ prospects, isLoading, onEdit }: ProspectsTableP
               <TableHead className={cn('w-[60px]', headPadding)}></TableHead>
             </TableRow>
           </TableHeader>
-          <TableBody className="[&_tr:nth-child(even)]:bg-transparent">
+          <TableBody>
             {filteredAndSorted.map((prospect, index) => {
               const isSelected = selectedRowId === prospect.id;
               const isEven = index % 2 === 0;
-              const priorityRowBg =
-                prospect.priority === 'A'
-                  ? isEven ? '!bg-red-50 dark:!bg-red-950/20' : '!bg-red-200/60 dark:!bg-red-900/40'
+
+              const priorityBgColor = isSelected
+                ? undefined
+                : prospect.priority === 'A'
+                  ? isEven ? 'rgb(254 226 226)' : 'rgb(252 165 165 / 0.5)'
                   : prospect.priority === 'B'
-                  ? isEven ? '!bg-yellow-50 dark:!bg-yellow-950/20' : '!bg-yellow-200/60 dark:!bg-yellow-900/40'
+                  ? isEven ? 'rgb(254 249 195)' : 'rgb(253 224 71 / 0.4)'
                   : prospect.priority === 'C'
-                  ? isEven ? '!bg-cyan-50 dark:!bg-cyan-950/20' : '!bg-cyan-200/60 dark:!bg-cyan-900/40'
-                  : isEven ? '!bg-background' : '!bg-muted/40';
-              const rowBg = isSelected ? '!bg-secondary' : priorityRowBg;
+                  ? isEven ? 'rgb(207 250 254)' : 'rgb(103 232 249 / 0.4)'
+                  : isEven ? 'transparent' : 'rgb(0 0 0 / 0.04)';
+
+              const rowBg = isSelected ? '!bg-secondary' : '';
               const hoverClass = isSelected
                 ? 'hover:!bg-secondary/90'
                 : prospect.priority === 'A'
@@ -409,6 +412,7 @@ export function ProspectsTable({ prospects, isLoading, onEdit }: ProspectsTableP
               return (
                 <TableRow
                   key={prospect.id}
+                  style={{ backgroundColor: priorityBgColor }}
                   className={cn(
                     'cursor-pointer transition-all !border-b-2 !border-foreground',
                     rowBg,
