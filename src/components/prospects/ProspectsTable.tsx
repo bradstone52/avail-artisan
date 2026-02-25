@@ -1,5 +1,6 @@
 import { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { Badge } from '@/components/ui/badge';
 import {
   Table,
   TableBody,
@@ -10,7 +11,6 @@ import {
 } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Badge } from '@/components/ui/badge';
 import {
   Select,
   SelectContent,
@@ -28,10 +28,10 @@ import { ConfirmDialog } from '@/components/common/ConfirmDialog';
 import { ColumnsDropdown } from '@/components/common/ColumnsDropdown';
 import { DensityToggle } from '@/components/common/DensityToggle';
 import { formatDate, formatNumber, formatCurrency } from '@/lib/format';
-import { useDeleteProspect, useLogProspectContact } from '@/hooks/useProspects';
+import { useDeleteProspect, useLogProspectContact, useUpdateProspect } from '@/hooks/useProspects';
 import { useTableColumnPrefs } from '@/hooks/useTableColumnPrefs';
 import { useTableDensity } from '@/hooks/useTableDensity';
-import { Eye, Pencil, Trash2, Search, X, MoreHorizontal, Phone, Mail } from 'lucide-react';
+import { Eye, Pencil, Trash2, Search, X, MoreHorizontal, Phone, Mail, ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { differenceInDays, parseISO, addDays, formatDistanceToNow } from 'date-fns';
 import type { Prospect } from '@/types/prospect';
@@ -44,7 +44,7 @@ interface ProspectsTableProps {
 
 const PROSPECT_TYPES = ['All', 'Tenant', 'Buyer', 'Listing'];
 const FOLLOW_UP_FILTERS = ['All', 'Overdue', 'Next 7', 'Next 30'];
-const PRIORITY_FILTERS = ['All', 'High', 'Medium', 'Low'];
+const PRIORITY_FILTERS = ['All', 'A', 'B', 'C'];
 
 const PROSPECTS_COLUMNS = [
   { id: 'name', label: 'Name', defaultVisible: true },
@@ -62,13 +62,9 @@ const prospectTypeColors: Record<string, string> = {
   Landlord: 'bg-violet-100 text-violet-800 border-violet-300',
 };
 
-const priorityOrder: Record<string, number> = { High: 0, Medium: 1, Low: 2 };
-
-const priorityColors: Record<string, string> = {
-  High: 'bg-red-100 text-red-800 border-red-300',
-  Medium: 'bg-yellow-100 text-yellow-800 border-yellow-300',
-  Low: 'bg-blue-100 text-blue-800 border-blue-300',
-};
+// A = highest priority, C = lowest
+const PRIORITY_CYCLE = [null, 'A', 'B', 'C'] as const;
+const priorityOrder: Record<string, number> = { A: 0, B: 1, C: 2 };
 
 function FollowUpDueCell({ date }: { date?: string | null }) {
   if (!date) return <span className="text-muted-foreground">-</span>;
@@ -165,13 +161,45 @@ function RequirementCell({ prospect }: { prospect: Prospect }) {
 export function ProspectsTable({ prospects, isLoading, onEdit }: ProspectsTableProps) {
   const navigate = useNavigate();
   const deleteProspect = useDeleteProspect();
+  const updateProspect = useUpdateProspect();
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [selectedRowId, setSelectedRowId] = useState<string | null>(null);
+  const [updatingPriority, setUpdatingPriority] = useState<string | null>(null);
 
   const [searchQuery, setSearchQuery] = useState('');
   const [typeFilter, setTypeFilter] = useState('All');
   const [followUpFilter, setFollowUpFilter] = useState('All');
   const [priorityFilter, setPriorityFilter] = useState('All');
+
+  // Sort state: 'priority' | 'follow_up' | null, direction asc/desc
+  type SortCol = 'priority' | 'follow_up';
+  const [sortCol, setSortCol] = useState<SortCol>('priority');
+  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc');
+
+  const handleSortClick = (col: SortCol) => {
+    if (sortCol === col) {
+      setSortDir(d => d === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortCol(col);
+      setSortDir('asc');
+    }
+  };
+
+  const handleCyclePriority = async (prospect: Prospect) => {
+    setUpdatingPriority(prospect.id);
+    try {
+      const currentIdx = PRIORITY_CYCLE.indexOf(prospect.priority as any);
+      const nextIdx = (currentIdx + 1) % PRIORITY_CYCLE.length;
+      const newValue = PRIORITY_CYCLE[nextIdx];
+      await (updateProspect as any).mutateAsync({
+        id: prospect.id,
+        name: prospect.name,
+        priority: newValue,
+      });
+    } finally {
+      setUpdatingPriority(null);
+    }
+  };
 
   const { isVisible, toggle, reset, columns } = useTableColumnPrefs('prospects', PROSPECTS_COLUMNS);
   const { density, toggle: toggleDensity, isCompact } = useTableDensity('prospects');
@@ -223,18 +251,27 @@ export function ProspectsTable({ prospects, isLoading, onEdit }: ProspectsTableP
       return true;
     });
 
-    // Sort: priority (High→Med→Low→None), then follow_up_date ascending
     filtered.sort((a, b) => {
-      const pA = a.priority ? (priorityOrder[a.priority] ?? 3) : 3;
-      const pB = b.priority ? (priorityOrder[b.priority] ?? 3) : 3;
-      if (pA !== pB) return pA - pB;
-      const dA = a.follow_up_date ? parseISO(a.follow_up_date).getTime() : Infinity;
-      const dB = b.follow_up_date ? parseISO(b.follow_up_date).getTime() : Infinity;
-      return dA - dB;
+      let cmp = 0;
+      if (sortCol === 'priority') {
+        const pA = a.priority ? (priorityOrder[a.priority] ?? 3) : 3;
+        const pB = b.priority ? (priorityOrder[b.priority] ?? 3) : 3;
+        cmp = pA - pB;
+        if (cmp === 0) {
+          const dA = a.follow_up_date ? parseISO(a.follow_up_date).getTime() : Infinity;
+          const dB = b.follow_up_date ? parseISO(b.follow_up_date).getTime() : Infinity;
+          cmp = dA - dB;
+        }
+      } else {
+        const dA = a.follow_up_date ? parseISO(a.follow_up_date).getTime() : Infinity;
+        const dB = b.follow_up_date ? parseISO(b.follow_up_date).getTime() : Infinity;
+        cmp = dA - dB;
+      }
+      return sortDir === 'asc' ? cmp : -cmp;
     });
 
     return filtered;
-  }, [prospects, searchQuery, typeFilter, followUpFilter, priorityFilter]);
+  }, [prospects, searchQuery, typeFilter, followUpFilter, priorityFilter, sortCol, sortDir]);
 
   if (isLoading) {
     return (
@@ -318,11 +355,31 @@ export function ProspectsTable({ prospects, isLoading, onEdit }: ProspectsTableP
           <TableHeader>
             <TableRow>
               {isVisible('name') && <TableHead className={headPadding}>Name</TableHead>}
-              {isVisible('priority') && <TableHead className={headPadding}>Priority</TableHead>}
+              {isVisible('priority') && (
+                <TableHead className={cn('cursor-pointer select-none', headPadding)} onClick={() => handleSortClick('priority')}>
+                  <div className="flex items-center gap-1">
+                    Priority
+                    {sortCol === 'priority'
+                      ? sortDir === 'asc' ? <ArrowUp className="h-3 w-3" /> : <ArrowDown className="h-3 w-3" />
+                      : <ArrowUpDown className="h-3 w-3 text-muted-foreground" />
+                    }
+                  </div>
+                </TableHead>
+              )}
               {isVisible('type') && <TableHead className={headPadding}>Type</TableHead>}
               {isVisible('requirement') && <TableHead className={headPadding}>Requirement</TableHead>}
               {isVisible('last_contacted') && <TableHead className={headPadding}>Last Contacted</TableHead>}
-              {isVisible('follow_up') && <TableHead className={headPadding}>Follow-up Due</TableHead>}
+              {isVisible('follow_up') && (
+                <TableHead className={cn('cursor-pointer select-none', headPadding)} onClick={() => handleSortClick('follow_up')}>
+                  <div className="flex items-center gap-1">
+                    Follow-up Due
+                    {sortCol === 'follow_up'
+                      ? sortDir === 'asc' ? <ArrowUp className="h-3 w-3" /> : <ArrowDown className="h-3 w-3" />
+                      : <ArrowUpDown className="h-3 w-3 text-muted-foreground" />
+                    }
+                  </div>
+                </TableHead>
+              )}
               <TableHead className={cn('w-[60px]', headPadding)}></TableHead>
             </TableRow>
           </TableHeader>
@@ -392,16 +449,21 @@ export function ProspectsTable({ prospects, isLoading, onEdit }: ProspectsTableP
                   )}
                   {isVisible('priority') && (
                     <TableCell className={cellPadding}>
-                      {prospect.priority ? (
-                        <Badge
-                          variant="outline"
-                          className={`font-medium border text-xs ${priorityColors[prospect.priority] || ''}`}
-                        >
-                          {prospect.priority}
-                        </Badge>
-                      ) : (
-                        <span className="text-muted-foreground">-</span>
-                      )}
+                      <button
+                        type="button"
+                        onClick={(e) => { e.stopPropagation(); handleCyclePriority(prospect); }}
+                        disabled={updatingPriority === prospect.id}
+                        className={cn(
+                          'px-2 py-1 text-xs font-bold uppercase border-2 border-foreground transition-all disabled:opacity-50 shadow-[2px_2px_0_hsl(var(--foreground))]',
+                          prospect.priority === 'A' && 'bg-red-400 text-black',
+                          prospect.priority === 'B' && 'bg-yellow-300 text-black',
+                          prospect.priority === 'C' && 'bg-cyan-300 text-black',
+                          !prospect.priority && 'bg-muted text-muted-foreground',
+                        )}
+                        style={{ borderRadius: 'var(--radius)' }}
+                      >
+                        {prospect.priority || '-'}
+                      </button>
                     </TableCell>
                   )}
                   {isVisible('type') && (
