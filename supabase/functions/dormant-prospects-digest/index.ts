@@ -304,8 +304,8 @@ serve(async (req) => {
                   <!-- CONTENT SECTIONS -->
                   <tr>
                     <td style="background:#ffffff;padding:24px 36px 32px;">
-                      ${dormantSection}
                       ${tasksSection}
+                      ${dormantSection}
                     </td>
                   </tr>
 
