@@ -31,10 +31,11 @@ import { DensityToggle } from '@/components/common/DensityToggle';
 import { TaskFormDialog } from '@/components/prospects/TaskFormDialog';
 import { formatDate, formatNumber, formatCurrency } from '@/lib/format';
 import { useDeleteProspect, useLogProspectContact, useUpdateProspect, useSetProspectContactDate } from '@/hooks/useProspects';
-import { useAllProspectTasks } from '@/hooks/useProspectTasks';
+import { useAllProspectTasks, useToggleProspectTaskCompleted } from '@/hooks/useProspectTasks';
 import { useTableColumnPrefs } from '@/hooks/useTableColumnPrefs';
 import { useTableDensity } from '@/hooks/useTableDensity';
-import { Eye, Pencil, Trash2, Search, X, MoreHorizontal, Phone, Mail, ArrowUpDown, ArrowUp, ArrowDown, CalendarIcon, CheckSquare, AlertCircle, ListPlus } from 'lucide-react';
+import { Eye, Pencil, Trash2, Search, X, MoreHorizontal, Phone, Mail, ArrowUpDown, ArrowUp, ArrowDown, CalendarIcon, CheckSquare, AlertCircle, ListPlus, Circle } from 'lucide-react';
+import { Checkbox } from '@/components/ui/checkbox';
 import { cn } from '@/lib/utils';
 import { differenceInDays, parseISO, addDays, formatDistanceToNow, format, isPast, isToday } from 'date-fns';
 import type { Prospect } from '@/types/prospect';
@@ -194,6 +195,52 @@ function RequirementCell({ prospect }: { prospect: Prospect }) {
           {p}
         </span>
       ))}
+    </div>
+  );
+}
+
+function TasksCell({ prospectId, tasks }: { prospectId: string; tasks: ReturnType<typeof useAllProspectTasks>['data'] extends (infer T)[] | undefined ? T[] : never[] }) {
+  const toggle = useToggleProspectTaskCompleted();
+  if (tasks.length === 0) return <span className="text-muted-foreground text-xs">—</span>;
+  return (
+    <div className="flex flex-col gap-1">
+      {tasks.map((task) => {
+        const overdue = task.due_date && isPast(parseISO(task.due_date)) && !isToday(parseISO(task.due_date));
+        const dueToday = task.due_date && isToday(parseISO(task.due_date));
+        return (
+          <div
+            key={task.id}
+            className={cn(
+              'flex items-center gap-1.5 rounded px-2 py-1 text-xs border',
+              overdue && 'bg-red-50 border-red-200 dark:bg-red-950/30 dark:border-red-800',
+              dueToday && 'bg-amber-50 border-amber-200 dark:bg-amber-950/30 dark:border-amber-800',
+              !overdue && !dueToday && 'bg-muted border-border',
+            )}
+          >
+            <Checkbox
+              checked={task.completed}
+              onCheckedChange={(checked) =>
+                toggle.mutate({ id: task.id, prospectId, completed: checked === true })
+              }
+              className="h-3.5 w-3.5 shrink-0"
+            />
+            <div className="min-w-0">
+              <span className={cn(
+                'font-medium truncate block',
+                overdue && 'text-red-700 dark:text-red-400',
+                dueToday && 'text-amber-700 dark:text-amber-400',
+              )}>
+                {task.title}
+              </span>
+              {task.due_date && (
+                <span className={cn('text-[10px]', overdue ? 'text-red-500' : dueToday ? 'text-amber-500' : 'text-muted-foreground')}>
+                  {overdue ? 'Overdue · ' : dueToday ? 'Due today · ' : ''}{format(parseISO(task.due_date), 'MMM d')}
+                </span>
+              )}
+            </div>
+          </div>
+        );
+      })}
     </div>
   );
 }
@@ -582,49 +629,8 @@ export function ProspectsTable({ prospects, isLoading, onEdit }: ProspectsTableP
                     </TableCell>
                   )}
                   {isVisible('tasks') && (
-                    <TableCell className={cn(cellPadding, 'max-w-[280px]')} onClick={(e) => e.stopPropagation()}>
-                      {(() => {
-                        const tasks = tasksByProspect[prospect.id] || [];
-                        if (tasks.length === 0) {
-                          return <span className="text-muted-foreground text-xs">—</span>;
-                        }
-                        return (
-                          <div className="flex flex-col gap-1">
-                            {tasks.map((task) => {
-                              const overdue = task.due_date && isPast(parseISO(task.due_date)) && !isToday(parseISO(task.due_date));
-                              const dueToday = task.due_date && isToday(parseISO(task.due_date));
-                              const dueSoon = task.due_date && !overdue && !dueToday;
-                              return (
-                                <div
-                                  key={task.id}
-                                  className={cn(
-                                    'flex items-start gap-1.5 rounded px-2 py-1 text-xs border',
-                                    overdue && 'bg-red-50 border-red-200 dark:bg-red-950/30 dark:border-red-800',
-                                    dueToday && 'bg-amber-50 border-amber-200 dark:bg-amber-950/30 dark:border-amber-800',
-                                    dueSoon && 'bg-muted border-border',
-                                    !task.due_date && 'bg-muted border-border',
-                                  )}
-                                >
-                                  {overdue
-                                    ? <AlertCircle className="h-3 w-3 mt-0.5 shrink-0 text-red-500" />
-                                    : <CheckSquare className="h-3 w-3 mt-0.5 shrink-0 text-muted-foreground" />
-                                  }
-                                  <div className="min-w-0">
-                                    <span className={cn('font-medium truncate block', overdue && 'text-red-700 dark:text-red-400', dueToday && 'text-amber-700 dark:text-amber-400')}>
-                                      {task.title}
-                                    </span>
-                                    {task.due_date && (
-                                      <span className={cn('text-[10px]', overdue ? 'text-red-500' : dueToday ? 'text-amber-500' : 'text-muted-foreground')}>
-                                        {overdue ? `Overdue · ` : dueToday ? 'Due today · ' : ''}{format(parseISO(task.due_date), 'MMM d')}
-                                      </span>
-                                    )}
-                                  </div>
-                                </div>
-                              );
-                            })}
-                          </div>
-                        );
-                      })()}
+                    <TableCell className={cn(cellPadding, 'max-w-[300px]')} onClick={(e) => e.stopPropagation()}>
+                      <TasksCell prospectId={prospect.id} tasks={tasksByProspect[prospect.id] || []} />
                     </TableCell>
                   )}
                   {isVisible('last_contacted') && (
