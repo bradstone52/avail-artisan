@@ -259,8 +259,8 @@ export default function AdminUsers() {
         throw new Error(result.error || 'Failed to send report');
       }
 
-      if (result.staleCount === 0) {
-        toast.info('No stale listings found. No email sent.');
+      if (!result.staleCount && !result.success) {
+        toast.info(result.message || 'No stale listings found. No email sent.');
       } else {
         toast.success(`Stale listings report sent! ${result.staleCount} stale listing(s) reported to ${result.emailsSent} admin(s).`);
       }
