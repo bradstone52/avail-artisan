@@ -185,16 +185,13 @@ export function ProspectsTable({ prospects, isLoading, onEdit }: ProspectsTableP
     }
   };
 
-  const handleCyclePriority = async (prospect: Prospect) => {
+  const handleSetPriority = async (prospect: Prospect, value: string | null) => {
     setUpdatingPriority(prospect.id);
     try {
-      const currentIdx = PRIORITY_CYCLE.indexOf(prospect.priority as any);
-      const nextIdx = (currentIdx + 1) % PRIORITY_CYCLE.length;
-      const newValue = PRIORITY_CYCLE[nextIdx];
       await (updateProspect as any).mutateAsync({
         id: prospect.id,
         name: prospect.name,
-        priority: newValue,
+        priority: value,
       });
     } finally {
       setUpdatingPriority(null);
@@ -386,17 +383,20 @@ export function ProspectsTable({ prospects, isLoading, onEdit }: ProspectsTableP
           <TableBody>
             {filteredAndSorted.map((prospect, index) => {
               const isSelected = selectedRowId === prospect.id;
-              const isEvenRow = index % 2 === 1;
-              const rowBg = isSelected
-                ? '!bg-secondary'
-                : isEvenRow
-                  ? 'bg-table-stripe'
-                  : '';
+              const priorityRowBg =
+                prospect.priority === 'A' ? 'bg-red-50 dark:bg-red-950/30' :
+                prospect.priority === 'B' ? 'bg-yellow-50 dark:bg-yellow-950/30' :
+                prospect.priority === 'C' ? 'bg-cyan-50 dark:bg-cyan-950/30' : '';
+              const rowBg = isSelected ? '!bg-secondary' : priorityRowBg;
               const hoverClass = isSelected
                 ? 'hover:!bg-secondary/90'
-                : isEvenRow
-                  ? 'hover:!bg-pink-300 dark:hover:!bg-pink-800'
-                  : 'hover:!bg-pink-200 dark:hover:!bg-pink-900/50';
+                : prospect.priority === 'A'
+                  ? 'hover:!bg-red-100 dark:hover:!bg-red-900/40'
+                  : prospect.priority === 'B'
+                    ? 'hover:!bg-yellow-100 dark:hover:!bg-yellow-900/40'
+                    : prospect.priority === 'C'
+                      ? 'hover:!bg-cyan-100 dark:hover:!bg-cyan-900/40'
+                      : 'hover:!bg-pink-200 dark:hover:!bg-pink-900/50';
               const outlineClass = isSelected
                 ? 'outline outline-2 outline-amber-600 dark:outline-amber-500 -outline-offset-1'
                 : 'outline-0 hover:outline hover:outline-2 hover:outline-pink-500 dark:hover:outline-pink-400 hover:-outline-offset-1';
@@ -449,21 +449,54 @@ export function ProspectsTable({ prospects, isLoading, onEdit }: ProspectsTableP
                   )}
                   {isVisible('priority') && (
                     <TableCell className={cellPadding}>
-                      <button
-                        type="button"
-                        onClick={(e) => { e.stopPropagation(); handleCyclePriority(prospect); }}
-                        disabled={updatingPriority === prospect.id}
-                        className={cn(
-                          'px-2 py-1 text-xs font-bold uppercase border-2 border-foreground transition-all disabled:opacity-50 shadow-[2px_2px_0_hsl(var(--foreground))]',
-                          prospect.priority === 'A' && 'bg-red-400 text-black',
-                          prospect.priority === 'B' && 'bg-yellow-300 text-black',
-                          prospect.priority === 'C' && 'bg-cyan-300 text-black',
-                          !prospect.priority && 'bg-muted text-muted-foreground',
-                        )}
-                        style={{ borderRadius: 'var(--radius)' }}
-                      >
-                        {prospect.priority || '-'}
-                      </button>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
+                          <button
+                            type="button"
+                            disabled={updatingPriority === prospect.id}
+                            className={cn(
+                              'px-2 py-1 text-xs font-bold uppercase border-2 border-foreground transition-all disabled:opacity-50 shadow-[2px_2px_0_hsl(var(--foreground))] flex items-center gap-1',
+                              prospect.priority === 'A' && 'bg-red-400 text-black',
+                              prospect.priority === 'B' && 'bg-yellow-300 text-black',
+                              prospect.priority === 'C' && 'bg-cyan-300 text-black',
+                              !prospect.priority && 'bg-muted text-muted-foreground',
+                            )}
+                            style={{ borderRadius: 'var(--radius)' }}
+                          >
+                            {prospect.priority || '-'}
+                          </button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="start" className="bg-background z-50 min-w-[80px]">
+                          <DropdownMenuItem
+                            onClick={(e) => { e.stopPropagation(); handleSetPriority(prospect, 'A'); }}
+                            className="font-bold text-xs"
+                          >
+                            <span className="inline-block w-5 h-5 rounded bg-red-400 border border-foreground mr-2 text-center text-black font-bold leading-5 text-xs">A</span>
+                            A
+                          </DropdownMenuItem>
+                          <DropdownMenuItem
+                            onClick={(e) => { e.stopPropagation(); handleSetPriority(prospect, 'B'); }}
+                            className="font-bold text-xs"
+                          >
+                            <span className="inline-block w-5 h-5 rounded bg-yellow-300 border border-foreground mr-2 text-center text-black font-bold leading-5 text-xs">B</span>
+                            B
+                          </DropdownMenuItem>
+                          <DropdownMenuItem
+                            onClick={(e) => { e.stopPropagation(); handleSetPriority(prospect, 'C'); }}
+                            className="font-bold text-xs"
+                          >
+                            <span className="inline-block w-5 h-5 rounded bg-cyan-300 border border-foreground mr-2 text-center text-black font-bold leading-5 text-xs">C</span>
+                            C
+                          </DropdownMenuItem>
+                          <DropdownMenuItem
+                            onClick={(e) => { e.stopPropagation(); handleSetPriority(prospect, null); }}
+                            className="text-muted-foreground text-xs"
+                          >
+                            <span className="inline-block w-5 h-5 rounded bg-muted border border-foreground mr-2 text-center font-bold leading-5 text-xs">-</span>
+                            None
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
                     </TableCell>
                   )}
                   {isVisible('type') && (
