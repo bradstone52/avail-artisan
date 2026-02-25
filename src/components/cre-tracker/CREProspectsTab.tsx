@@ -46,7 +46,11 @@ export function CREProspectsTab() {
   return (
     <div className="space-y-4">
       <div className="flex justify-end gap-2">
-        <Button variant="outline" onClick={handleSendDigest} disabled={sendingDigest}>
+        <Button
+          onClick={handleSendDigest}
+          disabled={sendingDigest}
+          className="bg-amber-500 hover:bg-amber-600 text-white border-0 shadow-md"
+        >
           {sendingDigest ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Mail className="w-4 h-4 mr-2" />}
           Send Digest
         </Button>
