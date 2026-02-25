@@ -13,7 +13,7 @@ export function useProspectTasks(prospectId: string | undefined) {
     queryFn: async () => {
       if (!prospectId) return [];
 
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any)
         .from('prospect_tasks')
         .select('*')
         .eq('prospect_id', prospectId)
@@ -43,7 +43,7 @@ export function useCreateProspectTask() {
     }) => {
       if (!user?.id) throw new Error('Not authenticated');
 
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any)
         .from('prospect_tasks')
         .insert({
           prospect_id: prospectId,
@@ -80,7 +80,7 @@ export function useUpdateProspectTask() {
       prospectId,
       ...updates
     }: Partial<ProspectTask> & { id: string; prospectId: string }) => {
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any)
         .from('prospect_tasks')
         .update(updates)
         .eq('id', id)
@@ -105,7 +105,7 @@ export function useToggleProspectTaskCompleted() {
 
   return useMutation({
     mutationFn: async ({ id, prospectId, completed }: { id: string; prospectId: string; completed: boolean }) => {
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any)
         .from('prospect_tasks')
         .update({ completed })
         .eq('id', id)
@@ -130,7 +130,7 @@ export function useDeleteProspectTask() {
 
   return useMutation({
     mutationFn: async ({ id, prospectId }: { id: string; prospectId: string }) => {
-      const { error } = await supabase
+      const { error } = await (supabase as any)
         .from('prospect_tasks')
         .delete()
         .eq('id', id);
