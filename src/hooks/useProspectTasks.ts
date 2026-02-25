@@ -85,6 +85,7 @@ export function useCreateProspectTask() {
     },
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['prospect_tasks', data.prospect_id] });
+      queryClient.invalidateQueries({ queryKey: ['prospect_tasks_all'] });
       toast.success('Task added');
     },
     onError: (error) => {
