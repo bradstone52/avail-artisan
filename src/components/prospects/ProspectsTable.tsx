@@ -28,12 +28,12 @@ import { ConfirmDialog } from '@/components/common/ConfirmDialog';
 import { ColumnsDropdown } from '@/components/common/ColumnsDropdown';
 import { DensityToggle } from '@/components/common/DensityToggle';
 import { formatDate, formatNumber, formatCurrency } from '@/lib/format';
-import { useDeleteProspect } from '@/hooks/useProspects';
+import { useDeleteProspect, useLogProspectContact } from '@/hooks/useProspects';
 import { useTableColumnPrefs } from '@/hooks/useTableColumnPrefs';
 import { useTableDensity } from '@/hooks/useTableDensity';
-import { Eye, Pencil, Trash2, Search, X, MoreHorizontal } from 'lucide-react';
+import { Eye, Pencil, Trash2, Search, X, MoreHorizontal, Phone, Mail } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { differenceInDays, parseISO, addDays } from 'date-fns';
+import { differenceInDays, parseISO, addDays, formatDistanceToNow } from 'date-fns';
 import type { Prospect } from '@/types/prospect';
 
 interface ProspectsTableProps {
@@ -44,11 +44,14 @@ interface ProspectsTableProps {
 
 const PROSPECT_TYPES = ['All', 'Tenant', 'Buyer', 'Listing'];
 const FOLLOW_UP_FILTERS = ['All', 'Overdue', 'Next 7', 'Next 30'];
+const PRIORITY_FILTERS = ['All', 'High', 'Medium', 'Low'];
 
 const PROSPECTS_COLUMNS = [
   { id: 'name', label: 'Name', defaultVisible: true },
+  { id: 'priority', label: 'Priority', defaultVisible: true },
   { id: 'type', label: 'Type', defaultVisible: true },
   { id: 'requirement', label: 'Requirement', defaultVisible: true },
+  { id: 'last_contacted', label: 'Last Contacted', defaultVisible: true },
   { id: 'follow_up', label: 'Follow-up Due', defaultVisible: true },
 ];
 
@@ -57,6 +60,14 @@ const prospectTypeColors: Record<string, string> = {
   Buyer: 'bg-orange-100 text-orange-800 border-orange-300',
   Listing: 'bg-violet-100 text-violet-800 border-violet-300',
   Landlord: 'bg-violet-100 text-violet-800 border-violet-300',
+};
+
+const priorityOrder: Record<string, number> = { High: 0, Medium: 1, Low: 2 };
+
+const priorityColors: Record<string, string> = {
+  High: 'bg-red-100 text-red-800 border-red-300',
+  Medium: 'bg-yellow-100 text-yellow-800 border-yellow-300',
+  Low: 'bg-blue-100 text-blue-800 border-blue-300',
 };
 
 function FollowUpDueCell({ date }: { date?: string | null }) {
@@ -81,6 +92,42 @@ function FollowUpDueCell({ date }: { date?: string | null }) {
     return <span className="text-xs font-medium">Due tomorrow</span>;
   }
   return <span className="text-xs text-muted-foreground">{formatDate(date)}</span>;
+}
+
+function LastContactedCell({ date, prospectId, prospectName }: { date?: string | null; prospectId: string; prospectName: string }) {
+  const logContact = useLogProspectContact();
+
+  let label: React.ReactNode;
+  if (!date) {
+    label = <span className="text-muted-foreground text-xs">Never</span>;
+  } else {
+    const d = parseISO(date);
+    const daysAgo = differenceInDays(new Date(), d);
+    if (daysAgo === 0) {
+      label = <span className="text-xs text-success-foreground font-medium">Today</span>;
+    } else {
+      label = <span className="text-xs text-muted-foreground">{formatDistanceToNow(d, { addSuffix: true })}</span>;
+    }
+  }
+
+  return (
+    <div className="flex items-center gap-1.5">
+      {label}
+      <Button
+        variant="ghost"
+        size="icon"
+        className="h-6 w-6 shrink-0 text-muted-foreground hover:text-foreground"
+        title={`Log contact for ${prospectName}`}
+        onClick={(e) => {
+          e.stopPropagation();
+          logContact.mutate(prospectId);
+        }}
+        disabled={logContact.isPending}
+      >
+        <Phone className="h-3.5 w-3.5" />
+      </Button>
+    </div>
+  );
 }
 
 function RequirementCell({ prospect }: { prospect: Prospect }) {
@@ -124,6 +171,7 @@ export function ProspectsTable({ prospects, isLoading, onEdit }: ProspectsTableP
   const [searchQuery, setSearchQuery] = useState('');
   const [typeFilter, setTypeFilter] = useState('All');
   const [followUpFilter, setFollowUpFilter] = useState('All');
+  const [priorityFilter, setPriorityFilter] = useState('All');
 
   const { isVisible, toggle, reset, columns } = useTableColumnPrefs('prospects', PROSPECTS_COLUMNS);
   const { density, toggle: toggleDensity, isCompact } = useTableDensity('prospects');
@@ -141,9 +189,10 @@ export function ProspectsTable({ prospects, isLoading, onEdit }: ProspectsTableP
     setSearchQuery('');
     setTypeFilter('All');
     setFollowUpFilter('All');
+    setPriorityFilter('All');
   };
 
-  const hasActiveFilters = searchQuery || typeFilter !== 'All' || followUpFilter !== 'All';
+  const hasActiveFilters = searchQuery || typeFilter !== 'All' || followUpFilter !== 'All' || priorityFilter !== 'All';
 
   const filteredAndSorted = useMemo(() => {
     const today = new Date();
@@ -157,10 +206,13 @@ export function ProspectsTable({ prospects, isLoading, onEdit }: ProspectsTableP
         const matches =
           p.name?.toLowerCase().includes(q) ||
           p.company?.toLowerCase().includes(q) ||
+          p.email?.toLowerCase().includes(q) ||
+          p.phone?.toLowerCase().includes(q) ||
           p.requirements?.toLowerCase().includes(q);
         if (!matches) return false;
       }
       if (typeFilter !== 'All' && p.prospect_type !== typeFilter) return false;
+      if (priorityFilter !== 'All' && p.priority !== priorityFilter) return false;
       if (followUpFilter !== 'All') {
         if (!p.follow_up_date) return false;
         const d = parseISO(p.follow_up_date);
@@ -171,14 +223,18 @@ export function ProspectsTable({ prospects, isLoading, onEdit }: ProspectsTableP
       return true;
     });
 
+    // Sort: priority (High→Med→Low→None), then follow_up_date ascending
     filtered.sort((a, b) => {
+      const pA = a.priority ? (priorityOrder[a.priority] ?? 3) : 3;
+      const pB = b.priority ? (priorityOrder[b.priority] ?? 3) : 3;
+      if (pA !== pB) return pA - pB;
       const dA = a.follow_up_date ? parseISO(a.follow_up_date).getTime() : Infinity;
       const dB = b.follow_up_date ? parseISO(b.follow_up_date).getTime() : Infinity;
       return dA - dB;
     });
 
     return filtered;
-  }, [prospects, searchQuery, typeFilter, followUpFilter]);
+  }, [prospects, searchQuery, typeFilter, followUpFilter, priorityFilter]);
 
   if (isLoading) {
     return (
@@ -195,7 +251,7 @@ export function ProspectsTable({ prospects, isLoading, onEdit }: ProspectsTableP
         <div className="relative flex-1 min-w-[200px] max-w-sm">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
           <Input
-            placeholder="Search name, company, requirements..."
+            placeholder="Search name, company, email..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="pl-9"
@@ -209,6 +265,17 @@ export function ProspectsTable({ prospects, isLoading, onEdit }: ProspectsTableP
           <SelectContent className="bg-background z-50">
             {PROSPECT_TYPES.map(t => (
               <SelectItem key={t} value={t}>{t === 'All' ? 'All Types' : t}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+
+        <Select value={priorityFilter} onValueChange={setPriorityFilter}>
+          <SelectTrigger className="w-[130px]">
+            <SelectValue placeholder="Priority" />
+          </SelectTrigger>
+          <SelectContent className="bg-background z-50">
+            {PRIORITY_FILTERS.map(p => (
+              <SelectItem key={p} value={p}>{p === 'All' ? 'All Priorities' : p}</SelectItem>
             ))}
           </SelectContent>
         </Select>
@@ -251,8 +318,10 @@ export function ProspectsTable({ prospects, isLoading, onEdit }: ProspectsTableP
           <TableHeader>
             <TableRow>
               {isVisible('name') && <TableHead className={headPadding}>Name</TableHead>}
+              {isVisible('priority') && <TableHead className={headPadding}>Priority</TableHead>}
               {isVisible('type') && <TableHead className={headPadding}>Type</TableHead>}
               {isVisible('requirement') && <TableHead className={headPadding}>Requirement</TableHead>}
+              {isVisible('last_contacted') && <TableHead className={headPadding}>Last Contacted</TableHead>}
               {isVisible('follow_up') && <TableHead className={headPadding}>Follow-up Due</TableHead>}
               <TableHead className={cn('w-[60px]', headPadding)}></TableHead>
             </TableRow>
@@ -289,12 +358,50 @@ export function ProspectsTable({ prospects, isLoading, onEdit }: ProspectsTableP
                 >
                   {isVisible('name') && (
                     <TableCell className={cellPadding}>
-                      <div className="flex flex-col">
+                      <div className="flex flex-col gap-0.5">
                         <span className="font-medium">{prospect.name}</span>
                         {!isCompact && prospect.company && (
                           <span className="text-xs text-muted-foreground">{prospect.company}</span>
                         )}
+                        {!isCompact && (
+                          <div className="flex items-center gap-2 mt-0.5">
+                            {prospect.phone && (
+                              <a
+                                href={`tel:${prospect.phone}`}
+                                className="text-xs text-muted-foreground hover:text-foreground flex items-center gap-1"
+                                onClick={(e) => e.stopPropagation()}
+                              >
+                                <Phone className="h-3 w-3" />
+                                {prospect.phone}
+                              </a>
+                            )}
+                            {prospect.email && (
+                              <a
+                                href={`mailto:${prospect.email}`}
+                                className="text-xs text-muted-foreground hover:text-foreground flex items-center gap-1"
+                                onClick={(e) => e.stopPropagation()}
+                              >
+                                <Mail className="h-3 w-3" />
+                                {prospect.email}
+                              </a>
+                            )}
+                          </div>
+                        )}
                       </div>
+                    </TableCell>
+                  )}
+                  {isVisible('priority') && (
+                    <TableCell className={cellPadding}>
+                      {prospect.priority ? (
+                        <Badge
+                          variant="outline"
+                          className={`font-medium border text-xs ${priorityColors[prospect.priority] || ''}`}
+                        >
+                          {prospect.priority}
+                        </Badge>
+                      ) : (
+                        <span className="text-muted-foreground">-</span>
+                      )}
                     </TableCell>
                   )}
                   {isVisible('type') && (
@@ -314,6 +421,15 @@ export function ProspectsTable({ prospects, isLoading, onEdit }: ProspectsTableP
                   {isVisible('requirement') && (
                     <TableCell className={cellPadding}>
                       <RequirementCell prospect={prospect} />
+                    </TableCell>
+                  )}
+                  {isVisible('last_contacted') && (
+                    <TableCell className={cellPadding}>
+                      <LastContactedCell
+                        date={prospect.last_contacted_at}
+                        prospectId={prospect.id}
+                        prospectName={prospect.name}
+                      />
                     </TableCell>
                   )}
                   {isVisible('follow_up') && (

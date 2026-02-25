@@ -2821,6 +2821,66 @@ export type Database = {
           },
         ]
       }
+      prospect_tasks: {
+        Row: {
+          completed: boolean
+          created_at: string
+          created_by: string | null
+          due_date: string | null
+          id: string
+          notes: string | null
+          org_id: string | null
+          prospect_id: string
+          reminder_at: string | null
+          reminder_sent: boolean
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          completed?: boolean
+          created_at?: string
+          created_by?: string | null
+          due_date?: string | null
+          id?: string
+          notes?: string | null
+          org_id?: string | null
+          prospect_id: string
+          reminder_at?: string | null
+          reminder_sent?: boolean
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          completed?: boolean
+          created_at?: string
+          created_by?: string | null
+          due_date?: string | null
+          id?: string
+          notes?: string | null
+          org_id?: string | null
+          prospect_id?: string
+          reminder_at?: string | null
+          reminder_sent?: boolean
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "prospect_tasks_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "orgs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "prospect_tasks_prospect_id_fkey"
+            columns: ["prospect_id"]
+            isOneToOne: false
+            referencedRelation: "prospects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       prospects: {
         Row: {
           budget: number | null
@@ -2831,6 +2891,7 @@ export type Database = {
           estimated_value: number | null
           follow_up_date: string | null
           id: string
+          last_contacted_at: string | null
           loading: string | null
           max_size: number | null
           min_size: number | null
@@ -2839,6 +2900,7 @@ export type Database = {
           occupancy_date: string | null
           org_id: string | null
           phone: string | null
+          priority: string | null
           prospect_type: string | null
           referral: string | null
           requirements: string | null
@@ -2858,6 +2920,7 @@ export type Database = {
           estimated_value?: number | null
           follow_up_date?: string | null
           id?: string
+          last_contacted_at?: string | null
           loading?: string | null
           max_size?: number | null
           min_size?: number | null
@@ -2866,6 +2929,7 @@ export type Database = {
           occupancy_date?: string | null
           org_id?: string | null
           phone?: string | null
+          priority?: string | null
           prospect_type?: string | null
           referral?: string | null
           requirements?: string | null
@@ -2885,6 +2949,7 @@ export type Database = {
           estimated_value?: number | null
           follow_up_date?: string | null
           id?: string
+          last_contacted_at?: string | null
           loading?: string | null
           max_size?: number | null
           min_size?: number | null
@@ -2893,6 +2958,7 @@ export type Database = {
           occupancy_date?: string | null
           org_id?: string | null
           phone?: string | null
+          priority?: string | null
           prospect_type?: string | null
           referral?: string | null
           requirements?: string | null

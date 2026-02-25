@@ -55,6 +55,9 @@ export function ProspectFormDialog({ open, onOpenChange, prospect }: ProspectFor
     estimated_value: undefined,
     commission: undefined,
     notes: '',
+    priority: '',
+    email: '',
+    phone: '',
   });
 
   useEffect(() => {
@@ -73,6 +76,9 @@ export function ProspectFormDialog({ open, onOpenChange, prospect }: ProspectFor
         estimated_value: prospect.estimated_value ?? undefined,
         commission: prospect.commission ?? undefined,
         notes: prospect.notes || '',
+        priority: prospect.priority || '',
+        email: prospect.email || '',
+        phone: prospect.phone || '',
       });
     } else {
       setFormData({
@@ -89,6 +95,9 @@ export function ProspectFormDialog({ open, onOpenChange, prospect }: ProspectFor
         estimated_value: undefined,
         commission: undefined,
         notes: '',
+        priority: '',
+        email: '',
+        phone: '',
       });
     }
   }, [prospect, open]);
@@ -195,14 +204,56 @@ export function ProspectFormDialog({ open, onOpenChange, prospect }: ProspectFor
                 </div>
               </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="referral">Referral</Label>
-                <Input
-                  id="referral"
-                  value={formData.referral}
-                  onChange={(e) => setFormData({ ...formData, referral: e.target.value })}
-                  placeholder="Who referred this prospect?"
-                />
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="priority">Priority</Label>
+                  <Select
+                    value={formData.priority || ''}
+                    onValueChange={(value) => setFormData({ ...formData, priority: value || undefined })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select priority" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="">None</SelectItem>
+                      <SelectItem value="High">High</SelectItem>
+                      <SelectItem value="Medium">Medium</SelectItem>
+                      <SelectItem value="Low">Low</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="referral">Referral</Label>
+                  <Input
+                    id="referral"
+                    value={formData.referral}
+                    onChange={(e) => setFormData({ ...formData, referral: e.target.value })}
+                    placeholder="Who referred this prospect?"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="email">Email</Label>
+                  <Input
+                    id="email"
+                    type="email"
+                    value={formData.email || ''}
+                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                    placeholder="prospect@example.com"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="phone">Phone</Label>
+                  <Input
+                    id="phone"
+                    type="tel"
+                    value={formData.phone || ''}
+                    onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                    placeholder="+1 (555) 000-0000"
+                  />
+                </div>
               </div>
             </TabsContent>
 

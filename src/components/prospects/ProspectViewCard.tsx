@@ -1,14 +1,21 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { UserSearch, Edit } from 'lucide-react';
+import { UserSearch, Edit, Phone, Mail, Clock } from 'lucide-react';
 import { formatNumber, formatCurrency, formatDate } from '@/lib/format';
+import { formatDistanceToNow, parseISO } from 'date-fns';
 import type { Prospect } from '@/types/prospect';
 
 interface ProspectViewCardProps {
   prospect: Prospect;
   onEdit?: () => void;
 }
+
+const priorityColors: Record<string, string> = {
+  High: 'bg-red-100 text-red-800 hover:bg-red-100',
+  Medium: 'bg-yellow-100 text-yellow-800 hover:bg-yellow-100',
+  Low: 'bg-blue-100 text-blue-800 hover:bg-blue-100',
+};
 
 export function ProspectViewCard({ prospect, onEdit }: ProspectViewCardProps) {
   return (
@@ -47,6 +54,55 @@ export function ProspectViewCard({ prospect, onEdit }: ProspectViewCardProps) {
               <p className="font-medium">—</p>
             )}
           </div>
+
+          <div>
+            <p className="text-sm text-muted-foreground mb-1">Priority</p>
+            {prospect.priority ? (
+              <Badge variant="secondary" className={priorityColors[prospect.priority] || ''}>
+                {prospect.priority}
+              </Badge>
+            ) : (
+              <p className="font-medium">—</p>
+            )}
+          </div>
+
+          <div>
+            <p className="text-sm text-muted-foreground mb-1">Last Contacted</p>
+            <div className="flex items-center gap-1.5">
+              <Clock className="w-3.5 h-3.5 text-muted-foreground" />
+              <p className="font-medium text-sm">
+                {prospect.last_contacted_at
+                  ? formatDistanceToNow(parseISO(prospect.last_contacted_at), { addSuffix: true })
+                  : 'Never'}
+              </p>
+            </div>
+          </div>
+
+          {(prospect.phone || prospect.email) && (
+            <div className="col-span-2">
+              <p className="text-sm text-muted-foreground mb-1">Contact</p>
+              <div className="flex flex-wrap gap-3">
+                {prospect.phone && (
+                  <a
+                    href={`tel:${prospect.phone}`}
+                    className="flex items-center gap-1.5 text-sm font-medium hover:text-primary transition-colors"
+                  >
+                    <Phone className="w-4 h-4" />
+                    {prospect.phone}
+                  </a>
+                )}
+                {prospect.email && (
+                  <a
+                    href={`mailto:${prospect.email}`}
+                    className="flex items-center gap-1.5 text-sm font-medium hover:text-primary transition-colors"
+                  >
+                    <Mail className="w-4 h-4" />
+                    {prospect.email}
+                  </a>
+                )}
+              </div>
+            </div>
+          )}
           
           <div>
             <p className="text-sm text-muted-foreground mb-1">Source</p>

@@ -54,6 +54,9 @@ function sanitizeProspectData(formData: ProspectFormData) {
     ...formData,
     follow_up_date: formData.follow_up_date || null,
     occupancy_date: formData.occupancy_date || null,
+    priority: formData.priority || null,
+    email: formData.email || null,
+    phone: formData.phone || null,
   };
 }
 
@@ -140,6 +143,33 @@ export function useDeleteProspect() {
     onError: (error) => {
       console.error('Error deleting prospect:', error);
       toast.error('Failed to delete prospect');
+    },
+  });
+}
+
+export function useLogProspectContact() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const { data, error } = await supabase
+        .from('prospects')
+        .update({ last_contacted_at: new Date().toISOString() })
+        .eq('id', id)
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ['prospects'] });
+      queryClient.invalidateQueries({ queryKey: ['prospects', data.id] });
+      toast.success('Contact logged');
+    },
+    onError: (error) => {
+      console.error('Error logging contact:', error);
+      toast.error('Failed to log contact');
     },
   });
 }

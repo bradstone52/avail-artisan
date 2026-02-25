@@ -7,6 +7,7 @@ import { ProspectViewCard } from '@/components/prospects/ProspectViewCard';
 import { FollowUpDatesSection } from '@/components/prospects/FollowUpDatesSection';
 import { MatchingListingsSection } from '@/components/prospects/MatchingListingsSection';
 import { ProspectFormDialog } from '@/components/prospects/ProspectFormDialog';
+import { ProspectTasksSection } from '@/components/prospects/ProspectTasksSection';
 import { ConfirmDialog } from '@/components/common/ConfirmDialog';
 import { Skeleton } from '@/components/ui/skeleton';
 import { ArrowLeft, Trash2, UserSearch } from 'lucide-react';
@@ -91,6 +92,7 @@ export default function ProspectDetail() {
           </div>
           <div className="space-y-6">
             <MatchingListingsSection prospect={prospect} />
+            <ProspectTasksSection prospect={prospect} />
           </div>
         </div>
       </div>
