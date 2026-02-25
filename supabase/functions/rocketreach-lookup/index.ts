@@ -55,7 +55,7 @@ Deno.serve(async (req) => {
       if (company) query.current_employer = [company];
       if (linkedin_url) query.linkedin_url = [linkedin_url];
 
-      const rrRes = await fetch('https://api.rocketreach.co/api/v2/searchPeople', {
+      const rrRes = await fetch('https://api.rocketreach.co/v2/api/search', {
         method: 'POST',
         headers: { 'Api-Key': apiKey, 'Content-Type': 'application/json' },
         body: JSON.stringify({ query, page_size: 1 }),
@@ -106,7 +106,7 @@ Deno.serve(async (req) => {
         });
       }
 
-      const rrRes = await fetch('https://api.rocketreach.co/api/v2/searchPeople', {
+      const rrRes = await fetch('https://api.rocketreach.co/v2/api/search', {
         method: 'POST',
         headers: { 'Api-Key': apiKey, 'Content-Type': 'application/json' },
         body: JSON.stringify({ query, page_size }),
@@ -128,9 +128,10 @@ Deno.serve(async (req) => {
       }
 
       const data2 = await rrRes.json();
-      const results = (data2.profiles || data2.people || []).map(normalizePerson);
+      const results = (data2.profiles || data2.results || []).map(normalizePerson);
+      const total = data2.pagination?.total ?? data2.total ?? results.length;
 
-      return new Response(JSON.stringify({ results, total: data2.pagination?.total ?? results.length }), {
+      return new Response(JSON.stringify({ results, total }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
 
