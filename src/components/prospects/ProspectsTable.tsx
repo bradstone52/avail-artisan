@@ -380,7 +380,7 @@ export function ProspectsTable({ prospects, isLoading, onEdit }: ProspectsTableP
               <TableHead className={cn('w-[60px]', headPadding)}></TableHead>
             </TableRow>
           </TableHeader>
-          <TableBody>
+          <TableBody className="[&_tr:nth-child(even)]:bg-transparent">
             {filteredAndSorted.map((prospect, index) => {
               const isSelected = selectedRowId === prospect.id;
               const isEven = index % 2 === 0;
