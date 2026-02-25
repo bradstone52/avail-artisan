@@ -171,3 +171,27 @@ export function useDeleteProspectTask() {
     },
   });
 }
+
+export function useSetTaskReminder() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id, prospectId, reminderAt }: { id: string; prospectId: string; reminderAt: string | null }) => {
+      const { data, error } = await (supabase as any)
+        .from('prospect_tasks')
+        .update({ reminder_at: reminderAt, reminder_sent: false })
+        .eq('id', id)
+        .select()
+        .single();
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: (_data, { prospectId }) => {
+      queryClient.invalidateQueries({ queryKey: ['prospect_tasks', prospectId] });
+      queryClient.invalidateQueries({ queryKey: ['prospect_tasks_all'] });
+      toast.success('Reminder set');
+    },
+    onError: () => {
+      toast.error('Failed to set reminder');
+    },
+  });
+}
