@@ -45,11 +45,19 @@ Deno.serve(async (req) => {
     const body = await req.json();
     const { operation } = body;
 
+    // Helper: fetch full contact details for a person ID
+    async function lookupById(id: number | string): Promise<Record<string, unknown> | null> {
+      const res = await fetch(`https://api.rocketreach.co/v2/api/lookupProfile?id=${id}`, {
+        method: 'GET',
+        headers: { 'Api-Key': apiKey! },
+      });
+      if (!res.ok) return null;
+      return await res.json();
+    }
+
     if (operation === 'person_lookup') {
-      // RocketReach v2 person search via searchPeople with name+employer filters
       const { name, company, linkedin_url } = body;
 
-      // Use searchPeople for single person lookup too — lookupProfile requires an id
       const query: Record<string, unknown> = {};
       if (name) query.name = [name];
       if (company) query.current_employer = [company];
@@ -82,9 +90,23 @@ Deno.serve(async (req) => {
         });
       }
 
-      const data = await rrRes.json();
-      const profiles = data.profiles || data.people || [];
-      const normalized = profiles.length > 0 ? normalizePerson(profiles[0]) : null;
+      const searchData = await rrRes.json();
+      const profiles = searchData.profiles || searchData.people || [];
+
+      if (profiles.length === 0) {
+        return new Response(JSON.stringify({ result: null, message: 'No contact found' }), {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+
+      // Try to get full contact details using the profile ID
+      const profile = profiles[0];
+      let fullProfile: Record<string, unknown> | null = null;
+      if (profile.id) {
+        fullProfile = await lookupById(profile.id);
+      }
+
+      const normalized = normalizePerson(fullProfile ?? profile);
 
       return new Response(JSON.stringify({ result: normalized }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -93,7 +115,6 @@ Deno.serve(async (req) => {
     } else if (operation === 'people_search') {
       const { company, title, name, page_size = 10 } = body;
 
-      // RocketReach v2 searchPeople requires params nested under "query"
       const query: Record<string, unknown> = {};
       if (company) query.current_employer = [company];
       if (title) query.title = [title];
@@ -127,9 +148,22 @@ Deno.serve(async (req) => {
         });
       }
 
-      const data2 = await rrRes.json();
-      const results = (data2.profiles || data2.results || []).map(normalizePerson);
-      const total = data2.pagination?.total ?? data2.total ?? results.length;
+      const searchData2 = await rrRes.json();
+      const profiles2 = searchData2.profiles || searchData2.results || [];
+      const total = searchData2.pagination?.total ?? searchData2.total ?? profiles2.length;
+
+      // Fetch full profiles in parallel (up to page_size contacts)
+      const fullProfiles = await Promise.all(
+        profiles2.map(async (p: Record<string, unknown>) => {
+          if (p.id) {
+            const full = await lookupById(p.id);
+            return full ?? p;
+          }
+          return p;
+        })
+      );
+
+      const results = fullProfiles.map(normalizePerson);
 
       return new Response(JSON.stringify({ results, total }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },

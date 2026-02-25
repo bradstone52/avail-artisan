@@ -1,31 +1,44 @@
 import { useState } from 'react';
-import { ChevronDown, ChevronUp, Trash2, UserPlus, Lightbulb } from 'lucide-react';
+import { ChevronDown, ChevronUp, Trash2, UserPlus, Lightbulb, Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { useProspectIdeas, type ProspectIdea } from '@/hooks/useProspectIdeas';
 import { ProspectFormDialog } from '@/components/prospects/ProspectFormDialog';
 import { format } from 'date-fns';
+import { AddProspectIdeaDialog } from './AddProspectIdeaDialog';
 
 export function ProspectIdeasSection() {
   const { ideas, isLoading, deleteIdea } = useProspectIdeas();
   const [expanded, setExpanded] = useState(true);
   const [convertIdea, setConvertIdea] = useState<ProspectIdea | null>(null);
+  const [addOpen, setAddOpen] = useState(false);
 
   return (
     <div className="border-2 border-foreground" style={{ borderRadius: 'var(--radius)' }}>
-      <button
-        className="w-full flex items-center justify-between p-4 hover:bg-muted/30 transition-colors"
-        onClick={() => setExpanded(!expanded)}
-      >
-        <div className="flex items-center gap-2">
-          <Lightbulb className="w-4 h-4 text-primary" />
-          <span className="font-bold uppercase tracking-wider text-sm">Saved Prospect Ideas</span>
-          <Badge variant="outline" className="border-2 border-foreground font-bold text-xs">
-            {ideas.length}
-          </Badge>
-        </div>
-        {expanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
-      </button>
+      <div className="flex items-center justify-between pr-2">
+        <button
+          className="flex-1 flex items-center justify-between p-4 hover:bg-muted/30 transition-colors"
+          onClick={() => setExpanded(!expanded)}
+        >
+          <div className="flex items-center gap-2">
+            <Lightbulb className="w-4 h-4 text-primary" />
+            <span className="font-bold uppercase tracking-wider text-sm">Saved Prospect Ideas</span>
+            <Badge variant="outline" className="border-2 border-foreground font-bold text-xs">
+              {ideas.length}
+            </Badge>
+          </div>
+          {expanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+        </button>
+        <Button
+          size="sm"
+          variant="outline"
+          className="h-7 px-2 text-xs border-2 border-foreground font-bold shrink-0"
+          onClick={() => setAddOpen(true)}
+        >
+          <Plus className="w-3 h-3 mr-1" />
+          Add
+        </Button>
+      </div>
 
       {expanded && (
         <div className="border-t-2 border-foreground">
@@ -33,7 +46,7 @@ export function ProspectIdeasSection() {
             <div className="p-6 text-center text-muted-foreground text-sm">Loading…</div>
           ) : ideas.length === 0 ? (
             <div className="p-6 text-center text-muted-foreground text-sm">
-              No saved prospect ideas yet. Search for contacts above and click "Save Idea".
+              No saved prospect ideas yet. Search for contacts above and click "Save Idea", or click Add to add manually.
             </div>
           ) : (
             <div className="overflow-x-auto">
@@ -102,6 +115,8 @@ export function ProspectIdeasSection() {
           }}
         />
       )}
+
+      <AddProspectIdeaDialog open={addOpen} onOpenChange={setAddOpen} />
     </div>
   );
 }
