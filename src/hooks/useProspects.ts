@@ -71,7 +71,7 @@ export function useCreateProspect() {
 
       const sanitized = sanitizeProspectData(formData);
 
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any)
         .from('prospects')
         .insert({
           ...sanitized,
@@ -102,7 +102,7 @@ export function useUpdateProspect() {
     mutationFn: async ({ id, ...formData }: ProspectFormData & { id: string }) => {
       const sanitized = sanitizeProspectData(formData);
 
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any)
         .from('prospects')
         .update(sanitized)
         .eq('id', id)
@@ -152,7 +152,7 @@ export function useLogProspectContact() {
 
   return useMutation({
     mutationFn: async (id: string) => {
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any)
         .from('prospects')
         .update({ last_contacted_at: new Date().toISOString() })
         .eq('id', id)
