@@ -70,7 +70,7 @@ export default function Prospects() {
           icon={UserSearch}
           actions={
             <div className="flex gap-2">
-              <Button variant="outline" onClick={handleSendDigest} disabled={sendingDigest}>
+              <Button onClick={handleSendDigest} disabled={sendingDigest} className="bg-amber-500 hover:bg-amber-600 text-white border-0 shadow-md">
                 {sendingDigest ? (
                   <Loader2 className="w-4 h-4 mr-2 animate-spin" />
                 ) : (
