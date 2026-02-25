@@ -20,7 +20,7 @@ serve(async (req) => {
     const RESEND_API_KEY = Deno.env.get('RESEND_API_KEY')!;
     const FROM_EMAIL = 'listings@logistics-space.net';
 
-    // Fetch tasks that need reminders
+    // Fetch tasks that need reminders — include full prospect contact info
     const { data: tasks, error: tasksError } = await supabase
       .from('prospect_tasks')
       .select(`
@@ -30,7 +30,14 @@ serve(async (req) => {
         due_date,
         created_by,
         prospect_id,
-        prospects (name)
+        prospects (
+          name,
+          company,
+          email,
+          phone,
+          prospect_type,
+          status
+        )
       `)
       .lte('reminder_at', new Date().toISOString())
       .eq('reminder_sent', false)
@@ -48,7 +55,6 @@ serve(async (req) => {
 
     for (const task of tasks) {
       try {
-        // Get creator's email from profiles
         const { data: profile } = await supabase
           .from('profiles')
           .select('email, full_name')
@@ -57,33 +63,116 @@ serve(async (req) => {
 
         if (!profile?.email) continue;
 
-        const prospectName = (task.prospects as any)?.name ?? 'Unknown Prospect';
+        const prospect = (task.prospects as any) ?? {};
+        const prospectName = prospect.name ?? 'Unknown Prospect';
+        const today = new Date().toLocaleDateString('en-CA', {
+          weekday: 'long', year: 'numeric', month: 'long', day: 'numeric',
+        });
+
         const dueDateStr = task.due_date
-          ? new Date(task.due_date).toLocaleDateString('en-CA', { dateStyle: 'medium' })
+          ? new Date(task.due_date).toLocaleDateString('en-CA', { month: 'long', day: 'numeric', year: 'numeric' })
           : null;
 
+        const isOverdue = task.due_date && new Date(task.due_date) < new Date();
+
+        // ---- Prospect contact card ----
+        const contactRows = [
+          prospect.company ? `<tr><td style="padding:8px 12px;font-size:12px;font-weight:600;color:#94a3b8;white-space:nowrap;text-transform:uppercase;letter-spacing:0.05em;">Company</td><td style="padding:8px 12px;font-size:14px;color:#334155;">${prospect.company}</td></tr>` : '',
+          prospect.email ? `<tr><td style="padding:8px 12px;font-size:12px;font-weight:600;color:#94a3b8;white-space:nowrap;text-transform:uppercase;letter-spacing:0.05em;">Email</td><td style="padding:8px 12px;font-size:14px;"><a href="mailto:${prospect.email}" style="color:#3b82f6;text-decoration:none;">${prospect.email}</a></td></tr>` : '',
+          prospect.phone ? `<tr><td style="padding:8px 12px;font-size:12px;font-weight:600;color:#94a3b8;white-space:nowrap;text-transform:uppercase;letter-spacing:0.05em;">Phone</td><td style="padding:8px 12px;font-size:14px;"><a href="tel:${prospect.phone}" style="color:#3b82f6;text-decoration:none;">${prospect.phone}</a></td></tr>` : '',
+          prospect.prospect_type ? `<tr><td style="padding:8px 12px;font-size:12px;font-weight:600;color:#94a3b8;white-space:nowrap;text-transform:uppercase;letter-spacing:0.05em;">Type</td><td style="padding:8px 12px;font-size:14px;color:#334155;">${prospect.prospect_type}</td></tr>` : '',
+        ].filter(Boolean).join('');
+
         const emailBody = `
-          <p>Hi ${profile.full_name ?? ''},</p>
-          <p>This is a reminder for your task:</p>
-          <table style="border-collapse:collapse;width:100%;margin:16px 0">
-            <tr>
-              <td style="padding:8px;border:1px solid #e2e8f0;font-weight:600;background:#f8fafc">Task</td>
-              <td style="padding:8px;border:1px solid #e2e8f0">${task.title}</td>
-            </tr>
-            <tr>
-              <td style="padding:8px;border:1px solid #e2e8f0;font-weight:600;background:#f8fafc">Prospect</td>
-              <td style="padding:8px;border:1px solid #e2e8f0">${prospectName}</td>
-            </tr>
-            ${dueDateStr ? `<tr>
-              <td style="padding:8px;border:1px solid #e2e8f0;font-weight:600;background:#f8fafc">Due</td>
-              <td style="padding:8px;border:1px solid #e2e8f0">${dueDateStr}</td>
-            </tr>` : ''}
-            ${task.notes ? `<tr>
-              <td style="padding:8px;border:1px solid #e2e8f0;font-weight:600;background:#f8fafc">Notes</td>
-              <td style="padding:8px;border:1px solid #e2e8f0">${task.notes}</td>
-            </tr>` : ''}
-          </table>
-          <p style="color:#6b7280;font-size:14px">Log in to mark this task complete.</p>
+          <!DOCTYPE html>
+          <html>
+          <body style="margin:0;padding:0;background:#f1f5f9;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">
+            <table width="100%" cellpadding="0" cellspacing="0" style="background:#f1f5f9;padding:32px 16px;">
+              <tr><td align="center">
+                <table width="580" cellpadding="0" cellspacing="0" style="max-width:580px;width:100%;">
+
+                  <!-- HEADER -->
+                  <tr>
+                    <td style="background:linear-gradient(135deg,#0f172a 0%,#1e3a5f 100%);border-radius:12px 12px 0 0;padding:28px 32px;">
+                      <table width="100%" cellpadding="0" cellspacing="0">
+                        <tr>
+                          <td>
+                            <div style="font-size:11px;font-weight:700;letter-spacing:0.15em;text-transform:uppercase;color:#64748b;margin-bottom:4px;">ClearView Partners</div>
+                            <div style="font-size:22px;font-weight:700;color:#ffffff;line-height:1.2;">Task Reminder</div>
+                            <div style="font-size:12px;color:#94a3b8;margin-top:4px;">${today}</div>
+                          </td>
+                          <td align="right" style="vertical-align:top;">
+                            <div style="background:rgba(255,255,255,0.08);border-radius:10px;padding:10px 14px;text-align:center;display:inline-block;">
+                              <div style="font-size:22px;">📋</div>
+                              <div style="font-size:10px;color:#94a3b8;margin-top:2px;white-space:nowrap;">To-Do</div>
+                            </div>
+                          </td>
+                        </tr>
+                      </table>
+                    </td>
+                  </tr>
+
+                  <!-- GREETING -->
+                  <tr>
+                    <td style="background:#ffffff;padding:24px 32px 16px;">
+                      <p style="margin:0;font-size:15px;color:#334155;">Hi <strong>${profile.full_name ?? 'there'}</strong>,</p>
+                      <p style="margin:8px 0 0;font-size:14px;color:#64748b;line-height:1.6;">You have a task coming up that needs your attention.</p>
+                    </td>
+                  </tr>
+
+                  <!-- TASK CARD -->
+                  <tr>
+                    <td style="background:#ffffff;padding:0 32px 24px;">
+                      <div style="background:#f8fafc;border:1px solid #e2e8f0;border-left:4px solid ${isOverdue ? '#ef4444' : '#3b82f6'};border-radius:8px;padding:20px;">
+                        <div style="font-size:18px;font-weight:700;color:#0f172a;margin-bottom:8px;">${task.title}</div>
+                        ${task.notes ? `<div style="font-size:13px;color:#64748b;margin-bottom:12px;line-height:1.5;">${task.notes}</div>` : ''}
+                        ${dueDateStr ? `
+                        <div style="display:inline-block;background:${isOverdue ? '#fef2f2' : '#eff6ff'};border:1px solid ${isOverdue ? '#fecaca' : '#bfdbfe'};border-radius:20px;padding:4px 12px;">
+                          <span style="font-size:12px;font-weight:600;color:${isOverdue ? '#dc2626' : '#2563eb'};">
+                            ${isOverdue ? '⚠ Overdue · ' : '📅 Due '}${dueDateStr}
+                          </span>
+                        </div>` : ''}
+                      </div>
+                    </td>
+                  </tr>
+
+                  <!-- DIVIDER -->
+                  <tr><td style="background:#ffffff;padding:0 32px;"><div style="border-top:1px solid #e8edf2;"></div></td></tr>
+
+                  <!-- PROSPECT CARD -->
+                  <tr>
+                    <td style="background:#ffffff;padding:20px 32px 28px;">
+                      <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;">
+                        <div style="background:#eff6ff;border-radius:6px;padding:6px;display:inline-block;">
+                          <span style="font-size:16px;">👤</span>
+                        </div>
+                        <div>
+                          <div style="font-size:13px;font-weight:700;color:#0f172a;">${prospectName}</div>
+                          <div style="font-size:11px;color:#94a3b8;">Prospect Contact</div>
+                        </div>
+                        ${prospect.prospect_type ? `<span style="margin-left:auto;background:#f1f5f9;color:#475569;font-size:11px;font-weight:600;padding:3px 8px;border-radius:20px;">${prospect.prospect_type}</span>` : ''}
+                      </div>
+                      ${contactRows ? `
+                      <table width="100%" cellpadding="0" cellspacing="0" style="border:1px solid #e8edf2;border-radius:8px;overflow:hidden;">
+                        ${contactRows}
+                      </table>` : `<p style="margin:0;font-size:13px;color:#94a3b8;">No contact details on file.</p>`}
+                    </td>
+                  </tr>
+
+                  <!-- FOOTER -->
+                  <tr>
+                    <td style="background:#f8fafc;border-top:1px solid #e8edf2;border-radius:0 0 12px 12px;padding:16px 32px;text-align:center;">
+                      <p style="margin:0;font-size:12px;color:#94a3b8;line-height:1.6;">
+                        Log in to ClearView to complete this task or update the prospect record.
+                      </p>
+                    </td>
+                  </tr>
+
+                </table>
+              </td></tr>
+            </table>
+          </body>
+          </html>
         `;
 
         const res = await fetch('https://api.resend.com/emails', {
@@ -95,13 +184,12 @@ serve(async (req) => {
           body: JSON.stringify({
             from: `ClearView <${FROM_EMAIL}>`,
             to: [profile.email],
-            subject: `Reminder: ${task.title} — ${prospectName}`,
+            subject: `📋 Task Reminder: ${task.title} — ${prospectName}`,
             html: emailBody,
           }),
         });
 
         if (res.ok) {
-          // Mark reminder as sent
           await supabase
             .from('prospect_tasks')
             .update({ reminder_sent: true })
