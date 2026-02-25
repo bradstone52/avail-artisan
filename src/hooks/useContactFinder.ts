@@ -18,8 +18,10 @@ interface UseContactFinderReturn {
   personResult: ContactResult | null;
   peopleResults: ContactResult[];
   totalResults: number;
+  currentPage: number;
+  pageSize: number;
   lookupPerson: (params: { name?: string; company?: string; linkedin_url?: string }) => Promise<void>;
-  searchPeople: (params: { company: string; title?: string }) => Promise<void>;
+  searchPeople: (params: { company: string; title?: string; page?: number }) => Promise<void>;
   clearResults: () => void;
 }
 
@@ -29,6 +31,8 @@ export function useContactFinder(): UseContactFinderReturn {
   const [personResult, setPersonResult] = useState<ContactResult | null>(null);
   const [peopleResults, setPeopleResults] = useState<ContactResult[]>([]);
   const [totalResults, setTotalResults] = useState(0);
+  const [currentPage, setCurrentPage] = useState(1);
+  const pageSize = 25;
 
   const invoke = async (body: Record<string, unknown>) => {
     const { data: { session } } = await supabase.auth.getSession();
@@ -57,12 +61,14 @@ export function useContactFinder(): UseContactFinderReturn {
     }
   };
 
-  const searchPeople = async (params: { company: string; title?: string }) => {
+  const searchPeople = async (params: { company: string; title?: string; page?: number }) => {
+    const page = params.page ?? 1;
     setLoading(true);
     setError(null);
     setPeopleResults([]);
+    setCurrentPage(page);
     try {
-      const data = await invoke({ operation: 'people_search', ...params });
+      const data = await invoke({ operation: 'people_search', ...params, page, page_size: pageSize });
       if (data.error) {
         setError(data.error);
       } else {
@@ -80,8 +86,9 @@ export function useContactFinder(): UseContactFinderReturn {
     setPersonResult(null);
     setPeopleResults([]);
     setTotalResults(0);
+    setCurrentPage(1);
     setError(null);
   };
 
-  return { loading, error, personResult, peopleResults, totalResults, lookupPerson, searchPeople, clearResults };
+  return { loading, error, personResult, peopleResults, totalResults, currentPage, pageSize, lookupPerson, searchPeople, clearResults };
 }

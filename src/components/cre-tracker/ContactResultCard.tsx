@@ -4,6 +4,12 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import type { ContactResult } from '@/hooks/useContactFinder';
 
+function formatPhone(phone: string): string {
+  const cleaned = phone.replace(/\D/g, '');
+  const match = cleaned.match(/^(\d{3})(\d{3})(\d{4})$/);
+  return match ? `(${match[1]}) ${match[2]}-${match[3]}` : phone;
+}
+
 interface ContactResultCardProps {
   contact: ContactResult;
   onSave: (contact: ContactResult) => void;
@@ -64,10 +70,10 @@ export function ContactResultCard({ contact, onSave, isSaving }: ContactResultCa
 
       {contact.phones.length > 0 && (
         <div className="space-y-1">
-          {contact.phones.map((phone) => (
+      {contact.phones.map((phone) => (
             <div key={phone} className="flex items-center gap-1 text-sm">
               <Phone className="w-3 h-3 text-muted-foreground shrink-0" />
-              <span className="text-foreground">{phone}</span>
+              <span className="text-foreground">{formatPhone(phone)}</span>
               <CopyButton text={phone} />
             </div>
           ))}

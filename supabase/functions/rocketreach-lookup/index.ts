@@ -113,7 +113,7 @@ Deno.serve(async (req) => {
       });
 
     } else if (operation === 'people_search') {
-      const { company, title, name, page_size = 10 } = body;
+      const { company, title, name, page = 1, page_size = 25 } = body;
 
       const query: Record<string, unknown> = {};
       if (company) query.current_employer = [company];
@@ -130,7 +130,7 @@ Deno.serve(async (req) => {
       const rrRes = await fetch('https://api.rocketreach.co/v2/api/search', {
         method: 'POST',
         headers: { 'Api-Key': apiKey, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ query, page_size }),
+        body: JSON.stringify({ query, page_size, start: (page - 1) * page_size + 1 }),
       });
 
       if (rrRes.status === 429) {
@@ -152,7 +152,7 @@ Deno.serve(async (req) => {
       const profiles2 = searchData2.profiles || searchData2.results || [];
       const total = searchData2.pagination?.total ?? searchData2.total ?? profiles2.length;
 
-      // Fetch full profiles in parallel (up to page_size contacts)
+      // Fetch full profiles in parallel to get emails/phones
       const fullProfiles = await Promise.all(
         profiles2.map(async (p: Record<string, unknown>) => {
           if (p.id) {
@@ -165,7 +165,7 @@ Deno.serve(async (req) => {
 
       const results = fullProfiles.map(normalizePerson);
 
-      return new Response(JSON.stringify({ results, total }), {
+      return new Response(JSON.stringify({ results, total, page, page_size }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
 
