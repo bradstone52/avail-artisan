@@ -1,4 +1,5 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useCallback } from 'react';
+import * as React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Badge } from '@/components/ui/badge';
 import {
@@ -28,13 +29,15 @@ import { ConfirmDialog } from '@/components/common/ConfirmDialog';
 import { ColumnsDropdown } from '@/components/common/ColumnsDropdown';
 import { DensityToggle } from '@/components/common/DensityToggle';
 import { formatDate, formatNumber, formatCurrency } from '@/lib/format';
-import { useDeleteProspect, useLogProspectContact, useUpdateProspect } from '@/hooks/useProspects';
+import { useDeleteProspect, useLogProspectContact, useUpdateProspect, useSetProspectContactDate } from '@/hooks/useProspects';
 import { useTableColumnPrefs } from '@/hooks/useTableColumnPrefs';
 import { useTableDensity } from '@/hooks/useTableDensity';
-import { Eye, Pencil, Trash2, Search, X, MoreHorizontal, Phone, Mail, ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react';
+import { Eye, Pencil, Trash2, Search, X, MoreHorizontal, Phone, Mail, ArrowUpDown, ArrowUp, ArrowDown, CalendarIcon } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { differenceInDays, parseISO, addDays, formatDistanceToNow } from 'date-fns';
 import type { Prospect } from '@/types/prospect';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Calendar } from '@/components/ui/calendar';
 
 interface ProspectsTableProps {
   prospects: Prospect[];
@@ -92,6 +95,8 @@ function FollowUpDueCell({ date }: { date?: string | null }) {
 
 function LastContactedCell({ date, prospectId, prospectName }: { date?: string | null; prospectId: string; prospectName: string }) {
   const logContact = useLogProspectContact();
+  const setContactDate = useSetProspectContactDate();
+  const [open, setOpen] = React.useState(false);
 
   let label: React.ReactNode;
   if (!date) {
@@ -106,14 +111,17 @@ function LastContactedCell({ date, prospectId, prospectName }: { date?: string |
     }
   }
 
+  const selectedDate = date ? parseISO(date) : undefined;
+
   return (
     <div className="flex items-center gap-1.5">
       {label}
+      {/* One-tap log today */}
       <Button
         variant="ghost"
         size="icon"
         className="h-6 w-6 shrink-0 text-muted-foreground hover:text-foreground"
-        title={`Log contact for ${prospectName}`}
+        title={`Log contact today for ${prospectName}`}
         onClick={(e) => {
           e.stopPropagation();
           logContact.mutate(prospectId);
@@ -122,6 +130,35 @@ function LastContactedCell({ date, prospectId, prospectName }: { date?: string |
       >
         <Phone className="h-3.5 w-3.5" />
       </Button>
+      {/* Pick a specific date */}
+      <Popover open={open} onOpenChange={setOpen}>
+        <PopoverTrigger asChild>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-6 w-6 shrink-0 text-muted-foreground hover:text-foreground"
+            title={`Edit last contacted date for ${prospectName}`}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <CalendarIcon className="h-3.5 w-3.5" />
+          </Button>
+        </PopoverTrigger>
+        <PopoverContent className="w-auto p-0 z-50" align="start" onClick={(e) => e.stopPropagation()}>
+          <Calendar
+            mode="single"
+            selected={selectedDate}
+            onSelect={(d) => {
+              if (d) {
+                setContactDate.mutate({ id: prospectId, date: d });
+                setOpen(false);
+              }
+            }}
+            disabled={(d) => d > new Date()}
+            initialFocus
+            className={cn('p-3 pointer-events-auto')}
+          />
+        </PopoverContent>
+      </Popover>
     </div>
   );
 }

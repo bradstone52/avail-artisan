@@ -173,3 +173,30 @@ export function useLogProspectContact() {
     },
   });
 }
+
+export function useSetProspectContactDate() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ id, date }: { id: string; date: Date }) => {
+      const { data, error } = await (supabase as any)
+        .from('prospects')
+        .update({ last_contacted_at: date.toISOString() })
+        .eq('id', id)
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ['prospects'] });
+      queryClient.invalidateQueries({ queryKey: ['prospects', data.id] });
+      toast.success('Contact date updated');
+    },
+    onError: (error) => {
+      console.error('Error updating contact date:', error);
+      toast.error('Failed to update contact date');
+    },
+  });
+}
