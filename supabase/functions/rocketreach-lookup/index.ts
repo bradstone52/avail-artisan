@@ -53,7 +53,7 @@ Deno.serve(async (req) => {
       if (company) params.set('current_employer', company);
       if (linkedin_url) params.set('linkedin_url', linkedin_url);
 
-      const rrRes = await fetch(`https://api.rocketreach.co/v3/person/lookup?${params.toString()}`, {
+      const rrRes = await fetch(`https://api.rocketreach.co/api/v2/lookupProfile?${params.toString()}`, {
         headers: { 'Api-Key': apiKey },
       });
 
@@ -92,7 +92,7 @@ Deno.serve(async (req) => {
       if (company) searchBody.current_employer = [company];
       if (title) searchBody.title = [title];
 
-      const rrRes = await fetch('https://api.rocketreach.co/v3/searches/people', {
+      const rrRes = await fetch('https://api.rocketreach.co/api/v2/searchPeople', {
         method: 'POST',
         headers: { 'Api-Key': apiKey, 'Content-Type': 'application/json' },
         body: JSON.stringify(searchBody),
@@ -114,7 +114,7 @@ Deno.serve(async (req) => {
       }
 
       const data2 = await rrRes.json();
-      const results = (data2.profiles || []).map(normalizePerson);
+      const results = (data2.profiles || data2.people || []).map(normalizePerson);
 
       return new Response(JSON.stringify({ results, total: data2.pagination?.total ?? results.length }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
