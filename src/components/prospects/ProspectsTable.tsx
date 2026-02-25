@@ -386,12 +386,12 @@ export function ProspectsTable({ prospects, isLoading, onEdit }: ProspectsTableP
               const isEven = index % 2 === 0;
               const priorityRowBg =
                 prospect.priority === 'A'
-                  ? isEven ? 'bg-red-50 dark:bg-red-950/30' : 'bg-red-100/70 dark:bg-red-950/50'
+                  ? isEven ? 'bg-red-50 dark:bg-red-950/20' : 'bg-red-200/60 dark:bg-red-900/40'
                   : prospect.priority === 'B'
-                  ? isEven ? 'bg-yellow-50 dark:bg-yellow-950/30' : 'bg-yellow-100/70 dark:bg-yellow-950/50'
+                  ? isEven ? 'bg-yellow-50 dark:bg-yellow-950/20' : 'bg-yellow-200/60 dark:bg-yellow-900/40'
                   : prospect.priority === 'C'
-                  ? isEven ? 'bg-cyan-50 dark:bg-cyan-950/30' : 'bg-cyan-100/70 dark:bg-cyan-950/50'
-                  : isEven ? '' : 'bg-muted/30';
+                  ? isEven ? 'bg-cyan-50 dark:bg-cyan-950/20' : 'bg-cyan-200/60 dark:bg-cyan-900/40'
+                  : isEven ? 'bg-background' : 'bg-muted/40';
               const rowBg = isSelected ? '!bg-secondary' : priorityRowBg;
               const hoverClass = isSelected
                 ? 'hover:!bg-secondary/90'
