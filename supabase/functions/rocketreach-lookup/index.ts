@@ -46,15 +46,19 @@ Deno.serve(async (req) => {
     const { operation } = body;
 
     if (operation === 'person_lookup') {
+      // RocketReach v2 person search via searchPeople with name+employer filters
       const { name, company, linkedin_url } = body;
 
-      const params = new URLSearchParams();
-      if (name) params.set('name', name);
-      if (company) params.set('current_employer', company);
-      if (linkedin_url) params.set('linkedin_url', linkedin_url);
+      // Use searchPeople for single person lookup too — lookupProfile requires an id
+      const query: Record<string, unknown> = {};
+      if (name) query.name = [name];
+      if (company) query.current_employer = [company];
+      if (linkedin_url) query.linkedin_url = [linkedin_url];
 
-      const rrRes = await fetch(`https://api.rocketreach.co/api/v2/lookupProfile?${params.toString()}`, {
-        headers: { 'Api-Key': apiKey },
+      const rrRes = await fetch('https://api.rocketreach.co/api/v2/searchPeople', {
+        method: 'POST',
+        headers: { 'Api-Key': apiKey, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ query, page_size: 1 }),
       });
 
       if (rrRes.status === 404) {
@@ -78,24 +82,34 @@ Deno.serve(async (req) => {
         });
       }
 
-      const person = await rrRes.json();
-      const normalized = normalizePerson(person);
+      const data = await rrRes.json();
+      const profiles = data.profiles || data.people || [];
+      const normalized = profiles.length > 0 ? normalizePerson(profiles[0]) : null;
 
       return new Response(JSON.stringify({ result: normalized }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
 
     } else if (operation === 'people_search') {
-      const { company, title, page_size = 10 } = body;
+      const { company, title, name, page_size = 10 } = body;
 
-      const searchBody: Record<string, unknown> = { page_size };
-      if (company) searchBody.current_employer = [company];
-      if (title) searchBody.title = [title];
+      // RocketReach v2 searchPeople requires params nested under "query"
+      const query: Record<string, unknown> = {};
+      if (company) query.current_employer = [company];
+      if (title) query.title = [title];
+      if (name) query.name = [name];
+
+      if (Object.keys(query).length === 0) {
+        return new Response(JSON.stringify({ error: 'At least one search parameter (company, title, or name) is required' }), {
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
 
       const rrRes = await fetch('https://api.rocketreach.co/api/v2/searchPeople', {
         method: 'POST',
         headers: { 'Api-Key': apiKey, 'Content-Type': 'application/json' },
-        body: JSON.stringify(searchBody),
+        body: JSON.stringify({ query, page_size }),
       });
 
       if (rrRes.status === 429) {
