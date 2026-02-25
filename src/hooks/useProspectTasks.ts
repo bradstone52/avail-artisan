@@ -28,6 +28,29 @@ export function useProspectTasks(prospectId: string | undefined) {
   });
 }
 
+/** Fetch all incomplete tasks for an org's prospects in one query */
+export function useAllProspectTasks(prospectIds: string[]) {
+  const { user } = useAuth();
+
+  return useQuery({
+    queryKey: ['prospect_tasks_all', prospectIds.join(',')],
+    queryFn: async () => {
+      if (!prospectIds.length) return [] as ProspectTask[];
+
+      const { data, error } = await (supabase as any)
+        .from('prospect_tasks')
+        .select('*')
+        .in('prospect_id', prospectIds)
+        .eq('completed', false)
+        .order('due_date', { ascending: true, nullsFirst: false });
+
+      if (error) throw error;
+      return data as ProspectTask[];
+    },
+    enabled: !!user && prospectIds.length > 0,
+  });
+}
+
 export function useCreateProspectTask() {
   const queryClient = useQueryClient();
   const { user } = useAuth();
