@@ -28,12 +28,13 @@ import {
 import { ConfirmDialog } from '@/components/common/ConfirmDialog';
 import { ColumnsDropdown } from '@/components/common/ColumnsDropdown';
 import { DensityToggle } from '@/components/common/DensityToggle';
+import { TaskFormDialog } from '@/components/prospects/TaskFormDialog';
 import { formatDate, formatNumber, formatCurrency } from '@/lib/format';
 import { useDeleteProspect, useLogProspectContact, useUpdateProspect, useSetProspectContactDate } from '@/hooks/useProspects';
 import { useAllProspectTasks } from '@/hooks/useProspectTasks';
 import { useTableColumnPrefs } from '@/hooks/useTableColumnPrefs';
 import { useTableDensity } from '@/hooks/useTableDensity';
-import { Eye, Pencil, Trash2, Search, X, MoreHorizontal, Phone, Mail, ArrowUpDown, ArrowUp, ArrowDown, CalendarIcon, CheckSquare, AlertCircle } from 'lucide-react';
+import { Eye, Pencil, Trash2, Search, X, MoreHorizontal, Phone, Mail, ArrowUpDown, ArrowUp, ArrowDown, CalendarIcon, CheckSquare, AlertCircle, ListPlus } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { differenceInDays, parseISO, addDays, formatDistanceToNow, format, isPast, isToday } from 'date-fns';
 import type { Prospect } from '@/types/prospect';
@@ -204,6 +205,7 @@ export function ProspectsTable({ prospects, isLoading, onEdit }: ProspectsTableP
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [selectedRowId, setSelectedRowId] = useState<string | null>(null);
   const [updatingPriority, setUpdatingPriority] = useState<string | null>(null);
+  const [addTaskProspectId, setAddTaskProspectId] = useState<string | null>(null);
 
   // Fetch all incomplete tasks for all visible prospects in one query
   const prospectIds = useMemo(() => prospects.map(p => p.id), [prospects]);
@@ -429,7 +431,7 @@ export function ProspectsTable({ prospects, isLoading, onEdit }: ProspectsTableP
                   </div>
                 </TableHead>
               )}
-              <TableHead className={cn('w-[60px]', headPadding)}></TableHead>
+              <TableHead className={cn('w-[90px]', headPadding)}></TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -639,7 +641,17 @@ export function ProspectsTable({ prospects, isLoading, onEdit }: ProspectsTableP
                       <FollowUpDueCell date={prospect.follow_up_date} />
                     </TableCell>
                   )}
-                  <TableCell className={cellPadding}>
+                  <TableCell className={cellPadding} onClick={(e) => e.stopPropagation()}>
+                    <div className="flex items-center gap-0.5">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 text-muted-foreground hover:text-foreground"
+                        title="Add Task"
+                        onClick={(e) => { e.stopPropagation(); setAddTaskProspectId(prospect.id); }}
+                      >
+                        <ListPlus className="h-4 w-4" />
+                      </Button>
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
                         <Button variant="ghost" size="icon" className="h-8 w-8">
@@ -679,6 +691,7 @@ export function ProspectsTable({ prospects, isLoading, onEdit }: ProspectsTableP
                         </DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>
+                    </div>
                   </TableCell>
                 </TableRow>
               );
@@ -696,6 +709,14 @@ export function ProspectsTable({ prospects, isLoading, onEdit }: ProspectsTableP
         variant="destructive"
         onConfirm={handleDelete}
       />
+
+      {addTaskProspectId && (
+        <TaskFormDialog
+          open={!!addTaskProspectId}
+          onOpenChange={(open) => { if (!open) setAddTaskProspectId(null); }}
+          prospectId={addTaskProspectId}
+        />
+      )}
     </>
   );
 }
