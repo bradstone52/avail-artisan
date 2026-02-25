@@ -6,7 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { CheckSquare, Plus, Trash2, Bell, BellOff } from 'lucide-react';
+import { CheckSquare, Plus, Trash2, Bell, BellOff, Pencil } from 'lucide-react';
 import { formatDate } from '@/lib/format';
 import { differenceInDays, parseISO } from 'date-fns';
 import { cn } from '@/lib/utils';
@@ -125,8 +125,10 @@ function ReminderPopover({ task, prospectId }: { task: ProspectTask; prospectId:
 function TaskRow({ task, prospectId }: { task: ProspectTask; prospectId: string }) {
   const toggle = useToggleProspectTaskCompleted();
   const deleteTask = useDeleteProspectTask();
+  const [editOpen, setEditOpen] = useState(false);
 
   return (
+    <>
     <div
       className={cn(
         'flex items-start gap-3 p-3 rounded border border-foreground/10 bg-card transition-opacity',
@@ -164,6 +166,15 @@ function TaskRow({ task, prospectId }: { task: ProspectTask; prospectId: string 
         </div>
       </div>
       <div className="flex items-center gap-0.5 shrink-0">
+        <Button
+          variant="ghost"
+          size="icon"
+          className="h-7 w-7 text-muted-foreground hover:text-foreground"
+          onClick={() => setEditOpen(true)}
+          title="Edit task"
+        >
+          <Pencil className="h-3.5 w-3.5" />
+        </Button>
         <ReminderPopover task={task} prospectId={prospectId} />
         <Button
           variant="ghost"
@@ -176,6 +187,13 @@ function TaskRow({ task, prospectId }: { task: ProspectTask; prospectId: string 
         </Button>
       </div>
     </div>
+    <TaskFormDialog
+      open={editOpen}
+      onOpenChange={setEditOpen}
+      prospectId={prospectId}
+      task={task}
+    />
+    </>
   );
 }
 
