@@ -1,10 +1,12 @@
+import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { UserSearch, Edit, Phone, Mail, Clock } from 'lucide-react';
+import { UserSearch, Edit, Phone, Mail, Clock, Send } from 'lucide-react';
 import { formatNumber, formatCurrency, formatDate } from '@/lib/format';
 import { formatDistanceToNow, parseISO } from 'date-fns';
 import type { Prospect } from '@/types/prospect';
+import { SendProspectEmailDialog } from './SendProspectEmailDialog';
 
 interface ProspectViewCardProps {
   prospect: Prospect;
@@ -18,7 +20,10 @@ const priorityColors: Record<string, string> = {
 };
 
 export function ProspectViewCard({ prospect, onEdit }: ProspectViewCardProps) {
+  const [emailOpen, setEmailOpen] = useState(false);
+
   return (
+    <>
     <Card>
       <CardHeader>
         <div className="flex items-center justify-between">
@@ -26,12 +31,20 @@ export function ProspectViewCard({ prospect, onEdit }: ProspectViewCardProps) {
             <UserSearch className="w-5 h-5" />
             Prospect Details
           </CardTitle>
-          {onEdit && (
-            <Button variant="outline" size="sm" onClick={onEdit}>
-              <Edit className="w-4 h-4 mr-2" />
-              Edit
-            </Button>
-          )}
+          <div className="flex gap-2">
+            {prospect.email && (
+              <Button variant="outline" size="sm" onClick={() => setEmailOpen(true)}>
+                <Send className="w-4 h-4 mr-2" />
+                Email
+              </Button>
+            )}
+            {onEdit && (
+              <Button variant="outline" size="sm" onClick={onEdit}>
+                <Edit className="w-4 h-4 mr-2" />
+                Edit
+              </Button>
+            )}
+          </div>
         </div>
       </CardHeader>
       <CardContent>
@@ -164,5 +177,12 @@ export function ProspectViewCard({ prospect, onEdit }: ProspectViewCardProps) {
         )}
       </CardContent>
     </Card>
+
+    <SendProspectEmailDialog
+      open={emailOpen}
+      onOpenChange={setEmailOpen}
+      prospect={prospect}
+    />
+    </>
   );
 }
