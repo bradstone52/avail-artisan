@@ -1,4 +1,4 @@
-import { Briefcase, UserSearch, Users, Calendar, Building2 } from 'lucide-react';
+import { Briefcase, UserSearch, Users, Calendar, Building2, ContactRound } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 
 interface QuickNavItem {
@@ -24,10 +24,11 @@ export function CREQuickNav({ activeTab, setActiveTab, activeDealsCount, prospec
     { title: 'Prospects', icon: UserSearch, tab: 'prospects', stat: prospectsCount !== undefined ? `${prospectsCount} total` : '—', color: 'bg-secondary' },
     { title: 'Internal Listings', icon: Building2, tab: 'listings', stat: listingsCount !== undefined ? `${listingsCount} total` : '—', color: 'bg-accent' },
     { title: 'BrokerageDB', icon: Users, tab: 'contacts', color: 'bg-muted' },
+    { title: 'Contact Finder', icon: ContactRound, tab: 'contact-finder', color: 'bg-primary' },
   ];
 
   return (
-    <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+    <div className="grid grid-cols-2 md:grid-cols-6 gap-3">
       {quickNav.map((item) => (
         <button
           key={item.title}

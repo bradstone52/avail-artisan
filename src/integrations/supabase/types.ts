@@ -2821,6 +2821,62 @@ export type Database = {
           },
         ]
       }
+      prospect_ideas: {
+        Row: {
+          company: string | null
+          created_at: string | null
+          created_by: string
+          email: string | null
+          id: string
+          linkedin_url: string | null
+          name: string
+          notes: string | null
+          org_id: string | null
+          phone: string | null
+          source: string | null
+          title: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          company?: string | null
+          created_at?: string | null
+          created_by: string
+          email?: string | null
+          id?: string
+          linkedin_url?: string | null
+          name: string
+          notes?: string | null
+          org_id?: string | null
+          phone?: string | null
+          source?: string | null
+          title?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          company?: string | null
+          created_at?: string | null
+          created_by?: string
+          email?: string | null
+          id?: string
+          linkedin_url?: string | null
+          name?: string
+          notes?: string | null
+          org_id?: string | null
+          phone?: string | null
+          source?: string | null
+          title?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "prospect_ideas_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "orgs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       prospect_tasks: {
         Row: {
           completed: boolean
