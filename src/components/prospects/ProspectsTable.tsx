@@ -383,19 +383,24 @@ export function ProspectsTable({ prospects, isLoading, onEdit }: ProspectsTableP
           <TableBody>
             {filteredAndSorted.map((prospect, index) => {
               const isSelected = selectedRowId === prospect.id;
+              const isEven = index % 2 === 0;
               const priorityRowBg =
-                prospect.priority === 'A' ? 'bg-red-50 dark:bg-red-950/30' :
-                prospect.priority === 'B' ? 'bg-yellow-50 dark:bg-yellow-950/30' :
-                prospect.priority === 'C' ? 'bg-cyan-50 dark:bg-cyan-950/30' : '';
+                prospect.priority === 'A'
+                  ? isEven ? 'bg-red-50 dark:bg-red-950/30' : 'bg-red-100/70 dark:bg-red-950/50'
+                  : prospect.priority === 'B'
+                  ? isEven ? 'bg-yellow-50 dark:bg-yellow-950/30' : 'bg-yellow-100/70 dark:bg-yellow-950/50'
+                  : prospect.priority === 'C'
+                  ? isEven ? 'bg-cyan-50 dark:bg-cyan-950/30' : 'bg-cyan-100/70 dark:bg-cyan-950/50'
+                  : isEven ? '' : 'bg-muted/30';
               const rowBg = isSelected ? '!bg-secondary' : priorityRowBg;
               const hoverClass = isSelected
                 ? 'hover:!bg-secondary/90'
                 : prospect.priority === 'A'
-                  ? 'hover:!bg-red-100 dark:hover:!bg-red-900/40'
+                  ? 'hover:!bg-red-200/80 dark:hover:!bg-red-900/40'
                   : prospect.priority === 'B'
-                    ? 'hover:!bg-yellow-100 dark:hover:!bg-yellow-900/40'
+                    ? 'hover:!bg-yellow-200/80 dark:hover:!bg-yellow-900/40'
                     : prospect.priority === 'C'
-                      ? 'hover:!bg-cyan-100 dark:hover:!bg-cyan-900/40'
+                      ? 'hover:!bg-cyan-200/80 dark:hover:!bg-cyan-900/40'
                       : 'hover:!bg-pink-200 dark:hover:!bg-pink-900/50';
               const outlineClass = isSelected
                 ? 'outline outline-2 outline-amber-600 dark:outline-amber-500 -outline-offset-1'
