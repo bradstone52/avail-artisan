@@ -16,9 +16,10 @@ import { CREOverviewTab } from '@/components/cre-tracker/CREOverviewTab';
 import { CREDealsTab } from '@/components/cre-tracker/CREDealsTab';
 import { CREProspectsTab } from '@/components/cre-tracker/CREProspectsTab';
 import { CREListingsTab } from '@/components/cre-tracker/CREListingsTab';
+import { ContactFinderTab } from '@/components/cre-tracker/ContactFinderTab';
 import type { CalendarEvent } from '@/components/cre-tracker/CRECalendarSection';
 
-const VALID_TABS = ['overview', 'deals', 'prospects', 'listings', 'contacts'] as const;
+const VALID_TABS = ['overview', 'deals', 'prospects', 'listings', 'contacts', 'contact-finder'] as const;
 type CRETab = typeof VALID_TABS[number];
 const DEFAULT_TAB: CRETab = 'overview';
 function parseTab(value: string | null): CRETab {
@@ -119,6 +120,9 @@ export default function CRETracker() {
           </TabsContent>
           <TabsContent value="contacts" className="mt-4">
             <BrokeragesAndAgentsTab />
+          </TabsContent>
+          <TabsContent value="contact-finder" className="mt-4">
+            <ContactFinderTab />
           </TabsContent>
         </Tabs>
       </div>

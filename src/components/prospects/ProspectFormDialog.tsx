@@ -27,6 +27,7 @@ interface ProspectFormDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   prospect?: Prospect | null;
+  prefill?: { name?: string; email?: string; phone?: string; company?: string };
 }
 
 const prospectTypes: ProspectType[] = ['Tenant', 'Buyer', 'Listing'];
@@ -35,7 +36,7 @@ const prospectSources: ProspectSource[] = [
   'Past Client', 'Network', 'Sign Call', 'Cold Call', 'Referral'
 ];
 
-export function ProspectFormDialog({ open, onOpenChange, prospect }: ProspectFormDialogProps) {
+export function ProspectFormDialog({ open, onOpenChange, prospect, prefill }: ProspectFormDialogProps) {
   const createProspect = useCreateProspect();
   const updateProspect = useUpdateProspect();
   const createFollowUpDate = useCreateFollowUpDate();
@@ -58,6 +59,8 @@ export function ProspectFormDialog({ open, onOpenChange, prospect }: ProspectFor
     priority: '',
     email: '',
     phone: '',
+    // prefill from Contact Finder
+    ...(prefill ? { name: prefill.name ?? '', email: prefill.email ?? '', phone: prefill.phone ?? '' } : {}),
   });
 
   useEffect(() => {
