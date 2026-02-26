@@ -1,4 +1,4 @@
-import { ReactNode, useEffect } from 'react'
+import { ReactNode } from 'react'
 import { CheckCircle2, Loader2, Sparkles } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
@@ -25,14 +25,12 @@ export function PhaseCard({
   description,
   isComplete,
   isAnalyzing,
-  isBackgroundAnalyzing = false,
   onAnalyze,
-  analyzeLabel = 'Analyze with Perplexity',
+  analyzeLabel = 'Analyze with AI',
   children,
   documents,
   actions,
 }: PhaseCardProps) {
-  const busy = isAnalyzing || isBackgroundAnalyzing
   return (
     <Card className="border-2 border-foreground shadow-[4px_4px_0_hsl(var(--foreground))]">
       <CardHeader className="border-b-2 border-foreground/20 bg-muted/30 pb-4">
@@ -58,13 +56,13 @@ export function PhaseCard({
             <Button
               size="sm"
               onClick={onAnalyze}
-              disabled={busy}
+              disabled={isAnalyzing}
               className="border-2 border-foreground shadow-[2px_2px_0_hsl(var(--foreground))] hover:shadow-none hover:translate-x-0.5 hover:translate-y-0.5 transition-all"
             >
-              {busy ? (
+              {isAnalyzing ? (
                 <>
                   <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                  {isBackgroundAnalyzing ? 'Analyzing docs…' : 'Starting…'}
+                  Analyzing…
                 </>
               ) : (
                 <>
@@ -75,10 +73,10 @@ export function PhaseCard({
             </Button>
           </div>
         </div>
-        {isBackgroundAnalyzing && (
+        {isAnalyzing && (
           <div className="mt-3 flex items-center gap-2 text-xs text-muted-foreground bg-muted/50 border border-foreground/20 rounded px-3 py-2">
             <Loader2 className="w-3 h-3 animate-spin shrink-0" />
-            <span>Reading your documents and extracting data — this may take 1–3 minutes. The page will update automatically when complete.</span>
+            <span>Extracting data from your documents and running AI analysis — this may take 1–3 minutes. Please keep this page open.</span>
           </div>
         )}
       </CardHeader>

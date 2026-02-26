@@ -4,7 +4,7 @@ import { Input } from '@/components/ui/input'
 import { AlertTriangle } from 'lucide-react'
 import { PhaseCard } from '../PhaseCard'
 import { DocumentUploadSection } from '../DocumentUploadSection'
-import { UnderwritingPhaseData, UnderwritingDocument, useAnalyzePhase, useSavePhaseData, usePollPhaseAnalysis } from '@/hooks/useUnderwritings'
+import { UnderwritingPhaseData, UnderwritingDocument, useAnalyzePhase, useSavePhaseData } from '@/hooks/useUnderwritings'
 
 interface Props {
   underwritingId: string
@@ -33,18 +33,13 @@ export function Phase1Tenancy({ underwritingId, phaseData, documents, isComplete
   const save = useSavePhaseData(underwritingId)
 
   const sd = phaseData?.structured_data as Record<string, unknown> | null
-  const isBackgroundAnalyzing = !!(sd?.analyzing)
-
   const [tenants, setTenants] = useState<Tenant[]>((sd?.tenants_table as Tenant[]) || [])
   const [summary, setSummary] = useState<SummaryMetrics | null>((sd?.summary_metrics as SummaryMetrics) || null)
   const [rollover, setRollover] = useState<RolloverRow[]>((sd?.rollover_schedule as RolloverRow[]) || [])
   const [redFlags, setRedFlags] = useState<string[]>((sd?.red_flags as string[]) || [])
 
-  // Poll while background analysis is running
-  usePollPhaseAnalysis(underwritingId, 1, isBackgroundAnalyzing)
-
   useEffect(() => {
-    if (sd && !sd.analyzing) {
+    if (sd) {
       setTenants((sd.tenants_table as Tenant[]) || [])
       setSummary((sd.summary_metrics as SummaryMetrics) || null)
       setRollover((sd.rollover_schedule as RolloverRow[]) || [])
@@ -72,7 +67,6 @@ export function Phase1Tenancy({ underwritingId, phaseData, documents, isComplete
       description="Extract tenant roster, WALT, rollover schedule, and red flags from the rent roll."
       isComplete={isComplete}
       isAnalyzing={analyze.isPending}
-      isBackgroundAnalyzing={isBackgroundAnalyzing}
       onAnalyze={handleAnalyze}
       documents={<DocumentUploadSection underwritingId={underwritingId} documents={documents} />}
       actions={tenants.length > 0 && (

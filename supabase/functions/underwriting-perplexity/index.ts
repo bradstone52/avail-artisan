@@ -14,6 +14,7 @@ function getAdminClient() {
 }
 
 // ─── Document Extraction ───────────────────────────────────────────────────────
+// Process documents one at a time, with a hard cap per file to stay within limits
 
 async function extractDocumentText(underwritingId: string): Promise<string> {
   const admin = getAdminClient()
@@ -27,7 +28,6 @@ async function extractDocumentText(underwritingId: string): Promise<string> {
   const lovableKey = Deno.env.get('LOVABLE_API_KEY')!
   const extractedParts: string[] = []
 
-  // Process ONE document at a time to stay within memory limits
   for (const doc of docs) {
     try {
       const { data: fileData, error: dlError } = await admin.storage
@@ -35,30 +35,27 @@ async function extractDocumentText(underwritingId: string): Promise<string> {
         .download(doc.storage_path)
 
       if (dlError || !fileData) {
-        console.error(`Failed to download ${doc.file_name}:`, dlError)
         extractedParts.push(`[${doc.document_type}: ${doc.file_name} - download failed]`)
         continue
       }
 
       const fileName = doc.file_name.toLowerCase()
-      const isText = fileName.endsWith('.csv') || fileName.endsWith('.txt')
 
-      if (isText) {
+      // Plain text files — just read directly
+      if (fileName.endsWith('.csv') || fileName.endsWith('.txt')) {
         const text = await fileData.text()
-        extractedParts.push(`=== ${doc.document_type.toUpperCase()}: ${doc.file_name} ===\n${text.substring(0, 15000)}`)
+        extractedParts.push(`=== ${doc.document_type.toUpperCase()}: ${doc.file_name} ===\n${text.substring(0, 12000)}`)
         continue
       }
 
-      // Binary file (PDF, XLSX, XLS, DOCX) — send to Gemini as base64
+      // Binary files — cap at 8MB to avoid OOM, then send to Gemini Flash (faster/cheaper)
       const arrayBuffer = await fileData.arrayBuffer()
-      // Limit to 15MB to avoid OOM
-      if (arrayBuffer.byteLength > 15 * 1024 * 1024) {
-        extractedParts.push(`[${doc.document_type}: ${doc.file_name} - file too large, skipped]`)
+      if (arrayBuffer.byteLength > 8 * 1024 * 1024) {
+        extractedParts.push(`[${doc.document_type}: ${doc.file_name} - file exceeds 8MB limit, skipped]`)
         continue
       }
 
       const bytes = new Uint8Array(arrayBuffer)
-      // Chunk base64 encoding to avoid stack overflow
       let binary = ''
       const chunkSize = 8192
       for (let i = 0; i < bytes.length; i += chunkSize) {
@@ -71,6 +68,7 @@ async function extractDocumentText(underwritingId: string): Promise<string> {
       else if (fileName.endsWith('.xls')) mimeType = 'application/vnd.ms-excel'
       else if (fileName.endsWith('.docx')) mimeType = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
 
+      // Use Gemini Flash for extraction (faster, less resource-heavy)
       const geminiRes = await fetch('https://gateway.lovable.ai/openai/v1/chat/completions', {
         method: 'POST',
         headers: {
@@ -79,17 +77,18 @@ async function extractDocumentText(underwritingId: string): Promise<string> {
         },
         body: JSON.stringify({
           model: 'google/gemini-2.5-flash',
+          temperature: 0.0,
+          max_tokens: 4000,
           messages: [{
             role: 'user',
             content: [
               {
                 type: 'text',
-                text: `Extract ALL data from this ${doc.document_type} document. For rent rolls: include every tenant row with tenant name, unit, SF, lease dates, rent amounts, lease type. For operating statements: include all income/expense line items with amounts. For leases: include tenant name, unit, SF, start date, expiry, base rent, escalations, renewal options. Output as plain structured text, do not omit any rows.`,
+                text: `Extract ALL structured data from this ${doc.document_type} document into plain text. For rent rolls: list every tenant row (tenant name, unit, SF, start date, expiry, rent/SF, monthly rent, lease type). For financials: list all income and expense line items with amounts. Be complete and concise.`,
               },
               { type: 'image_url', image_url: { url: `data:${mimeType};base64,${base64}` } },
             ],
           }],
-          max_tokens: 6000,
         }),
       })
 
@@ -100,7 +99,7 @@ async function extractDocumentText(underwritingId: string): Promise<string> {
       } else {
         const errText = await geminiRes.text()
         console.error(`Gemini extraction failed for ${doc.file_name}:`, errText)
-        extractedParts.push(`[${doc.document_type}: ${doc.file_name} - extraction failed]`)
+        extractedParts.push(`[${doc.document_type}: ${doc.file_name} - extraction failed: ${errText.substring(0, 200)}]`)
       }
     } catch (err) {
       console.error(`Error processing ${doc.file_name}:`, err)
@@ -230,137 +229,9 @@ Sections: ## Executive Summary, ## Location & Market, ## Property Features, ## T
   }
 }
 
-// ─── Background Processing ────────────────────────────────────────────────────
-
-async function runAnalysis(underwritingId: string, phase: number, underwriting: Record<string, unknown>) {
-  const admin = getAdminClient()
-
-  try {
-    const allPhaseData: Record<number, unknown> = {}
-    const { data: allPhaseRows } = await admin
-      .from('underwriting_phase_data')
-      .select('phase, structured_data')
-      .eq('underwriting_id', underwritingId)
-    for (const row of allPhaseRows || []) {
-      allPhaseData[row.phase] = row.structured_data
-    }
-
-    // Extract documents for phases 1 & 2
-    let documentContent = ''
-    if (phase === 1 || phase === 2) {
-      console.log(`Extracting documents for phase ${phase}...`)
-      documentContent = await extractDocumentText(underwritingId)
-      console.log(`Document extraction done. Length: ${documentContent.length}`)
-    }
-
-    const ctx = underwriting
-
-    let prompts: { system: string; user: string }
-    switch (phase) {
-      case 1: prompts = buildPhase1Prompt(ctx, documentContent); break
-      case 2: prompts = buildPhase2Prompt(ctx, allPhaseData[1], documentContent); break
-      case 3: prompts = buildPhase3Prompt(ctx, allPhaseData[1]); break
-      case 4: prompts = buildPhase4Prompt(ctx, allPhaseData[2]); break
-      case 5: prompts = buildPhase5Prompt(ctx, allPhaseData); break
-      case 6: prompts = buildPhase6Prompt(ctx, allPhaseData); break
-      case 7: prompts = buildPhase7Prompt(ctx, allPhaseData); break
-      default: throw new Error(`Invalid phase: ${phase}`)
-    }
-
-    let rawText = ''
-
-    if (phase === 1 || phase === 2) {
-      // Use Gemini for document-based phases
-      const lovableKey = Deno.env.get('LOVABLE_API_KEY')!
-      const res = await fetch('https://gateway.lovable.ai/openai/v1/chat/completions', {
-        method: 'POST',
-        headers: { 'Authorization': `Bearer ${lovableKey}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          model: 'google/gemini-2.5-pro',
-          temperature: 0.1,
-          max_tokens: 8000,
-          messages: [
-            { role: 'system', content: prompts.system },
-            { role: 'user', content: prompts.user },
-          ],
-        }),
-      })
-      if (!res.ok) throw new Error(`Gemini error: ${await res.text()}`)
-      const data = await res.json()
-      rawText = data.choices?.[0]?.message?.content || ''
-    } else {
-      // Use Perplexity for market/financial phases
-      const perplexityKey = Deno.env.get('PERPLEXITY_API_KEY')!
-      const res = await fetch('https://api.perplexity.ai/chat/completions', {
-        method: 'POST',
-        headers: { 'Authorization': `Bearer ${perplexityKey}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          model: 'sonar-pro',
-          temperature: 0.2,
-          messages: [
-            { role: 'system', content: prompts.system },
-            { role: 'user', content: prompts.user },
-          ],
-        }),
-      })
-      if (!res.ok) throw new Error(`Perplexity error: ${await res.text()}`)
-      const data = await res.json()
-      rawText = data.choices?.[0]?.message?.content || ''
-    }
-
-    // Parse JSON for phases 1-5
-    let structuredData: unknown = null
-    if (phase <= 5) {
-      try {
-        const cleaned = rawText.replace(/```json\s*/gi, '').replace(/```\s*/g, '').trim()
-        structuredData = JSON.parse(cleaned)
-      } catch {
-        const jsonMatch = rawText.match(/\{[\s\S]*\}/)
-        if (jsonMatch) {
-          try { structuredData = JSON.parse(jsonMatch[0]) }
-          catch { structuredData = { raw_text: rawText, parse_error: true } }
-        } else {
-          structuredData = { raw_text: rawText, parse_error: true }
-        }
-      }
-    } else {
-      structuredData = { text: rawText }
-    }
-
-    // Save final result
-    await admin
-      .from('underwriting_phase_data')
-      .upsert({
-        underwriting_id: underwritingId,
-        phase,
-        raw_perplexity_response: rawText,
-        structured_data: structuredData,
-      }, { onConflict: 'underwriting_id,phase' })
-
-    // Update phase_completion
-    const currentCompletion = (underwriting.phase_completion as Record<string, boolean>) || {}
-    currentCompletion[`phase_${phase}`] = true
-    await admin
-      .from('underwritings')
-      .update({ phase_completion: currentCompletion, status: 'in_progress' })
-      .eq('id', underwritingId)
-
-    console.log(`Phase ${phase} analysis complete for ${underwritingId}`)
-  } catch (err) {
-    console.error(`Phase ${phase} analysis failed:`, err)
-    // Save error state so frontend can detect failure
-    await admin
-      .from('underwriting_phase_data')
-      .upsert({
-        underwriting_id: underwritingId,
-        phase,
-        raw_perplexity_response: String(err),
-        structured_data: { analysis_error: true, error_message: String(err) },
-      }, { onConflict: 'underwriting_id,phase' })
-  }
-}
-
 // ─── Main Handler ─────────────────────────────────────────────────────────────
+// Run synchronously — no EdgeRuntime.waitUntil (causes WORKER_LIMIT).
+// The frontend AbortController timeout handles the wait.
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -408,26 +279,127 @@ serve(async (req) => {
       })
     }
 
-    // Mark phase as "analyzing" immediately so frontend can show loading state
+    // Gather existing phase data for context
+    const allPhaseData: Record<number, unknown> = {}
+    const { data: allPhaseRows } = await admin
+      .from('underwriting_phase_data')
+      .select('phase, structured_data')
+      .eq('underwriting_id', underwritingId)
+    for (const row of allPhaseRows || []) {
+      if (row.structured_data && !(row.structured_data as Record<string, unknown>).analyzing) {
+        allPhaseData[row.phase] = row.structured_data
+      }
+    }
+
+    const ctx = underwriting as Record<string, unknown>
+
+    // Extract documents for phases 1 & 2
+    let documentContent = ''
+    if (phase === 1 || phase === 2) {
+      console.log(`Extracting documents for phase ${phase}...`)
+      documentContent = await extractDocumentText(underwritingId)
+      console.log(`Document extraction complete. Content length: ${documentContent.length} chars`)
+    }
+
+    let prompts: { system: string; user: string }
+    switch (phase) {
+      case 1: prompts = buildPhase1Prompt(ctx, documentContent); break
+      case 2: prompts = buildPhase2Prompt(ctx, allPhaseData[1], documentContent); break
+      case 3: prompts = buildPhase3Prompt(ctx, allPhaseData[1]); break
+      case 4: prompts = buildPhase4Prompt(ctx, allPhaseData[2]); break
+      case 5: prompts = buildPhase5Prompt(ctx, allPhaseData); break
+      case 6: prompts = buildPhase6Prompt(ctx, allPhaseData); break
+      case 7: prompts = buildPhase7Prompt(ctx, allPhaseData); break
+      default: throw new Error(`Invalid phase: ${phase}`)
+    }
+
+    let rawText = ''
+
+    if (phase === 1 || phase === 2) {
+      // Gemini Pro for document analysis
+      const lovableKey = Deno.env.get('LOVABLE_API_KEY')!
+      const res = await fetch('https://gateway.lovable.ai/openai/v1/chat/completions', {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${lovableKey}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          model: 'google/gemini-2.5-pro',
+          temperature: 0.1,
+          max_tokens: 6000,
+          messages: [
+            { role: 'system', content: prompts.system },
+            { role: 'user', content: prompts.user },
+          ],
+        }),
+      })
+      if (!res.ok) throw new Error(`Gemini error: ${await res.text()}`)
+      const data = await res.json()
+      rawText = data.choices?.[0]?.message?.content || ''
+    } else {
+      // Perplexity for market research phases
+      const perplexityKey = Deno.env.get('PERPLEXITY_API_KEY')!
+      const res = await fetch('https://api.perplexity.ai/chat/completions', {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${perplexityKey}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          model: 'sonar-pro',
+          temperature: 0.2,
+          messages: [
+            { role: 'system', content: prompts.system },
+            { role: 'user', content: prompts.user },
+          ],
+        }),
+      })
+      if (!res.ok) throw new Error(`Perplexity error: ${await res.text()}`)
+      const data = await res.json()
+      rawText = data.choices?.[0]?.message?.content || ''
+    }
+
+    // Parse JSON for phases 1-5
+    let structuredData: unknown = null
+    if (phase <= 5) {
+      try {
+        const cleaned = rawText.replace(/```json\s*/gi, '').replace(/```\s*/g, '').trim()
+        structuredData = JSON.parse(cleaned)
+      } catch {
+        const jsonMatch = rawText.match(/\{[\s\S]*\}/)
+        if (jsonMatch) {
+          try { structuredData = JSON.parse(jsonMatch[0]) }
+          catch { structuredData = { raw_text: rawText, parse_error: true } }
+        } else {
+          structuredData = { raw_text: rawText, parse_error: true }
+        }
+      }
+    } else {
+      structuredData = { text: rawText }
+    }
+
+    // Save final result
     await admin
       .from('underwriting_phase_data')
       .upsert({
         underwriting_id: underwritingId,
         phase,
-        structured_data: { analyzing: true },
+        raw_perplexity_response: rawText,
+        structured_data: structuredData,
       }, { onConflict: 'underwriting_id,phase' })
 
-    // Kick off background processing — returns immediately
-    // @ts-ignore EdgeRuntime is available in Supabase edge runtime
-    EdgeRuntime.waitUntil(runAnalysis(underwritingId, phase, underwriting as Record<string, unknown>))
+    // Update phase_completion on parent record
+    const currentCompletion = (underwriting.phase_completion as Record<string, boolean>) || {}
+    currentCompletion[`phase_${phase}`] = true
+    await admin
+      .from('underwritings')
+      .update({ phase_completion: currentCompletion, status: 'in_progress' })
+      .eq('id', underwritingId)
+
+    console.log(`Phase ${phase} analysis complete for ${underwritingId}`)
 
     return new Response(
-      JSON.stringify({ success: true, status: 'analyzing' }),
+      JSON.stringify({ success: true, phase, structured_data: structuredData }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     )
   } catch (err) {
     console.error('Handler error:', err)
-    return new Response(JSON.stringify({ error: 'Internal server error', details: String(err) }), {
+    return new Response(JSON.stringify({ error: String(err) }), {
       status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     })
   }

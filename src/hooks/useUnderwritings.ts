@@ -232,26 +232,34 @@ export function useAnalyzePhase(underwritingId: string) {
       if (!token) throw new Error('Not authenticated')
 
       const projectId = import.meta.env.VITE_SUPABASE_PROJECT_ID
-      const res = await fetch(
-        `https://${projectId}.supabase.co/functions/v1/underwriting-perplexity`,
-        {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-          body: JSON.stringify({ underwritingId, phase }),
+      // 5 minute timeout for document-heavy phases
+      const controller = new AbortController()
+      const timeout = setTimeout(() => controller.abort(), 300_000)
+      try {
+        const res = await fetch(
+          `https://${projectId}.supabase.co/functions/v1/underwriting-perplexity`,
+          {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+            body: JSON.stringify({ underwritingId, phase }),
+            signal: controller.signal,
+          }
+        )
+
+        if (!res.ok) {
+          const err = await res.json().catch(() => ({ error: 'Unknown error' }))
+          throw new Error(err.error || 'Analysis failed')
         }
-      )
 
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({ error: 'Unknown error' }))
-        throw new Error(err.error || 'Analysis failed')
+        return res.json()
+      } finally {
+        clearTimeout(timeout)
       }
-
-      return res.json()
     },
     onSuccess: () => {
-      // Immediately refresh so the "analyzing" state appears in the UI
       queryClient.invalidateQueries({ queryKey: ['underwriting_phase_data', underwritingId] })
       queryClient.invalidateQueries({ queryKey: ['underwriting', underwritingId] })
+      queryClient.invalidateQueries({ queryKey: ['underwritings'] })
     },
     onError: (err: Error) => {
       toast({ title: 'Analysis failed', description: err.message, variant: 'destructive' })
@@ -259,33 +267,13 @@ export function useAnalyzePhase(underwritingId: string) {
   })
 }
 
-/** Poll phase data every 5 seconds while it has analyzing:true */
-export function usePollPhaseAnalysis(underwritingId: string, phase: number, isAnalyzing: boolean) {
-  const queryClient = useQueryClient()
-  const result = useQuery({
-    queryKey: ['phase_poll', underwritingId, phase],
-    queryFn: async () => {
-      const { data } = await sb()
-        .from('underwriting_phase_data')
-        .select('structured_data, updated_at')
-        .eq('underwriting_id', underwritingId)
-        .eq('phase', phase)
-        .maybeSingle()
-      return data
-    },
-    enabled: isAnalyzing,
-    refetchInterval: isAnalyzing ? 5000 : false,
+/** No-op kept for compatibility — polling no longer needed with synchronous edge function */
+export function usePollPhaseAnalysis(_underwritingId: string, _phase: number, _isAnalyzing: boolean) {
+  return useQuery({
+    queryKey: ['phase_poll_noop'],
+    queryFn: async () => null,
+    enabled: false,
   })
-
-  // When polling detects analysis is done, invalidate phase data queries
-  const sd = result.data?.structured_data as Record<string, unknown> | null
-  if (isAnalyzing && sd && !sd.analyzing) {
-    queryClient.invalidateQueries({ queryKey: ['underwriting_phase_data', underwritingId] })
-    queryClient.invalidateQueries({ queryKey: ['underwriting', underwritingId] })
-    queryClient.invalidateQueries({ queryKey: ['underwritings'] })
-  }
-
-  return result
 }
 
 export function useSavePhaseData(underwritingId: string) {
