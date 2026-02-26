@@ -69,7 +69,7 @@ async function extractDocumentText(underwritingId: string): Promise<string> {
       else if (fileName.endsWith('.docx')) mimeType = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
 
       // Use Gemini Flash for extraction (faster, less resource-heavy)
-      const geminiRes = await fetch('https://gateway.lovable.ai/openai/v1/chat/completions', {
+      const geminiRes = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${lovableKey}`,
@@ -318,7 +318,7 @@ serve(async (req) => {
     if (phase === 1 || phase === 2) {
       // Gemini Pro for document analysis
       const lovableKey = Deno.env.get('LOVABLE_API_KEY')!
-      const res = await fetch('https://gateway.lovable.ai/openai/v1/chat/completions', {
+      const res = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
         method: 'POST',
         headers: { 'Authorization': `Bearer ${lovableKey}`, 'Content-Type': 'application/json' },
         body: JSON.stringify({
