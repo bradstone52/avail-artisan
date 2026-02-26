@@ -16,12 +16,33 @@ function getAdminClient() {
 // ─── Document Extraction ───────────────────────────────────────────────────────
 // Process documents one at a time, with a hard cap per file to stay within limits
 
-async function extractDocumentText(underwritingId: string): Promise<string> {
+async function extractDocumentText(underwritingId: string, phase: number): Promise<string> {
   const admin = getAdminClient()
-  const { data: docs } = await admin
+
+  // Only pull the documents most relevant to the phase to stay within time limits
+  // Phase 1 (Tenancy): rent roll + leases (max 3 leases)
+  // Phase 2 (Financials): operating statements only
+  const relevantTypes: Record<number, string[]> = {
+    1: ['rent_roll', 'lease'],
+    2: ['operating_statement', 'rent_roll'],
+  }
+  const allowedTypes = relevantTypes[phase] || ['rent_roll']
+
+  const { data: allDocs } = await admin
     .from('underwriting_documents')
     .select('*')
     .eq('underwriting_id', underwritingId)
+
+  if (!allDocs || allDocs.length === 0) return ''
+
+  // Filter to relevant types, and for leases cap at 3 to avoid timeout
+  let docs = allDocs.filter((d: { document_type: string }) => allowedTypes.includes(d.document_type))
+  const rentRolls = docs.filter((d: { document_type: string }) => d.document_type === 'rent_roll')
+  const leases = docs.filter((d: { document_type: string }) => d.document_type === 'lease').slice(0, 3)
+  const others = docs.filter((d: { document_type: string }) => d.document_type !== 'rent_roll' && d.document_type !== 'lease')
+  docs = [...rentRolls, ...leases, ...others]
+
+  console.log(`Phase ${phase}: processing ${docs.length} of ${allDocs.length} documents (types: ${allowedTypes.join(', ')})`)
 
   if (!docs || docs.length === 0) return ''
 
@@ -297,7 +318,7 @@ serve(async (req) => {
     let documentContent = ''
     if (phase === 1 || phase === 2) {
       console.log(`Extracting documents for phase ${phase}...`)
-      documentContent = await extractDocumentText(underwritingId)
+      documentContent = await extractDocumentText(underwritingId, phase)
       console.log(`Document extraction complete. Content length: ${documentContent.length} chars`)
     }
 
