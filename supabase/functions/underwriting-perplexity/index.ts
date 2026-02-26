@@ -68,7 +68,7 @@ async function extractDocumentText(underwritingId: string): Promise<string> {
       else if (fileName.endsWith('.xls')) mimeType = 'application/vnd.ms-excel'
       else if (fileName.endsWith('.docx')) mimeType = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
 
-      // Use Gemini Flash for extraction (faster, less resource-heavy)
+      // Use Gemini Flash Lite for extraction (fastest, lowest latency)
       const geminiRes = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
         method: 'POST',
         headers: {
@@ -76,7 +76,7 @@ async function extractDocumentText(underwritingId: string): Promise<string> {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          model: 'google/gemini-2.5-flash',
+          model: 'google/gemini-2.5-flash-lite',
           temperature: 0.0,
           max_tokens: 4000,
           messages: [{
@@ -316,15 +316,15 @@ serve(async (req) => {
     let rawText = ''
 
     if (phase === 1 || phase === 2) {
-      // Gemini Pro for document analysis
+      // Gemini Flash for document analysis (fast enough for edge function limits)
       const lovableKey = Deno.env.get('LOVABLE_API_KEY')!
       const res = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
         method: 'POST',
         headers: { 'Authorization': `Bearer ${lovableKey}`, 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          model: 'google/gemini-2.5-pro',
+          model: 'google/gemini-2.5-flash',
           temperature: 0.1,
-          max_tokens: 6000,
+          max_tokens: 4000,
           messages: [
             { role: 'system', content: prompts.system },
             { role: 'user', content: prompts.user },
