@@ -3386,6 +3386,141 @@ export type Database = {
           },
         ]
       }
+      underwriting_documents: {
+        Row: {
+          created_at: string
+          document_type: string
+          file_name: string
+          id: string
+          storage_path: string
+          underwriting_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          document_type: string
+          file_name: string
+          id?: string
+          storage_path: string
+          underwriting_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          document_type?: string
+          file_name?: string
+          id?: string
+          storage_path?: string
+          underwriting_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "underwriting_documents_underwriting_id_fkey"
+            columns: ["underwriting_id"]
+            isOneToOne: false
+            referencedRelation: "underwritings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      underwriting_phase_data: {
+        Row: {
+          broker_notes: string | null
+          created_at: string
+          id: string
+          phase: number
+          raw_perplexity_response: string | null
+          structured_data: Json | null
+          underwriting_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          broker_notes?: string | null
+          created_at?: string
+          id?: string
+          phase: number
+          raw_perplexity_response?: string | null
+          structured_data?: Json | null
+          underwriting_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          broker_notes?: string | null
+          created_at?: string
+          id?: string
+          phase?: number
+          raw_perplexity_response?: string | null
+          structured_data?: Json | null
+          underwriting_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "underwriting_phase_data_underwriting_id_fkey"
+            columns: ["underwriting_id"]
+            isOneToOne: false
+            referencedRelation: "underwritings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      underwritings: {
+        Row: {
+          address: string
+          building_size_sf: number | null
+          created_at: string
+          id: string
+          land_size_ac: number | null
+          org_id: string | null
+          phase_completion: Json
+          property_name: string
+          proposed_ask_price: number | null
+          status: string
+          submarket: string
+          updated_at: string
+          user_id: string
+          year_built: number | null
+        }
+        Insert: {
+          address: string
+          building_size_sf?: number | null
+          created_at?: string
+          id?: string
+          land_size_ac?: number | null
+          org_id?: string | null
+          phase_completion?: Json
+          property_name: string
+          proposed_ask_price?: number | null
+          status?: string
+          submarket: string
+          updated_at?: string
+          user_id: string
+          year_built?: number | null
+        }
+        Update: {
+          address?: string
+          building_size_sf?: number | null
+          created_at?: string
+          id?: string
+          land_size_ac?: number | null
+          org_id?: string | null
+          phase_completion?: Json
+          property_name?: string
+          proposed_ask_price?: number | null
+          status?: string
+          submarket?: string
+          updated_at?: string
+          user_id?: string
+          year_built?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "underwritings_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "orgs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_roles: {
         Row: {
           created_at: string

@@ -25,7 +25,8 @@ import {
   Settings,
   Briefcase,
   UserSearch,
-  ContactRound
+  ContactRound,
+  Calculator
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -77,6 +78,7 @@ const navigation: NavigationEntry[] = [
   { name: 'Properties', href: '/properties', icon: Building2 },
   { name: 'Tenants', href: '/tenants', icon: UserSearch },
   { name: 'Transactions', href: '/transactions', icon: Receipt },
+  { name: 'Underwriter', href: '/underwriter', icon: Calculator },
 ];
 
 const adminNavigation = [
