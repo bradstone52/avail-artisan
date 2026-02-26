@@ -119,7 +119,7 @@ export function Phase1Tenancy({ underwritingId, phaseData, documents, isComplete
                       <td className="px-2 py-1 whitespace-nowrap font-medium">{t.lease_expiry_date}</td>
                       <td className="px-2 py-1"><Input value={t.base_rent_psf} type="number" step="0.01" onChange={e => updateTenant(idx, 'base_rent_psf', +e.target.value)} className="h-7 text-xs border-0 bg-transparent p-0 w-16 focus-visible:ring-1" /></td>
                       <td className="px-2 py-1 text-muted-foreground">${Number(t.base_rent_monthly).toLocaleString()}</td>
-                      <td className="px-2 py-1"><Badge variant="outline" className="text-[10px] px-1.5">{t.lease_type}</Badge></td>
+                      <td className="px-2 py-1"><span className="text-[10px] px-1.5 py-0.5 border border-foreground/30 rounded-sm">{t.lease_type}</span></td>
                       <td className="px-2 py-1 text-muted-foreground max-w-[120px] truncate">{t.rent_escalations}</td>
                       <td className="px-2 py-1 text-muted-foreground max-w-[100px] truncate">{t.options_to_renew}</td>
                     </tr>
