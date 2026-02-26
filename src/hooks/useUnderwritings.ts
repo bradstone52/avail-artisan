@@ -1,4 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const sb = () => (supabase as any)
 import { supabase } from '@/integrations/supabase/client'
 import { useAuth } from '@/contexts/AuthContext'
 import { useOrg } from '@/hooks/useOrg'
@@ -49,7 +51,7 @@ export function useUnderwritings() {
     queryKey: ['underwritings', orgId],
     enabled: !!orgId,
     queryFn: async () => {
-      const { data, error } = await supabase
+      const { data, error } = await sb()
         .from('underwritings')
         .select('*')
         .eq('org_id', orgId!)
@@ -65,7 +67,7 @@ export function useUnderwriting(id: string | undefined) {
     queryKey: ['underwriting', id],
     enabled: !!id,
     queryFn: async () => {
-      const { data, error } = await supabase
+      const { data, error } = await sb()
         .from('underwritings')
         .select('*')
         .eq('id', id!)
@@ -81,7 +83,7 @@ export function useUnderwritingDocuments(underwritingId: string | undefined) {
     queryKey: ['underwriting_documents', underwritingId],
     enabled: !!underwritingId,
     queryFn: async () => {
-      const { data, error } = await supabase
+      const { data, error } = await sb()
         .from('underwriting_documents')
         .select('*')
         .eq('underwriting_id', underwritingId!)
@@ -97,7 +99,7 @@ export function useUnderwritingPhaseData(underwritingId: string | undefined) {
     queryKey: ['underwriting_phase_data', underwritingId],
     enabled: !!underwritingId,
     queryFn: async () => {
-      const { data, error } = await supabase
+      const { data, error } = await sb()
         .from('underwriting_phase_data')
         .select('*')
         .eq('underwriting_id', underwritingId!)
@@ -117,7 +119,7 @@ export function useCreateUnderwriting() {
 
   return useMutation({
     mutationFn: async (values: Partial<Underwriting>) => {
-      const { data, error } = await supabase
+      const { data, error } = await sb()
         .from('underwritings')
         .insert([{
           property_name: values.property_name!,
@@ -150,7 +152,7 @@ export function useUpdateUnderwriting() {
 
   return useMutation({
     mutationFn: async ({ id, ...values }: Partial<Underwriting> & { id: string }) => {
-      const { data, error } = await supabase
+      const { data, error } = await sb()
         .from('underwritings')
         .update(values)
         .eq('id', id)
@@ -159,7 +161,7 @@ export function useUpdateUnderwriting() {
       if (error) throw error
       return data as Underwriting
     },
-    onSuccess: (data) => {
+    onSuccess: (data: Underwriting) => {
       queryClient.invalidateQueries({ queryKey: ['underwriting', data.id] })
       queryClient.invalidateQueries({ queryKey: ['underwritings'] })
       toast({ title: 'Underwriting updated' })
@@ -182,7 +184,7 @@ export function useUploadDocument(underwritingId: string) {
         .upload(path, file)
       if (uploadError) throw uploadError
 
-      const { data, error } = await supabase
+      const { data, error } = await sb()
         .from('underwriting_documents')
         .insert({
           underwriting_id: underwritingId,
@@ -210,7 +212,7 @@ export function useDeleteDocument(underwritingId: string) {
   return useMutation({
     mutationFn: async ({ id, storagePath }: { id: string; storagePath: string }) => {
       await supabase.storage.from('underwriting-docs').remove([storagePath])
-      const { error } = await supabase.from('underwriting_documents').delete().eq('id', id)
+      const { error } = await sb().from('underwriting_documents').delete().eq('id', id)
       if (error) throw error
     },
     onSuccess: () => {
@@ -273,8 +275,7 @@ export function useSavePhaseData(underwritingId: string) {
       structuredData: Record<string, unknown>
       brokerNotes?: string
     }) => {
-      // Check if record exists
-      const { data: existing } = await supabase
+      const { data: existing } = await sb()
         .from('underwriting_phase_data')
         .select('id')
         .eq('underwriting_id', underwritingId)
@@ -283,20 +284,18 @@ export function useSavePhaseData(underwritingId: string) {
 
       let result
       if (existing) {
-        const { data, error } = await supabase
+        const { data, error } = await sb()
           .from('underwriting_phase_data')
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          .update({ structured_data: structuredData as any, broker_notes: brokerNotes })
+          .update({ structured_data: structuredData, broker_notes: brokerNotes })
           .eq('id', existing.id)
           .select()
           .single()
         if (error) throw error
         result = data
       } else {
-        const { data, error } = await supabase
+        const { data, error } = await sb()
           .from('underwriting_phase_data')
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          .insert([{ underwriting_id: underwritingId, phase, structured_data: structuredData as any, broker_notes: brokerNotes }])
+          .insert([{ underwriting_id: underwritingId, phase, structured_data: structuredData, broker_notes: brokerNotes }])
           .select()
           .single()
         if (error) throw error
