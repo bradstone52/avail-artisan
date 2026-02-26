@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { PhaseCard } from '../PhaseCard'
-import { UnderwritingPhaseData, useAnalyzePhase, useSavePhaseData } from '@/hooks/useUnderwritings'
+import { UnderwritingPhaseData, useAnalyzePhase, useSavePhaseData, usePollPhaseAnalysis } from '@/hooks/useUnderwritings'
 import { cn } from '@/lib/utils'
 
 interface Props {
@@ -42,6 +42,9 @@ export function Phase2Financials({ underwritingId, phaseData, isComplete }: Prop
   const analyze = useAnalyzePhase(underwritingId)
   const save = useSavePhaseData(underwritingId)
   const sd = phaseData?.structured_data as Record<string, unknown> | null
+  const isBackgroundAnalyzing = !!(sd?.analyzing)
+
+  usePollPhaseAnalysis(underwritingId, 2, isBackgroundAnalyzing)
 
   const [year1, setYear1] = useState<IncomeStatement>((sd?.income_statements as Record<string, IncomeStatement>)?.year1 || blankIS())
   const [year2, setYear2] = useState<IncomeStatement>((sd?.income_statements as Record<string, IncomeStatement>)?.year2 || blankIS())
@@ -73,16 +76,11 @@ export function Phase2Financials({ underwritingId, phaseData, isComplete }: Prop
     <PhaseCard
       phaseNumber={2}
       title="Income & Expenses"
-      description="Two-year income statement with NOI analysis and due-diligence questions."
+      description="Build a 2-year income statement and calculate NOI from operating statements."
       isComplete={isComplete}
       isAnalyzing={analyze.isPending}
+      isBackgroundAnalyzing={isBackgroundAnalyzing}
       onAnalyze={() => analyze.mutate(2)}
-      actions={hasData && (
-        <Button size="sm" onClick={handleSave} disabled={save.isPending}
-          className="border-2 border-foreground shadow-[2px_2px_0_hsl(var(--foreground))]">
-          {save.isPending ? 'Saving…' : 'Save Changes'}
-        </Button>
-      )}
     >
       {hasData && (
         <div className="space-y-6">
