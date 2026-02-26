@@ -232,24 +232,33 @@ export function useAnalyzePhase(underwritingId: string) {
       if (!token) throw new Error('Not authenticated')
 
       const projectId = import.meta.env.VITE_SUPABASE_PROJECT_ID
-      const res = await fetch(
-        `https://${projectId}.supabase.co/functions/v1/underwriting-perplexity`,
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${token}`,
-          },
-          body: JSON.stringify({ underwritingId, phase }),
+      // Use AbortController with 5-minute timeout for document extraction phases
+      const controller = new AbortController()
+      const timeout = setTimeout(() => controller.abort(), 300_000)
+
+      try {
+        const res = await fetch(
+          `https://${projectId}.supabase.co/functions/v1/underwriting-perplexity`,
+          {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              Authorization: `Bearer ${token}`,
+            },
+            body: JSON.stringify({ underwritingId, phase }),
+            signal: controller.signal,
+          }
+        )
+
+        if (!res.ok) {
+          const err = await res.json().catch(() => ({ error: 'Unknown error' }))
+          throw new Error(err.error || 'Analysis failed')
         }
-      )
 
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({ error: 'Unknown error' }))
-        throw new Error(err.error || 'Analysis failed')
+        return res.json()
+      } finally {
+        clearTimeout(timeout)
       }
-
-      return res.json()
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['underwriting_phase_data', underwritingId] })
