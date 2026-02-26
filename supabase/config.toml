@@ -56,3 +56,6 @@ verify_jwt = false
 
 [functions.rocketreach-lookup]
 verify_jwt = false
+
+[functions.underwriting-perplexity]
+verify_jwt = false
