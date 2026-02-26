@@ -170,7 +170,7 @@ export function AppLayout({ children }: AppLayoutProps) {
           </div>
 
           {/* Navigation */}
-          <nav className="flex-1 px-3 py-4 space-y-2 overflow-y-auto scrollbar-thin">
+          <nav className="flex-1 min-h-0 px-3 py-4 space-y-2 overflow-y-auto">
             {navigation.map((entry) => {
               if (isNavGroup(entry)) {
                 // Render collapsible group
