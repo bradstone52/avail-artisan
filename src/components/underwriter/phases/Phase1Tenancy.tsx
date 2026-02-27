@@ -103,7 +103,7 @@ export function Phase1Tenancy({ underwritingId, phaseData, documents, isComplete
               <table className="w-full text-xs">
                 <thead>
                   <tr className="bg-muted border-b-2 border-foreground">
-                    {['Tenant', 'Unit', 'SF', 'Start', 'Expiry', '$/SF', '$/mo', 'Type', 'Escalations', 'Options'].map(h => (
+                     {['Tenant', 'Unit', 'SF', 'Start', 'Expiry', '$/SF/yr', '$/mo', 'Type', 'Escalations', 'Options'].map(h => (
                       <th key={h} className="px-2 py-2 text-left font-black uppercase whitespace-nowrap">{h}</th>
                     ))}
                   </tr>
@@ -111,16 +111,24 @@ export function Phase1Tenancy({ underwritingId, phaseData, documents, isComplete
                 <tbody>
                   {tenants.map((t, idx) => (
                     <tr key={idx} className="border-b border-foreground/10 hover:bg-muted/20">
-                      <td className="px-2 py-1"><Input value={t.tenant_name} onChange={e => updateTenant(idx, 'tenant_name', e.target.value)} className="h-7 text-xs border-0 bg-transparent p-0 focus-visible:ring-1" /></td>
-                      <td className="px-2 py-1"><Input value={t.unit} onChange={e => updateTenant(idx, 'unit', e.target.value)} className="h-7 text-xs border-0 bg-transparent p-0 w-16 focus-visible:ring-1" /></td>
-                      <td className="px-2 py-1"><Input value={t.square_feet} type="number" onChange={e => updateTenant(idx, 'square_feet', +e.target.value)} className="h-7 text-xs border-0 bg-transparent p-0 w-20 focus-visible:ring-1" /></td>
-                      <td className="px-2 py-1 whitespace-nowrap text-muted-foreground">{t.lease_start_date}</td>
-                      <td className="px-2 py-1 whitespace-nowrap font-medium">{t.lease_expiry_date}</td>
-                      <td className="px-2 py-1"><Input value={t.base_rent_psf} type="number" step="0.01" onChange={e => updateTenant(idx, 'base_rent_psf', +e.target.value)} className="h-7 text-xs border-0 bg-transparent p-0 w-16 focus-visible:ring-1" /></td>
-                      <td className="px-2 py-1 text-muted-foreground">${Number(t.base_rent_monthly).toLocaleString()}</td>
-                      <td className="px-2 py-1"><span className="text-[10px] px-1.5 py-0.5 border border-foreground/30 rounded-sm">{t.lease_type}</span></td>
-                      <td className="px-2 py-1 text-muted-foreground max-w-[120px] truncate">{t.rent_escalations}</td>
-                      <td className="px-2 py-1 text-muted-foreground max-w-[100px] truncate">{t.options_to_renew}</td>
+                      <td className="px-2 py-1.5 min-w-[130px]"><Input value={t.tenant_name} onChange={e => updateTenant(idx, 'tenant_name', e.target.value)} className="h-7 text-xs border-0 bg-transparent p-0 focus-visible:ring-1" /></td>
+                      <td className="px-2 py-1.5 whitespace-nowrap"><Input value={t.unit} onChange={e => updateTenant(idx, 'unit', e.target.value)} className="h-7 text-xs border-0 bg-transparent p-0 w-20 focus-visible:ring-1" /></td>
+                      <td className="px-2 py-1.5 text-right"><Input value={t.square_feet} type="number" onChange={e => updateTenant(idx, 'square_feet', +e.target.value)} className="h-7 text-xs border-0 bg-transparent p-0 w-20 text-right focus-visible:ring-1" /></td>
+                      <td className="px-2 py-1.5 whitespace-nowrap text-muted-foreground text-xs">{t.lease_start_date}</td>
+                      <td className="px-2 py-1.5 whitespace-nowrap font-semibold text-xs">{t.lease_expiry_date}</td>
+                      <td className="px-2 py-1.5 text-right font-medium">
+                        <Input
+                          value={t.base_rent_psf}
+                          type="number"
+                          step="0.01"
+                          onChange={e => updateTenant(idx, 'base_rent_psf', +e.target.value)}
+                          className="h-7 text-xs border-0 bg-transparent p-0 w-16 text-right focus-visible:ring-1"
+                        />
+                      </td>
+                      <td className="px-2 py-1.5 text-right text-muted-foreground text-xs whitespace-nowrap">${Number(t.base_rent_monthly).toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</td>
+                      <td className="px-2 py-1.5 whitespace-nowrap"><span className="text-[10px] px-1.5 py-0.5 border border-foreground/30 rounded-sm leading-none">{t.lease_type}</span></td>
+                      <td className="px-2 py-1.5 text-muted-foreground text-xs max-w-[140px]"><div className="truncate">{t.rent_escalations || '—'}</div></td>
+                      <td className="px-2 py-1.5 text-muted-foreground text-xs max-w-[110px]"><div className="truncate">{t.options_to_renew || '—'}</div></td>
                     </tr>
                   ))}
                 </tbody>
