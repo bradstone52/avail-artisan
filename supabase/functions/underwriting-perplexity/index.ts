@@ -145,7 +145,7 @@ ${hasDocuments ? `UPLOADED DOCUMENTS:\n${documentContent}\n\nExtract ALL tenant 
 
 Return ONLY a JSON object (no markdown, no commentary):
 {"tenants_table":[{"tenant_name":"","unit":"","square_feet":0,"lease_start_date":"","lease_expiry_date":"","base_rent_psf":0,"base_rent_monthly":0,"lease_type":"NNN","rent_escalations":"","options_to_renew":"","notable_clauses":""}],"summary_metrics":{"total_occupied_sf":0,"total_vacant_sf":0,"occupancy_rate":0,"vacancy_rate":0,"walt_years":0},"rollover_schedule":[{"year":2025,"sf_expiring":0,"pct_building":0}],"red_flags":[""]}
-All numbers are plain numbers. Occupancy/vacancy as percentages (e.g. 95.2). WALT in decimal years.`,
+All numbers are plain numbers. Occupancy/vacancy as percentages (e.g. 95.2). WALT in decimal years. CRITICAL: base_rent_psf MUST be the ANNUAL rate ($/SF/year), NOT monthly. base_rent_monthly is the monthly dollar amount. Example: $10/SF/yr annual rate with 3,000 SF = base_rent_psf:10, base_rent_monthly:2500.`,
   }
 }
 
