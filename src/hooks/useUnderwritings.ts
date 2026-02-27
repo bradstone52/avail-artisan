@@ -256,10 +256,36 @@ export function useAnalyzePhase(underwritingId: string) {
         clearTimeout(timeout)
       }
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
+      // Immediately update the cache with the returned structured data so the UI
+      // re-renders without waiting for a round-trip refetch
+      if (data?.phase && data?.structured_data) {
+        queryClient.setQueryData(
+          ['underwriting_phase_data', underwritingId],
+          (old: UnderwritingPhaseData[] | undefined) => {
+            const existing = old || []
+            const idx = existing.findIndex(r => r.phase === data.phase)
+            const updated: UnderwritingPhaseData = {
+              id: existing[idx]?.id ?? '',
+              underwriting_id: underwritingId,
+              phase: data.phase,
+              raw_perplexity_response: null,
+              structured_data: data.structured_data,
+              broker_notes: existing[idx]?.broker_notes ?? null,
+              created_at: existing[idx]?.created_at ?? new Date().toISOString(),
+              updated_at: new Date().toISOString(),
+            }
+            if (idx >= 0) {
+              return existing.map((r, i) => i === idx ? updated : r)
+            }
+            return [...existing, updated]
+          }
+        )
+      }
       queryClient.invalidateQueries({ queryKey: ['underwriting_phase_data', underwritingId] })
       queryClient.invalidateQueries({ queryKey: ['underwriting', underwritingId] })
       queryClient.invalidateQueries({ queryKey: ['underwritings'] })
+      toast({ title: 'Analysis complete', description: `Phase ${data?.phase} results are ready.` })
     },
     onError: (err: Error) => {
       toast({ title: 'Analysis failed', description: err.message, variant: 'destructive' })
