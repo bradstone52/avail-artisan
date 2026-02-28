@@ -50,12 +50,21 @@ export default defineConfig(({ mode }) => ({
       },
       workbox: {
         maximumFileSizeToCacheInBytes: 5 * 1024 * 1024, // 5 MB limit
-        globPatterns: ["**/*.{js,css,html,ico,png,svg,woff,woff2}"],
+        globPatterns: ["**/*.{ico,png,svg,woff,woff2}"], // Only cache static assets, NOT JS/CSS/HTML
         skipWaiting: true,
         clientsClaim: true,
         cleanupOutdatedCaches: true,
         navigateFallback: "index.html",
         runtimeCaching: [
+          {
+            // Always fetch fresh JS/CSS/HTML — never serve stale app bundles
+            urlPattern: /\.(?:js|css|html)$/i,
+            handler: "NetworkFirst",
+            options: {
+              cacheName: "app-shell",
+              networkTimeoutSeconds: 10,
+            },
+          },
           {
             // Never cache Supabase API calls - always go to network
             urlPattern: /^https:\/\/.*\.supabase\.co\/.*/i,
