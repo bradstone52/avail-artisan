@@ -113,17 +113,11 @@ export function Phase1Tenancy({ underwritingId, phaseData, documents, isComplete
                     <tr key={idx} className="border-b border-foreground/10 hover:bg-muted/20">
                       <td className="px-2 py-1.5 min-w-[130px]"><Input value={t.tenant_name} onChange={e => updateTenant(idx, 'tenant_name', e.target.value)} className="h-7 text-xs border-0 bg-transparent p-0 focus-visible:ring-1" /></td>
                       <td className="px-2 py-1.5 whitespace-nowrap"><Input value={t.unit} onChange={e => updateTenant(idx, 'unit', e.target.value)} className="h-7 text-xs border-0 bg-transparent p-0 w-20 focus-visible:ring-1" /></td>
-                      <td className="px-2 py-1.5 text-right"><Input value={t.square_feet} type="number" onChange={e => updateTenant(idx, 'square_feet', +e.target.value)} className="h-7 text-xs border-0 bg-transparent p-0 w-20 text-right focus-visible:ring-1" /></td>
+                       <td className="px-2 py-1.5 text-right font-medium text-xs whitespace-nowrap">{Number(t.square_feet).toLocaleString()}</td>
                       <td className="px-2 py-1.5 whitespace-nowrap text-muted-foreground text-xs">{t.lease_start_date}</td>
                       <td className="px-2 py-1.5 whitespace-nowrap font-semibold text-xs">{t.lease_expiry_date}</td>
-                      <td className="px-2 py-1.5 text-right font-medium">
-                        <Input
-                          value={t.base_rent_psf}
-                          type="number"
-                          step="0.01"
-                          onChange={e => updateTenant(idx, 'base_rent_psf', +e.target.value)}
-                          className="h-7 text-xs border-0 bg-transparent p-0 w-16 text-right focus-visible:ring-1"
-                        />
+                      <td className="px-2 py-1.5 text-right font-medium text-xs whitespace-nowrap">
+                        ${Number(t.base_rent_psf).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                       </td>
                       <td className="px-2 py-1.5 text-right text-muted-foreground text-xs whitespace-nowrap">${Number(t.base_rent_monthly).toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</td>
                       <td className="px-2 py-1.5 whitespace-nowrap"><span className="text-[10px] px-1.5 py-0.5 border border-foreground/30 rounded-sm leading-none">{t.lease_type}</span></td>
