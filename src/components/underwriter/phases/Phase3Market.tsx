@@ -81,23 +81,29 @@ export function Phase3Market({ underwritingId, phaseData, isComplete }: Props) {
               <h4 className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-2">Rent Comparison</h4>
               <div className="border-2 border-foreground overflow-hidden">
                 <table className="w-full text-sm">
-                  <thead>
+                   <colgroup>
+                      <col className="w-auto" />
+                      <col className="w-32" />
+                      <col className="w-32" />
+                      <col className="w-36" />
+                    </colgroup>
+                    <thead>
                     <tr className="bg-muted border-b-2 border-foreground">
                       <th className="px-3 py-2 text-left font-black uppercase text-xs">Tenant</th>
-                      <th className="px-3 py-2 text-right font-black uppercase text-xs">In-Place $/SF</th>
-                      <th className="px-3 py-2 text-right font-black uppercase text-xs">Market $/SF</th>
+                      <th className="px-3 py-2 text-right font-black uppercase text-xs whitespace-nowrap">In-Place $/SF</th>
+                      <th className="px-3 py-2 text-right font-black uppercase text-xs whitespace-nowrap">Market $/SF</th>
                       <th className="px-3 py-2 text-center font-black uppercase text-xs">Position</th>
                     </tr>
                   </thead>
                   <tbody>
                     {tenantComparison.map((t, i) => (
                       <tr key={i} className="border-b border-foreground/10">
-                        <td className="px-3 py-2 font-medium">{t.tenant_name}</td>
-                        <td className="px-3 py-2 text-right">${Number(t.in_place_psf).toFixed(2)}</td>
-                        <td className="px-3 py-2 text-right">${Number(t.market_psf).toFixed(2)}</td>
+                        <td className="px-3 py-2 font-medium text-sm break-words">{t.tenant_name}</td>
+                        <td className="px-3 py-2 text-right text-sm tabular-nums whitespace-nowrap">${Number(t.in_place_psf).toFixed(2)}</td>
+                        <td className="px-3 py-2 text-right text-sm tabular-nums whitespace-nowrap">${Number(t.market_psf).toFixed(2)}</td>
                         <td className="px-3 py-2 text-center">
-                          <Badge className={cn('text-[10px] border', POSITION_COLORS[t.position] || POSITION_COLORS.at_market)}>
-                            {t.position?.replace('_', ' ')}
+                          <Badge className={cn('text-[10px] border whitespace-nowrap', POSITION_COLORS[t.position] || POSITION_COLORS.at_market)}>
+                            {t.position?.replace(/_/g, ' ').toUpperCase()}
                           </Badge>
                         </td>
                       </tr>
