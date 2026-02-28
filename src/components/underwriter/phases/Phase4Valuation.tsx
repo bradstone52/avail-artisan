@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Slider } from '@/components/ui/slider'
 import { Lock, Unlock } from 'lucide-react'
@@ -24,6 +23,10 @@ export function Phase4Valuation({ underwritingId, phaseData, isComplete, current
 
   const [currentNOIInput, setCurrentNOIInput] = useState(currentNOI || 0)
   const [stabilizedNOI, setStabilizedNOI] = useState(0)
+  const [editingNOI, setEditingNOI] = useState<'current' | 'stabilized' | null>(null)
+  const [rawNOI, setRawNOI] = useState('')
+
+  const fmtCurrency = (v: number) => '$' + Number(v || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })
   const [capRange, setCapRange] = useState([5.0, 7.5])
   const [table, setTable] = useState<ValRow[]>((sd?.valuation_table as ValRow[]) || [])
   const [capBand, setCapBand] = useState<{ low: number; high: number; rationale: string } | null>(
@@ -63,13 +66,33 @@ export function Phase4Valuation({ underwritingId, phaseData, isComplete, current
         <div className="space-y-4">
           <div className="space-y-1">
             <Label className="text-xs font-bold uppercase">Current NOI ($)</Label>
-            <Input type="number" value={currentNOIInput} onChange={e => setCurrentNOIInput(+e.target.value)}
-              className="border-2 border-foreground" placeholder="e.g. 450000" />
+            {editingNOI === 'current' ? (
+              <input autoFocus type="number" value={rawNOI}
+                onChange={e => setRawNOI(e.target.value)}
+                onBlur={() => { setCurrentNOIInput(parseFloat(rawNOI) || 0); setEditingNOI(null) }}
+                onKeyDown={e => { if (e.key === 'Enter') { setCurrentNOIInput(parseFloat(rawNOI) || 0); setEditingNOI(null) } }}
+                className="w-full border-2 border-foreground rounded px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary bg-background" />
+            ) : (
+              <div onClick={() => { setRawNOI(String(currentNOIInput || '')); setEditingNOI('current') }}
+                className="w-full border-2 border-foreground rounded px-3 py-2 text-sm cursor-text hover:border-primary/60 bg-background tabular-nums">
+                {fmtCurrency(currentNOIInput)}
+              </div>
+            )}
           </div>
           <div className="space-y-1">
             <Label className="text-xs font-bold uppercase">Stabilized NOI ($)</Label>
-            <Input type="number" value={stabilizedNOI} onChange={e => setStabilizedNOI(+e.target.value)}
-              className="border-2 border-foreground" placeholder="e.g. 520000" />
+            {editingNOI === 'stabilized' ? (
+              <input autoFocus type="number" value={rawNOI}
+                onChange={e => setRawNOI(e.target.value)}
+                onBlur={() => { setStabilizedNOI(parseFloat(rawNOI) || 0); setEditingNOI(null) }}
+                onKeyDown={e => { if (e.key === 'Enter') { setStabilizedNOI(parseFloat(rawNOI) || 0); setEditingNOI(null) } }}
+                className="w-full border-2 border-foreground rounded px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary bg-background" />
+            ) : (
+              <div onClick={() => { setRawNOI(String(stabilizedNOI || '')); setEditingNOI('stabilized') }}
+                className="w-full border-2 border-foreground rounded px-3 py-2 text-sm cursor-text hover:border-primary/60 bg-background tabular-nums">
+                {fmtCurrency(stabilizedNOI)}
+              </div>
+            )}
           </div>
         </div>
 
