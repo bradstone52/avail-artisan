@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
 import { PhaseCard } from '../PhaseCard'
 import { UnderwritingPhaseData, useAnalyzePhase, useSavePhaseData } from '@/hooks/useUnderwritings'
 import { cn } from '@/lib/utils'
@@ -18,18 +17,18 @@ type IncomeStatement = {
   total_operating_expenses: number; net_operating_income: number
 }
 
-const ROWS: { key: keyof IncomeStatement; label: string; isNOI?: boolean; isSubtotal?: boolean }[] = [
+const ROWS: { key: keyof IncomeStatement; label: string; isNOI?: boolean; isSubtotal?: boolean; readOnly?: boolean }[] = [
   { key: 'gross_potential_income', label: 'Gross Potential Income' },
   { key: 'vacancy_credit_loss', label: 'Vacancy & Credit Loss' },
-  { key: 'effective_gross_income', label: 'Effective Gross Income', isSubtotal: true },
+  { key: 'effective_gross_income', label: 'Effective Gross Income', isSubtotal: true, readOnly: true },
   { key: 'property_taxes', label: 'Property Taxes' },
   { key: 'insurance', label: 'Insurance' },
   { key: 'management_fee', label: 'Management Fee' },
   { key: 'maintenance_repairs', label: 'Maintenance & Repairs' },
   { key: 'utilities', label: 'Utilities' },
   { key: 'other_opex', label: 'Other OpEx' },
-  { key: 'total_operating_expenses', label: 'Total Operating Expenses', isSubtotal: true },
-  { key: 'net_operating_income', label: 'Net Operating Income (NOI)', isNOI: true },
+  { key: 'total_operating_expenses', label: 'Total Operating Expenses', isSubtotal: true, readOnly: true },
+  { key: 'net_operating_income', label: 'Net Operating Income (NOI)', isNOI: true, readOnly: true },
 ]
 
 const blankIS = (): IncomeStatement => ({
@@ -37,6 +36,36 @@ const blankIS = (): IncomeStatement => ({
   property_taxes: 0, insurance: 0, management_fee: 0, maintenance_repairs: 0,
   utilities: 0, other_opex: 0, total_operating_expenses: 0, net_operating_income: 0,
 })
+
+const fmt = (val: number) =>
+  '$' + Number(val || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+
+/** Editable cell: shows formatted value, switches to plain number input on focus */
+function CurrencyCell({ value, onChange, bold }: { value: number; onChange: (v: number) => void; bold?: boolean }) {
+  const [editing, setEditing] = useState(false)
+  const [raw, setRaw] = useState(String(value || ''))
+
+  useEffect(() => { if (!editing) setRaw(String(value || '')) }, [value, editing])
+
+  return editing ? (
+    <input
+      autoFocus
+      type="number"
+      value={raw}
+      onChange={e => setRaw(e.target.value)}
+      onBlur={() => { onChange(parseFloat(raw) || 0); setEditing(false) }}
+      onKeyDown={e => { if (e.key === 'Enter') { onChange(parseFloat(raw) || 0); setEditing(false) } }}
+      className={cn("h-7 text-xs text-right border border-foreground/30 rounded px-2 w-full bg-background focus:outline-none focus:ring-1 focus:ring-primary", bold && "font-bold")}
+    />
+  ) : (
+    <div
+      onClick={() => setEditing(true)}
+      className={cn("h-7 text-xs text-right px-2 py-1 border border-foreground/20 rounded cursor-text hover:border-foreground/50 bg-background w-full", bold && "font-bold")}
+    >
+      {fmt(value)}
+    </div>
+  )
+}
 
 export function Phase2Financials({ underwritingId, phaseData, isComplete }: Props) {
   const analyze = useAnalyzePhase(underwritingId)
@@ -77,41 +106,49 @@ export function Phase2Financials({ underwritingId, phaseData, isComplete }: Prop
       isComplete={isComplete}
       isAnalyzing={analyze.isPending}
       onAnalyze={() => analyze.mutate(2)}
+      actions={hasData && (
+        <Button size="sm" onClick={handleSave} disabled={save.isPending}
+          className="border-2 border-foreground shadow-[2px_2px_0_hsl(var(--foreground))]">
+          {save.isPending ? 'Saving…' : 'Save Changes'}
+        </Button>
+      )}
     >
       {hasData && (
         <div className="space-y-6">
-          <div className="overflow-x-auto border-2 border-foreground">
+          <div className="border-2 border-foreground overflow-hidden">
             <table className="w-full text-sm">
               <thead>
                 <tr className="bg-muted border-b-2 border-foreground">
-                  <th className="px-3 py-2 text-left font-black uppercase text-xs">Line Item</th>
-                  <th className="px-3 py-2 text-right font-black uppercase text-xs">Year 1 ($)</th>
-                  <th className="px-3 py-2 text-right font-black uppercase text-xs">Year 2 ($)</th>
+                  <th className="px-4 py-2 text-left font-black uppercase text-xs w-1/2">Line Item</th>
+                  <th className="px-4 py-2 text-right font-black uppercase text-xs w-1/4">Year 1 ($)</th>
+                  <th className="px-4 py-2 text-right font-black uppercase text-xs w-1/4">Year 2 ($)</th>
                 </tr>
               </thead>
               <tbody>
-                {ROWS.map(({ key, label, isNOI, isSubtotal }) => (
+                {ROWS.map(({ key, label, isNOI, isSubtotal, readOnly }) => (
                   <tr key={key} className={cn(
                     "border-b border-foreground/10",
                     isNOI && "bg-primary/10 border-t-2 border-primary/30",
-                    isSubtotal && "bg-muted/50"
+                    isSubtotal && !isNOI && "bg-muted/50"
                   )}>
-                    <td className={cn("px-3 py-1.5 text-xs", (isNOI || isSubtotal) && "font-bold")}>{label}</td>
-                    <td className="px-3 py-1 text-right">
-                      <Input
-                        value={year1[key] || ''}
-                        type="number"
-                        onChange={e => updateIS('year1', key, +e.target.value)}
-                        className={cn("h-7 text-xs text-right border-foreground/20 w-28 ml-auto", isNOI && "font-bold")}
-                      />
+                    <td className={cn("px-4 py-2 text-xs", (isNOI || isSubtotal) && "font-bold")}>{label}</td>
+                    <td className="px-3 py-1.5 text-right">
+                      {readOnly ? (
+                        <div className={cn("text-xs text-right px-2 py-1 tabular-nums", (isNOI || isSubtotal) && "font-bold")}>
+                          {fmt(year1[key])}
+                        </div>
+                      ) : (
+                        <CurrencyCell value={year1[key]} onChange={v => updateIS('year1', key, v)} />
+                      )}
                     </td>
-                    <td className="px-3 py-1 text-right">
-                      <Input
-                        value={year2[key] || ''}
-                        type="number"
-                        onChange={e => updateIS('year2', key, +e.target.value)}
-                        className={cn("h-7 text-xs text-right border-foreground/20 w-28 ml-auto", isNOI && "font-bold")}
-                      />
+                    <td className="px-3 py-1.5 text-right">
+                      {readOnly ? (
+                        <div className={cn("text-xs text-right px-2 py-1 tabular-nums", (isNOI || isSubtotal) && "font-bold")}>
+                          {fmt(year2[key])}
+                        </div>
+                      ) : (
+                        <CurrencyCell value={year2[key]} onChange={v => updateIS('year2', key, v)} />
+                      )}
                     </td>
                   </tr>
                 ))}
