@@ -50,6 +50,11 @@ npm run dev
 - Click on "New codespace" to launch a new Codespace environment.
 - Edit files directly within the Codespace and commit and push your changes once you're done.
 
+## Package manager
+
+This project uses **npm**. Use `npm install`, `npm run dev`, and `npm run build`.
+Do not commit `bun.lockb` — it is listed in `.gitignore`.
+
 ## What technologies are used for this project?
 
 This project is built with:

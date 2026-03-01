@@ -8,32 +8,32 @@ import "./index.css";
 
 // Reset service workers and caches only in dev or when ?resetSW=1 is present.
 // Production loads do NOT wipe caches by default.
-const shouldReset =
-  import.meta.env.DEV ||
-  new URLSearchParams(window.location.search).get('resetSW') === '1';
+// Wrapped in an IIFE to avoid top-level await (unsupported in ES2020 target).
+(async () => {
+  const shouldReset =
+    import.meta.env.DEV ||
+    new URLSearchParams(window.location.search).get('resetSW') === '1';
 
-if (shouldReset) {
-  await (async () => {
-    try {
-      if ('caches' in window) {
-        const names = await caches.keys();
-        await Promise.all(names.map(n => caches.delete(n)));
-      }
-      if ('serviceWorker' in navigator) {
-        const regs = await navigator.serviceWorker.getRegistrations();
-        const hadActive = regs.some(r => !!r.active);
-        await Promise.all(regs.map(r => r.unregister()));
-        if (hadActive) {
-          // Reload once to pick up fresh assets; the param will be absent
-          // on the reloaded page so we won't loop.
-          window.location.reload();
-          return;
-        }
-      }
-    } catch {
-      // Silently ignore cache/SW errors
+  if (!shouldReset) return;
+
+  try {
+    if ('caches' in window) {
+      const names = await caches.keys();
+      await Promise.all(names.map(n => caches.delete(n)));
     }
-  })();
-}
+    if ('serviceWorker' in navigator) {
+      const regs = await navigator.serviceWorker.getRegistrations();
+      const hadActive = regs.some(r => !!r.active);
+      await Promise.all(regs.map(r => r.unregister()));
+      if (hadActive) {
+        // Reload once; resetSW param won't be present after reload so no loop.
+        window.location.reload();
+        return;
+      }
+    }
+  } catch {
+    // Silently ignore cache/SW errors
+  }
+})();
 
 createRoot(document.getElementById("root")!).render(<App />);
