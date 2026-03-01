@@ -15,8 +15,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { differenceInCalendarDays, format } from 'date-fns';
 import { cn } from '@/lib/utils';
+import { getTodayEdmonton, parseDateOnlyLocal, formatDueLabel } from '@/lib/dates';
 import type { DealImportantDate } from '@/hooks/useAllDealImportantDates';
 import type { Prospect } from '@/types/prospect';
 
@@ -51,41 +51,8 @@ const TYPE_LABEL: Record<ActionItem['type'], string> = {
 };
 
 /**
- * Get "today" in America/Edmonton timezone as a plain Date at midnight local.
- * This prevents UTC-boundary off-by-one errors for Mountain Time users.
+ * Remove local helpers — now provided by @/lib/dates.
  */
-function getTodayEdmonton(): Date {
-  const edmontonStr = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Edmonton' });
-  // edmontonStr is "YYYY-MM-DD"; parse as local date at midnight
-  const [y, m, d] = edmontonStr.split('-').map(Number);
-  return new Date(y, m - 1, d);
-}
-
-/**
- * Parse a date-only string "YYYY-MM-DD" as a local date (no timezone shift).
- */
-function parseLocalDate(dateStr: string): Date {
-  const [y, m, d] = dateStr.split('-').map(Number);
-  return new Date(y, m - 1, d);
-}
-
-/**
- * Produce a human-readable date label.
- * - Overdue: "Overdue by X days" (or "Overdue by 1 day")
- * - Today:  "Due today"
- * - Tomorrow: "Due tomorrow"
- * - Otherwise: "MMM d, yyyy"
- */
-function dateLabel(itemDate: Date, today: Date): { text: string; isOverdue: boolean } {
-  const diff = differenceInCalendarDays(itemDate, today);
-  if (diff < 0) {
-    const absDiff = Math.abs(diff);
-    return { text: `Overdue by ${absDiff} day${absDiff === 1 ? '' : 's'}`, isOverdue: true };
-  }
-  if (diff === 0) return { text: 'Due today', isOverdue: false };
-  if (diff === 1) return { text: 'Due tomorrow', isOverdue: false };
-  return { text: format(itemDate, 'MMM d, yyyy'), isOverdue: false };
-}
 
 interface CRENextActionsPanelProps {
   prospects: Prospect[] | undefined;
@@ -111,7 +78,7 @@ export function CRENextActionsPanel({ prospects, dealDates, isLoading }: CRENext
     if (sourceFilter !== 'deal-dates') {
       prospects?.forEach((p) => {
         if (!p.follow_up_date || p.status === 'Closed' || p.status === 'Lost') return;
-        const d = parseLocalDate(p.follow_up_date);
+        const d = parseDateOnlyLocal(p.follow_up_date);
         const isOverdue = d < today;
         const inWindow7 = !isOverdue && d < end7;
         const inWindow30 = !isOverdue && d < end30;
@@ -138,7 +105,7 @@ export function CRENextActionsPanel({ prospects, dealDates, isLoading }: CRENext
     // --- Deal important dates ---
     if (sourceFilter !== 'follow-ups') {
       dealDates.forEach((dd) => {
-        const d = parseLocalDate(dd.date);
+        const d = parseDateOnlyLocal(dd.date);
         const isOverdue = d < today;
         const inWindow7 = !isOverdue && d < end7;
         const inWindow30 = !isOverdue && d < end30;
@@ -179,7 +146,7 @@ export function CRENextActionsPanel({ prospects, dealDates, isLoading }: CRENext
     let oc = 0, n7 = 0, n30 = 0;
 
     const countDate = (dateStr: string) => {
-      const d = parseLocalDate(dateStr);
+      const d = parseDateOnlyLocal(dateStr);
       if (d < today) oc++;
       else if (d < end7) n7++;
       else if (d < end30) n30++;
@@ -277,7 +244,7 @@ export function CRENextActionsPanel({ prospects, dealDates, isLoading }: CRENext
         ) : (
           <ul className="divide-y divide-border">
             {items.map((item) => {
-              const label = dateLabel(item.date, today);
+              const label = formatDueLabel(item.dateStr);
               return (
                 <li
                   key={item.id}
