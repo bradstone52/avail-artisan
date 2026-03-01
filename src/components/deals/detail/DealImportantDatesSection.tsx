@@ -7,6 +7,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Calendar, AlertCircle, Plus, Trash2, Check, CalendarPlus, Pencil } from 'lucide-react';
 import { format, isBefore, addDays } from 'date-fns';
+import { getTodayEdmonton } from '@/lib/dates';
 import type { Deal } from '@/types/database';
 import type { DealCondition } from '@/hooks/useDealConditions';
 import type { DealDeposit } from '@/hooks/useDealDeposits';
@@ -40,7 +41,7 @@ export function DealImportantDatesSection({
   onAddDeposit, onUpdateDeposit, onDeleteDeposit,
   onAddGenericDate, onUpdateGenericDate, onDeleteGenericDate,
 }: DealImportantDatesSectionProps) {
-  const today = new Date();
+  const today = getTodayEdmonton();
   const [addType, setAddType] = useState<AddType>(null);
   
   // Condition form state

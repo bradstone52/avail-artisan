@@ -38,6 +38,7 @@ import { Eye, Pencil, Trash2, Search, X, MoreHorizontal, Phone, Mail, ArrowUpDow
 import { Checkbox } from '@/components/ui/checkbox';
 import { cn } from '@/lib/utils';
 import { differenceInDays, parseISO, addDays, formatDistanceToNow, format, isPast, isToday } from 'date-fns';
+import { formatDueLabel } from '@/lib/dates';
 import type { Prospect } from '@/types/prospect';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
@@ -76,25 +77,18 @@ const priorityOrder: Record<string, number> = { A: 0, B: 1, C: 2 };
 function FollowUpDueCell({ date }: { date?: string | null }) {
   if (!date) return <span className="text-muted-foreground">-</span>;
 
-  const parsed = parseISO(date);
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  const days = differenceInDays(parsed, today);
+  const { text, isOverdue } = formatDueLabel(date);
 
-  if (days < 0) {
-    return (
-      <span className="text-destructive font-semibold text-xs">
-        Overdue by {Math.abs(days)}d
-      </span>
-    );
+  if (isOverdue) {
+    return <span className="text-destructive font-semibold text-xs">{text}</span>;
   }
-  if (days === 0) {
-    return <span className="text-warning-foreground font-semibold text-xs">Due today</span>;
+  if (text === 'Due today') {
+    return <span className="text-warning-foreground font-semibold text-xs">{text}</span>;
   }
-  if (days === 1) {
-    return <span className="text-xs font-medium">Due tomorrow</span>;
+  if (text === 'Due tomorrow') {
+    return <span className="text-xs font-medium">{text}</span>;
   }
-  return <span className="text-xs text-muted-foreground">{formatDate(date)}</span>;
+  return <span className="text-xs text-muted-foreground">{text}</span>;
 }
 
 function LastContactedCell({ date, prospectId, prospectName }: { date?: string | null; prospectId: string; prospectName: string }) {
