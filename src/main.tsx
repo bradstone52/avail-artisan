@@ -6,41 +6,27 @@ import { createRoot } from "react-dom/client";
 import App from "./App.tsx";
 import "./index.css";
 
-// Aggressive cache busting: unregister all SWs, clear all caches, force reload if needed
-async function clearStaleCaches() {
+// Nuke all service workers and caches on every load to prevent stale UI
+(async () => {
   try {
-    // Delete all Cache Storage caches
     if ('caches' in window) {
-      const cacheNames = await caches.keys();
-      await Promise.all(cacheNames.map(name => caches.delete(name)));
+      const names = await caches.keys();
+      await Promise.all(names.map(n => caches.delete(n)));
     }
-
     if ('serviceWorker' in navigator) {
-      const registrations = await navigator.serviceWorker.getRegistrations();
-      let unregistered = false;
-      for (const registration of registrations) {
-        // Unregister stale SWs so the new bundle is served fresh
-        const wasActive = !!registration.active;
-        await registration.unregister();
-        if (wasActive) unregistered = true;
-      }
-
-      // If we killed an active SW, reload immediately to pick up fresh assets
-      if (unregistered) {
+      const regs = await navigator.serviceWorker.getRegistrations();
+      const hadActive = regs.some(r => !!r.active);
+      await Promise.all(regs.map(r => r.unregister()));
+      if (hadActive) {
         window.location.reload();
-        return;
+        // Stop rendering — the reload will pick up fresh assets
+        throw new Error('SW_RELOAD');
       }
-
-      // Re-register & reload when a new SW takes control
-      navigator.serviceWorker.addEventListener('controllerchange', () => {
-        window.location.reload();
-      });
     }
-  } catch (e) {
-    // Silently ignore cache clearing errors
+  } catch (e: unknown) {
+    if (e instanceof Error && e.message === 'SW_RELOAD') throw e;
+    // Silently ignore other cache clearing errors
   }
-}
-
-clearStaleCaches();
+})();
 
 createRoot(document.getElementById("root")!).render(<App />);
