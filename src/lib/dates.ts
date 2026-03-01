@@ -1,4 +1,5 @@
 import { differenceInCalendarDays, format } from 'date-fns';
+import { getOverdueTemplate, applyOverdueTemplate } from '@/lib/prefs';
 
 /**
  * Returns today as a plain midnight Date anchored to America/Edmonton timezone.
@@ -37,7 +38,7 @@ export function formatDueLabel(dateStr: string): { text: string; isOverdue: bool
   const diff = daysFromTodayEdmonton(dateStr);
   if (diff < 0) {
     const abs = Math.abs(diff);
-    return { text: `Overdue by ${abs} day${abs === 1 ? '' : 's'}`, isOverdue: true };
+    return { text: applyOverdueTemplate(getOverdueTemplate(), abs), isOverdue: true };
   }
   if (diff === 0) return { text: 'Due today', isOverdue: false };
   if (diff === 1) return { text: 'Due tomorrow', isOverdue: false };
