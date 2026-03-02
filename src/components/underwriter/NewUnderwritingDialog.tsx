@@ -46,9 +46,9 @@ export function NewUnderwritingDialog({ open, onOpenChange, onCreated }: Props) 
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-lg border-2 border-foreground shadow-[6px_6px_0_hsl(var(--foreground))]">
+      <DialogContent className="max-w-lg">
         <DialogHeader>
-          <DialogTitle className="text-lg font-black uppercase tracking-wide">
+          <DialogTitle className="text-lg font-semibold">
             New Underwriting
           </DialogTitle>
         </DialogHeader>
@@ -56,7 +56,7 @@ export function NewUnderwritingDialog({ open, onOpenChange, onCreated }: Props) 
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
           <div className="grid grid-cols-2 gap-4">
             <div className="col-span-2 space-y-1">
-              <Label className="text-xs font-bold uppercase">Property Name *</Label>
+              <Label className="text-xs font-medium text-muted-foreground">Property Name *</Label>
               <Input {...register('property_name')} placeholder="e.g. 123 Industrial Park" />
               {errors.property_name && (
                 <p className="text-xs text-destructive">{errors.property_name.message}</p>
@@ -64,7 +64,7 @@ export function NewUnderwritingDialog({ open, onOpenChange, onCreated }: Props) 
             </div>
 
             <div className="col-span-2 space-y-1">
-              <Label className="text-xs font-bold uppercase">Address *</Label>
+              <Label className="text-xs font-medium text-muted-foreground">Address *</Label>
               <Input {...register('address')} placeholder="Full street address" />
               {errors.address && (
                 <p className="text-xs text-destructive">{errors.address.message}</p>
@@ -72,9 +72,9 @@ export function NewUnderwritingDialog({ open, onOpenChange, onCreated }: Props) 
             </div>
 
             <div className="space-y-1">
-              <Label className="text-xs font-bold uppercase">Submarket *</Label>
+              <Label className="text-xs font-medium text-muted-foreground">Submarket *</Label>
               <Select onValueChange={(v) => setValue('submarket', v)}>
-                <SelectTrigger className="border-2 border-foreground">
+                <SelectTrigger>
                   <SelectValue placeholder="Select…" />
                 </SelectTrigger>
                 <SelectContent>
@@ -89,22 +89,22 @@ export function NewUnderwritingDialog({ open, onOpenChange, onCreated }: Props) 
             </div>
 
             <div className="space-y-1">
-              <Label className="text-xs font-bold uppercase">Building Size (SF)</Label>
+              <Label className="text-xs font-medium text-muted-foreground">Building Size (SF)</Label>
               <Input {...register('building_size_sf')} type="number" placeholder="e.g. 50000" />
             </div>
 
             <div className="space-y-1">
-              <Label className="text-xs font-bold uppercase">Year Built</Label>
+              <Label className="text-xs font-medium text-muted-foreground">Year Built</Label>
               <Input {...register('year_built')} type="number" placeholder="e.g. 1998" />
             </div>
 
             <div className="space-y-1">
-              <Label className="text-xs font-bold uppercase">Land Size (Acres)</Label>
+              <Label className="text-xs font-medium text-muted-foreground">Land Size (Acres)</Label>
               <Input {...register('land_size_ac')} type="number" step="0.01" placeholder="e.g. 3.5" />
             </div>
 
             <div className="col-span-2 space-y-1">
-              <Label className="text-xs font-bold uppercase">Proposed Ask Price ($)</Label>
+              <Label className="text-xs font-medium text-muted-foreground">Proposed Ask Price ($)</Label>
               <Input {...register('proposed_ask_price')} type="number" placeholder="e.g. 8500000" />
             </div>
           </div>
@@ -114,14 +114,12 @@ export function NewUnderwritingDialog({ open, onOpenChange, onCreated }: Props) 
               type="button"
               variant="outline"
               onClick={() => onOpenChange(false)}
-              className="border-2 border-foreground"
             >
               Cancel
             </Button>
             <Button
               type="submit"
               disabled={create.isPending}
-              className="border-2 border-foreground shadow-[3px_3px_0_hsl(var(--foreground))]"
             >
               {create.isPending ? 'Creating…' : 'Create Underwriting'}
             </Button>

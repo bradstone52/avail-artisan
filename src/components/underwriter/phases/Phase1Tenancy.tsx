@@ -71,7 +71,7 @@ export function Phase1Tenancy({ underwritingId, phaseData, documents, isComplete
       documents={<DocumentUploadSection underwritingId={underwritingId} documents={documents} />}
       actions={tenants.length > 0 && (
         <Button size="sm" onClick={handleSave} disabled={save.isPending}
-          className="border-2 border-foreground shadow-[2px_2px_0_hsl(var(--foreground))]">
+          >
           {save.isPending ? 'Saving…' : 'Save Changes'}
         </Button>
       )}
@@ -88,9 +88,9 @@ export function Phase1Tenancy({ underwritingId, phaseData, documents, isComplete
                 { label: 'Vacancy', value: `${Number(summary.vacancy_rate).toFixed(1)}%` },
                 { label: 'WALT', value: `${Number(summary.walt_years).toFixed(1)} yrs` },
               ].map(m => (
-                <div key={m.label} className="p-3 border-2 border-foreground/20 bg-muted/30 text-center">
-                  <div className="text-xs text-muted-foreground font-bold uppercase">{m.label}</div>
-                  <div className="text-lg font-black mt-1">{m.value}</div>
+            <div key={m.label} className="p-3 border border-border bg-muted/30 rounded-lg text-center">
+                  <div className="text-xs text-muted-foreground font-medium">{m.label}</div>
+                  <div className="text-lg font-bold mt-1">{m.value}</div>
                 </div>
               ))}
             </div>
@@ -98,13 +98,13 @@ export function Phase1Tenancy({ underwritingId, phaseData, documents, isComplete
 
           {/* Tenant table */}
           <div>
-            <h4 className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-2">Tenant Roster</h4>
-            <div className="overflow-x-auto border-2 border-foreground">
+          <h4 className="text-xs font-medium text-muted-foreground mb-2">Tenant Roster</h4>
+            <div className="overflow-x-auto border border-border rounded-lg">
               <table className="w-full text-xs">
                 <thead>
-                  <tr className="bg-muted border-b-2 border-foreground">
+                  <tr className="bg-muted border-b border-border">
                      {['Tenant', 'Unit', 'SF', 'Start', 'Expiry', '$/SF/yr', '$/mo', 'Type', 'Escalations', 'Options'].map(h => (
-                      <th key={h} className="px-2 py-2 text-left font-black uppercase whitespace-nowrap">{h}</th>
+                      <th key={h} className="px-2 py-2 text-left font-semibold text-muted-foreground whitespace-nowrap">{h}</th>
                     ))}
                   </tr>
                 </thead>
@@ -133,12 +133,12 @@ export function Phase1Tenancy({ underwritingId, phaseData, documents, isComplete
           {/* Rollover schedule */}
           {rollover.length > 0 && (
             <div>
-              <h4 className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-2">Rollover Schedule</h4>
+              <h4 className="text-xs font-medium text-muted-foreground mb-2">Rollover Schedule</h4>
               <div className="flex gap-2 flex-wrap">
                 {rollover.map(r => (
-                  <div key={r.year} className="flex flex-col items-center p-2 border-2 border-foreground/20 min-w-[70px] text-center">
-                    <div className="text-xs text-muted-foreground font-bold">{r.year}</div>
-                    <div className="font-black text-sm">{Number(r.pct_building).toFixed(0)}%</div>
+                  <div key={r.year} className="flex flex-col items-center p-2 border border-border rounded-lg min-w-[70px] text-center">
+                    <div className="text-xs text-muted-foreground font-medium">{r.year}</div>
+                    <div className="font-bold text-sm">{Number(r.pct_building).toFixed(0)}%</div>
                     <div className="text-[10px] text-muted-foreground">{Number(r.sf_expiring).toLocaleString()} sf</div>
                   </div>
                 ))}
@@ -149,7 +149,7 @@ export function Phase1Tenancy({ underwritingId, phaseData, documents, isComplete
           {/* Red flags */}
           {redFlags.length > 0 && (
             <div>
-              <h4 className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-2 flex items-center gap-1">
+              <h4 className="text-xs font-medium text-muted-foreground mb-2 flex items-center gap-1">
                 <AlertTriangle className="w-3 h-3 text-destructive" /> Red Flags
               </h4>
               <ul className="space-y-1">

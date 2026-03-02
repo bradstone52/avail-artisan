@@ -20,7 +20,7 @@ function EditableList({ title, items, onChange, color }: {
 
   return (
     <div className="flex-1 min-w-0">
-      <h4 className={`text-xs font-bold uppercase tracking-wider mb-3 ${color}`}>{title}</h4>
+      <h4 className={`text-xs font-semibold mb-3 ${color}`}>{title}</h4>
       <div className="space-y-2">
         {items.map((item, i) => (
           <div key={i} className="flex items-center gap-2">
@@ -67,7 +67,7 @@ export function Phase5Risks({ underwritingId, phaseData, isComplete }: Props) {
       analyzeLabel="Summarize Risks & Opportunities"
       actions={(risks.length > 0 || opps.length > 0) && (
         <Button size="sm" onClick={() => save.mutate({ phase: 5, structuredData: { risks, opportunities: opps } })}
-          disabled={save.isPending} className="border-2 border-foreground shadow-[2px_2px_0_hsl(var(--foreground))]">
+          disabled={save.isPending}>
           {save.isPending ? 'Saving…' : 'Save Changes'}
         </Button>
       )}

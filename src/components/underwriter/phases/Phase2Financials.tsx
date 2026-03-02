@@ -55,12 +55,12 @@ function CurrencyCell({ value, onChange, bold }: { value: number; onChange: (v: 
       onChange={e => setRaw(e.target.value)}
       onBlur={() => { onChange(parseFloat(raw) || 0); setEditing(false) }}
       onKeyDown={e => { if (e.key === 'Enter') { onChange(parseFloat(raw) || 0); setEditing(false) } }}
-      className={cn("h-7 text-xs text-right border border-foreground/30 rounded px-2 w-full bg-background focus:outline-none focus:ring-1 focus:ring-primary", bold && "font-bold")}
+      className={cn("h-7 text-xs text-right border border-input rounded-md px-2 w-full bg-background focus:outline-none focus:ring-1 focus:ring-ring", bold && "font-bold")}
     />
   ) : (
     <div
       onClick={() => setEditing(true)}
-      className={cn("h-7 text-xs text-right px-2 py-1 border border-foreground/20 rounded cursor-text hover:border-foreground/50 bg-background w-full", bold && "font-bold")}
+      className={cn("h-7 text-xs text-right px-2 py-1 border border-border rounded-md cursor-text hover:border-primary/50 bg-background w-full", bold && "font-bold")}
     >
       {fmt(value)}
     </div>
@@ -108,20 +108,20 @@ export function Phase2Financials({ underwritingId, phaseData, isComplete }: Prop
       onAnalyze={() => analyze.mutate(2)}
       actions={hasData && (
         <Button size="sm" onClick={handleSave} disabled={save.isPending}
-          className="border-2 border-foreground shadow-[2px_2px_0_hsl(var(--foreground))]">
+          >
           {save.isPending ? 'Saving…' : 'Save Changes'}
         </Button>
       )}
     >
       {hasData && (
         <div className="space-y-6">
-          <div className="border-2 border-foreground overflow-hidden">
+          <div className="border border-border rounded-lg overflow-hidden">
             <table className="w-full text-sm">
               <thead>
-                <tr className="bg-muted border-b-2 border-foreground">
-                  <th className="px-4 py-2 text-left font-black uppercase text-xs w-1/2">Line Item</th>
-                  <th className="px-4 py-2 text-right font-black uppercase text-xs w-1/4">Year 1 ($)</th>
-                  <th className="px-4 py-2 text-right font-black uppercase text-xs w-1/4">Year 2 ($)</th>
+                <tr className="bg-muted border-b border-border">
+                  <th className="px-4 py-2 text-left font-semibold text-muted-foreground text-xs w-1/2">Line Item</th>
+                  <th className="px-4 py-2 text-right font-semibold text-muted-foreground text-xs w-1/4">Year 1 ($)</th>
+                  <th className="px-4 py-2 text-right font-semibold text-muted-foreground text-xs w-1/4">Year 2 ($)</th>
                 </tr>
               </thead>
               <tbody>
@@ -158,7 +158,7 @@ export function Phase2Financials({ underwritingId, phaseData, isComplete }: Prop
 
           {healthBullets.length > 0 && (
             <div>
-              <h4 className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-2">Financial Health</h4>
+              <h4 className="text-xs font-medium text-muted-foreground mb-2">Financial Health</h4>
               <ul className="space-y-1">
                 {healthBullets.map((b, i) => <li key={i} className="flex gap-2 text-sm"><span className="text-primary">•</span>{b}</li>)}
               </ul>
@@ -167,7 +167,7 @@ export function Phase2Financials({ underwritingId, phaseData, isComplete }: Prop
 
           {ddQuestions.length > 0 && (
             <div>
-              <h4 className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-2">Due Diligence Questions</h4>
+              <h4 className="text-xs font-medium text-muted-foreground mb-2">Due Diligence Questions</h4>
               <ol className="space-y-1 list-decimal list-inside">
                 {ddQuestions.map((q, i) => <li key={i} className="text-sm text-muted-foreground">{q}</li>)}
               </ol>

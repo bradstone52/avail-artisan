@@ -217,7 +217,7 @@ export function BrokeragesTab() {
       {isLoading ? (
         <p className="text-center py-8 text-muted-foreground">Loading...</p>
       ) : filteredBrokerages.length === 0 ? (
-        <p className="text-center py-12 text-muted-foreground border-2 border-foreground shadow-[4px_4px_0_hsl(var(--foreground))] bg-card" style={{ borderRadius: 'var(--radius)' }}>No brokerages found</p>
+        <p className="text-center py-12 text-muted-foreground border border-border bg-card rounded-lg" style={{ borderRadius: 'var(--radius)' }}>No brokerages found</p>
       ) : (
           <Table>
             <TableHeader>

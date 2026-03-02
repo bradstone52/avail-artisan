@@ -120,7 +120,7 @@ export function RequiredDocumentsChecklist({
   onSelectDocument 
 }: RequiredDocumentsChecklistProps) {
   return (
-    <div className="border-2 border-foreground rounded-lg p-4 bg-card shadow-[3px_3px_0_hsl(var(--foreground))] space-y-4">
+    <div className="border border-border rounded-lg p-4 bg-card shadow-sm space-y-4">
       <DocumentChecklistSection
         title="Required Documents"
         documents={documents}

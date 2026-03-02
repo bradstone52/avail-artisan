@@ -66,18 +66,17 @@ export function ContactFinderTab() {
       {/* Header */}
       <div className="flex items-start justify-between gap-4">
         <div>
-          <h2 className="text-lg font-bold uppercase tracking-wider">Contact Finder</h2>
+          <h2 className="text-lg font-semibold">Contact Finder</h2>
           <p className="text-sm text-muted-foreground mt-0.5">
             Powered by RocketReach — credits are only used for successful lookups.
           </p>
         </div>
         <div
-          className="flex border-2 border-foreground overflow-hidden shrink-0"
-          style={{ borderRadius: 'var(--radius)' }}
+          className="flex border border-border overflow-hidden shrink-0 rounded-lg"
         >
           <button
             onClick={() => switchMode('person')}
-            className={`flex items-center gap-2 px-4 py-2 text-sm font-bold uppercase tracking-wider transition-colors ${
+            className={`flex items-center gap-2 px-4 py-2 text-sm font-medium transition-colors ${
               mode === 'person' ? 'bg-primary text-primary-foreground' : 'bg-card hover:bg-muted/50 text-muted-foreground'
             }`}
           >
@@ -86,7 +85,7 @@ export function ContactFinderTab() {
           </button>
           <button
             onClick={() => switchMode('company')}
-            className={`flex items-center gap-2 px-4 py-2 text-sm font-bold uppercase tracking-wider transition-colors border-l-2 border-foreground ${
+            className={`flex items-center gap-2 px-4 py-2 text-sm font-medium transition-colors border-l border-border ${
               mode === 'company' ? 'bg-primary text-primary-foreground' : 'bg-card hover:bg-muted/50 text-muted-foreground'
             }`}
           >
@@ -97,7 +96,7 @@ export function ContactFinderTab() {
       </div>
 
       {/* Search Panel */}
-      <div className="border-2 border-foreground bg-card p-5" style={{ borderRadius: 'var(--radius)' }}>
+      <div className="border border-border bg-card p-5 rounded-lg">
         {mode === 'person' ? (
           <form onSubmit={handlePersonLookup} className="space-y-4">
             <p className="text-xs text-muted-foreground flex items-center gap-1">
@@ -127,7 +126,7 @@ export function ContactFinderTab() {
             <Button
               type="submit"
               disabled={loading || (!personName.trim() && !personCompany.trim())}
-              className="border-2 border-foreground font-bold shadow-[3px_3px_0_hsl(var(--foreground))]"
+              className=""
             >
               {loading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Search className="w-4 h-4 mr-2" />}
               Look Up
@@ -163,7 +162,7 @@ export function ContactFinderTab() {
             <Button
               type="submit"
               disabled={loading || !companyName.trim()}
-              className="border-2 border-foreground font-bold shadow-[3px_3px_0_hsl(var(--foreground))]"
+              className=""
             >
               {loading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Search className="w-4 h-4 mr-2" />}
               Search
@@ -175,8 +174,7 @@ export function ContactFinderTab() {
       {/* Error */}
       {error && (
         <div
-          className="flex items-start gap-3 p-4 border-2 border-destructive bg-destructive/10 text-destructive text-sm"
-          style={{ borderRadius: 'var(--radius)' }}
+          className="flex items-start gap-3 p-4 border border-destructive/30 bg-destructive/10 text-destructive text-sm rounded-lg"
         >
           <AlertCircle className="w-4 h-4 mt-0.5 shrink-0" />
           <span>{error}</span>
@@ -186,7 +184,7 @@ export function ContactFinderTab() {
       {/* Person result */}
       {!loading && mode === 'person' && personResult !== null && (
         <div className="space-y-3">
-          <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Result</p>
+          <p className="text-xs font-medium text-muted-foreground">Result</p>
           <ContactResultCard
             contact={personResult}
             onSave={handleSave}
@@ -200,7 +198,7 @@ export function ContactFinderTab() {
         <div className="space-y-3">
           {!loading && (
             <div className="flex items-center justify-between">
-              <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+              <p className="text-xs font-medium text-muted-foreground">
                 {peopleResults.length} of {totalResults.toLocaleString()} Result{totalResults !== 1 ? 's' : ''}
               </p>
               {totalPages > 1 && (
@@ -208,7 +206,7 @@ export function ContactFinderTab() {
                   <Button
                     size="sm"
                     variant="outline"
-                    className="h-7 w-7 p-0 border-2 border-foreground"
+                    className="h-7 w-7 p-0"
                     disabled={currentPage <= 1}
                     onClick={() => handlePageChange(currentPage - 1)}
                   >
@@ -220,7 +218,7 @@ export function ContactFinderTab() {
                   <Button
                     size="sm"
                     variant="outline"
-                    className="h-7 w-7 p-0 border-2 border-foreground"
+                    className="h-7 w-7 p-0"
                     disabled={currentPage >= totalPages}
                     onClick={() => handlePageChange(currentPage + 1)}
                   >
