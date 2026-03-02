@@ -23,3 +23,7 @@ dist-ssr
 *.sln
 *.sw?
 bun.lockb
+
+.env
+.env.*
+!.env.example
