@@ -103,8 +103,8 @@ export function PropertiesTable({
               const isEvenRow = index % 2 === 1;
               const stickyBg = isEvenRow ? 'bg-table-stripe' : 'bg-card';
               const hoverClass = isEvenRow 
-                ? 'hover:!bg-pink-300 dark:hover:!bg-pink-800' 
-                : 'hover:!bg-pink-200 dark:hover:!bg-pink-900';
+                ? 'hover:!bg-slate-100 dark:hover:!bg-slate-800/60' 
+                : 'hover:!bg-slate-50 dark:hover:!bg-slate-800/40';
 
               return (
                 <TableRow 
@@ -113,7 +113,7 @@ export function PropertiesTable({
                   onClick={() => onViewDashboard(property)}
                 >
                   {/* Address - Sticky */}
-                  <TableCell className={`sticky left-0 z-20 ${stickyBg} shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)] group-hover:bg-pink-200 dark:group-hover:bg-pink-900`}>
+                  <TableCell className={`sticky left-0 z-20 ${stickyBg} shadow-[2px_0_5px_-2px_rgba(0,0,0,0.08)] group-hover:bg-slate-50 dark:group-hover:bg-slate-800/40`}>
                     <div className="min-w-[200px]">
                       <div className="font-semibold flex items-center gap-2">
                         <Building2 className="h-4 w-4 text-muted-foreground" />
@@ -180,7 +180,7 @@ export function PropertiesTable({
 
                   {/* Actions - Sticky */}
                   <TableCell 
-                    className={`sticky right-0 z-20 ${stickyBg} shadow-[-2px_0_5px_-2px_rgba(0,0,0,0.1)] group-hover:bg-pink-200 dark:group-hover:bg-pink-900`}
+                    className={`sticky right-0 z-20 ${stickyBg} shadow-[-2px_0_5px_-2px_rgba(0,0,0,0.08)] group-hover:bg-slate-50 dark:group-hover:bg-slate-800/40`}
                     onClick={(e) => e.stopPropagation()}
                   >
                     <DropdownMenu>

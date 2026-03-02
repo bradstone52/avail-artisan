@@ -264,7 +264,7 @@ export function DealsTable({ deals, isLoading, onEdit, importantDates }: DealsTa
       </div>
 
       {filteredAndSortedDeals.length === 0 ? (
-        <div className="text-center py-12 text-muted-foreground border-2 border-foreground shadow-[4px_4px_0_hsl(var(--foreground))] bg-card" style={{ borderRadius: 'var(--radius)' }}>
+        <div className="text-center py-12 text-muted-foreground border border-border shadow-sm bg-card rounded-lg">
           {deals.length === 0 
             ? "No deals found. Create your first deal to get started."
             : "No deals match your filters."
@@ -289,18 +289,18 @@ export function DealsTable({ deals, isLoading, onEdit, importantDates }: DealsTa
               const isSelected = selectedRowId === deal.id;
               const isEvenRow = index % 2 === 1;
               const rowBg = isSelected
-                ? '!bg-secondary'
+                ? '!bg-blue-50 dark:!bg-blue-950/30'
                 : isEvenRow
                   ? 'bg-table-stripe'
                   : '';
               const hoverClass = isSelected
-                ? 'hover:!bg-secondary/90'
+                ? 'hover:!bg-blue-100 dark:hover:!bg-blue-950/40'
                 : isEvenRow
-                  ? 'hover:!bg-pink-300 dark:hover:!bg-pink-800'
-                  : 'hover:!bg-pink-200 dark:hover:!bg-pink-900/50';
+                  ? 'hover:!bg-slate-100 dark:hover:!bg-slate-800/60'
+                  : 'hover:!bg-slate-50 dark:hover:!bg-slate-800/40';
               const outlineClass = isSelected
-                ? 'outline outline-2 outline-amber-600 dark:outline-amber-500 -outline-offset-1'
-                : 'outline-0 hover:outline hover:outline-2 hover:outline-pink-500 dark:hover:outline-pink-400 hover:-outline-offset-1';
+                ? 'outline outline-2 outline-blue-400 dark:outline-blue-500 -outline-offset-1'
+                : 'outline-0 hover:outline hover:outline-1 hover:outline-slate-300 dark:hover:outline-slate-600 hover:-outline-offset-1';
 
               const milestone = milestoneMap.get(deal.id) ?? null;
 
@@ -308,7 +308,7 @@ export function DealsTable({ deals, isLoading, onEdit, importantDates }: DealsTa
                 <TableRow
                   key={deal.id}
                   className={cn(
-                    'cursor-pointer transition-all !border-b-2 !border-foreground',
+                    'cursor-pointer transition-all !border-b !border-border',
                     rowBg,
                     hoverClass,
                     outlineClass,

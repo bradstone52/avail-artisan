@@ -32,18 +32,18 @@ export function PhaseCard({
   actions,
 }: PhaseCardProps) {
   return (
-    <Card className="border-2 border-foreground shadow-[4px_4px_0_hsl(var(--foreground))]">
-      <CardHeader className="border-b-2 border-foreground/20 bg-muted/30 pb-4">
+    <Card className="">
+      <CardHeader className="border-b border-border bg-muted/30 pb-4">
         <div className="flex items-start justify-between gap-4">
           <div className="flex items-center gap-3">
             <div className={cn(
-              "w-10 h-10 rounded-full border-2 border-foreground flex items-center justify-center text-sm font-black",
-              isComplete ? "bg-primary text-primary-foreground" : "bg-background text-foreground"
+              "w-10 h-10 rounded-full border border-border flex items-center justify-center text-sm font-semibold",
+              isComplete ? "bg-primary text-primary-foreground" : "bg-muted text-foreground"
             )}>
               {isComplete ? <CheckCircle2 className="w-5 h-5" /> : phaseNumber}
             </div>
             <div>
-              <CardTitle className="text-base font-black uppercase tracking-wide">
+              <CardTitle className="text-base font-semibold">
                 Phase {phaseNumber} – {title}
               </CardTitle>
               <CardDescription className="text-xs mt-0.5">{description}</CardDescription>
@@ -57,7 +57,7 @@ export function PhaseCard({
               size="sm"
               onClick={onAnalyze}
               disabled={isAnalyzing}
-              className="border-2 border-foreground shadow-[2px_2px_0_hsl(var(--foreground))] hover:shadow-none hover:translate-x-0.5 hover:translate-y-0.5 transition-all"
+              className=""
             >
               {isAnalyzing ? (
                 <>
@@ -84,7 +84,7 @@ export function PhaseCard({
       <CardContent className="pt-6 space-y-6">
         {documents && (
           <div>
-            <h4 className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-3">Documents</h4>
+            <h4 className="text-xs font-semibold text-muted-foreground mb-3">Documents</h4>
             {documents}
           </div>
         )}
