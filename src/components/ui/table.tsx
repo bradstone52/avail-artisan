@@ -8,7 +8,7 @@ interface TableProps extends React.HTMLAttributes<HTMLTableElement> {
 
 const Table = React.forwardRef<HTMLTableElement, TableProps>(
   ({ className, stickyHeader, ...props }, ref) => (
-    <div className={cn("relative w-full overflow-auto border-2 border-foreground shadow-[4px_4px_0_hsl(var(--foreground))]", stickyHeader && "max-h-[75vh]")} style={{ borderRadius: "var(--radius)" }}>
+    <div className={cn("relative w-full overflow-auto border border-border rounded-lg shadow-sm", stickyHeader && "max-h-[75vh]")}>
       <table
         ref={ref}
         className={cn("w-full caption-bottom text-sm", className)}
@@ -23,7 +23,7 @@ const TableHeader = React.forwardRef<HTMLTableSectionElement, React.HTMLAttribut
   ({ className, ...props }, ref) => (
     <thead 
       ref={ref} 
-      className={cn("bg-foreground text-background [&_tr]:border-b-0", className)} 
+      className={cn("bg-muted/60 [&_tr]:border-b border-border", className)} 
       {...props} 
     />
   ),
@@ -45,7 +45,7 @@ const TableFooter = React.forwardRef<HTMLTableSectionElement, React.HTMLAttribut
   ({ className, ...props }, ref) => (
     <tfoot
       ref={ref}
-      className={cn("border-t-2 border-foreground bg-muted font-bold [&>tr]:last:border-b-0", className)}
+      className={cn("border-t border-border bg-muted font-bold [&>tr]:last:border-b-0", className)}
       {...props}
     />
   ),
@@ -57,7 +57,7 @@ const TableRow = React.forwardRef<HTMLTableRowElement, React.HTMLAttributes<HTML
     <tr
       ref={ref}
       className={cn(
-        "border-b-2 border-border-subtle transition-colors hover:bg-secondary/20 data-[state=selected]:bg-secondary/30",
+        "border-b border-border transition-colors hover:bg-slate-100 data-[state=selected]:bg-blue-50",
         className,
       )}
       {...props}
@@ -71,7 +71,7 @@ const TableHead = React.forwardRef<HTMLTableCellElement, React.ThHTMLAttributes<
     <th
       ref={ref}
       className={cn(
-        "h-12 px-4 text-left align-middle text-xs font-bold uppercase tracking-[0.15em] [&:has([role=checkbox])]:pr-0",
+        "h-11 px-4 text-left align-middle text-xs font-semibold text-muted-foreground uppercase tracking-wide [&:has([role=checkbox])]:pr-0",
         className,
       )}
       {...props}

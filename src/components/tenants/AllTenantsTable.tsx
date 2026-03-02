@@ -45,8 +45,7 @@ export function AllTenantsTable({ tenants, searchQuery }: AllTenantsTableProps) 
   };
 
   return (
-    <div className="border-2 border-foreground shadow-[4px_4px_0_hsl(var(--foreground))]" style={{ borderRadius: 'var(--radius)' }}>
-      <Table>
+    <Table>
         <TableHeader>
           <TableRow className="bg-muted/50 hover:bg-muted/50">
             <TableHead className="font-black uppercase text-xs tracking-wider">Tenant</TableHead>
@@ -124,7 +123,6 @@ export function AllTenantsTable({ tenants, searchQuery }: AllTenantsTableProps) 
             ))
           )}
         </TableBody>
-      </Table>
-    </div>
+    </Table>
   );
 }
