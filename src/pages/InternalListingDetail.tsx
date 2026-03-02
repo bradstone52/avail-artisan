@@ -373,7 +373,7 @@ export default function InternalListingDetail() {
               </Card>
 
               {/* Linked Deal */}
-              <LinkedDealPanel listingId={listing.id} />
+              <LinkedDealPanel listing={listing} />
               </div>
             </div>
 
