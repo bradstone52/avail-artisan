@@ -437,7 +437,7 @@ export function ProspectsTable({ prospects, isLoading, onEdit }: ProspectsTableP
       </div>
 
       {filteredAndSorted.length === 0 ? (
-        <div className="text-center py-12 text-muted-foreground border-2 border-foreground shadow-[4px_4px_0_hsl(var(--foreground))] bg-card" style={{ borderRadius: 'var(--radius)' }}>
+        <div className="text-center py-12 text-muted-foreground border border-border shadow-sm bg-card rounded-lg">
           {prospects.length === 0
             ? "No prospects found. Create your first prospect to get started."
             : "No prospects match your filters."
@@ -500,18 +500,18 @@ export function ProspectsTable({ prospects, isLoading, onEdit }: ProspectsTableP
                   : prospect.priority === 'B'
                     ? 'hover:!bg-yellow-200/80 dark:hover:!bg-yellow-900/40'
                     : prospect.priority === 'C'
-                      ? 'hover:!bg-cyan-200/80 dark:hover:!bg-cyan-900/40'
-                      : 'hover:!bg-pink-200 dark:hover:!bg-pink-900/50';
+                      ? 'hover:!bg-slate-100 dark:hover:!bg-slate-800/40'
+                      : 'hover:!bg-slate-50 dark:hover:!bg-slate-800/30';
               const outlineClass = isSelected
-                ? 'outline outline-2 outline-amber-600 dark:outline-amber-500 -outline-offset-1'
-                : 'outline-0 hover:outline hover:outline-2 hover:outline-pink-500 dark:hover:outline-pink-400 hover:-outline-offset-1';
+                ? 'outline outline-2 outline-blue-400 dark:outline-blue-500 -outline-offset-1'
+                : 'outline-0 hover:outline hover:outline-1 hover:outline-slate-300 dark:hover:outline-slate-600 hover:-outline-offset-1';
 
               return (
                 <TableRow
                   key={prospect.id}
                   style={{ backgroundColor: priorityBgColor }}
                   className={cn(
-                    'cursor-pointer transition-all !border-b-2 !border-foreground',
+                    'cursor-pointer transition-all !border-b !border-border',
                     rowBg,
                     hoverClass,
                     outlineClass,

@@ -235,19 +235,18 @@ export function BrokeragesTab() {
                 const isExpanded = expandedBrokerages.has(brokerage.id);
                 const isEvenRow = index % 2 === 1;
                 const hoverClass = isEvenRow
-                  ? 'hover:!bg-pink-300 dark:hover:!bg-pink-800'
-                  : 'hover:!bg-pink-200 dark:hover:!bg-pink-900/50';
-                const outlineClass = 'outline-0 hover:outline hover:outline-2 hover:outline-pink-500 dark:hover:outline-pink-400 hover:-outline-offset-1';
+                  ? 'hover:!bg-slate-100 dark:hover:!bg-slate-800/60'
+                  : 'hover:!bg-slate-50 dark:hover:!bg-slate-800/40';
+                const outlineClass = 'outline-0 hover:outline hover:outline-1 hover:outline-slate-300 dark:hover:outline-slate-600 hover:-outline-offset-1';
                 
                 return (
                   <>
                     <TableRow
                       key={brokerage.id}
                       className={cn(
-                        'cursor-pointer transition-all !border-b-2 !border-foreground',
+                        'cursor-pointer transition-all !border-b !border-border',
                         isEvenRow ? 'bg-table-stripe' : '',
                         hoverClass,
-                        outlineClass,
                       )}
                       onClick={() => toggleBrokerage(brokerage.id)}
                     >
@@ -304,7 +303,7 @@ export function BrokeragesTab() {
                       </TableCell>
                     </TableRow>
                     {isExpanded && brokerageAgents.length > 0 && brokerageAgents.map(agent => (
-                      <TableRow key={agent.id} className="bg-pink-50 dark:bg-pink-950/20 !border-b border-foreground/10 hover:!bg-pink-200 dark:hover:!bg-pink-900/50 outline-0 hover:outline hover:outline-2 hover:outline-pink-500 dark:hover:outline-pink-400 hover:-outline-offset-1 transition-all">
+                      <TableRow key={agent.id} className="bg-slate-50 dark:bg-slate-900/20 !border-b border-border hover:!bg-slate-100 dark:hover:!bg-slate-800/40 outline-0 hover:outline hover:outline-1 hover:outline-slate-300 dark:hover:outline-slate-600 hover:-outline-offset-1 transition-all">
                         <TableCell></TableCell>
                         <TableCell className="pl-8">
                           <span className="text-muted-foreground">↳</span> {agent.name}
@@ -340,7 +339,7 @@ export function BrokeragesTab() {
                       </TableRow>
                     ))}
                     {isExpanded && brokerageAgents.length === 0 && (
-                      <TableRow className="bg-pink-50 dark:bg-pink-950/20 !border-b border-foreground/10">
+                      <TableRow className="bg-slate-50 dark:bg-slate-900/20 !border-b border-border">
                         <TableCell></TableCell>
                         <TableCell colSpan={4} className="pl-8 text-muted-foreground text-sm">
                           No agents. Use the menu to add one.

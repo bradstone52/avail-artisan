@@ -451,50 +451,50 @@ export function MarketListingsTable({ listings, onEdit, onRefresh, sortColumn, s
     >
       {/* Keyboard scroll indicator */}
       {isHovered && (
-        <div className="absolute -top-10 left-1/2 -translate-x-1/2 z-30 px-4 py-2 bg-primary text-primary-foreground text-sm font-black uppercase tracking-widest rounded-none border-3 border-foreground shadow-[4px_4px_0_hsl(var(--foreground))] animate-pulse">
-          ⌨️ ← → SCROLL
+        <div className="absolute -top-10 left-1/2 -translate-x-1/2 z-30 px-4 py-2 bg-primary/90 text-primary-foreground text-xs font-medium rounded-lg shadow-md">
+          ← → Scroll with arrow keys
         </div>
       )}
       <Table className="min-w-[3000px]" stickyHeader>
         <TableHeader className="sticky top-0 z-40">
-          <TableRow className="bg-foreground">
-            <TableHead className="sticky left-0 top-0 z-50 min-w-[180px] bg-zinc-700 dark:bg-zinc-600 text-background shadow-[2px_0_5px_-2px_rgba(0,0,0,0.3)]">Address</TableHead>
-            <TableHead className="text-background min-w-[130px] bg-zinc-700 dark:bg-zinc-600">Submarket</TableHead>
-            <TableHead className="text-background min-w-[100px] bg-zinc-700 dark:bg-zinc-600">City</TableHead>
-            <TableHead className="text-background min-w-[80px] bg-zinc-700 dark:bg-zinc-600">Type</TableHead>
-            <TableHead className="text-background min-w-[70px] bg-zinc-700 dark:bg-zinc-600">Calg. Quad.</TableHead>
-            <TableHead className="text-background min-w-[60px] bg-zinc-700 dark:bg-zinc-600">DW</TableHead>
-            <SortableHeader column="size_sf" className="text-right min-w-[100px] bg-zinc-700 dark:bg-zinc-600">Size (SF)</SortableHeader>
-            <TableHead className="text-background min-w-[80px] bg-zinc-700 dark:bg-zinc-600">Acres</TableHead>
-            <SortableHeader column="warehouse_sf" className="text-right min-w-[110px] bg-zinc-700 dark:bg-zinc-600">Warehouse SF</SortableHeader>
-            <SortableHeader column="office_sf" className="text-right min-w-[90px] bg-zinc-700 dark:bg-zinc-600">Office SF</SortableHeader>
-            <TableHead className="text-background text-right min-w-[90px] bg-zinc-700 dark:bg-zinc-600">Shop SF</TableHead>
-            <TableHead className="text-background text-right min-w-[90px] bg-zinc-700 dark:bg-zinc-600">Clear Ht</TableHead>
-            <SortableHeader column="dock_doors" className="text-right min-w-[70px] bg-zinc-700 dark:bg-zinc-600">Docks</SortableHeader>
-            <SortableHeader column="drive_in_doors" className="text-right min-w-[70px] bg-zinc-700 dark:bg-zinc-600">Drive-In</SortableHeader>
-            <SortableHeader column="power_amps" className="min-w-[110px] bg-zinc-700 dark:bg-zinc-600">Power</SortableHeader>
-            <TableHead className="text-background min-w-[90px] bg-zinc-700 dark:bg-zinc-600">Sprinkler</TableHead>
-            <TableHead className="text-background min-w-[70px] bg-zinc-700 dark:bg-zinc-600">Cranes</TableHead>
-            <TableHead className="text-background min-w-[60px] bg-zinc-700 dark:bg-zinc-600">Yard</TableHead>
-            <TableHead className="text-background min-w-[90px] bg-zinc-700 dark:bg-zinc-600">Yard Area</TableHead>
-            <TableHead className="text-background min-w-[80px] bg-zinc-700 dark:bg-zinc-600">X-Dock</TableHead>
-            <TableHead className="text-background min-w-[90px] bg-zinc-700 dark:bg-zinc-600">Trailer</TableHead>
-            <TableHead className="text-background min-w-[80px] bg-zinc-700 dark:bg-zinc-600">Zoning</TableHead>
-            <TableHead className="text-background min-w-[60px] bg-zinc-700 dark:bg-zinc-600">MUA</TableHead>
-            <TableHead className="text-background min-w-[90px] bg-zinc-700 dark:bg-zinc-600">Ask Rate</TableHead>
-            <TableHead className="text-background min-w-[80px] bg-zinc-700 dark:bg-zinc-600">Op Cost</TableHead>
-            <TableHead className="text-background min-w-[90px] bg-zinc-700 dark:bg-zinc-600">Gross</TableHead>
-            <TableHead className="text-background min-w-[100px] bg-zinc-700 dark:bg-zinc-600">Sale Price</TableHead>
-            <TableHead className="text-background min-w-[90px] bg-zinc-700 dark:bg-zinc-600">Sub Exp</TableHead>
-            <TableHead className="text-background min-w-[90px] bg-zinc-700 dark:bg-zinc-600">Avail</TableHead>
-            <TableHead className="text-background min-w-[140px] bg-zinc-700 dark:bg-zinc-600">Landlord</TableHead>
-            <TableHead className="text-background min-w-[140px] bg-zinc-700 dark:bg-zinc-600">Development</TableHead>
-            <TableHead className="text-background min-w-[140px] bg-zinc-700 dark:bg-zinc-600">Brokerage</TableHead>
-            <TableHead className="text-background min-w-[180px] bg-zinc-700 dark:bg-zinc-600">Notes</TableHead>
-            <TableHead className="text-background min-w-[130px] bg-zinc-700 dark:bg-zinc-600">Status</TableHead>
-            <SortableHeader column="last_verified_date" className="min-w-[100px] bg-zinc-700 dark:bg-zinc-600">Verified</SortableHeader>
-            <TableHead className="text-background min-w-[60px] bg-zinc-700 dark:bg-zinc-600">Land</TableHead>
-            <TableHead className="sticky right-0 top-0 z-50 min-w-[160px] bg-zinc-700 dark:bg-zinc-600 text-background shadow-[-2px_0_5px_-2px_rgba(0,0,0,0.3)]">Actions</TableHead>
+          <TableRow className="bg-muted">
+            <TableHead className="sticky left-0 top-0 z-50 min-w-[180px] bg-muted text-muted-foreground shadow-[2px_0_5px_-2px_rgba(0,0,0,0.08)]">Address</TableHead>
+            <TableHead className="text-muted-foreground min-w-[130px] bg-muted">Submarket</TableHead>
+            <TableHead className="text-muted-foreground min-w-[100px] bg-muted">City</TableHead>
+            <TableHead className="text-muted-foreground min-w-[80px] bg-muted">Type</TableHead>
+            <TableHead className="text-muted-foreground min-w-[70px] bg-muted">Calg. Quad.</TableHead>
+            <TableHead className="text-muted-foreground min-w-[60px] bg-muted">DW</TableHead>
+            <SortableHeader column="size_sf" className="text-right min-w-[100px] bg-muted">Size (SF)</SortableHeader>
+            <TableHead className="text-muted-foreground min-w-[80px] bg-muted">Acres</TableHead>
+            <SortableHeader column="warehouse_sf" className="text-right min-w-[110px] bg-muted">Warehouse SF</SortableHeader>
+            <SortableHeader column="office_sf" className="text-right min-w-[90px] bg-muted">Office SF</SortableHeader>
+            <TableHead className="text-muted-foreground text-right min-w-[90px] bg-muted">Shop SF</TableHead>
+            <TableHead className="text-muted-foreground text-right min-w-[90px] bg-muted">Clear Ht</TableHead>
+            <SortableHeader column="dock_doors" className="text-right min-w-[70px] bg-muted">Docks</SortableHeader>
+            <SortableHeader column="drive_in_doors" className="text-right min-w-[70px] bg-muted">Drive-In</SortableHeader>
+            <SortableHeader column="power_amps" className="min-w-[110px] bg-muted">Power</SortableHeader>
+            <TableHead className="text-muted-foreground min-w-[90px] bg-muted">Sprinkler</TableHead>
+            <TableHead className="text-muted-foreground min-w-[70px] bg-muted">Cranes</TableHead>
+            <TableHead className="text-muted-foreground min-w-[60px] bg-muted">Yard</TableHead>
+            <TableHead className="text-muted-foreground min-w-[90px] bg-muted">Yard Area</TableHead>
+            <TableHead className="text-muted-foreground min-w-[80px] bg-muted">X-Dock</TableHead>
+            <TableHead className="text-muted-foreground min-w-[90px] bg-muted">Trailer</TableHead>
+            <TableHead className="text-muted-foreground min-w-[80px] bg-muted">Zoning</TableHead>
+            <TableHead className="text-muted-foreground min-w-[60px] bg-muted">MUA</TableHead>
+            <TableHead className="text-muted-foreground min-w-[90px] bg-muted">Ask Rate</TableHead>
+            <TableHead className="text-muted-foreground min-w-[80px] bg-muted">Op Cost</TableHead>
+            <TableHead className="text-muted-foreground min-w-[90px] bg-muted">Gross</TableHead>
+            <TableHead className="text-muted-foreground min-w-[100px] bg-muted">Sale Price</TableHead>
+            <TableHead className="text-muted-foreground min-w-[90px] bg-muted">Sub Exp</TableHead>
+            <TableHead className="text-muted-foreground min-w-[90px] bg-muted">Avail</TableHead>
+            <TableHead className="text-muted-foreground min-w-[140px] bg-muted">Landlord</TableHead>
+            <TableHead className="text-muted-foreground min-w-[140px] bg-muted">Development</TableHead>
+            <TableHead className="text-muted-foreground min-w-[140px] bg-muted">Brokerage</TableHead>
+            <TableHead className="text-muted-foreground min-w-[180px] bg-muted">Notes</TableHead>
+            <TableHead className="text-muted-foreground min-w-[130px] bg-muted">Status</TableHead>
+            <SortableHeader column="last_verified_date" className="min-w-[100px] bg-muted">Verified</SortableHeader>
+            <TableHead className="text-muted-foreground min-w-[60px] bg-muted">Land</TableHead>
+            <TableHead className="sticky right-0 top-0 z-50 min-w-[160px] bg-muted text-muted-foreground shadow-[-2px_0_5px_-2px_rgba(0,0,0,0.08)]">Actions</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -507,37 +507,33 @@ export function MarketListingsTable({ listings, onEdit, onRefresh, sortColumn, s
             const staleTextClass = stale ? 'text-white' : '';
             // Sticky columns match the rest of the table's striping
             const stickyBg = isSelected 
-              ? 'bg-secondary' 
+              ? 'bg-blue-50' 
               : stale
-                ? 'bg-red-700 dark:bg-red-800'
-                : isEvenRow 
+                ? 'bg-red-50 dark:bg-red-900/30'
+                : isEvenRow
                   ? 'bg-table-stripe' 
                   : 'bg-card';
-            // Pink hover - darker on striped rows to blend (override stale on hover)
             const hoverClass = isSelected 
-              ? 'hover:!bg-secondary/90' 
+              ? 'hover:!bg-blue-100' 
               : stale
-                ? 'hover:!bg-red-600 dark:hover:!bg-red-700'
+                ? 'hover:!bg-red-100 dark:hover:!bg-red-800/50'
                 : isEvenRow
-                  ? 'hover:!bg-pink-300 dark:hover:!bg-pink-800'
-                  : 'hover:!bg-pink-200 dark:hover:!bg-pink-900/50';
-            // Sticky hover matches
+                  ? 'hover:!bg-slate-100 dark:hover:!bg-slate-800/60'
+                  : 'hover:!bg-slate-50 dark:hover:!bg-slate-800/40';
             const stickyHoverClass = isSelected
               ? ''
               : stale
-                ? 'group-hover:!bg-red-600 dark:group-hover:!bg-red-700'
+                ? 'group-hover:!bg-red-100 dark:group-hover:!bg-red-800/50'
                 : isEvenRow
-                  ? 'group-hover:!bg-pink-300 dark:group-hover:!bg-pink-800'
-                  : 'group-hover:!bg-pink-200 dark:group-hover:!bg-pink-900/50';
-            // Neo-brutalist border styling - using outline for full border that doesn't conflict with adjacent rows
+                  ? 'group-hover:!bg-slate-100 dark:group-hover:!bg-slate-800/60'
+                  : 'group-hover:!bg-slate-50 dark:group-hover:!bg-slate-800/40';
             const outlineClass = isSelected
-              ? 'outline outline-2 outline-amber-600 dark:outline-amber-500 -outline-offset-1'
-              : 'outline-0 hover:outline hover:outline-2 hover:outline-pink-500 dark:hover:outline-pink-400 hover:-outline-offset-1';
-            // Zebra striping - stale rows override, then selected, then normal stripe
+              ? 'outline outline-2 outline-blue-400 dark:outline-blue-500 -outline-offset-1'
+              : 'outline-0 hover:outline hover:outline-1 hover:outline-slate-300 dark:hover:outline-slate-600 hover:-outline-offset-1';
             const rowBg = isSelected 
-              ? '!bg-secondary' 
+              ? '!bg-blue-50 dark:!bg-blue-950/30' 
               : stale 
-                ? '!bg-red-700 dark:!bg-red-800 text-white' 
+                ? '!bg-red-50 dark:!bg-red-900/30' 
                 : isEvenRow 
                   ? 'bg-table-stripe' 
                   : '';
@@ -545,7 +541,7 @@ export function MarketListingsTable({ listings, onEdit, onRefresh, sortColumn, s
             <TableRow 
               key={listing.id} 
               className={cn(
-                'group cursor-pointer transition-all !border-b-2 !border-foreground',
+                'group cursor-pointer transition-all !border-b !border-border',
                 rowBg,
                 hoverClass,
                 outlineClass

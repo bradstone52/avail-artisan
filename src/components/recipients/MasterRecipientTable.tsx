@@ -207,10 +207,10 @@ export function MasterRecipientTable({
               <TableRow
                 key={recipient.id}
                 className={cn(
-                  "cursor-pointer !border-b-2 !border-foreground",
+                  "cursor-pointer !border-b !border-border",
                   selectedIds.has(recipient.id)
-                    ? "!bg-secondary outline outline-2 outline-amber-600"
-                    : "hover:!bg-pink-200 hover:outline hover:outline-2 hover:outline-pink-500"
+                    ? "!bg-blue-50 outline outline-2 outline-blue-400"
+                    : "hover:!bg-slate-50 hover:outline hover:outline-1 hover:outline-slate-300"
                 )}
               >
                 <TableCell>
