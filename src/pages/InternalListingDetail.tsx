@@ -464,7 +464,7 @@ export default function InternalListingDetail() {
           </TabsContent>
 
           <TabsContent value="inquiries" className="space-y-6">
-            <ToursSection listingId={listing.id} />
+            <ToursSection listingId={listing.id} listingAddress={listing.address} listingNumber={listing.listing_number} />
             <InquiriesSection listingId={listing.id} />
           </TabsContent>
 

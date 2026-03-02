@@ -2,23 +2,58 @@ import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Plus, Calendar, User, Building2, Trash2, Edit2 } from 'lucide-react';
+import { Plus, Calendar, User, Building2, Trash2, Edit2, Download } from 'lucide-react';
 import { useInternalListingTours, InternalListingTour, TourFormData } from '@/hooks/useInternalListingTours';
 import { TourFormDialog } from './TourFormDialog';
 import { ConfirmDialog } from '@/components/common/ConfirmDialog';
 import { format } from 'date-fns';
+import { pdf } from '@react-pdf/renderer';
+import { TourLogPDF } from './TourLogPDF';
+import { toast } from 'sonner';
 
 interface ToursSectionProps {
   listingId: string;
+  listingAddress?: string;
+  listingNumber?: string | null;
 }
 
-export function ToursSection({ listingId }: ToursSectionProps) {
+export function ToursSection({ listingId, listingAddress = '', listingNumber }: ToursSectionProps) {
   const { tours, isLoading, createTour, updateTour, deleteTour } =
     useInternalListingTours(listingId);
 
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingTour, setEditingTour] = useState<InternalListingTour | null>(null);
   const [deletingTourId, setDeletingTourId] = useState<string | null>(null);
+  const [exportingPdf, setExportingPdf] = useState(false);
+
+  const handleExportPdf = async () => {
+    setExportingPdf(true);
+    try {
+      const blob = await pdf(
+        <TourLogPDF
+          tours={tours}
+          listingAddress={listingAddress}
+          listingNumber={listingNumber}
+          generatedAt={new Date()}
+        />
+      ).toBlob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      const safeName = listingAddress.replace(/[^a-zA-Z0-9]/g, '_').slice(0, 40);
+      a.download = `tour-log-${safeName}-${format(new Date(), 'yyyy-MM-dd')}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      toast.success('Tour log PDF downloaded');
+    } catch (err) {
+      console.error('Error exporting tour log PDF:', err);
+      toast.error('Failed to export PDF');
+    } finally {
+      setExportingPdf(false);
+    }
+  };
 
   const handleCreate = (data: TourFormData) => {
     createTour.mutate(
@@ -55,10 +90,21 @@ export function ToursSection({ listingId }: ToursSectionProps) {
               </Badge>
             )}
           </CardTitle>
-          <Button size="sm" onClick={() => setIsFormOpen(true)}>
-            <Plus className="h-4 w-4 mr-1" />
-            Log Tour
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={handleExportPdf}
+              disabled={tours.length === 0 || exportingPdf}
+            >
+              <Download className="h-4 w-4 mr-1" />
+              {exportingPdf ? 'Exporting...' : 'Export PDF'}
+            </Button>
+            <Button size="sm" onClick={() => setIsFormOpen(true)}>
+              <Plus className="h-4 w-4 mr-1" />
+              Log Tour
+            </Button>
+          </div>
         </CardHeader>
         <CardContent>
           {isLoading ? (
