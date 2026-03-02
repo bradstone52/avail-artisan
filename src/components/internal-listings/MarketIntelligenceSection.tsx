@@ -65,7 +65,7 @@ function PricingIndicator({
   const display = getPositionDisplay();
 
   return (
-    <div className={`p-4 rounded-lg border-2 ${display.color}`}>
+    <div className={`p-4 rounded-lg border ${display.color}`}>
       <div className="flex items-center justify-between mb-2">
         <span className="text-sm font-medium uppercase tracking-wide">{label}</span>
         <div className="flex items-center gap-1">
@@ -251,7 +251,7 @@ export function MarketIntelligenceSection({ listing }: MarketIntelligenceSection
       </div>
 
       {/* Market Stats Summary */}
-      <Card className="border-2 border-foreground shadow-[4px_4px_0_hsl(var(--foreground))]">
+      <Card>
         <CardHeader className="pb-2">
           <CardTitle className="flex items-center gap-2 text-lg">
             <BarChart3 className="h-5 w-5" />
@@ -299,7 +299,7 @@ export function MarketIntelligenceSection({ listing }: MarketIntelligenceSection
       </Card>
 
       {/* Comparable Listings */}
-      <Card className="border-2 border-foreground shadow-[4px_4px_0_hsl(var(--foreground))]">
+      <Card>
         <CardHeader className="pb-2">
           <CardTitle className="flex items-center gap-2 text-lg">
             <Building2 className="h-5 w-5" />
@@ -332,7 +332,7 @@ export function MarketIntelligenceSection({ listing }: MarketIntelligenceSection
       </Card>
 
       {/* Recent Transactions */}
-      <Card className="border-2 border-foreground shadow-[4px_4px_0_hsl(var(--foreground))]">
+      <Card>
         <CardHeader className="pb-2">
           <CardTitle className="flex items-center gap-2 text-lg">
             <History className="h-5 w-5" />
