@@ -59,7 +59,7 @@ export function LinkDealDialog({ open, onOpenChange, listingId }: LinkDealDialog
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className="w-[calc(100vw-2rem)] max-w-lg shadow-none overflow-hidden">
+      <DialogContent className="w-[calc(100vw-2rem)] max-w-xl">
         <DialogHeader>
           <DialogTitle className="text-xl font-black uppercase tracking-tight">Link Existing Deal</DialogTitle>
         </DialogHeader>
