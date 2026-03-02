@@ -457,7 +457,7 @@ export function DistributionListingsTable({ listings, onListingUpdated }: Distri
       {/* Table */}
       <div 
         ref={scrollContainerRef}
-        className="relative border-3 border-foreground rounded-none shadow-[4px_4px_0_hsl(var(--foreground))]"
+        className="relative border border-border rounded-lg shadow-sm overflow-hidden"
         onMouseEnter={() => setIsHovered(true)}
         onMouseLeave={() => setIsHovered(false)}
         role="region"
@@ -465,21 +465,21 @@ export function DistributionListingsTable({ listings, onListingUpdated }: Distri
       >
         {/* Keyboard scroll indicator */}
         {isHovered && (
-          <div className="absolute -top-10 left-1/2 -translate-x-1/2 z-30 px-4 py-2 bg-primary text-primary-foreground text-sm font-black uppercase tracking-widest rounded-none border-3 border-foreground shadow-[4px_4px_0_hsl(var(--foreground))] animate-pulse">
-            ⌨️ ← → SCROLL
+          <div className="absolute -top-10 left-1/2 -translate-x-1/2 z-30 px-3 py-1.5 bg-primary text-primary-foreground text-xs font-medium rounded-full shadow-md animate-pulse">
+            ⌨️ ← → Scroll
           </div>
         )}
         <Table className="min-w-[1200px]">
           <TableHeader className="sticky top-0 z-10">
-            <TableRow className="bg-foreground">
-              <TableHead className="sticky left-0 z-30 min-w-[200px] bg-zinc-700 dark:bg-zinc-600 h-12 px-4 align-middle text-xs font-bold uppercase tracking-[0.15em] text-background shadow-[2px_0_5px_-2px_rgba(0,0,0,0.3)]">Property</TableHead>
-              <TableHead className="h-12 px-4 align-middle text-xs font-bold uppercase tracking-[0.15em] text-background bg-zinc-700 dark:bg-zinc-600 min-w-[130px]">Submarket</TableHead>
+            <TableRow>
+              <TableHead className="sticky left-0 z-30 min-w-[200px] bg-muted/60 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.08)]">Property</TableHead>
+              <TableHead className="min-w-[130px] bg-muted/60">Submarket</TableHead>
               <SortableHeader column="size_sf" className="text-right min-w-[100px]">Size (SF)</SortableHeader>
               <SortableHeader column="clear_height_ft" className="text-center min-w-[90px]">Clear Ht</SortableHeader>
               <SortableHeader column="dock_doors" className="text-center min-w-[70px]">Docks</SortableHeader>
               <SortableHeader column="drive_in_doors" className="text-center min-w-[80px]">Drive-In</SortableHeader>
-              <TableHead className="h-12 px-4 align-middle text-xs font-bold uppercase tracking-[0.15em] text-background bg-zinc-700 dark:bg-zinc-600 min-w-[100px]">Availability</TableHead>
-              <TableHead className="sticky right-0 z-30 min-w-[100px] bg-zinc-700 dark:bg-zinc-600 h-12 px-4 align-middle text-xs font-bold uppercase tracking-[0.15em] text-background shadow-[-2px_0_5px_-2px_rgba(0,0,0,0.3)] text-center">Actions</TableHead>
+              <TableHead className="min-w-[100px] bg-muted/60">Availability</TableHead>
+              <TableHead className="sticky right-0 z-30 min-w-[100px] bg-muted/60 shadow-[-2px_0_5px_-2px_rgba(0,0,0,0.08)] text-center">Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
