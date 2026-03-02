@@ -53,6 +53,7 @@ IMPORTANT RULES:
 1. Look at EVERY page, including title pages, lease pages, sale pages, and land pages.
 2. Each TABLE ROW is one listing. Extract one entry per row.
 3. If a listing has multiple bays/units at the same address (e.g. "4800 104 Avenue SE" with bays 109, 113, 125, 129), that is ONE listing row — extract the street address ONCE for that row.
+3b. If a listing combines two adjacent civic addresses with "&" or "and" (e.g. "2101 & 2121 - 50th Street SE", "100 & 200 Main Street NW"), treat it as ONE listing row. Use the FULL combined address string as written (e.g. "2101 & 2121 50 Street SE"). Do NOT split it into two separate rows and do NOT drop either number.
 4. If the SAME address appears in BOTH the "For Lease" section AND the "For Sale" section, extract it TWICE — once for each section with the appropriate listing_type.
 5. Strip prefixes like "Conditionally Sold", "Conditionally Leased", "New Listing", "End Cap Unit Available", "Sublease" from the address — but note the listing type.
 6. Include unit numbers if they identify a distinct listing row (e.g. "Unit 206 2340 Pegasus Way NE" is separate from "Unit 123 2340 Pegasus Way NE").
