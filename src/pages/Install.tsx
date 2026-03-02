@@ -63,12 +63,12 @@ export default function Install() {
   if (isStandalone) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center p-4">
-        <Card className="max-w-md w-full border-2 border-foreground shadow-[4px_4px_0_hsl(var(--foreground))]">
+        <Card className="max-w-md w-full">
           <CardHeader className="text-center">
-            <div className="mx-auto w-16 h-16 bg-success rounded-full flex items-center justify-center mb-4 border-2 border-foreground">
+            <div className="mx-auto w-16 h-16 bg-success rounded-full flex items-center justify-center mb-4">
               <Check className="h-8 w-8 text-white" />
             </div>
-            <CardTitle className="text-2xl font-black">You're All Set!</CardTitle>
+            <CardTitle className="text-2xl font-bold">You're All Set!</CardTitle>
             <CardDescription className="text-base">
               You're already using the installed app
             </CardDescription>
@@ -91,12 +91,12 @@ export default function Install() {
   if (isInstalled) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center p-4">
-        <Card className="max-w-md w-full border-2 border-foreground shadow-[4px_4px_0_hsl(var(--foreground))]">
+        <Card className="max-w-md w-full">
           <CardHeader className="text-center">
-            <div className="mx-auto w-16 h-16 bg-success rounded-full flex items-center justify-center mb-4 border-2 border-foreground">
+            <div className="mx-auto w-16 h-16 bg-success rounded-full flex items-center justify-center mb-4">
               <Check className="h-8 w-8 text-white" />
             </div>
-            <CardTitle className="text-2xl font-black">App Installed!</CardTitle>
+            <CardTitle className="text-2xl font-bold">App Installed!</CardTitle>
             <CardDescription className="text-base">
               Snapshot Builder is now on your home screen
             </CardDescription>
@@ -120,12 +120,12 @@ export default function Install() {
 
   return (
     <div className="min-h-screen bg-background flex items-center justify-center p-4 safe-area-top safe-area-bottom">
-      <Card className="max-w-md w-full border-2 border-foreground shadow-[4px_4px_0_hsl(var(--foreground))]">
+      <Card className="max-w-md w-full">
         <CardHeader className="text-center pb-2">
-          <div className="mx-auto w-20 h-20 bg-primary rounded-2xl flex items-center justify-center mb-4 border-3 border-foreground shadow-[4px_4px_0_hsl(var(--foreground))]">
-            <Building2 className="h-10 w-10 text-primary-foreground" />
+          <div className="mx-auto w-16 h-16 bg-primary rounded-xl flex items-center justify-center mb-4 shadow-lg">
+            <Building2 className="h-8 w-8 text-primary-foreground" />
           </div>
-          <CardTitle className="text-2xl font-black">Install Snapshot Builder</CardTitle>
+          <CardTitle className="text-2xl font-bold">Install Snapshot Builder</CardTitle>
           <CardDescription className="text-base">
             Add to your home screen for the best experience
           </CardDescription>
@@ -157,7 +157,7 @@ export default function Install() {
           {/* Install Instructions */}
           {isIOS ? (
             // iOS Instructions
-            <div className="bg-muted rounded-lg p-4 border-2 border-foreground">
+            <div className="bg-muted rounded-lg p-4 border border-border">
               <p className="font-bold mb-3">To install on iPad/iPhone:</p>
               <div className="space-y-3">
                 <div className="flex items-center gap-3">
@@ -191,7 +191,7 @@ export default function Install() {
             </Button>
           ) : (
             // Fallback instructions
-            <div className="bg-muted rounded-lg p-4 border-2 border-foreground">
+            <div className="bg-muted rounded-lg p-4 border border-border">
               <p className="font-bold mb-3">To install:</p>
               <div className="space-y-2 text-sm">
                 <p>• <strong>Chrome/Edge:</strong> Click the install icon in the address bar</p>

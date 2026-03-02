@@ -50,7 +50,7 @@ export default function AccountSettings() {
             <ArrowLeft className="h-5 w-5" />
           </Button>
           <div>
-            <h1 className="text-2xl font-black uppercase tracking-tight">Account Settings</h1>
+            <h1 className="text-2xl font-bold tracking-tight">Account Settings</h1>
             <p className="text-muted-foreground">Manage your account and security preferences</p>
           </div>
         </div>

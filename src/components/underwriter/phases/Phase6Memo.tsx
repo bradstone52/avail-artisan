@@ -42,7 +42,7 @@ export function Phase6Memo({ underwritingId, phaseData, isComplete }: Props) {
             <Printer className="w-4 h-4 mr-2" /> Export PDF
           </Button>
           <Button size="sm" onClick={() => save.mutate({ phase: 6, structuredData: { text } })}
-            disabled={save.isPending} className="border-2 border-foreground shadow-[2px_2px_0_hsl(var(--foreground))]">
+            disabled={save.isPending}>
             {save.isPending ? 'Saving…' : 'Save Changes'}
           </Button>
         </div>

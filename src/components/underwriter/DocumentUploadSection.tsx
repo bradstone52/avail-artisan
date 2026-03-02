@@ -40,7 +40,7 @@ export function DocumentUploadSection({ underwritingId, documents }: Props) {
     <div className="space-y-3">
       <div className="flex items-center gap-2">
         <Select value={selectedType} onValueChange={setSelectedType}>
-          <SelectTrigger className="w-56 h-8 text-xs border-2 border-foreground">
+          <SelectTrigger className="w-56 h-8 text-xs">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
@@ -57,7 +57,7 @@ export function DocumentUploadSection({ underwritingId, documents }: Props) {
           variant="outline"
           onClick={() => fileRef.current?.click()}
           disabled={upload.isPending}
-          className="h-8 text-xs border-2 border-foreground"
+          className="h-8 text-xs"
         >
           {upload.isPending ? (
             <Loader2 className="w-3 h-3 mr-1 animate-spin" />

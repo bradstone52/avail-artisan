@@ -90,14 +90,14 @@ export default function Tenants() {
           <TabsContent value="all">
             {/* Stats Cards */}
             <div className="grid grid-cols-2 gap-4 mb-6">
-              <Card className="border-2 border-foreground shadow-[4px_4px_0_hsl(var(--foreground))]">
+              <Card>
                 <CardContent className="p-4">
                   <div className="flex items-center gap-3">
                     <div className="p-2 bg-primary/10 rounded-lg">
                       <Users className="h-5 w-5 text-primary" />
                     </div>
                     <div>
-                      <p className="text-2xl font-black">
+                      <p className="text-2xl font-bold">
                         {allTenantsLoading ? <Skeleton className="h-8 w-16" /> : totalTenants}
                       </p>
                       <p className="text-sm text-muted-foreground font-medium">Total Tenants</p>
@@ -105,14 +105,14 @@ export default function Tenants() {
                   </div>
                 </CardContent>
               </Card>
-              <Card className="border-2 border-foreground shadow-[4px_4px_0_hsl(var(--foreground))]">
+              <Card>
                 <CardContent className="p-4">
                   <div className="flex items-center gap-3">
-                    <div className="p-2 bg-secondary/10 rounded-lg">
-                      <TrendingUp className="h-5 w-5 text-secondary-foreground" />
+                    <div className="p-2 bg-muted rounded-lg">
+                      <TrendingUp className="h-5 w-5 text-foreground" />
                     </div>
                     <div>
-                      <p className="text-2xl font-black">
+                      <p className="text-2xl font-bold">
                         {allTenantsLoading ? (
                           <Skeleton className="h-8 w-20" />
                         ) : (

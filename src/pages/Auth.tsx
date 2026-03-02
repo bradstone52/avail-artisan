@@ -141,7 +141,7 @@ export default function Auth() {
   if (authLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
-        <div className="border-2 border-foreground p-4 shadow-[4px_4px_0_hsl(var(--foreground))]" style={{ borderRadius: "var(--radius)" }}>
+        <div className="border border-border p-4 rounded-lg shadow-sm" style={{ borderRadius: "var(--radius)" }}>
           <Loader2 className="h-8 w-8 animate-spin text-primary" />
         </div>
       </div>
@@ -154,10 +154,10 @@ export default function Auth() {
       <div className="min-h-screen flex items-center justify-center bg-background p-4">
         <div className="w-full max-w-md animate-fade-in">
           <div className="text-center mb-8">
-            <div className="inline-flex items-center justify-center w-20 h-20 border-3 border-foreground bg-primary shadow-[6px_6px_0_hsl(var(--foreground))] mb-6" style={{ borderRadius: "var(--radius)" }}>
-              <Building2 className="w-10 h-10 text-primary-foreground" />
+            <div className="inline-flex items-center justify-center w-16 h-16 bg-primary rounded-xl shadow-lg mb-6">
+              <Building2 className="w-8 h-8 text-primary-foreground" />
             </div>
-            <h1 className="text-3xl font-black uppercase tracking-tight text-foreground">
+            <h1 className="text-2xl font-bold tracking-tight text-foreground">
               Distribution Snapshot
             </h1>
             <p className="text-muted-foreground mt-2 font-medium">
@@ -182,10 +182,10 @@ export default function Auth() {
       <div className="min-h-screen flex items-center justify-center bg-background p-4">
         <div className="w-full max-w-md animate-fade-in">
           <div className="text-center mb-8">
-            <div className="inline-flex items-center justify-center w-20 h-20 border-3 border-foreground bg-primary shadow-[6px_6px_0_hsl(var(--foreground))] mb-6" style={{ borderRadius: "var(--radius)" }}>
-              <Building2 className="w-10 h-10 text-primary-foreground" />
+            <div className="inline-flex items-center justify-center w-16 h-16 bg-primary rounded-xl shadow-lg mb-6">
+              <Building2 className="w-8 h-8 text-primary-foreground" />
             </div>
-            <h1 className="text-3xl font-black uppercase tracking-tight text-foreground">
+            <h1 className="text-2xl font-bold tracking-tight text-foreground">
               Distribution Snapshot
             </h1>
           </div>
@@ -203,10 +203,10 @@ export default function Auth() {
       <div className="w-full max-w-md animate-fade-in">
         {/* Logo and Title */}
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-20 h-20 border-3 border-foreground bg-primary shadow-[6px_6px_0_hsl(var(--foreground))] mb-6" style={{ borderRadius: "var(--radius)" }}>
-            <Building2 className="w-10 h-10 text-primary-foreground" />
+          <div className="inline-flex items-center justify-center w-16 h-16 bg-primary rounded-xl shadow-lg mb-6">
+            <Building2 className="w-8 h-8 text-primary-foreground" />
           </div>
-          <h1 className="text-3xl font-black uppercase tracking-tight text-foreground">
+          <h1 className="text-2xl font-bold tracking-tight text-foreground">
             Distribution Snapshot
           </h1>
           <p className="text-muted-foreground mt-2 font-medium">
@@ -225,7 +225,7 @@ export default function Auth() {
           <CardContent>
             <form onSubmit={handleLogin} className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="login-email" className="text-xs font-bold uppercase tracking-wider">Email</Label>
+                <Label htmlFor="login-email" className="text-xs font-medium text-muted-foreground">Email</Label>
                 <div className="relative">
                   <Mail className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                   <Input
@@ -241,7 +241,7 @@ export default function Auth() {
                 </div>
               </div>
               <div className="space-y-2">
-                <Label htmlFor="login-password" className="text-xs font-bold uppercase tracking-wider">Password</Label>
+                <Label htmlFor="login-password" className="text-xs font-medium text-muted-foreground">Password</Label>
                 <div className="relative">
                   <Lock className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                   <Input

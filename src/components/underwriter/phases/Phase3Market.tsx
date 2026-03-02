@@ -56,7 +56,7 @@ export function Phase3Market({ underwritingId, phaseData, isComplete }: Props) {
       analyzeLabel="Get Market Context"
       actions={hasData && (
         <Button size="sm" onClick={() => save.mutate({ phase: 3, structuredData: { market_summary_text: summary, market_rent_range: rentRange, tenant_rent_comparison: tenantComparison, positioning_options: positioning } })}
-          disabled={save.isPending} className="border-2 border-foreground shadow-[2px_2px_0_hsl(var(--foreground))]">
+          disabled={save.isPending}>
           {save.isPending ? 'Saving…' : 'Save Changes'}
         </Button>
       )}
@@ -64,8 +64,8 @@ export function Phase3Market({ underwritingId, phaseData, isComplete }: Props) {
       {hasData && (
         <div className="space-y-6">
           {summary && (
-            <div className="p-4 border-2 border-foreground/20 bg-muted/20">
-              <h4 className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-2">Market Summary</h4>
+            <div className="p-4 border border-border rounded-lg bg-muted/20">
+              <h4 className="text-xs font-medium text-muted-foreground mb-2">Market Summary</h4>
               <p className="text-sm leading-relaxed">{summary}</p>
               {rentRange && (
                 <p className="text-sm font-bold mt-2">
@@ -78,8 +78,8 @@ export function Phase3Market({ underwritingId, phaseData, isComplete }: Props) {
 
           {tenantComparison.length > 0 && (
             <div>
-              <h4 className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-2">Rent Comparison</h4>
-              <div className="border-2 border-foreground overflow-hidden">
+              <h4 className="text-xs font-medium text-muted-foreground mb-2">Rent Comparison</h4>
+              <div className="border border-border rounded-lg overflow-hidden">
                 <table className="w-full text-sm">
                    <colgroup>
                       <col className="w-auto" />
@@ -88,11 +88,11 @@ export function Phase3Market({ underwritingId, phaseData, isComplete }: Props) {
                       <col className="w-36" />
                     </colgroup>
                     <thead>
-                    <tr className="bg-muted border-b-2 border-foreground">
-                      <th className="px-3 py-2 text-left font-black uppercase text-xs">Tenant</th>
-                      <th className="px-3 py-2 text-right font-black uppercase text-xs whitespace-nowrap">In-Place $/SF</th>
-                      <th className="px-3 py-2 text-right font-black uppercase text-xs whitespace-nowrap">Market $/SF</th>
-                      <th className="px-3 py-2 text-center font-black uppercase text-xs">Position</th>
+                    <tr className="bg-muted border-b border-border">
+                      <th className="px-3 py-2 text-left font-semibold text-muted-foreground text-xs">Tenant</th>
+                      <th className="px-3 py-2 text-right font-semibold text-muted-foreground text-xs whitespace-nowrap">In-Place $/SF</th>
+                      <th className="px-3 py-2 text-right font-semibold text-muted-foreground text-xs whitespace-nowrap">Market $/SF</th>
+                      <th className="px-3 py-2 text-center font-semibold text-muted-foreground text-xs">Position</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -116,11 +116,11 @@ export function Phase3Market({ underwritingId, phaseData, isComplete }: Props) {
 
           {positioning.length > 0 && (
             <div>
-              <h4 className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-2">Positioning Options</h4>
+              <h4 className="text-xs font-medium text-muted-foreground mb-2">Positioning Options</h4>
               <div className="grid grid-cols-3 gap-3">
                 {positioning.map((p, i) => (
-                  <Card key={i} className="p-3 border-2 border-foreground/30">
-                    <div className="font-bold text-xs uppercase tracking-wide mb-1">{p.label}</div>
+                  <Card key={i} className="p-3">
+                    <div className="font-medium text-xs mb-1">{p.label}</div>
                     <div className="text-xs text-muted-foreground">{p.description}</div>
                   </Card>
                 ))}

@@ -67,7 +67,7 @@ export default function UnderwritingDetail() {
           <div>
             <div className="flex items-center gap-3 mb-1">
               <Calculator className="w-6 h-6 text-primary" />
-              <h1 className="text-2xl font-black uppercase tracking-tight">{uw.property_name}</h1>
+              <h1 className="text-2xl font-bold tracking-tight">{uw.property_name}</h1>
               <Badge variant="outline" className="border-foreground/50 text-xs">{uw.submarket}</Badge>
             </div>
             <p className="text-sm text-muted-foreground">{uw.address}</p>
@@ -81,15 +81,15 @@ export default function UnderwritingDetail() {
             variant="outline"
             size="sm"
             onClick={() => navigate('/underwriter')}
-            className="border-2 border-foreground"
+            className="border"
           >
             ← Back
           </Button>
         </div>
 
         {/* Phase progress indicator */}
-        <div className="flex items-center gap-2 p-4 border-2 border-foreground bg-muted/20">
-          <span className="text-xs font-bold uppercase text-muted-foreground mr-2">
+        <div className="flex items-center gap-2 p-4 border border-border rounded-lg bg-muted/20">
+          <span className="text-xs font-medium text-muted-foreground mr-2">
             {completedCount}/7 phases complete
           </span>
           {Array.from({ length: 7 }, (_, i) => {
@@ -97,7 +97,7 @@ export default function UnderwritingDetail() {
             return (
               <div key={i} className="flex items-center">
                 <div className={cn(
-                  "flex items-center justify-center w-7 h-7 rounded-full border-2 text-xs font-black",
+                  "flex items-center justify-center w-7 h-7 rounded-full border-2 text-xs font-semibold",
                   done
                     ? "bg-primary text-primary-foreground border-primary"
                     : "bg-background text-foreground border-foreground/40"

@@ -52,17 +52,17 @@ export function UnderwritingListTable({ underwritings }: Props) {
   }
 
   return (
-    <div className="border-2 border-foreground shadow-[4px_4px_0_hsl(var(--foreground))] overflow-hidden">
+    <div className="border border-border shadow-sm overflow-hidden rounded-lg">
       <Table>
         <TableHeader>
-          <TableRow className="border-b-2 border-foreground bg-muted/50">
-            <TableHead className="font-black uppercase text-xs">Property</TableHead>
-            <TableHead className="font-black uppercase text-xs">Address</TableHead>
-            <TableHead className="font-black uppercase text-xs">Submarket</TableHead>
-            <TableHead className="font-black uppercase text-xs text-right">Size SF</TableHead>
-            <TableHead className="font-black uppercase text-xs">Status</TableHead>
-            <TableHead className="font-black uppercase text-xs">Phases</TableHead>
-            <TableHead className="font-black uppercase text-xs">Created</TableHead>
+          <TableRow className="border-b border-border bg-muted/50">
+            <TableHead className="font-semibold text-xs text-muted-foreground">Property</TableHead>
+            <TableHead className="font-semibold text-xs text-muted-foreground">Address</TableHead>
+            <TableHead className="font-semibold text-xs text-muted-foreground">Submarket</TableHead>
+            <TableHead className="font-semibold text-xs text-right text-muted-foreground">Size SF</TableHead>
+            <TableHead className="font-semibold text-xs text-muted-foreground">Status</TableHead>
+            <TableHead className="font-semibold text-xs text-muted-foreground">Phases</TableHead>
+            <TableHead className="font-semibold text-xs text-muted-foreground">Created</TableHead>
             <TableHead className="w-20" />
           </TableRow>
         </TableHeader>
