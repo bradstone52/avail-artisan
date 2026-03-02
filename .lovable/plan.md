@@ -1,58 +1,50 @@
 
-# Pre-flight: Fix 4 TypeScript Build Errors (Type Casts Only)
+## Tour Log PDF Export
 
-## Changes — 3 files, 4 lines
+### Overview
+Add an "Export PDF" button to the Property Tours section in the Internal Listing detail page. Clicking it instantly generates and downloads a clean PDF report of all logged tours for that listing — no dialog needed, just a one-click download.
 
-### 1. `supabase/functions/geocode-market-listing/index.ts`
+### What will be built
 
-**Line 498** — cast `listing.address` and `listing.city` to `string`:
-```typescript
-// Before
-const geocodeResult = await geocodeWithGoogle(listing.address, listing.city, googleApiKey);
+**1. New file: `src/components/internal-listings/TourLogPDF.tsx`**
 
-// After
-const geocodeResult = await geocodeWithGoogle(listing.address as string, listing.city as string, googleApiKey);
-```
+A `@react-pdf/renderer` Document component styled to match the existing deal PDFs (Clearview logo, orange accent, same typography). The PDF will contain:
 
-**Line 514** — cast `listing.address` to `string`:
-```typescript
-// Before
-? await determineSubmarket(geocodeResult.lat, geocodeResult.lng, listing.address)
+- **Header**: Clearview logo (top-left), generated date (top-right), orange bottom border
+- **Property banner**: Property address and listing number in a shaded subtitle bar
+- **Summary line**: "X tours logged between [earliest date] and [latest date]"
+- **Tour rows table** with columns:
+  - Date & Time
+  - Touring Party (Name / Company)
+  - Showed By (Agent / Brokerage)
+  - Notes
+- **Footer**: Page number
 
-// After
-? await determineSubmarket(geocodeResult.lat, geocodeResult.lng, listing.address as string)
-```
+**2. Updated file: `src/components/internal-listings/ToursSection.tsx`**
 
----
+- Import `pdf` from `@react-pdf/renderer` and the new `TourLogPDF`
+- Add an "Export PDF" button in the card header (next to "Log Tour"), disabled when `tours.length === 0`
+- The button calls an async handler that:
+  1. Calls `pdf(<TourLogPDF ... />).toBlob()`
+  2. Creates a temporary `<a>` element with the blob URL
+  3. Triggers a download with filename `tour-log-[address]-[date].pdf`
+  4. Shows a `toast.success` on completion
 
-### 2. `supabase/functions/refresh-statutory-holidays/index.ts`
+### Visual design (PDF)
+Consistent with existing deal PDFs:
+- Colors: `ORANGE = '#e8792b'`, `GRAY_BG = '#f7f7f7'`, `BORDER = '#e0e0e0'`
+- Font: Helvetica, 8pt body
+- Table with alternating row shading for readability
+- "Not specified" italics for empty fields, matching the UI card
 
-**Line 97** — cast `err` as `Error`:
-```typescript
-// Before
-JSON.stringify({ error: err.message }),
+### Props passed from `ToursSection` to `TourLogPDF`
+- `tours`: full array of `InternalListingTour`
+- `listingAddress`: string (passed as a new prop to `ToursSection` from the detail page)
+- `generatedAt`: current date
 
-// After
-JSON.stringify({ error: (err as Error).message }),
-```
-
----
-
-### 3. `supabase/functions/rocketreach-lookup/index.ts`
-
-**Line 159** — cast `p.id` to `string`:
-```typescript
-// Before
-const full = await lookupById(p.id);
-
-// After
-const full = await lookupById(p.id as string);
-```
-
----
-
-## Scope
-
-- No logic changes anywhere
-- No other files touched
-- Build errors resolved; green build before the main feature slices begin
+### Files changed
+| File | Action |
+|---|---|
+| `src/components/internal-listings/TourLogPDF.tsx` | Create new |
+| `src/components/internal-listings/ToursSection.tsx` | Add export button + handler, add `listingAddress` prop |
+| `src/pages/InternalListingDetail.tsx` | Pass `listingAddress` to `ToursSection` |
