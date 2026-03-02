@@ -19,6 +19,7 @@ import { InquiriesSection } from '@/components/internal-listings/InquiriesSectio
 import { ToursSection } from '@/components/internal-listings/ToursSection';
 import { MarketingSection } from '@/components/internal-listings/MarketingSection';
 import { MarketIntelligenceSection } from '@/components/internal-listings/MarketIntelligenceSection';
+import { LinkedDealPanel } from '@/components/internal-listings/LinkedDealPanel';
 import { formatNumber, formatCurrency } from '@/lib/format';
 import { format } from 'date-fns';
 import {
@@ -297,6 +298,8 @@ export default function InternalListingDetail() {
                 </CardContent>
               </Card>
 
+              {/* Right sidebar: Financial + Linked Deal stacked */}
+              <div className="space-y-6">
               {/* Financial Summary */}
               <Card className="border-2 border-foreground shadow-[4px_4px_0_hsl(var(--foreground))]">
                 <CardHeader>
@@ -368,6 +371,10 @@ export default function InternalListingDetail() {
                   )}
                 </CardContent>
               </Card>
+
+              {/* Linked Deal */}
+              <LinkedDealPanel listingId={listing.id} />
+              </div>
             </div>
 
             {/* Assignment & Owner */}
