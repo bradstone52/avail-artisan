@@ -23,7 +23,7 @@ export default function Underwriter() {
           actions={
             <Button
               onClick={() => setDialogOpen(true)}
-              className="border-2 border-foreground shadow-[3px_3px_0_hsl(var(--foreground))] hover:shadow-none hover:translate-x-0.5 hover:translate-y-0.5 transition-all"
+              className="border border-border shadow-sm hover:shadow-md transition-all"
             >
               <Plus className="w-4 h-4 mr-2" />
               New Underwriting

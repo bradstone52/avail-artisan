@@ -119,7 +119,7 @@ export function InternalListingDocumentsSection({ listingId }: InternalListingDo
 
   if (isLoading) {
     return (
-      <Card className="border-2 border-foreground shadow-[4px_4px_0_hsl(var(--foreground))]">
+      <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <FileText className="h-5 w-5" />
@@ -137,7 +137,7 @@ export function InternalListingDocumentsSection({ listingId }: InternalListingDo
 
   return (
     <>
-      <Card className="border-2 border-foreground shadow-[4px_4px_0_hsl(var(--foreground))]">
+      <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <FileText className="h-5 w-5" />

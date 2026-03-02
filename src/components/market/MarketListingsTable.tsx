@@ -573,12 +573,12 @@ export function MarketListingsTable({ listings, onEdit, onRefresh, sortColumn, s
                     handleCycleQuad(listing);
                   }}
                   disabled={updatingQuad === listing.id}
-                  className={`px-2 py-1 text-xs font-bold uppercase border-2 border-foreground transition-all disabled:opacity-50 shadow-[2px_2px_0_hsl(var(--foreground))] ${
-                    listing.calgary_quad === 'NE' ? 'bg-orange-400 text-black'
-                    : listing.calgary_quad === 'SE' ? 'bg-lime-400 text-black'
-                    : listing.calgary_quad === 'NW' ? 'bg-cyan-400 text-black'
-                    : listing.calgary_quad === 'SW' ? 'bg-yellow-300 text-black'
-                    : 'bg-muted text-muted-foreground'
+                  className={`px-2 py-1 text-xs font-semibold rounded border transition-all disabled:opacity-50 ${
+                    listing.calgary_quad === 'NE' ? 'bg-orange-100 text-orange-800 border-orange-300'
+                    : listing.calgary_quad === 'SE' ? 'bg-lime-100 text-lime-800 border-lime-300'
+                    : listing.calgary_quad === 'NW' ? 'bg-cyan-100 text-cyan-800 border-cyan-300'
+                    : listing.calgary_quad === 'SW' ? 'bg-yellow-100 text-yellow-800 border-yellow-300'
+                    : 'bg-muted text-muted-foreground border-border'
                   }`}
                   style={{ borderRadius: 'var(--radius)' }}
                 >
@@ -595,10 +595,10 @@ export function MarketListingsTable({ listings, onEdit, onRefresh, sortColumn, s
                     handleToggleDW(listing);
                   }}
                   disabled={updatingDW === listing.id}
-                  className={`px-2 py-1 text-xs font-bold uppercase border-2 border-foreground transition-all disabled:opacity-50 ${
+                  className={`px-2 py-1 text-xs font-semibold rounded border transition-all disabled:opacity-50 ${
                     listing.is_distribution_warehouse 
-                      ? 'bg-primary text-primary-foreground shadow-[2px_2px_0_hsl(var(--foreground))]' 
-                      : 'bg-destructive text-destructive-foreground shadow-[2px_2px_0_hsl(var(--foreground))]'
+                      ? 'bg-primary/10 text-primary border-primary/30' 
+                      : 'bg-destructive/10 text-destructive border-destructive/30'
                   }`}
                   style={{ borderRadius: 'var(--radius)' }}
                 >
@@ -747,10 +747,10 @@ export function MarketListingsTable({ listings, onEdit, onRefresh, sortColumn, s
                     handleToggleLand(listing);
                   }}
                   disabled={updatingLand === listing.id}
-                  className={`px-2 py-1 text-xs font-bold uppercase border-2 border-foreground transition-all disabled:opacity-50 ${
+                  className={`px-2 py-1 text-xs font-semibold rounded border transition-all disabled:opacity-50 ${
                     listing.has_land 
-                      ? 'bg-amber-500 text-amber-950 shadow-[2px_2px_0_hsl(var(--foreground))]' 
-                      : 'bg-muted text-muted-foreground shadow-[2px_2px_0_hsl(var(--foreground))]'
+                      ? 'bg-amber-100 text-amber-800 border-amber-300' 
+                      : 'bg-muted text-muted-foreground border-border'
                   }`}
                   style={{ borderRadius: 'var(--radius)' }}
                 >

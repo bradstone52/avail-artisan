@@ -71,11 +71,11 @@ export function LinkDealDialog({ open, onOpenChange, listingId }: LinkDealDialog
               placeholder="Search by address, deal #, or party name…"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="pl-9 border-2 border-foreground"
+              className="pl-9"
             />
           </div>
 
-          <div className="max-h-72 overflow-y-auto rounded-md border-2 border-foreground">
+          <div className="max-h-72 overflow-y-auto rounded-md border border-border">
             {isLoading && (
               <p className="text-sm text-muted-foreground text-center py-4">Loading deals…</p>
             )}
@@ -103,8 +103,8 @@ export function LinkDealDialog({ open, onOpenChange, listingId }: LinkDealDialog
                   </div>
                   <Badge
                     variant="outline"
-                    className={`shrink-0 text-xs font-black uppercase border-2 whitespace-nowrap shadow-none bg-transparent ${
-                      selectedDealId === deal.id ? 'border-primary-foreground text-primary-foreground' : 'border-foreground'
+                  className={`shrink-0 text-xs font-medium whitespace-nowrap ${
+                      selectedDealId === deal.id ? 'border-primary-foreground text-primary-foreground' : ''
                     }`}
                   >
                     {deal.status}
@@ -116,7 +116,7 @@ export function LinkDealDialog({ open, onOpenChange, listingId }: LinkDealDialog
         </div>
 
         <DialogFooter>
-          <Button variant="outline" onClick={handleClose} className="font-black uppercase border-2 border-foreground">
+          <Button variant="outline" onClick={handleClose}>
             Cancel
           </Button>
           <Button

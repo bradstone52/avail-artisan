@@ -557,10 +557,10 @@ function MatchedReviewCard({ pair, onEdit, scopeListings }: { pair: MatchedPair;
     <div className="space-y-3">
       <div className="grid grid-cols-2 gap-4">
         {/* PDF Side */}
-        <div className="border-2 border-foreground rounded-md p-4 space-y-2" style={{ borderRadius: 'var(--radius)' }}>
+        <div className="border border-border rounded-lg p-4 space-y-2">
           <div className="flex items-center gap-2 mb-3">
             <Badge className="bg-amber-500 text-white text-xs">PDF</Badge>
-            <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Extracted</span>
+            <span className="text-xs font-semibold text-muted-foreground">Extracted</span>
           </div>
           <div>
             <p className="text-sm font-bold">{pdfListing.address}</p>
@@ -580,7 +580,7 @@ function MatchedReviewCard({ pair, onEdit, scopeListings }: { pair: MatchedPair;
           {/* Primary listing - compact when sibling expanded */}
           <div
             className={cn(
-              "border-2 border-foreground rounded-md space-y-2 transition-all duration-200",
+              "border border-border rounded-lg space-y-2 transition-all duration-200",
               isExpanded
                 ? "p-2 cursor-pointer hover:bg-muted/50"
                 : "p-4"
@@ -590,7 +590,7 @@ function MatchedReviewCard({ pair, onEdit, scopeListings }: { pair: MatchedPair;
           >
             <div className="flex items-center gap-2 mb-1">
               <Badge className="bg-blue-600 text-white text-xs">Database</Badge>
-              <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+              <span className="text-xs font-semibold text-muted-foreground">
                 {isExpanded ? 'Primary — click to restore' : 'Current'}
               </span>
             </div>
@@ -636,7 +636,7 @@ function MatchedReviewCard({ pair, onEdit, scopeListings }: { pair: MatchedPair;
                 className={cn(
                   "border rounded-md space-y-2 transition-all duration-200 cursor-pointer",
                   isSiblingExpanded
-                    ? "border-2 border-foreground p-4 bg-background"
+                    ? "border border-border p-4 bg-background"
                     : "p-3 bg-muted/30 hover:bg-muted/50"
                 )}
                 onClick={() => handleSiblingClick(sibling.id)}

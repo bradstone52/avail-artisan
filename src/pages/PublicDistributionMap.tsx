@@ -110,9 +110,9 @@ export default function PublicDistributionMap() {
   if (error) {
     return (
       <div className="h-screen bg-background flex items-center justify-center p-4 overflow-hidden">
-        <div className="brutalist-card p-8 max-w-md text-center">
+        <div className="bg-card rounded-lg shadow-md border border-border p-8 max-w-md text-center">
           <AlertCircle className="w-16 h-16 text-destructive mx-auto mb-4" />
-          <h1 className="text-2xl font-black mb-2">Invalid Link</h1>
+          <h1 className="text-2xl font-bold mb-2">Invalid Link</h1>
           <p className="text-muted-foreground">{error}</p>
         </div>
       </div>

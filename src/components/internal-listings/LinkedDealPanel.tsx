@@ -56,7 +56,7 @@ export function LinkedDealPanel({ listing }: LinkedDealPanelProps) {
 
   return (
     <>
-      <Card className="border-2 border-foreground shadow-[4px_4px_0_hsl(var(--foreground))]">
+      <Card>
         <CardHeader className="pb-3">
           <CardTitle className="flex items-center gap-2 text-base">
             <Handshake className="h-4 w-4" />

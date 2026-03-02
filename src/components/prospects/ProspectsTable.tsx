@@ -561,11 +561,11 @@ export function ProspectsTable({ prospects, isLoading, onEdit }: ProspectsTableP
                             type="button"
                             disabled={updatingPriority === prospect.id}
                             className={cn(
-                              'px-2 py-1 text-xs font-bold uppercase border-2 border-foreground transition-all disabled:opacity-50 shadow-[2px_2px_0_hsl(var(--foreground))] flex items-center gap-1',
-                              prospect.priority === 'A' && 'bg-red-400 text-black',
-                              prospect.priority === 'B' && 'bg-yellow-300 text-black',
-                              prospect.priority === 'C' && 'bg-cyan-300 text-black',
-                              !prospect.priority && 'bg-muted text-muted-foreground',
+              'px-2 py-1 text-xs font-semibold rounded border transition-all disabled:opacity-50 flex items-center gap-1',
+                              prospect.priority === 'A' && 'bg-red-100 text-red-800 border-red-300',
+                              prospect.priority === 'B' && 'bg-yellow-100 text-yellow-800 border-yellow-300',
+                              prospect.priority === 'C' && 'bg-cyan-100 text-cyan-800 border-cyan-300',
+                              !prospect.priority && 'bg-muted text-muted-foreground border-border',
                             )}
                             style={{ borderRadius: 'var(--radius)' }}
                           >

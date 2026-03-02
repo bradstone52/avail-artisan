@@ -48,12 +48,12 @@ export function AllTenantsTable({ tenants, searchQuery }: AllTenantsTableProps) 
     <Table>
         <TableHeader>
           <TableRow className="bg-muted/50 hover:bg-muted/50">
-            <TableHead className="font-black uppercase text-xs tracking-wider">Tenant</TableHead>
-            <TableHead className="font-black uppercase text-xs tracking-wider">Property</TableHead>
-            <TableHead className="font-black uppercase text-xs tracking-wider">Unit</TableHead>
-            <TableHead className="font-black uppercase text-xs tracking-wider text-right">Size (SF)</TableHead>
-            <TableHead className="font-black uppercase text-xs tracking-wider">Lease Expiry</TableHead>
-            <TableHead className="font-black uppercase text-xs tracking-wider hidden md:table-cell">Source</TableHead>
+            <TableHead className="font-semibold text-muted-foreground uppercase text-xs tracking-wide">Tenant</TableHead>
+            <TableHead className="font-semibold text-muted-foreground uppercase text-xs tracking-wide">Property</TableHead>
+            <TableHead className="font-semibold text-muted-foreground uppercase text-xs tracking-wide">Unit</TableHead>
+            <TableHead className="font-semibold text-muted-foreground uppercase text-xs tracking-wide text-right">Size (SF)</TableHead>
+            <TableHead className="font-semibold text-muted-foreground uppercase text-xs tracking-wide">Lease Expiry</TableHead>
+            <TableHead className="font-semibold text-muted-foreground uppercase text-xs tracking-wide hidden md:table-cell">Source</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>

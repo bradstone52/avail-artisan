@@ -568,7 +568,7 @@ export default function PropertiesMap() {
                 variant="default"
                 size="icon"
                 onClick={() => navigate('/properties')}
-                className="h-12 w-12 rounded-full shadow-lg border-2 border-foreground bg-card text-foreground hover:bg-muted"
+                className="h-12 w-12 rounded-full shadow-lg border border-border bg-card text-foreground hover:bg-muted"
               >
                 <ArrowLeft className="h-6 w-6" />
               </Button>
@@ -581,7 +581,7 @@ export default function PropertiesMap() {
                   size="icon"
                   onClick={handleGeocodeAll}
                   disabled={isGeocoding}
-                  className="h-12 w-12 rounded-full shadow-lg border-2 border-foreground bg-card text-foreground hover:bg-muted"
+                  className="h-12 w-12 rounded-full shadow-lg border border-border bg-card text-foreground hover:bg-muted"
                   title="Geocode all properties"
                 >
                   {isGeocoding ? (
@@ -611,7 +611,7 @@ export default function PropertiesMap() {
               size="icon"
               onClick={handleCenterOnUser}
               disabled={geoLoading}
-              className="h-14 w-14 rounded-full shadow-lg border-2 border-foreground bg-card text-foreground hover:bg-muted"
+              className="h-14 w-14 rounded-full shadow-lg border border-border bg-card text-foreground hover:bg-muted"
               title="Center on my location"
             >
               {geoLoading ? (
@@ -624,12 +624,12 @@ export default function PropertiesMap() {
 
           {/* Bottom Info Card - adjusted for mobile nav */}
           <div className="absolute bottom-20 md:bottom-0 left-0 right-0 z-10 p-3 safe-area-bottom">
-            <Card className="shadow-lg border-2 border-foreground">
+            <Card className="shadow-lg border border-border">
               <CardContent className="p-4">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-4">
                     <div className="flex items-center gap-2">
-                      <div className="w-4 h-4 rounded-full bg-primary border-2 border-foreground" />
+                      <div className="w-4 h-4 rounded-full bg-primary border border-border" />
                       <span className="text-sm font-semibold">
                         {properties.filter(p => p.latitude && p.longitude).length} Properties
                       </span>

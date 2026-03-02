@@ -580,7 +580,7 @@ export function MarketingSection({ listing, onPhotoUpdate }: MarketingSectionPro
    return (
      <div className="space-y-6">
       {/* Photo Upload Section */}
-      <Card className="border-2 border-foreground shadow-[4px_4px_0_hsl(var(--foreground))]">
+       <Card>
         <CardHeader>
           <CardTitle className="text-base flex items-center gap-2">
             <ImageIcon className="h-4 w-4" />
@@ -641,7 +641,7 @@ export function MarketingSection({ listing, onPhotoUpdate }: MarketingSectionPro
       </Card>
 
       {/* Additional Photos Section */}
-      <Card className="border-2 border-foreground shadow-[4px_4px_0_hsl(var(--foreground))]">
+      <Card>
         <CardHeader>
           <CardTitle className="text-base flex items-center gap-2">
             <Images className="h-4 w-4" />
@@ -659,7 +659,7 @@ export function MarketingSection({ listing, onPhotoUpdate }: MarketingSectionPro
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-4">
               {additionalPhotos.map((photo) => (
                 <div key={photo.id} className="relative group">
-                  <AspectRatio ratio={4 / 3} className="overflow-hidden rounded border-2 border-foreground">
+                  <AspectRatio ratio={4 / 3} className="overflow-hidden rounded border border-border">
                     <img
                       src={photo.photo_url}
                       alt="Property photo"
@@ -705,7 +705,7 @@ export function MarketingSection({ listing, onPhotoUpdate }: MarketingSectionPro
       </Card>
 
       {/* Location Map Preview */}
-      <Card className="border-2 border-foreground shadow-[4px_4px_0_hsl(var(--foreground))]">
+      <Card>
         <CardHeader>
           <CardTitle className="text-base flex items-center gap-2">
             <MapPin className="h-4 w-4" />
@@ -716,7 +716,7 @@ export function MarketingSection({ listing, onPhotoUpdate }: MarketingSectionPro
           {hasLocation ? (
             <div className="space-y-2">
               <div className="relative">
-                <AspectRatio ratio={16 / 9} className="overflow-hidden rounded-lg border-2 border-foreground bg-muted">
+                <AspectRatio ratio={16 / 9} className="overflow-hidden rounded-lg border border-border bg-muted">
                   {mapLoading ? (
                     <div className="flex items-center justify-center h-full">
                       <RefreshCw className="h-6 w-6 animate-spin text-muted-foreground" />
@@ -742,7 +742,7 @@ export function MarketingSection({ listing, onPhotoUpdate }: MarketingSectionPro
                 {/* Map Controls Overlay */}
                 <div className="absolute top-2 right-2 flex flex-col gap-1">
                   {/* Zoom controls */}
-                  <div className="flex flex-col bg-background/90 backdrop-blur-sm rounded border-2 border-foreground shadow-[2px_2px_0_hsl(var(--foreground))]">
+                  <div className="flex flex-col bg-background/90 backdrop-blur-sm rounded border border-border shadow-sm">
                     <Button
                       variant="ghost"
                       size="icon"
@@ -768,7 +768,7 @@ export function MarketingSection({ listing, onPhotoUpdate }: MarketingSectionPro
                 </div>
                 
                 {/* Pan controls */}
-                <div className="absolute bottom-2 right-2 bg-background/90 backdrop-blur-sm rounded border-2 border-foreground shadow-[2px_2px_0_hsl(var(--foreground))] p-1">
+                <div className="absolute bottom-2 right-2 bg-background/90 backdrop-blur-sm rounded border border-border shadow-sm p-1">
                   <div className="grid grid-cols-3 gap-0.5">
                     <div />
                     <Button
@@ -851,7 +851,7 @@ export function MarketingSection({ listing, onPhotoUpdate }: MarketingSectionPro
 
        {/* Generate Button */}
        {!marketingContent && !isGenerating && (
-         <Card className="border-2 border-foreground shadow-[4px_4px_0_hsl(var(--foreground))]">
+         <Card>
            <CardContent className="py-12 text-center">
              <Sparkles className="h-12 w-12 mx-auto mb-4 text-primary" />
              <h3 className="text-lg font-semibold mb-2">AI-Powered Marketing</h3>
@@ -868,7 +868,7 @@ export function MarketingSection({ listing, onPhotoUpdate }: MarketingSectionPro
  
        {/* Loading State */}
        {isGenerating && (
-         <Card className="border-2 border-foreground shadow-[4px_4px_0_hsl(var(--foreground))]">
+         <Card>
            <CardContent className="py-12">
              <div className="flex flex-col items-center gap-4">
                <RefreshCw className="h-8 w-8 animate-spin text-primary" />
@@ -888,8 +888,8 @@ export function MarketingSection({ listing, onPhotoUpdate }: MarketingSectionPro
        {marketingContent && !isGenerating && (
          <>
            {/* Actions Bar */}
-           <Card className="border-2 border-foreground shadow-[4px_4px_0_hsl(var(--foreground))]">
-             <CardContent className="py-4">
+            <Card>
+              <CardContent className="py-4">
                <div className="flex flex-wrap items-center justify-between gap-4">
                  <div className="flex items-center gap-4">
                    <div className="flex items-center space-x-2">
@@ -937,9 +937,9 @@ export function MarketingSection({ listing, onPhotoUpdate }: MarketingSectionPro
            {/* Content Preview / Edit */}
            <div className="grid md:grid-cols-2 gap-6">
              {/* Headline & Tagline */}
-             <Card className="border-2 border-foreground shadow-[4px_4px_0_hsl(var(--foreground))]">
-               <CardHeader>
-                 <CardTitle className="text-base">Headline & Tagline</CardTitle>
+      <Card>
+                 <CardHeader>
+                  <CardTitle className="text-base">Headline & Tagline</CardTitle>
                </CardHeader>
                <CardContent className="space-y-4">
                  {isEditing && editedContent ? (
@@ -975,9 +975,9 @@ export function MarketingSection({ listing, onPhotoUpdate }: MarketingSectionPro
              </Card>
  
              {/* Key Highlights */}
-             <Card className="border-2 border-foreground shadow-[4px_4px_0_hsl(var(--foreground))]">
-               <CardHeader>
-                 <CardTitle className="text-base">Key Highlights</CardTitle>
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-base">Key Highlights</CardTitle>
                </CardHeader>
                <CardContent>
                  {isEditing && editedContent ? (
@@ -1005,9 +1005,9 @@ export function MarketingSection({ listing, onPhotoUpdate }: MarketingSectionPro
            </div>
  
            {/* Description */}
-           <Card className="border-2 border-foreground shadow-[4px_4px_0_hsl(var(--foreground))]">
-             <CardHeader>
-               <CardTitle className="text-base">Property Description</CardTitle>
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base">Property Description</CardTitle>
              </CardHeader>
              <CardContent>
                {isEditing && editedContent ? (
@@ -1025,8 +1025,8 @@ export function MarketingSection({ listing, onPhotoUpdate }: MarketingSectionPro
            </Card>
  
            {/* Broker Pitch */}
-           <Card className="border-2 border-amber-400/50 bg-amber-50/30 dark:bg-amber-950/20 shadow-[4px_4px_0_hsl(var(--foreground))]">
-             <CardHeader>
+            <Card className="border border-amber-200 bg-amber-50/30">
+              <CardHeader>
                <CardTitle className="text-base flex items-center gap-2">
                  <span className="text-amber-600 dark:text-amber-400">Confidential</span>
                  Broker Notes
@@ -1046,8 +1046,8 @@ export function MarketingSection({ listing, onPhotoUpdate }: MarketingSectionPro
            </Card>
  
            {/* Download Actions */}
-           <Card className="border-2 border-foreground shadow-[4px_4px_0_hsl(var(--foreground))]">
-             <CardContent className="py-6">
+            <Card>
+              <CardContent className="py-6">
                <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
                  <Button
                    onClick={downloadPDF}

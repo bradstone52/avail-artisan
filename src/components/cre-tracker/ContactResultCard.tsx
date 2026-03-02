@@ -32,10 +32,7 @@ function CopyButton({ text }: { text: string }) {
 
 export function ContactResultCard({ contact, onSave, isSaving }: ContactResultCardProps) {
   return (
-    <div
-      className="border-2 border-foreground/20 hover:border-foreground bg-card p-4 space-y-3 transition-all"
-      style={{ borderRadius: 'var(--radius)' }}
-    >
+    <div className="border border-border rounded-lg bg-card p-4 space-y-3 transition-all hover:shadow-sm">
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <p className="font-bold text-foreground truncate">{contact.name ?? '—'}</p>
@@ -49,7 +46,7 @@ export function ContactResultCard({ contact, onSave, isSaving }: ContactResultCa
           variant="outline"
           onClick={() => onSave(contact)}
           disabled={isSaving}
-          className="shrink-0 border-2 border-foreground font-bold text-xs"
+          className="shrink-0 text-xs"
         >
           <BookmarkPlus className="w-3 h-3 mr-1" />
           Save Idea
