@@ -59,9 +59,9 @@ export function LinkDealDialog({ open, onOpenChange, listingId }: LinkDealDialog
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className="max-w-lg">
+      <DialogContent className="max-w-lg border-2 border-foreground shadow-[6px_6px_0_hsl(var(--foreground))]">
         <DialogHeader>
-          <DialogTitle>Link Existing Deal</DialogTitle>
+          <DialogTitle className="text-xl font-black uppercase tracking-tight">Link Existing Deal</DialogTitle>
         </DialogHeader>
 
         <div className="space-y-3">
@@ -71,11 +71,11 @@ export function LinkDealDialog({ open, onOpenChange, listingId }: LinkDealDialog
               placeholder="Search by address, deal #, or party name…"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="pl-9"
+              className="pl-9 border-2 border-foreground"
             />
           </div>
 
-          <div className="max-h-72 overflow-y-auto space-y-1 rounded-md border p-1">
+          <div className="max-h-72 overflow-y-auto space-y-1 rounded-md border-2 border-foreground p-1">
             {isLoading && (
               <p className="text-sm text-muted-foreground text-center py-4">Loading deals…</p>
             )}
@@ -87,7 +87,7 @@ export function LinkDealDialog({ open, onOpenChange, listingId }: LinkDealDialog
                 key={deal.id}
                 type="button"
                 onClick={() => setSelectedDealId(deal.id)}
-                className={`w-full text-left rounded px-3 py-2 text-sm transition-colors ${
+                className={`w-full text-left rounded px-3 py-2.5 text-sm transition-colors ${
                   selectedDealId === deal.id
                     ? 'bg-primary text-primary-foreground'
                     : 'hover:bg-muted'
@@ -95,14 +95,18 @@ export function LinkDealDialog({ open, onOpenChange, listingId }: LinkDealDialog
               >
                 <div className="flex items-center justify-between gap-2">
                   <div className="min-w-0">
-                    <p className="font-medium truncate">{deal.address}</p>
+                    <p className="font-bold truncate">{deal.address}</p>
                     <p className="text-xs opacity-70 truncate">
-                      {deal.deal_number ? `#${deal.deal_number} · ` : ''}
                       {deal.deal_type}
                       {deal.buyer_name ? ` · ${deal.buyer_name}` : ''}
                     </p>
                   </div>
-                  <Badge variant="outline" className="shrink-0 text-xs">
+                  <Badge
+                    variant="outline"
+                    className={`shrink-0 text-xs font-black uppercase border-2 ${
+                      selectedDealId === deal.id ? 'border-primary-foreground text-primary-foreground' : 'border-foreground'
+                    }`}
+                  >
                     {deal.status}
                   </Badge>
                 </div>
@@ -112,12 +116,13 @@ export function LinkDealDialog({ open, onOpenChange, listingId }: LinkDealDialog
         </div>
 
         <DialogFooter>
-          <Button variant="outline" onClick={handleClose}>
+          <Button variant="outline" onClick={handleClose} className="font-black uppercase border-2 border-foreground shadow-[3px_3px_0_hsl(var(--foreground))]">
             Cancel
           </Button>
           <Button
             onClick={handleConfirm}
             disabled={!selectedDealId || linkDeal.isPending}
+            className="font-black uppercase border-2 border-foreground shadow-[3px_3px_0_hsl(var(--foreground))]"
           >
             {linkDeal.isPending ? 'Linking…' : 'Link Deal'}
           </Button>
