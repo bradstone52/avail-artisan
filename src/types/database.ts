@@ -109,6 +109,7 @@ export interface Deal {
   listing_id?: string | null;
   listing?: Listing | null;
   property_id?: string | null;
+  internal_listing_id?: string | null;
   notes?: string | null;
   // Agent fields
   listing_brokerage_id?: string | null;

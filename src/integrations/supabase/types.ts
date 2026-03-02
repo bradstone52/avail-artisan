@@ -415,6 +415,7 @@ export type Database = {
           expiry_date: string | null
           gst_rate: number | null
           id: string
+          internal_listing_id: string | null
           is_land_deal: boolean
           lease_rate_psf: number | null
           lease_term_months: number | null
@@ -469,6 +470,7 @@ export type Database = {
           expiry_date?: string | null
           gst_rate?: number | null
           id?: string
+          internal_listing_id?: string | null
           is_land_deal?: boolean
           lease_rate_psf?: number | null
           lease_term_months?: number | null
@@ -523,6 +525,7 @@ export type Database = {
           expiry_date?: string | null
           gst_rate?: number | null
           id?: string
+          internal_listing_id?: string | null
           is_land_deal?: boolean
           lease_rate_psf?: number | null
           lease_term_months?: number | null
@@ -564,6 +567,13 @@ export type Database = {
             columns: ["cv_agent_id"]
             isOneToOne: false
             referencedRelation: "agents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "deals_internal_listing_id_fkey"
+            columns: ["internal_listing_id"]
+            isOneToOne: false
+            referencedRelation: "internal_listings"
             referencedColumns: ["id"]
           },
           {
