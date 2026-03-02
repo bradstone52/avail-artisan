@@ -109,19 +109,17 @@ function ComparableCard({ listing }: { listing: ComparableListing }) {
         </Badge>
       </div>
       <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-sm">
-        {listing.asking_rate_psf && (() => {
-          const n = parseFloat(String(listing.asking_rate_psf));
+        {listing.sale_price && (() => {
+          const n = parseFloat(String(listing.sale_price).replace(/,/g, ''));
+          return !isNaN(n) ? (
+            <span className="text-primary font-medium">{formatCurrency(n)}</span>
+          ) : null;
+        })()}
+        {!listing.sale_price && listing.asking_rate_psf && (() => {
+          const n = parseFloat(String(listing.asking_rate_psf).replace(/,/g, ''));
           return (
             <span className="text-primary font-medium">
               {isNaN(n) ? String(listing.asking_rate_psf) : `$${n.toFixed(2)}/SF`}
-            </span>
-          );
-        })()}
-        {listing.sale_price && (() => {
-          const n = parseFloat(String(listing.sale_price));
-          return (
-            <span className="text-primary font-medium">
-              {isNaN(n) ? String(listing.sale_price) : formatCurrency(n)}
             </span>
           );
         })()}
