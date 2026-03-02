@@ -5,10 +5,12 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { LinkDealDialog } from './LinkDealDialog';
+import { ConvertToDealDialog } from './ConvertToDealDialog';
 import { useLinkedDeal, useLinkDeal } from '@/hooks/useLinkedDeal';
 import { formatCurrency } from '@/lib/format';
-import { Handshake, ExternalLink, Unlink, Link2 } from 'lucide-react';
+import { Handshake, ExternalLink, Unlink, Link2, ArrowRightLeft } from 'lucide-react';
 import { toast } from 'sonner';
+import type { InternalListing } from '@/hooks/useInternalListings';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -30,14 +32,15 @@ const dealStatusColors: Record<string, string> = {
 };
 
 interface LinkedDealPanelProps {
-  listingId: string;
+  listing: InternalListing;
 }
 
-export function LinkedDealPanel({ listingId }: LinkedDealPanelProps) {
+export function LinkedDealPanel({ listing }: LinkedDealPanelProps) {
   const navigate = useNavigate();
-  const { data: deal, isLoading } = useLinkedDeal(listingId);
+  const { data: deal, isLoading } = useLinkedDeal(listing.id);
   const linkDeal = useLinkDeal();
   const [linkDialogOpen, setLinkDialogOpen] = useState(false);
+  const [convertDialogOpen, setConvertDialogOpen] = useState(false);
   const [unlinkConfirmOpen, setUnlinkConfirmOpen] = useState(false);
 
   const handleUnlink = async () => {
@@ -131,6 +134,15 @@ export function LinkedDealPanel({ listingId }: LinkedDealPanelProps) {
                 variant="outline"
                 size="sm"
                 className="w-full gap-2"
+                onClick={() => setConvertDialogOpen(true)}
+              >
+                <ArrowRightLeft className="h-4 w-4" />
+                Convert to Deal
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="w-full gap-2"
                 onClick={() => setLinkDialogOpen(true)}
               >
                 <Link2 className="h-4 w-4" />
@@ -144,7 +156,13 @@ export function LinkedDealPanel({ listingId }: LinkedDealPanelProps) {
       <LinkDealDialog
         open={linkDialogOpen}
         onOpenChange={setLinkDialogOpen}
-        listingId={listingId}
+        listingId={listing.id}
+      />
+
+      <ConvertToDealDialog
+        open={convertDialogOpen}
+        onOpenChange={setConvertDialogOpen}
+        listing={listing}
       />
 
       <AlertDialog open={unlinkConfirmOpen} onOpenChange={setUnlinkConfirmOpen}>
