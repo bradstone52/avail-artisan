@@ -119,9 +119,11 @@ function ComparableCard({ listing }: { listing: ComparableListing }) {
         })()}
         {listing.sale_price && (() => {
           const n = parseFloat(String(listing.sale_price).replace(/,/g, ''));
-          return !isNaN(n) ? (
-            <span className="text-primary font-medium">{formatCurrency(n)}</span>
-          ) : null;
+          return (
+            <span className="text-primary font-medium">
+              {isNaN(n) ? String(listing.sale_price) : formatCurrency(n)}
+            </span>
+          );
         })()}
         {listing.clear_height_ft && (
           <span className="text-muted-foreground">
