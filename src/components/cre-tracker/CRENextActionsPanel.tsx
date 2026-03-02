@@ -17,6 +17,7 @@ import {
 } from '@/components/ui/select';
 import { cn } from '@/lib/utils';
 import { getTodayEdmonton, parseDateOnlyLocal, formatDueLabel } from '@/lib/dates';
+import { useOverdueTemplate } from '@/hooks/useOverdueTemplate';
 import type { DealImportantDate } from '@/hooks/useAllDealImportantDates';
 import type { Prospect } from '@/types/prospect';
 
@@ -61,6 +62,7 @@ interface CRENextActionsPanelProps {
 }
 
 export function CRENextActionsPanel({ prospects, dealDates, isLoading }: CRENextActionsPanelProps) {
+  const overdueTemplate = useOverdueTemplate();
   const [timeFilter, setTimeFilter] = React.useState<TimeFilter>('overdue');
   const [sourceFilter, setSourceFilter] = React.useState<SourceFilter>('all');
   const [rescheduleItem, setRescheduleItem] = React.useState<{ prospectId: string; name: string; dateStr: string } | null>(null);
@@ -244,7 +246,7 @@ export function CRENextActionsPanel({ prospects, dealDates, isLoading }: CRENext
         ) : (
           <ul className="divide-y divide-border">
             {items.map((item) => {
-              const label = formatDueLabel(item.dateStr);
+              const label = formatDueLabel(item.dateStr, overdueTemplate);
               return (
                 <li
                   key={item.id}
