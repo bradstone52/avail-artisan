@@ -164,7 +164,7 @@ export default function InternalListingDetail() {
             </TabsTrigger>
             <TabsTrigger value="inquiries" className="gap-2">
               <Mail className="h-4 w-4" />
-              Inquiries
+              Inquiries/Tours
             </TabsTrigger>
             <TabsTrigger value="marketing" className="gap-2">
               <BarChart3 className="h-4 w-4" />
