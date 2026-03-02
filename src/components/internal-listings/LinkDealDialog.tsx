@@ -59,7 +59,7 @@ export function LinkDealDialog({ open, onOpenChange, listingId }: LinkDealDialog
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className="w-[calc(100vw-2rem)] max-w-lg">
+      <DialogContent className="w-[calc(100vw-2rem)] max-w-lg pr-8">
         <DialogHeader>
           <DialogTitle className="text-xl font-black uppercase tracking-tight">Link Existing Deal</DialogTitle>
         </DialogHeader>
@@ -103,7 +103,7 @@ export function LinkDealDialog({ open, onOpenChange, listingId }: LinkDealDialog
                   </div>
                   <Badge
                     variant="outline"
-                    className={`shrink-0 text-xs font-black uppercase border-2 whitespace-nowrap ${
+                    className={`shrink-0 text-xs font-black uppercase border-2 whitespace-nowrap shadow-none ${
                       selectedDealId === deal.id ? 'border-primary-foreground text-primary-foreground' : 'border-foreground'
                     }`}
                   >
