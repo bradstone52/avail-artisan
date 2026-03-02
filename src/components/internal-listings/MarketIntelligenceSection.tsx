@@ -111,12 +111,12 @@ function ComparableCard({ listing }: { listing: ComparableListing }) {
       <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-sm">
         {listing.asking_rate_psf && (
           <span className="text-primary font-medium">
-            ${listing.asking_rate_psf}/SF
+            {formatCurrency(parseFloat(String(listing.asking_rate_psf)))}/SF
           </span>
         )}
         {listing.sale_price && (
           <span className="text-primary font-medium">
-            ${listing.sale_price}
+            {formatCurrency(parseFloat(String(listing.sale_price)))}
           </span>
         )}
         {listing.clear_height_ft && (
