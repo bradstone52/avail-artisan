@@ -34,11 +34,11 @@ export function PageHeader({
           </Button>
         )}
         <div className="flex items-center gap-3">
-          {Icon && <Icon className="w-8 h-8 text-primary shrink-0" />}
+          {Icon && <Icon className="w-7 h-7 text-primary shrink-0" />}
           <div>
-            <h1 className="text-2xl font-black uppercase tracking-tight">{title}</h1>
+            <h1 className="text-2xl font-bold tracking-tight text-foreground">{title}</h1>
             {description && (
-              <p className="text-sm text-muted-foreground">{description}</p>
+              <p className="text-sm text-muted-foreground mt-0.5">{description}</p>
             )}
           </div>
         </div>

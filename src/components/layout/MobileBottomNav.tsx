@@ -60,7 +60,7 @@ export function MobileBottomNav({ isAdmin, onSignOut }: MobileBottomNavProps) {
   const isMoreActive = [...moreNav, ...adminNav].some(item => location.pathname === item.href);
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-30 md:hidden bg-card border-t-3 border-foreground safe-area-bottom">
+    <nav className="fixed bottom-0 left-0 right-0 z-30 md:hidden bg-card border-t border-border safe-area-bottom">
       <div className="flex items-stretch justify-around">
         {primaryNav.map((item) => {
           const active = isActive(item.href);
@@ -71,14 +71,14 @@ export function MobileBottomNav({ isAdmin, onSignOut }: MobileBottomNavProps) {
               className={cn(
                 "flex-1 flex flex-col items-center justify-center py-2 px-1 min-h-[60px] transition-colors",
                 active
-                  ? "bg-secondary text-secondary-foreground"
-                  : "text-foreground/60 active:bg-muted"
+                  ? "text-primary"
+                  : "text-muted-foreground active:bg-accent"
               )}
             >
-              <item.icon className={cn("h-6 w-6", active && "text-secondary-foreground")} />
+              <item.icon className={cn("h-5 w-5", active && "text-primary")} />
               <span className={cn(
-                "text-[10px] font-bold uppercase tracking-wide mt-1",
-                active ? "text-secondary-foreground" : "text-foreground/60"
+                "text-[10px] font-medium mt-1",
+                active ? "text-primary" : "text-muted-foreground"
               )}>
                 {item.name}
               </span>
@@ -93,14 +93,14 @@ export function MobileBottomNav({ isAdmin, onSignOut }: MobileBottomNavProps) {
               className={cn(
                 "flex-1 flex flex-col items-center justify-center py-2 px-1 min-h-[60px] transition-colors",
                 isMoreActive
-                  ? "bg-secondary text-secondary-foreground"
-                  : "text-foreground/60 active:bg-muted"
+                  ? "text-primary"
+                  : "text-muted-foreground active:bg-accent"
               )}
             >
-              <MoreHorizontal className={cn("h-6 w-6", isMoreActive && "text-secondary-foreground")} />
+              <MoreHorizontal className={cn("h-5 w-5", isMoreActive && "text-primary")} />
               <span className={cn(
-                "text-[10px] font-bold uppercase tracking-wide mt-1",
-                isMoreActive ? "text-secondary-foreground" : "text-foreground/60"
+                "text-[10px] font-medium mt-1",
+                isMoreActive ? "text-primary" : "text-muted-foreground"
               )}>
                 More
               </span>
@@ -109,13 +109,13 @@ export function MobileBottomNav({ isAdmin, onSignOut }: MobileBottomNavProps) {
           <PopoverContent 
             side="top" 
             align="end" 
-            className="w-56 p-2 mb-2 mr-2 border-2 border-foreground shadow-[4px_4px_0_hsl(var(--foreground))] bg-card"
+            className="w-56 p-2 mb-2 mr-2 bg-card border border-border shadow-lg"
             sideOffset={8}
           >
             <div className="space-y-1">
               {/* Distribution Section */}
               <div className="px-2 py-1">
-                <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest flex items-center gap-1.5">
+                <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
                   <Package className="w-3 h-3" />
                   Distribution
                 </p>
@@ -128,8 +128,8 @@ export function MobileBottomNav({ isAdmin, onSignOut }: MobileBottomNavProps) {
                   className={cn(
                     "flex items-center gap-3 px-3 py-2.5 rounded text-sm font-semibold transition-colors",
                     isActive(item.href)
-                      ? "bg-secondary text-secondary-foreground"
-                      : "text-foreground hover:bg-muted"
+                      ? "bg-primary/10 text-primary"
+                      : "text-foreground hover:bg-accent"
                   )}
                 >
                   <item.icon className="h-5 w-5" />
@@ -148,8 +148,8 @@ export function MobileBottomNav({ isAdmin, onSignOut }: MobileBottomNavProps) {
                   className={cn(
                     "flex items-center gap-3 px-3 py-2.5 rounded text-sm font-semibold transition-colors",
                     isActive(item.href)
-                      ? "bg-secondary text-secondary-foreground"
-                      : "text-foreground hover:bg-muted"
+                      ? "bg-primary/10 text-primary"
+                      : "text-foreground hover:bg-accent"
                   )}
                 >
                   <item.icon className="h-5 w-5" />
@@ -162,7 +162,7 @@ export function MobileBottomNav({ isAdmin, onSignOut }: MobileBottomNavProps) {
                 <>
                   <div className="h-px bg-foreground/10 my-2" />
                   <div className="px-2 py-1">
-                    <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest flex items-center gap-1.5">
+                  <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
                       <Shield className="w-3 h-3" />
                       Admin
                     </p>
@@ -174,9 +174,9 @@ export function MobileBottomNav({ isAdmin, onSignOut }: MobileBottomNavProps) {
                       onClick={() => setMoreOpen(false)}
                       className={cn(
                         "flex items-center gap-3 px-3 py-2.5 rounded text-sm font-semibold transition-colors",
-                        isActive(item.href)
-                          ? "bg-secondary text-secondary-foreground"
-                          : "text-foreground hover:bg-muted"
+                    isActive(item.href)
+                          ? "bg-primary/10 text-primary"
+                          : "text-foreground hover:bg-accent"
                       )}
                     >
                       <item.icon className="h-5 w-5" />

@@ -134,8 +134,8 @@ export function AppLayout({ children }: AppLayoutProps) {
       {/* Sidebar - hidden on phones, slide-out on tablets, always visible on desktop */}
       <aside
         className={cn(
-        "fixed inset-y-0 left-0 z-40 bg-card border-r-3 border-foreground transition-all duration-200 ease-in-out lg:translate-x-0 shadow-[4px_0_0_hsl(var(--foreground))]",
-          "hidden md:block", // Hide completely on phones
+        "fixed inset-y-0 left-0 z-40 bg-sidebar border-r border-sidebar-border transition-all duration-200 ease-in-out lg:translate-x-0",
+          "hidden md:block",
           sidebarOpen ? "translate-x-0" : "md:-translate-x-full lg:translate-x-0",
           sidebarCollapsed ? "lg:w-16" : "lg:w-64",
           "w-64"
@@ -144,26 +144,25 @@ export function AppLayout({ children }: AppLayoutProps) {
         <div className="flex h-full flex-col">
           {/* Logo */}
           <div className={cn(
-            "flex items-center gap-3 py-5 border-b-3 border-foreground bg-primary",
-            sidebarCollapsed ? "px-3 justify-center" : "px-5"
+            "flex items-center gap-3 py-4 border-b border-sidebar-border bg-sidebar",
+            sidebarCollapsed ? "px-3 justify-center" : "px-4"
           )}>
-            <div className="flex items-center justify-center w-10 h-10 border-2 border-primary-foreground bg-primary-foreground/20 flex-shrink-0" style={{ borderRadius: "var(--radius)" }}>
+            <div className="flex items-center justify-center w-9 h-9 bg-primary flex-shrink-0 rounded-lg">
               <Building2 className="w-5 h-5 text-primary-foreground" />
             </div>
             {!sidebarCollapsed && (
               <div className="flex-1 min-w-0">
-                <h1 className="text-sm font-black uppercase tracking-tight text-primary-foreground truncate">
+                <h1 className="text-sm font-semibold text-foreground truncate">
                   Snapshot Builder
                 </h1>
-                <p className="text-xs text-primary-foreground/80 font-medium">
+                <p className="text-xs text-muted-foreground">
                   Distribution Intel
                 </p>
               </div>
             )}
             <button
               onClick={() => setSidebarOpen(false)}
-              className="lg:hidden p-1 border-2 border-primary-foreground text-primary-foreground hover:bg-primary-foreground/20"
-              style={{ borderRadius: "var(--radius)" }}
+              className="lg:hidden p-1 rounded-md text-muted-foreground hover:bg-accent"
             >
               <X className="w-5 h-5" />
             </button>
@@ -184,15 +183,14 @@ export function AppLayout({ children }: AppLayoutProps) {
                       onClick={() => toggleGroup(entry.name)}
                       title={sidebarCollapsed ? entry.name : undefined}
                       className={cn(
-                        "w-full flex items-center gap-3 py-3 text-sm font-bold uppercase tracking-wider transition-all border-2",
-                        sidebarCollapsed ? "px-3 justify-center" : "px-4",
+                        "w-full flex items-center gap-3 py-2.5 text-sm font-medium transition-all rounded-md",
+                        sidebarCollapsed ? "px-3 justify-center" : "px-3",
                         groupHasActiveItem
-                          ? "bg-secondary/50 text-secondary-foreground border-foreground/50"
-                          : "text-foreground/70 border-transparent hover:bg-muted hover:border-foreground hover:text-foreground"
+                          ? "bg-accent text-foreground"
+                          : "text-muted-foreground hover:bg-accent hover:text-foreground"
                       )}
-                      style={{ borderRadius: "var(--radius)" }}
                     >
-                      <entry.icon className="w-5 h-5 flex-shrink-0" />
+                      <entry.icon className="w-4 h-4 flex-shrink-0" />
                       {!sidebarCollapsed && entry.name}
                       {!sidebarCollapsed && (
                         <ChevronDown className={cn(
@@ -202,7 +200,7 @@ export function AppLayout({ children }: AppLayoutProps) {
                       )}
                     </button>
                     {(openGroups[entry.name] || sidebarCollapsed) && (
-                      <div className={cn("space-y-1", !sidebarCollapsed && "ml-4 mt-1 pl-2 border-l-2 border-foreground/20")}>
+                      <div className={cn("space-y-1", !sidebarCollapsed && "ml-3 mt-1 pl-2 border-l border-border")}>
                         {entry.items.map((item) => {
                           const [itemPath, itemSearch] = item.href.split('?');
                           const isActive = location.pathname === itemPath && (!itemSearch || location.search === `?${itemSearch}`);
@@ -213,18 +211,18 @@ export function AppLayout({ children }: AppLayoutProps) {
                               onClick={() => setSidebarOpen(false)}
                               title={sidebarCollapsed ? item.name : undefined}
                               className={cn(
-                                "flex items-center gap-3 py-2 text-sm font-bold uppercase tracking-wider transition-all border-2",
+                                "flex items-center gap-3 py-2 text-sm font-medium transition-all rounded-md",
                                 sidebarCollapsed ? "px-3 justify-center" : "px-3",
                                 isActive
-                                  ? "bg-secondary text-secondary-foreground border-foreground shadow-[3px_3px_0_hsl(var(--foreground))]"
-                                  : "text-foreground/70 border-transparent hover:bg-muted hover:border-foreground hover:text-foreground"
+                                  ? "bg-primary/10 text-primary font-semibold"
+                                  : "text-muted-foreground hover:bg-accent hover:text-foreground"
                               )}
                               style={{ borderRadius: "var(--radius)" }}
                             >
                               <item.icon className="w-4 h-4 flex-shrink-0" />
                               {!sidebarCollapsed && item.name}
                               {!sidebarCollapsed && isActive && (
-                                <ChevronRight className="w-4 h-4 ml-auto" />
+                                <ChevronRight className="w-3 h-3 ml-auto text-primary" />
                               )}
                             </Link>
                           );
@@ -243,19 +241,19 @@ export function AppLayout({ children }: AppLayoutProps) {
                   to={entry.href}
                   onClick={() => setSidebarOpen(false)}
                   title={sidebarCollapsed ? entry.name : undefined}
-                  className={cn(
-                    "flex items-center gap-3 py-3 text-sm font-bold uppercase tracking-wider transition-all border-2",
-                    sidebarCollapsed ? "px-3 justify-center" : "px-4",
+                className={cn(
+                    "flex items-center gap-3 py-2.5 text-sm font-medium transition-all rounded-md",
+                    sidebarCollapsed ? "px-3 justify-center" : "px-3",
                     isActive
-                      ? "bg-secondary text-secondary-foreground border-foreground shadow-[3px_3px_0_hsl(var(--foreground))]"
-                      : "text-foreground/70 border-transparent hover:bg-muted hover:border-foreground hover:text-foreground"
+                      ? "bg-primary/10 text-primary font-semibold"
+                      : "text-muted-foreground hover:bg-accent hover:text-foreground"
                   )}
                   style={{ borderRadius: "var(--radius)" }}
                 >
-                  <entry.icon className="w-5 h-5 flex-shrink-0" />
+                  <entry.icon className="w-4 h-4 flex-shrink-0" />
                   {!sidebarCollapsed && entry.name}
                   {!sidebarCollapsed && isActive && (
-                    <ChevronRight className="w-4 h-4 ml-auto" />
+                    <ChevronRight className="w-3 h-3 ml-auto text-primary" />
                   )}
                 </Link>
               );
@@ -266,7 +264,7 @@ export function AppLayout({ children }: AppLayoutProps) {
               <>
                 {!sidebarCollapsed && (
                   <div className="pt-4 pb-2 px-3">
-                    <p className="text-xs font-bold text-muted-foreground uppercase tracking-[0.15em] flex items-center gap-2">
+                    <p className="text-xs font-medium text-muted-foreground uppercase tracking-[0.1em] flex items-center gap-2">
                       <Shield className="w-3 h-3" />
                       Admin
                     </p>
@@ -286,18 +284,18 @@ export function AppLayout({ children }: AppLayoutProps) {
                       onClick={() => setSidebarOpen(false)}
                       title={sidebarCollapsed ? item.name : undefined}
                       className={cn(
-                        "flex items-center gap-3 py-3 text-sm font-bold uppercase tracking-wider transition-all border-2",
-                        sidebarCollapsed ? "px-3 justify-center" : "px-4",
+                        "flex items-center gap-3 py-2.5 text-sm font-medium transition-all rounded-md",
+                        sidebarCollapsed ? "px-3 justify-center" : "px-3",
                         isActive
-                          ? "bg-secondary text-secondary-foreground border-foreground shadow-[3px_3px_0_hsl(var(--foreground))]"
-                          : "text-foreground/70 border-transparent hover:bg-muted hover:border-foreground hover:text-foreground"
+                          ? "bg-primary/10 text-primary font-semibold"
+                          : "text-muted-foreground hover:bg-accent hover:text-foreground"
                       )}
                       style={{ borderRadius: "var(--radius)" }}
                     >
-                      <item.icon className="w-5 h-5 flex-shrink-0" />
+                      <item.icon className="w-4 h-4 flex-shrink-0" />
                       {!sidebarCollapsed && item.name}
                       {!sidebarCollapsed && isActive && (
-                        <ChevronRight className="w-4 h-4 ml-auto" />
+                        <ChevronRight className="w-3 h-3 ml-auto text-primary" />
                       )}
                     </Link>
                   );
@@ -307,7 +305,7 @@ export function AppLayout({ children }: AppLayoutProps) {
           </nav>
 
           {/* Collapse toggle - Desktop only */}
-          <div className="hidden lg:block px-3 py-2 border-t border-foreground/20">
+          <div className="hidden lg:block px-3 py-2 border-t border-border/50">
             <Button
               variant="ghost"
               size="sm"
@@ -327,13 +325,13 @@ export function AppLayout({ children }: AppLayoutProps) {
           </div>
 
           {/* User section */}
-          <div className="px-3 py-4 border-t-3 border-foreground">
+          <div className="px-3 py-4 border-t border-border">
             <div className={cn(
               "flex items-center gap-3 px-3 py-2",
               sidebarCollapsed && "justify-center px-0"
             )}>
-              <div className="w-9 h-9 border-2 border-foreground bg-primary flex items-center justify-center shadow-[2px_2px_0_hsl(var(--foreground))] flex-shrink-0" style={{ borderRadius: "var(--radius)" }}>
-                <span className="text-xs font-black text-primary-foreground uppercase">
+              <div className="w-8 h-8 bg-primary rounded-full flex items-center justify-center flex-shrink-0">
+                <span className="text-xs font-semibold text-primary-foreground">
                   {user?.email?.charAt(0).toUpperCase()}
                 </span>
               </div>
@@ -388,24 +386,23 @@ export function AppLayout({ children }: AppLayoutProps) {
         sidebarCollapsed ? "lg:pl-16" : "lg:pl-64"
       )}>
         {/* Tablet header - only shows on tablets (md-lg), phones use bottom nav */}
-        <header className="sticky top-0 z-30 hidden md:flex lg:hidden items-center gap-4 px-4 py-3 pt-[max(0.75rem,env(safe-area-inset-top))] bg-card border-b-3 border-foreground shadow-[0_3px_0_hsl(var(--foreground))]">
+        <header className="sticky top-0 z-30 hidden md:flex lg:hidden items-center gap-4 px-4 py-3 pt-[max(0.75rem,env(safe-area-inset-top))] bg-card border-b border-border">
           <button
             onClick={() => setSidebarOpen(true)}
-            className="p-2 -ml-2 border-2 border-foreground hover:bg-muted"
-            style={{ borderRadius: "var(--radius)" }}
+            className="p-2 -ml-2 rounded-md hover:bg-accent"
           >
             <Menu className="w-5 h-5" />
           </button>
           <div className="flex items-center gap-2">
             <Building2 className="w-5 h-5 text-primary" />
-            <span className="font-black uppercase tracking-tight">Snapshot Builder</span>
+            <span className="font-semibold text-foreground">Snapshot Builder</span>
           </div>
         </header>
 
         {/* Phone header - minimal, no hamburger since we have bottom nav */}
-        <header className="sticky top-0 z-30 flex md:hidden items-center justify-center gap-2 px-4 py-2 pt-[max(0.5rem,env(safe-area-inset-top))] bg-card border-b-2 border-foreground">
+        <header className="sticky top-0 z-30 flex md:hidden items-center justify-center gap-2 px-4 py-2 pt-[max(0.5rem,env(safe-area-inset-top))] bg-card border-b border-border">
           <Building2 className="w-4 h-4 text-primary" />
-          <span className="font-bold uppercase tracking-tight text-sm">Snapshot Builder</span>
+          <span className="font-semibold text-sm text-foreground">Snapshot Builder</span>
         </header>
 
         {/* Page content - add bottom padding on phones for nav bar */}
