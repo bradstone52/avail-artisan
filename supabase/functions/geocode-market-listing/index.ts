@@ -495,7 +495,7 @@ serve(async (req) => {
     }
 
     // Geocode the address
-    const geocodeResult = await geocodeWithGoogle(listing.address, listing.city, googleApiKey);
+    const geocodeResult = await geocodeWithGoogle(listing.address as string, listing.city as string, googleApiKey);
     
     if (!geocodeResult) {
       console.log('[Geocode Market Listing] Geocoding failed');
@@ -511,7 +511,7 @@ serve(async (req) => {
 
     // Determine submarket (Calgary only)
     const submarket = shouldAssignSubmarket
-      ? await determineSubmarket(geocodeResult.lat, geocodeResult.lng, listing.address)
+      ? await determineSubmarket(geocodeResult.lat, geocodeResult.lng, listing.address as string)
       : null;
 
     if (shouldAssignSubmarket) {

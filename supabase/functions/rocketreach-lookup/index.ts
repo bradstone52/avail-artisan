@@ -156,7 +156,7 @@ Deno.serve(async (req) => {
       const fullProfiles = await Promise.all(
         profiles2.map(async (p: Record<string, unknown>) => {
           if (p.id) {
-            const full = await lookupById(p.id);
+            const full = await lookupById(p.id as string);
             return full ?? p;
           }
           return p;
