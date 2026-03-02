@@ -4,6 +4,16 @@
 
 **URL**: https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID
 
+## Environment setup
+
+Copy `.env.example` to `.env` and fill in your values before running locally:
+
+```sh
+cp .env.example .env
+```
+
+The `.env` file is listed in `.gitignore` and will never be committed. Only `.env.example` (with placeholder values) is tracked in version control.
+
 ## How can I edit this code?
 
 There are several ways of editing your application.
