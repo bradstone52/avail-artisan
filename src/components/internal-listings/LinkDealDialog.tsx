@@ -75,7 +75,7 @@ export function LinkDealDialog({ open, onOpenChange, listingId }: LinkDealDialog
             />
           </div>
 
-          <div className="max-h-72 overflow-y-auto space-y-1 rounded-md border-2 border-foreground p-1">
+          <div className="max-h-72 overflow-y-auto space-y-1 rounded-md border-2 border-foreground p-1 overflow-x-hidden">
             {isLoading && (
               <p className="text-sm text-muted-foreground text-center py-4">Loading deals…</p>
             )}
