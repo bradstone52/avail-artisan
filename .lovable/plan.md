@@ -1,50 +1,32 @@
 
-## Tour Log PDF Export
+## Full App Retheme: Neo-Brutalist → Modern SaaS
 
 ### Overview
-Add an "Export PDF" button to the Property Tours section in the Internal Listing detail page. Clicking it instantly generates and downloads a clean PDF report of all logged tours for that listing — no dialog needed, just a one-click download.
+Replace the aggressive neo-brutalist visual language (thick black borders, hard-offset shadows, uppercase typography everywhere, warm paper background) with a clean, professional Modern SaaS aesthetic. All interactive behaviors are preserved.
 
-### What will be built
+### Files to change
 
-**1. New file: `src/components/internal-listings/TourLogPDF.tsx`**
+1. `src/index.css` - CSS variables + all component utility classes
+2. `src/components/ui/card.tsx` - Remove hard shadow/border, add soft shadow
+3. `src/components/ui/button.tsx` - Soften variants, remove uppercase
+4. `src/components/layout/AppLayout.tsx` - Sidebar styling
+5. `src/components/layout/MobileBottomNav.tsx` - Bottom nav styling
+6. `src/components/common/PageHeader.tsx` - Page title typography
 
-A `@react-pdf/renderer` Document component styled to match the existing deal PDFs (Clearview logo, orange accent, same typography). The PDF will contain:
+### Color/Variable Changes
+- Background: warm paper → clean near-white (`0 0% 98%`)
+- Border: jet black → slate-200 (`220 13% 87%`)
+- Radius: 6px → 8px
+- Sidebar: white with light border (not black shadow)
+- Table headers: light gray (not inverted black/white)
+- Active nav: blue left accent bar + `bg-blue-50`
 
-- **Header**: Clearview logo (top-left), generated date (top-right), orange bottom border
-- **Property banner**: Property address and listing number in a shaded subtitle bar
-- **Summary line**: "X tours logged between [earliest date] and [latest date]"
-- **Tour rows table** with columns:
-  - Date & Time
-  - Touring Party (Name / Company)
-  - Showed By (Agent / Brokerage)
-  - Notes
-- **Footer**: Page number
+### Interactions Preserved
+- Row hover: `bg-slate-50` highlight
+- Row selection: `bg-blue-50` with blue border
+- Button hover: subtle translate + `shadow-md`
+- Nav hover: `hover:bg-slate-100` with border
+- Active nav: clear visual indicator
 
-**2. Updated file: `src/components/internal-listings/ToursSection.tsx`**
-
-- Import `pdf` from `@react-pdf/renderer` and the new `TourLogPDF`
-- Add an "Export PDF" button in the card header (next to "Log Tour"), disabled when `tours.length === 0`
-- The button calls an async handler that:
-  1. Calls `pdf(<TourLogPDF ... />).toBlob()`
-  2. Creates a temporary `<a>` element with the blob URL
-  3. Triggers a download with filename `tour-log-[address]-[date].pdf`
-  4. Shows a `toast.success` on completion
-
-### Visual design (PDF)
-Consistent with existing deal PDFs:
-- Colors: `ORANGE = '#e8792b'`, `GRAY_BG = '#f7f7f7'`, `BORDER = '#e0e0e0'`
-- Font: Helvetica, 8pt body
-- Table with alternating row shading for readability
-- "Not specified" italics for empty fields, matching the UI card
-
-### Props passed from `ToursSection` to `TourLogPDF`
-- `tours`: full array of `InternalListingTour`
-- `listingAddress`: string (passed as a new prop to `ToursSection` from the detail page)
-- `generatedAt`: current date
-
-### Files changed
-| File | Action |
-|---|---|
-| `src/components/internal-listings/TourLogPDF.tsx` | Create new |
-| `src/components/internal-listings/ToursSection.tsx` | Add export button + handler, add `listingAddress` prop |
-| `src/pages/InternalListingDetail.tsx` | Pass `listingAddress` to `ToursSection` |
+### What is NOT changed
+- All React logic, routes, auth, data hooks, PDF components, Supabase logic
