@@ -149,7 +149,7 @@ export default function InternalListingDetail() {
         </div>
 
         <Tabs defaultValue="overview" className="space-y-4">
-          <TabsList className="flex-wrap">
+          <TabsList className="flex-wrap h-auto gap-y-1">
             <TabsTrigger value="overview" className="gap-2">
               <Building2 className="h-4 w-4" />
               Overview
