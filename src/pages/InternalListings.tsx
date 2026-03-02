@@ -126,7 +126,7 @@ export default function InternalListings() {
 
         {/* Stats Cards */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <Card className="border-2 border-foreground shadow-[3px_3px_0_hsl(var(--foreground))]">
+          <Card className="border border-border shadow-sm">
             <CardContent className="p-4">
               <div className="flex items-center gap-3">
                 <div className="p-2 bg-primary/10 rounded-lg">
@@ -134,15 +134,12 @@ export default function InternalListings() {
                 </div>
                 <div>
                   <p className="text-2xl font-bold">{stats.total}</p>
-                  <p className="text-xs text-muted-foreground uppercase tracking-wide">
-                    Total
-                  </p>
+                  <p className="text-xs text-muted-foreground uppercase tracking-wide">Total</p>
                 </div>
               </div>
             </CardContent>
           </Card>
-
-          <Card className="border-2 border-foreground shadow-[3px_3px_0_hsl(var(--foreground))]">
+          <Card className="border border-border shadow-sm">
             <CardContent className="p-4">
               <div className="flex items-center gap-3">
                 <div className="p-2 bg-green-100 rounded-lg">
@@ -150,15 +147,12 @@ export default function InternalListings() {
                 </div>
                 <div>
                   <p className="text-2xl font-bold">{stats.active}</p>
-                  <p className="text-xs text-muted-foreground uppercase tracking-wide">
-                    Active
-                  </p>
+                  <p className="text-xs text-muted-foreground uppercase tracking-wide">Active</p>
                 </div>
               </div>
             </CardContent>
           </Card>
-
-          <Card className="border-2 border-foreground shadow-[3px_3px_0_hsl(var(--foreground))]">
+          <Card className="border border-border shadow-sm">
             <CardContent className="p-4">
               <div className="flex items-center gap-3">
                 <div className="p-2 bg-yellow-100 rounded-lg">
@@ -166,15 +160,12 @@ export default function InternalListings() {
                 </div>
                 <div>
                   <p className="text-2xl font-bold">{stats.pending}</p>
-                  <p className="text-xs text-muted-foreground uppercase tracking-wide">
-                    Pending
-                  </p>
+                  <p className="text-xs text-muted-foreground uppercase tracking-wide">Pending</p>
                 </div>
               </div>
             </CardContent>
           </Card>
-
-          <Card className="border-2 border-foreground shadow-[3px_3px_0_hsl(var(--foreground))]">
+          <Card className="border border-border shadow-sm">
             <CardContent className="p-4">
               <div className="flex items-center gap-3">
                 <div className="p-2 bg-blue-100 rounded-lg">

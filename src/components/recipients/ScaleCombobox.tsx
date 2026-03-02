@@ -56,10 +56,7 @@ export function ScaleCombobox({ value, onChange }: ScaleComboboxProps) {
           variant="outline"
           role="combobox"
           aria-expanded={open}
-          className={cn(
-            "w-full justify-between font-medium h-11 border-2 border-foreground",
-            value && "bg-primary/10"
-          )}
+          className="w-full justify-between font-medium h-11"
         >
           {value || "Select scale..."}
           <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />

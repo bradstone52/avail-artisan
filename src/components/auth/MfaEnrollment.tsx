@@ -176,7 +176,7 @@ export function MfaEnrollment({ open, onOpenChange, onEnrolled, mandatory = fals
     return (
       <Card className="w-full max-w-md">
         <CardHeader className="text-center">
-          <div className="mx-auto mb-4 w-16 h-16 border-3 border-foreground bg-primary shadow-[4px_4px_0_hsl(var(--foreground))] flex items-center justify-center" style={{ borderRadius: "var(--radius)" }}>
+          <div className="mx-auto mb-4 w-16 h-16 bg-primary rounded-xl shadow-md flex items-center justify-center">
             <ShieldCheck className="w-8 h-8 text-primary-foreground" />
           </div>
           <CardTitle>Enable Two-Factor Authentication</CardTitle>

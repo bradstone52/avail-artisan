@@ -1022,17 +1022,16 @@ export function MarketListingEditDialog({
     </Dialog>;
   }
 
-  // Neo-brutalist toggle button component
+  // Modern toggle button component
   const ToggleButton = ({ value, onChange, label }: { value: boolean; onChange: (v: boolean) => void; label?: string }) => (
     <button
       type="button"
       onClick={() => onChange(!value)}
-      className={`px-3 py-1.5 text-xs font-bold uppercase tracking-wide border-2 border-foreground transition-all ${
+      className={`px-3 py-1.5 text-xs font-semibold rounded border transition-all ${
         value 
-          ? 'bg-primary text-primary-foreground shadow-[2px_2px_0_hsl(var(--foreground))]' 
-          : 'bg-destructive text-destructive-foreground shadow-[2px_2px_0_hsl(var(--foreground))]'
+          ? 'bg-primary/10 text-primary border-primary/30' 
+          : 'bg-destructive/10 text-destructive border-destructive/30'
       }`}
-      style={{ borderRadius: 'var(--radius)' }}
     >
       {label || (value ? 'Yes' : 'No')}
     </button>
@@ -1225,12 +1224,12 @@ export function MarketListingEditDialog({
                       const nextIdx = (currentIdx + 1) % cycle.length;
                       setCalgaryQuad(cycle[nextIdx]);
                     }}
-                    className={`px-3 py-2 text-sm font-bold uppercase border-2 border-foreground transition-all shadow-[2px_2px_0_hsl(var(--foreground))] hover:translate-x-[-1px] hover:translate-y-[-1px] hover:shadow-[3px_3px_0_hsl(var(--foreground))] ${
-                      calgaryQuad === 'NE' ? 'bg-orange-400 text-black'
-                      : calgaryQuad === 'SE' ? 'bg-lime-400 text-black'
-                      : calgaryQuad === 'NW' ? 'bg-cyan-400 text-black'
-                      : calgaryQuad === 'SW' ? 'bg-yellow-300 text-black'
-                      : 'bg-muted text-muted-foreground'
+                    className={`px-3 py-2 text-sm font-semibold rounded border transition-all ${
+                      calgaryQuad === 'NE' ? 'bg-orange-100 text-orange-800 border-orange-300'
+                      : calgaryQuad === 'SE' ? 'bg-lime-100 text-lime-800 border-lime-300'
+                      : calgaryQuad === 'NW' ? 'bg-cyan-100 text-cyan-800 border-cyan-300'
+                      : calgaryQuad === 'SW' ? 'bg-yellow-100 text-yellow-800 border-yellow-300'
+                      : 'bg-muted text-muted-foreground border-border'
                     }`}
                     style={{ borderRadius: 'var(--radius)' }}
                   >

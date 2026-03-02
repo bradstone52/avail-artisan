@@ -40,23 +40,23 @@ function StatRow({ label, stats }: { label: string; stats: DealStats }) {
 export function CREStatsCards({ activeDealsCount, closedDealsCount, upcomingEventsCount, dealBreakdown }: CREStatsCardsProps) {
   return (
     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-      <Card className="border-2 border-foreground">
+      <Card>
         <CardContent className="pt-4 pb-4">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-xs font-bold uppercase tracking-wide text-muted-foreground">Active Deals</p>
-              <p className="text-3xl font-black">{activeDealsCount}</p>
+              <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Active Deals</p>
+              <p className="text-3xl font-bold">{activeDealsCount}</p>
             </div>
             <Popover>
               <PopoverTrigger asChild>
-                <Button variant="outline" size="sm" className="gap-1 border-2 border-foreground/20 hover:border-foreground">
+                <Button variant="outline" size="sm" className="gap-1">
                   <BarChart3 className="w-3 h-3" />
                   Details
                 </Button>
               </PopoverTrigger>
-              <PopoverContent className="w-80 border-2 border-foreground" align="start">
+              <PopoverContent className="w-80" align="start">
                 <div className="space-y-4">
-                  <h4 className="font-bold text-sm uppercase tracking-wide">Deal Breakdown</h4>
+                  <h4 className="font-semibold text-sm">Deal Breakdown</h4>
                   <div className="space-y-2 pb-3 border-b border-foreground/10">
                     <p className="font-bold text-sm">Conditional</p>
                     <div className="pl-2 space-y-2">
@@ -84,16 +84,16 @@ export function CREStatsCards({ activeDealsCount, closedDealsCount, upcomingEven
           </div>
         </CardContent>
       </Card>
-      <Card className="border-2 border-foreground">
+      <Card>
         <CardContent className="pt-4 pb-4">
-          <p className="text-xs font-bold uppercase tracking-wide text-muted-foreground">Closed Deals</p>
-          <p className="text-3xl font-black">{closedDealsCount}</p>
+          <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Closed Deals</p>
+          <p className="text-3xl font-bold">{closedDealsCount}</p>
         </CardContent>
       </Card>
-      <Card className="border-2 border-foreground">
+      <Card>
         <CardContent className="pt-4 pb-4">
-          <p className="text-xs font-bold uppercase tracking-wide text-muted-foreground">Upcoming Events</p>
-          <p className="text-3xl font-black">{upcomingEventsCount}</p>
+          <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Upcoming Events</p>
+          <p className="text-3xl font-bold">{upcomingEventsCount}</p>
           <p className="text-xs text-muted-foreground">next 30 days</p>
         </CardContent>
       </Card>

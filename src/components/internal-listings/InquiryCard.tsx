@@ -63,7 +63,7 @@ export function InquiryCard({
     inquiry.next_follow_up && new Date(inquiry.next_follow_up) < new Date();
 
   return (
-    <Card className="border-2 border-foreground shadow-[3px_3px_0_hsl(var(--foreground))]">
+    <Card>
       <CardHeader className="pb-2">
         <div className="flex items-start justify-between gap-2">
           <div className="flex-1 min-w-0">

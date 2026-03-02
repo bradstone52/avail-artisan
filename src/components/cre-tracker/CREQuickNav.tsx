@@ -33,15 +33,14 @@ export function CREQuickNav({ activeTab, setActiveTab, activeDealsCount, prospec
         <button
           key={item.title}
           onClick={() => setActiveTab(item.tab)}
-          className={`flex items-center gap-3 p-3 border-2 transition-all text-left ${
+          className={`flex items-center gap-3 p-3 border rounded-lg transition-all text-left ${
             activeTab === item.tab
-              ? 'border-foreground shadow-[4px_4px_0_hsl(var(--foreground))] bg-card'
-              : 'border-foreground/20 hover:border-foreground hover:bg-muted/50'
+              ? 'border-primary bg-primary/5 shadow-sm'
+              : 'border-border hover:bg-muted/50'
           }`}
-          style={{ borderRadius: 'var(--radius)' }}
         >
-          <div className={`p-2 ${item.color} border-2 border-foreground`} style={{ borderRadius: 'var(--radius)' }}>
-            <item.icon className="w-4 h-4 text-primary-foreground" />
+          <div className={`p-2 ${item.color} rounded-md`}>
+            <item.icon className="w-4 h-4 text-foreground/70" />
           </div>
           <div className="min-w-0">
             <p className="text-sm font-bold truncate">{item.title}</p>

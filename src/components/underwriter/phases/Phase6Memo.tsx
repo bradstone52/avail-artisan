@@ -53,7 +53,7 @@ export function Phase6Memo({ underwritingId, phaseData, isComplete }: Props) {
           value={text}
           onChange={e => setText(e.target.value)}
           rows={30}
-          className="font-mono text-sm border-2 border-foreground/30 resize-y"
+          className="border-foreground/20 resize-y"
           placeholder="Perplexity-generated memo will appear here…"
         />
       )}

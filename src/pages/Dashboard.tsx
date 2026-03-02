@@ -114,11 +114,7 @@ export default function Dashboard() {
             {/* Past Issues - Collapsible */}
             <Collapsible open={issuesOpen} onOpenChange={setIssuesOpen}>
               <CollapsibleTrigger 
-                className="w-full bg-card border-2 border-foreground p-4 flex items-center justify-between hover:translate-x-[-2px] hover:translate-y-[-2px] hover:shadow-[6px_6px_0_hsl(var(--foreground))] transition-all"
-                style={{ 
-                  borderRadius: "var(--radius)",
-                  boxShadow: "4px 4px 0 hsl(var(--foreground))"
-                }}
+                className="w-full bg-card border border-border rounded-lg p-4 flex items-center justify-between hover:bg-muted/40 transition-all shadow-sm"
               >
                 <div className="flex items-center gap-3">
                   <div className="p-2 bg-muted rounded-lg">
@@ -164,61 +160,39 @@ export default function Dashboard() {
           {/* Right Column - Quick Actions */}
           <div className="space-y-6">
             {/* Quick Actions */}
-            <div 
-              className="bg-card border-2 border-foreground p-5"
-              style={{ 
-                borderRadius: "var(--radius)",
-                boxShadow: "4px 4px 0 hsl(var(--foreground))"
-              }}
-            >
-              <h3 className="font-display font-bold uppercase tracking-wider text-sm mb-4">Quick Actions</h3>
-              <div className="space-y-3">
+            <div className="bg-card border border-border rounded-xl p-5 shadow-sm">
+              <h3 className="font-semibold text-sm mb-4">Quick Actions</h3>
+              <div className="space-y-2">
                 <button 
                   onClick={() => navigate('/market-listings')}
-                  className="w-full flex items-center gap-3 p-3 bg-primary text-primary-foreground border-2 border-foreground font-bold text-sm uppercase tracking-wide hover:translate-x-[-2px] hover:translate-y-[-2px] hover:shadow-[4px_4px_0_hsl(var(--foreground))] transition-all"
-                  style={{ 
-                    borderRadius: "var(--radius)",
-                    boxShadow: "2px 2px 0 hsl(var(--foreground))"
-                  }}
+                  className="w-full flex items-center gap-3 p-3 bg-primary text-primary-foreground rounded-lg font-medium text-sm hover:bg-primary/90 transition-all"
                 >
-                  <Database className="w-5 h-5" />
+                  <Database className="w-4 h-4" />
                   Market Listings
                 </button>
                 <a 
                   href="/market-listings-map" 
                   target="_blank" 
                   rel="noopener noreferrer"
-                  className="w-full flex items-center gap-3 p-3 bg-secondary text-secondary-foreground border-2 border-foreground font-bold text-sm uppercase tracking-wide hover:translate-x-[-2px] hover:translate-y-[-2px] hover:shadow-[4px_4px_0_hsl(var(--foreground))] transition-all"
-                  style={{ 
-                    borderRadius: "var(--radius)",
-                    boxShadow: "2px 2px 0 hsl(var(--foreground))"
-                  }}
+                  className="w-full flex items-center gap-3 p-3 bg-secondary text-secondary-foreground rounded-lg font-medium text-sm hover:bg-secondary/80 transition-all"
                 >
-                  <MapPin className="w-5 h-5" />
+                  <MapPin className="w-4 h-4" />
                   Listings Map
                 </a>
                 <button 
                   onClick={() => navigate('/listings')}
-                  className="w-full flex items-center gap-3 p-3 bg-success text-success-foreground border-2 border-foreground font-bold text-sm uppercase tracking-wide hover:translate-x-[-2px] hover:translate-y-[-2px] hover:shadow-[4px_4px_0_hsl(var(--foreground))] transition-all"
-                  style={{ 
-                    borderRadius: "var(--radius)",
-                    boxShadow: "2px 2px 0 hsl(var(--foreground))"
-                  }}
+                  className="w-full flex items-center gap-3 p-3 bg-success text-success-foreground rounded-lg font-medium text-sm hover:bg-success/90 transition-all"
                 >
-                  <Building2 className="w-5 h-5" />
+                  <Building2 className="w-4 h-4" />
                   Distribution List
                 </button>
                 <a 
                   href="/distribution-map" 
                   target="_blank" 
                   rel="noopener noreferrer"
-                  className="w-full flex items-center gap-3 p-3 bg-secondary text-secondary-foreground border-2 border-foreground font-bold text-sm uppercase tracking-wide hover:translate-x-[-2px] hover:translate-y-[-2px] hover:shadow-[4px_4px_0_hsl(var(--foreground))] transition-all"
-                  style={{ 
-                    borderRadius: "var(--radius)",
-                    boxShadow: "2px 2px 0 hsl(var(--foreground))"
-                  }}
+                  className="w-full flex items-center gap-3 p-3 bg-secondary text-secondary-foreground rounded-lg font-medium text-sm hover:bg-secondary/80 transition-all"
                 >
-                  <MapPin className="w-5 h-5" />
+                  <MapPin className="w-4 h-4" />
                   Distribution Map
                 </a>
               </div>

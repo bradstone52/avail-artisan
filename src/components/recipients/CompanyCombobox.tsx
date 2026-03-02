@@ -50,10 +50,7 @@ export function CompanyCombobox({ value, onChange }: CompanyComboboxProps) {
           variant="outline"
           role="combobox"
           aria-expanded={open}
-          className={cn(
-            "w-full justify-between font-medium h-11 border-2 border-foreground",
-            value && "bg-primary/10"
-          )}
+          className={cn("w-full justify-between font-medium h-11", value && "bg-primary/10")}
         >
           {value || "Select company..."}
           <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />

@@ -152,14 +152,14 @@ export default function Tenants() {
           <TabsContent value="expiries">
             {/* Stats Cards */}
             <div className="grid grid-cols-3 gap-4 mb-6">
-              <Card className="border-2 border-foreground shadow-[4px_4px_0_hsl(var(--foreground))]">
+              <Card className="border border-border shadow-sm">
                 <CardContent className="p-4">
                   <div className="flex items-center gap-3">
                     <div className="p-2 bg-primary/10 rounded-lg">
                       <Clock className="h-5 w-5 text-primary" />
                     </div>
                     <div>
-                      <p className="text-2xl font-black">
+                      <p className="text-2xl font-bold">
                         {expiriesLoading ? <Skeleton className="h-8 w-12" /> : expiriesStats.total}
                       </p>
                       <p className="text-sm text-muted-foreground font-medium">Total</p>
@@ -167,14 +167,14 @@ export default function Tenants() {
                   </div>
                 </CardContent>
               </Card>
-              <Card className="border-2 border-foreground shadow-[4px_4px_0_hsl(var(--foreground))]">
+              <Card className="border border-border shadow-sm">
                 <CardContent className="p-4">
                   <div className="flex items-center gap-3">
                     <div className="p-2 bg-destructive/10 rounded-lg">
                       <AlertTriangle className="h-5 w-5 text-destructive" />
                     </div>
                     <div>
-                      <p className="text-2xl font-black text-destructive">
+                      <p className="text-2xl font-bold text-destructive">
                         {expiriesLoading ? (
                           <Skeleton className="h-8 w-12" />
                         ) : (
@@ -186,14 +186,14 @@ export default function Tenants() {
                   </div>
                 </CardContent>
               </Card>
-              <Card className="border-2 border-foreground shadow-[4px_4px_0_hsl(var(--foreground))]">
+              <Card className="border border-border shadow-sm">
                 <CardContent className="p-4">
                   <div className="flex items-center gap-3">
                     <div className="p-2 bg-destructive/20 rounded-lg">
                       <AlertTriangle className="h-5 w-5 text-destructive" />
                     </div>
                     <div>
-                      <p className="text-2xl font-black text-destructive">
+                      <p className="text-2xl font-bold text-destructive">
                         {expiriesLoading ? (
                           <Skeleton className="h-8 w-12" />
                         ) : (

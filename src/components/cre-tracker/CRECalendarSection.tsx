@@ -64,7 +64,7 @@ export function CRECalendarSection({ calendarDates }: CRECalendarSectionProps) {
   const prospectDates = calendarDates.filter(d => d.type === 'prospect').map(d => d.date);
 
   return (
-    <Card className="border-2 border-foreground">
+    <Card>
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <CalendarIcon className="w-5 h-5" />
@@ -138,8 +138,7 @@ export function CRECalendarSection({ calendarDates }: CRECalendarSectionProps) {
                     <Link
                       key={i}
                       to={event.linkPath}
-                      className="flex items-start gap-2 p-2 border-2 border-foreground/20 hover:border-foreground hover:bg-muted/50 transition-all"
-                      style={{ borderRadius: 'var(--radius)' }}
+                      className="flex items-start gap-2 p-2 border border-border rounded-lg hover:bg-muted/50 transition-all"
                     >
                       <div className={`w-2 h-2 rounded-full mt-1.5 flex-shrink-0 ${getEventColor(event.type)}`} />
                       <div className="min-w-0 flex-1">
@@ -154,8 +153,7 @@ export function CRECalendarSection({ calendarDates }: CRECalendarSectionProps) {
                     <Link
                       key={i}
                       to={event.linkPath}
-                      className="flex items-start justify-between p-2 border-2 border-foreground/20 hover:border-foreground hover:bg-muted/50 transition-all"
-                      style={{ borderRadius: 'var(--radius)' }}
+                      className="flex items-start justify-between p-2 border border-border rounded-lg hover:bg-muted/50 transition-all"
                     >
                       <div className="flex items-start gap-2 min-w-0 flex-1">
                         <div className={`w-2 h-2 rounded-full mt-1.5 flex-shrink-0 ${getEventColor(event.type)}`} />

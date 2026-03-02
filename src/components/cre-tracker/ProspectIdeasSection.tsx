@@ -20,7 +20,7 @@ export function ProspectIdeasSection() {
   const [addOpen, setAddOpen] = useState(false);
 
   return (
-    <div className="border-2 border-foreground" style={{ borderRadius: 'var(--radius)' }}>
+    <div className="border border-border rounded-lg shadow-sm">
       <div className="flex items-center justify-between pr-2">
         <button
           className="flex-1 flex items-center justify-between p-4 hover:bg-muted/30 transition-colors"
@@ -28,8 +28,8 @@ export function ProspectIdeasSection() {
         >
           <div className="flex items-center gap-2">
             <Lightbulb className="w-4 h-4 text-primary" />
-            <span className="font-bold uppercase tracking-wider text-sm">Saved Prospect Ideas</span>
-            <Badge variant="outline" className="border-2 border-foreground font-bold text-xs">
+            <span className="font-semibold text-sm">Saved Prospect Ideas</span>
+            <Badge variant="outline" className="text-xs">
               {ideas.length}
             </Badge>
           </div>
@@ -38,7 +38,7 @@ export function ProspectIdeasSection() {
         <Button
           size="sm"
           variant="outline"
-          className="h-7 px-2 text-xs border-2 border-foreground font-bold shrink-0"
+          className="h-7 px-2 text-xs shrink-0"
           onClick={() => setAddOpen(true)}
         >
           <Plus className="w-3 h-3 mr-1" />
@@ -47,7 +47,7 @@ export function ProspectIdeasSection() {
       </div>
 
       {expanded && (
-        <div className="border-t-2 border-foreground">
+        <div className="border-t border-border">
           {isLoading ? (
             <div className="p-6 text-center text-muted-foreground text-sm">Loading…</div>
           ) : ideas.length === 0 ? (
@@ -58,19 +58,19 @@ export function ProspectIdeasSection() {
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="border-b-2 border-foreground bg-muted/40">
-                    <th className="text-left p-3 font-bold uppercase tracking-wider text-xs">Name</th>
-                    <th className="text-left p-3 font-bold uppercase tracking-wider text-xs">Title</th>
-                    <th className="text-left p-3 font-bold uppercase tracking-wider text-xs">Company</th>
-                    <th className="text-left p-3 font-bold uppercase tracking-wider text-xs">Email</th>
-                    <th className="text-left p-3 font-bold uppercase tracking-wider text-xs">Phone</th>
-                    <th className="text-left p-3 font-bold uppercase tracking-wider text-xs">Saved</th>
+                  <tr className="border-b border-border bg-muted/40">
+                    <th className="text-left p-3 font-semibold text-muted-foreground uppercase text-xs tracking-wide">Name</th>
+                    <th className="text-left p-3 font-semibold text-muted-foreground uppercase text-xs tracking-wide">Title</th>
+                    <th className="text-left p-3 font-semibold text-muted-foreground uppercase text-xs tracking-wide">Company</th>
+                    <th className="text-left p-3 font-semibold text-muted-foreground uppercase text-xs tracking-wide">Email</th>
+                    <th className="text-left p-3 font-semibold text-muted-foreground uppercase text-xs tracking-wide">Phone</th>
+                    <th className="text-left p-3 font-semibold text-muted-foreground uppercase text-xs tracking-wide">Saved</th>
                     <th className="p-3"></th>
                   </tr>
                 </thead>
                 <tbody>
                   {ideas.map((idea) => (
-                    <tr key={idea.id} className="border-b border-foreground/10 hover:bg-muted/20 transition-colors">
+                    <tr key={idea.id} className="border-b border-border/50 hover:bg-muted/20 transition-colors">
                       <td className="p-3 font-medium">{idea.name}</td>
                       <td className="p-3 text-muted-foreground">{idea.title ?? '—'}</td>
                       <td className="p-3 text-muted-foreground">{idea.company ?? '—'}</td>
@@ -84,7 +84,7 @@ export function ProspectIdeasSection() {
                           <Button
                             size="sm"
                             variant="outline"
-                            className="h-7 px-2 text-xs border-2 border-foreground font-bold"
+                            className="h-7 px-2 text-xs font-medium"
                             onClick={() => setConvertIdea(idea)}
                           >
                             <UserPlus className="w-3 h-3 mr-1" />

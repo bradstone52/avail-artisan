@@ -179,7 +179,7 @@ export default function InternalListingDetail() {
           <TabsContent value="overview" className="space-y-6">
             <div className="grid md:grid-cols-3 gap-6">
               {/* Property Details */}
-              <Card className="md:col-span-2 border-2 border-foreground shadow-[4px_4px_0_hsl(var(--foreground))]">
+              <Card className="md:col-span-2">
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
                     <MapPin className="h-5 w-5" />
@@ -301,7 +301,7 @@ export default function InternalListingDetail() {
               {/* Right sidebar: Financial + Linked Deal stacked */}
               <div className="space-y-6">
               {/* Financial Summary */}
-              <Card className="border-2 border-foreground shadow-[4px_4px_0_hsl(var(--foreground))]">
+              <Card>
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
                     <DollarSign className="h-5 w-5" />
@@ -379,7 +379,7 @@ export default function InternalListingDetail() {
 
             {/* Assignment & Owner */}
             <div className="grid md:grid-cols-2 gap-6">
-              <Card className="border-2 border-foreground shadow-[4px_4px_0_hsl(var(--foreground))]">
+              <Card>
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
                     <Users className="h-5 w-5" />
@@ -421,7 +421,7 @@ export default function InternalListingDetail() {
 
               {/* Marketing Content */}
               {(listing.description || listing.broker_remarks) && (
-                <Card className="border-2 border-foreground shadow-[4px_4px_0_hsl(var(--foreground))]">
+                <Card>
                   <CardHeader>
                     <CardTitle className="flex items-center gap-2">
                       <FileText className="h-5 w-5" />
@@ -476,7 +476,7 @@ export default function InternalListingDetail() {
           </TabsContent>
 
           <TabsContent value="activity" className="space-y-4">
-            <Card className="border-2 border-foreground shadow-[4px_4px_0_hsl(var(--foreground))]">
+            <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <History className="h-5 w-5" />
