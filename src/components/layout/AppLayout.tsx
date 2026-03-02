@@ -126,7 +126,7 @@ export function AppLayout({ children }: AppLayoutProps) {
       {/* Mobile sidebar overlay - only for tablet, phones use bottom nav */}
       {sidebarOpen && (
         <div 
-          className="fixed inset-0 z-40 bg-foreground/40 backdrop-blur-sm hidden md:block lg:hidden"
+          className="fixed inset-0 z-20 bg-foreground/40 hidden md:block lg:hidden"
           onClick={() => setSidebarOpen(false)}
         />
       )}
