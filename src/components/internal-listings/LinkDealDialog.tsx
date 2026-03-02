@@ -64,7 +64,7 @@ export function LinkDealDialog({ open, onOpenChange, listingId }: LinkDealDialog
           <DialogTitle className="text-xl font-black uppercase tracking-tight">Link Existing Deal</DialogTitle>
         </DialogHeader>
 
-        <div className="space-y-3 pr-1">
+        <div className="space-y-3">
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
@@ -75,7 +75,7 @@ export function LinkDealDialog({ open, onOpenChange, listingId }: LinkDealDialog
             />
           </div>
 
-          <div className="max-h-72 overflow-y-auto rounded-md border-2 border-foreground mr-1">
+          <div className="max-h-72 overflow-y-auto rounded-md border-2 border-foreground">
             {isLoading && (
               <p className="text-sm text-muted-foreground text-center py-4">Loading deals…</p>
             )}
@@ -103,7 +103,7 @@ export function LinkDealDialog({ open, onOpenChange, listingId }: LinkDealDialog
                   </div>
                   <Badge
                     variant="outline"
-                    className={`shrink-0 text-xs font-black uppercase border-2 whitespace-nowrap shadow-none ${
+                    className={`shrink-0 text-xs font-black uppercase border-2 whitespace-nowrap shadow-none bg-transparent ${
                       selectedDealId === deal.id ? 'border-primary-foreground text-primary-foreground' : 'border-foreground'
                     }`}
                   >
@@ -115,7 +115,7 @@ export function LinkDealDialog({ open, onOpenChange, listingId }: LinkDealDialog
           </div>
         </div>
 
-        <DialogFooter className="pr-1">
+        <DialogFooter>
           <Button variant="outline" onClick={handleClose} className="font-black uppercase border-2 border-foreground">
             Cancel
           </Button>
