@@ -59,7 +59,7 @@ export function LinkDealDialog({ open, onOpenChange, listingId }: LinkDealDialog
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className="max-w-lg border-2 border-foreground overflow-hidden">
+      <DialogContent className="w-[calc(100vw-2rem)] max-w-lg">
         <DialogHeader>
           <DialogTitle className="text-xl font-black uppercase tracking-tight">Link Existing Deal</DialogTitle>
         </DialogHeader>
@@ -75,7 +75,7 @@ export function LinkDealDialog({ open, onOpenChange, listingId }: LinkDealDialog
             />
           </div>
 
-          <div className="max-h-72 overflow-y-auto space-y-1 rounded-md border-2 border-foreground p-1 overflow-x-hidden">
+          <div className="max-h-72 overflow-y-auto rounded-md border-2 border-foreground">
             {isLoading && (
               <p className="text-sm text-muted-foreground text-center py-4">Loading deals…</p>
             )}
@@ -87,14 +87,14 @@ export function LinkDealDialog({ open, onOpenChange, listingId }: LinkDealDialog
                 key={deal.id}
                 type="button"
                 onClick={() => setSelectedDealId(deal.id)}
-                className={`w-full text-left rounded px-3 py-2.5 text-sm transition-colors ${
+                className={`w-full text-left px-3 py-2.5 text-sm transition-colors border-b border-border last:border-b-0 ${
                   selectedDealId === deal.id
                     ? 'bg-primary text-primary-foreground'
                     : 'hover:bg-muted'
                 }`}
               >
-                <div className="flex items-center justify-between gap-2">
-                  <div className="min-w-0">
+                <div className="flex items-center gap-3">
+                  <div className="min-w-0 flex-1">
                     <p className="font-bold truncate">{deal.address}</p>
                     <p className="text-xs opacity-70 truncate">
                       {deal.deal_type}
@@ -103,7 +103,7 @@ export function LinkDealDialog({ open, onOpenChange, listingId }: LinkDealDialog
                   </div>
                   <Badge
                     variant="outline"
-                    className={`shrink-0 text-xs font-black uppercase border-2 ${
+                    className={`shrink-0 text-xs font-black uppercase border-2 whitespace-nowrap ${
                       selectedDealId === deal.id ? 'border-primary-foreground text-primary-foreground' : 'border-foreground'
                     }`}
                   >
@@ -116,13 +116,13 @@ export function LinkDealDialog({ open, onOpenChange, listingId }: LinkDealDialog
         </div>
 
         <DialogFooter>
-          <Button variant="outline" onClick={handleClose} className="font-black uppercase border-2 border-foreground shadow-[3px_3px_0_hsl(var(--foreground))]">
+          <Button variant="outline" onClick={handleClose} className="font-black uppercase border-2 border-foreground">
             Cancel
           </Button>
           <Button
             onClick={handleConfirm}
             disabled={!selectedDealId || linkDeal.isPending}
-            className="font-black uppercase border-2 border-foreground shadow-[3px_3px_0_hsl(var(--foreground))]"
+            className="font-black uppercase"
           >
             {linkDeal.isPending ? 'Linking…' : 'Link Deal'}
           </Button>
