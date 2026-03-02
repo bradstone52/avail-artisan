@@ -34,11 +34,12 @@ export function daysFromTodayEdmonton(dateStr: string): number {
  * - "Due tomorrow"
  * - "MMM d, yyyy" for all other future dates
  */
-export function formatDueLabel(dateStr: string): { text: string; isOverdue: boolean } {
+export function formatDueLabel(dateStr: string, overdueTemplate?: string): { text: string; isOverdue: boolean } {
   const diff = daysFromTodayEdmonton(dateStr);
   if (diff < 0) {
     const abs = Math.abs(diff);
-    return { text: applyOverdueTemplate(getOverdueTemplate(), abs), isOverdue: true };
+    const tmpl = overdueTemplate ?? getOverdueTemplate();
+    return { text: applyOverdueTemplate(tmpl, abs), isOverdue: true };
   }
   if (diff === 0) return { text: 'Due today', isOverdue: false };
   if (diff === 1) return { text: 'Due tomorrow', isOverdue: false };

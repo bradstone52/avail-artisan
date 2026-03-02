@@ -39,6 +39,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { cn } from '@/lib/utils';
 import { differenceInDays, parseISO, addDays, formatDistanceToNow, format, isPast, isToday } from 'date-fns';
 import { formatDueLabel } from '@/lib/dates';
+import { useOverdueTemplate } from '@/hooks/useOverdueTemplate';
 import type { Prospect } from '@/types/prospect';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
@@ -74,10 +75,10 @@ const prospectTypeColors: Record<string, string> = {
 const PRIORITY_CYCLE = [null, 'A', 'B', 'C'] as const;
 const priorityOrder: Record<string, number> = { A: 0, B: 1, C: 2 };
 
-function FollowUpDueCell({ date }: { date?: string | null }) {
+function FollowUpDueCell({ date, overdueTemplate }: { date?: string | null; overdueTemplate: string }) {
   if (!date) return <span className="text-muted-foreground">-</span>;
 
-  const { text, isOverdue } = formatDueLabel(date);
+  const { text, isOverdue } = formatDueLabel(date, overdueTemplate);
 
   if (isOverdue) {
     return <span className="text-destructive font-semibold text-xs">{text}</span>;
@@ -240,6 +241,7 @@ function TasksCell({ prospectId, tasks }: { prospectId: string; tasks: ReturnTyp
 }
 
 export function ProspectsTable({ prospects, isLoading, onEdit }: ProspectsTableProps) {
+  const overdueTemplate = useOverdueTemplate();
   const navigate = useNavigate();
   const deleteProspect = useDeleteProspect();
   const updateProspect = useUpdateProspect();
@@ -638,7 +640,7 @@ export function ProspectsTable({ prospects, isLoading, onEdit }: ProspectsTableP
                   )}
                   {isVisible('follow_up') && (
                     <TableCell className={cellPadding}>
-                      <FollowUpDueCell date={prospect.follow_up_date} />
+                      <FollowUpDueCell date={prospect.follow_up_date} overdueTemplate={overdueTemplate} />
                     </TableCell>
                   )}
                   <TableCell className={cellPadding} onClick={(e) => e.stopPropagation()}>
