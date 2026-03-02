@@ -134,7 +134,7 @@ export function AppLayout({ children }: AppLayoutProps) {
       {/* Sidebar - hidden on phones, slide-out on tablets, always visible on desktop */}
       <aside
         className={cn(
-          "fixed inset-y-0 left-0 z-40 bg-card border-r-3 border-foreground transform transition-all duration-200 ease-in-out lg:translate-x-0 shadow-[4px_0_0_hsl(var(--foreground))]",
+        "fixed inset-y-0 left-0 z-30 bg-card border-r-3 border-foreground transition-all duration-200 ease-in-out lg:translate-x-0 shadow-[4px_0_0_hsl(var(--foreground))]",
           "hidden md:block", // Hide completely on phones
           sidebarOpen ? "translate-x-0" : "md:-translate-x-full lg:translate-x-0",
           sidebarCollapsed ? "lg:w-16" : "lg:w-64",

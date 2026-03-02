@@ -60,7 +60,7 @@ export function MobileBottomNav({ isAdmin, onSignOut }: MobileBottomNavProps) {
   const isMoreActive = [...moreNav, ...adminNav].some(item => location.pathname === item.href);
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-50 md:hidden bg-card border-t-3 border-foreground safe-area-bottom">
+    <nav className="fixed bottom-0 left-0 right-0 z-30 md:hidden bg-card border-t-3 border-foreground safe-area-bottom">
       <div className="flex items-stretch justify-around">
         {primaryNav.map((item) => {
           const active = isActive(item.href);
