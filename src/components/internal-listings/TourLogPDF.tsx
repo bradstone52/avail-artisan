@@ -2,7 +2,7 @@ import { Document, Page, Text, View, StyleSheet, Image } from '@react-pdf/render
 import { format } from 'date-fns';
 import type { InternalListingTour } from '@/hooks/useInternalListingTours';
 
-const ORANGE = '#e8792b';
+const ACCENT = '#4a9eca';
 const GRAY_BG = '#f7f7f7';
 const BORDER = '#e0e0e0';
 const DARK = '#1a1a1a';
@@ -23,12 +23,12 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'flex-end',
     paddingBottom: 10,
-    borderBottom: `2px solid ${ORANGE}`,
+    borderBottom: `2px solid ${ACCENT}`,
     marginBottom: 14,
   },
   logo: { width: 110, height: 'auto' },
   headerRight: { alignItems: 'flex-end' },
-  headerTitle: { fontSize: 14, fontFamily: 'Helvetica-Bold', color: ORANGE },
+  headerTitle: { fontSize: 14, fontFamily: 'Helvetica-Bold', color: ACCENT },
   headerDate: { fontSize: 7, color: MUTED, marginTop: 2 },
   // Property banner
   banner: {
@@ -36,7 +36,7 @@ const styles = StyleSheet.create({
     borderRadius: 3,
     padding: '8 10',
     marginBottom: 10,
-    borderLeft: `3px solid ${ORANGE}`,
+    borderLeft: `3px solid ${ACCENT}`,
   },
   bannerAddress: { fontSize: 11, fontFamily: 'Helvetica-Bold' },
   bannerSub: { fontSize: 8, color: MUTED, marginTop: 2 },
@@ -46,7 +46,7 @@ const styles = StyleSheet.create({
   table: { width: '100%' },
   tableHeader: {
     flexDirection: 'row',
-    backgroundColor: ORANGE,
+    backgroundColor: ACCENT,
     borderRadius: 2,
     paddingVertical: 5,
     paddingHorizontal: 4,
@@ -129,13 +129,7 @@ export function TourLogPDF({ tours, listingAddress, listingNumber, generatedAt }
         {/* Property Banner */}
         <View style={styles.banner}>
           <Text style={styles.bannerAddress}>{listingAddress}</Text>
-          {listingNumber && (
-            <Text style={styles.bannerSub}>Listing #{listingNumber}</Text>
-          )}
         </View>
-
-        {/* Summary */}
-        <Text style={styles.summary}>{summaryText}</Text>
 
         {/* Table */}
         <View style={styles.table}>
