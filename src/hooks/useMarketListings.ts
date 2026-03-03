@@ -285,6 +285,7 @@ export function useMarketListings() {
 
   return {
     listings,
+    fetchListings,
     syncLogs,
     loading,
     isSyncing: false, // No longer syncing from Google Sheets

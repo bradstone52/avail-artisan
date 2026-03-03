@@ -42,7 +42,8 @@ const ALL_MARKET_STATUS_OPTIONS = ['Active', 'Under Contract', 'Sold/Leased', 'U
 
 export default function MarketListings() {
   const { 
-    listings, 
+    listings,
+    fetchListings,
     loading, 
     isValidatingLinks,
     linkCheckTotal,
@@ -1007,7 +1008,7 @@ export default function MarketListings() {
           uniqueCities={uniqueCities}
           onSaved={() => {
             setSelectedIds(new Set());
-            refreshListings();
+            fetchListings();
           }}
         />
 
