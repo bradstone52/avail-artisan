@@ -43,6 +43,7 @@ export interface ProspectTask {
   prospect_id: string;
   org_id?: string | null;
   created_by?: string | null;
+  assigned_to?: string | null;
   title: string;
   notes?: string | null;
   due_date?: string | null;
@@ -77,4 +78,5 @@ export interface ProspectTaskFormData {
   notes?: string;
   due_date?: string;
   reminder_at?: string;
+  assigned_to?: string;
 }
