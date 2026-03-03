@@ -27,6 +27,7 @@ export function BulkEditListingsDialog({
   open,
   onOpenChange,
   selectedIds,
+  listings,
   uniqueSubmarkets,
   uniqueCities,
   onSaved,
