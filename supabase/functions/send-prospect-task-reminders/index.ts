@@ -108,7 +108,7 @@ serve(async (req) => {
                         <tr>
                           <td>
                             <div style="font-size:11px;font-weight:700;letter-spacing:0.15em;text-transform:uppercase;color:#64748b;margin-bottom:4px;">ClearView Partners</div>
-                            <div style="font-size:22px;font-weight:700;color:#ffffff;line-height:1.2;">${isAssigned ? 'Task Assigned to You' : 'Task Reminder'}</div>
+                            <div style="font-size:22px;font-weight:700;color:#ffffff;line-height:1.2;">${isAssigned ? "Task Assigned to You" : "Task Reminder"}</div>
                             <div style="font-size:12px;color:#94a3b8;margin-top:4px;">${today}</div>
                           </td>
                           <td align="right" style="vertical-align:top;">
