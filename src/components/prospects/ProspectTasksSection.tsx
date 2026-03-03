@@ -235,6 +235,7 @@ function TaskRow({ task, prospectId, members }: { task: ProspectTask; prospectId
 
 export function ProspectTasksSection({ prospect }: ProspectTasksSectionProps) {
   const { data: tasks = [], isLoading } = useProspectTasks(prospect.id);
+  const { data: members = [] } = useOrgMemberProfiles();
   const [addOpen, setAddOpen] = useState(false);
 
   const activeTasks = tasks.filter(t => !t.completed);
@@ -268,13 +269,13 @@ export function ProspectTasksSection({ prospect }: ProspectTasksSectionProps) {
           ) : (
             <div className="space-y-2">
               {activeTasks.map(task => (
-                <TaskRow key={task.id} task={task} prospectId={prospect.id} />
+                <TaskRow key={task.id} task={task} prospectId={prospect.id} members={members} />
               ))}
               {completedTasks.length > 0 && activeTasks.length > 0 && (
                 <div className="border-t border-foreground/10 my-2" />
               )}
               {completedTasks.map(task => (
-                <TaskRow key={task.id} task={task} prospectId={prospect.id} />
+                <TaskRow key={task.id} task={task} prospectId={prospect.id} members={members} />
               ))}
             </div>
           )}
