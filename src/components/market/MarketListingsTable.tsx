@@ -26,7 +26,7 @@ import {
 import { StatusDropdown } from '@/components/market/StatusDropdown';
 import { EditMarketPinDialog } from '@/components/market/EditMarketPinDialog';
 import { LogTransactionDialog } from '@/components/market/LogTransactionDialog';
-import { ExternalLink, MapPin, MapPinOff, Hand, Pencil, Receipt, RotateCcw, ArrowUp, ArrowDown, ArrowUpDown, CheckCircle, Building2 } from 'lucide-react';
+import { ExternalLink, MapPin, MapPinOff, Hand, Pencil, Copy, Receipt, RotateCcw, ArrowUp, ArrowDown, ArrowUpDown, CheckCircle, Building2 } from 'lucide-react';
 import { format, differenceInDays, parseISO } from 'date-fns';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
