@@ -31,7 +31,7 @@ import { DensityToggle } from '@/components/common/DensityToggle';
 import { TaskFormDialog } from '@/components/prospects/TaskFormDialog';
 import { formatDate, formatNumber, formatCurrency } from '@/lib/format';
 import { useDeleteProspect, useLogProspectContact, useUpdateProspect, useSetProspectContactDate } from '@/hooks/useProspects';
-import { useAllProspectTasks, useToggleProspectTaskCompleted, useCreateProspectTask } from '@/hooks/useProspectTasks';
+import { useAllProspectTasks, useToggleProspectTaskCompleted, useCreateProspectTask, useUpdateProspectTask } from '@/hooks/useProspectTasks';
 import { useTableColumnPrefs } from '@/hooks/useTableColumnPrefs';
 import { useTableDensity } from '@/hooks/useTableDensity';
 import { Eye, Pencil, Trash2, Search, X, MoreHorizontal, Phone, Mail, ArrowUpDown, ArrowUp, ArrowDown, CalendarIcon, CheckSquare, AlertCircle, ListPlus, Circle } from 'lucide-react';
