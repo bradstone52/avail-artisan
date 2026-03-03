@@ -389,7 +389,7 @@ function TasksCell({ prospectId, tasks }: { prospectId: string; tasks: ReturnTyp
               className="h-3.5 w-3.5 shrink-0"
             />
             <div className="min-w-0">
-              <span className={cn(
+              <InlineTaskEditor task={task} prospectId={prospectId} />
                 'font-medium truncate block',
                 overdue && 'text-red-700 dark:text-red-400',
                 dueToday && 'text-amber-700 dark:text-amber-400',
