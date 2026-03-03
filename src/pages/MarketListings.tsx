@@ -998,6 +998,19 @@ export default function MarketListings() {
           </Card>
         )}
 
+        {/* Bulk Edit Dialog */}
+        <BulkEditListingsDialog
+          open={isBulkEditOpen}
+          onOpenChange={setIsBulkEditOpen}
+          selectedIds={selectedIds}
+          uniqueSubmarkets={uniqueSubmarkets}
+          uniqueCities={uniqueCities}
+          onSaved={() => {
+            setSelectedIds(new Set());
+            refreshListings();
+          }}
+        />
+
         {/* Edit Dialog */}
         <MarketListingEditDialog
           listing={editingListing}
