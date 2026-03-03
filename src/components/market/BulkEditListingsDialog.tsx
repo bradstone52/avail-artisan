@@ -42,6 +42,8 @@ export function BulkEditListingsDialog({
   const [saving, setSaving] = useState(false);
 
   const reset = () => {
+    setAddress('');
+    setDisplayAddress('');
     setSubmarket(UNSET);
     setCity('');
     setStatus(UNSET);
@@ -61,6 +63,8 @@ export function BulkEditListingsDialog({
       updated_at: new Date().toISOString(),
     };
 
+    if (address.trim()) updates.address = address.trim();
+    if (displayAddress.trim()) updates.display_address = displayAddress.trim();
     if (submarket !== UNSET) updates.submarket = submarket;
     if (city.trim()) updates.city = city.trim();
     if (status !== UNSET) updates.status = status;
