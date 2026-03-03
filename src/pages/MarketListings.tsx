@@ -78,6 +78,7 @@ export default function MarketListings() {
   // Edit/Create dialog state
   const [editingListing, setEditingListing] = useState<MarketListing | null>(null);
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
+  const [duplicatingListing, setDuplicatingListing] = useState<MarketListing | null>(null);
   const [isFixLinksDialogOpen, setIsFixLinksDialogOpen] = useState(false);
   const [transactionListing, setTransactionListing] = useState<MarketListing | null>(null);
   const [isUpdateCheckerOpen, setIsUpdateCheckerOpen] = useState(false);
@@ -888,7 +889,8 @@ export default function MarketListings() {
             <CardContent className="p-0">
               <MarketListingsTable 
                 listings={paginatedListings} 
-                onEdit={setEditingListing} 
+                onEdit={setEditingListing}
+                onDuplicate={(listing) => { setDuplicatingListing(listing); setIsCreateDialogOpen(true); }}
                 onRefresh={refreshListings}
                 sortColumn={sortColumn}
                 sortDirection={sortDirection}
@@ -971,9 +973,10 @@ export default function MarketListings() {
         <MarketListingEditDialog
           listing={null}
           open={isCreateDialogOpen}
-          onOpenChange={setIsCreateDialogOpen}
+          onOpenChange={(open) => { setIsCreateDialogOpen(open); if (!open) setDuplicatingListing(null); }}
           onSaved={refreshListings}
           mode="create"
+          duplicateFrom={duplicatingListing}
         />
 
         {/* Fix Links Dialog */}

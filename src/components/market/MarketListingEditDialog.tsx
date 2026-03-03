@@ -91,6 +91,7 @@ interface MarketListingEditDialogProps {
   onSaved: () => void;
   mode?: 'edit' | 'create';
   onLogTransaction?: (listing: MarketListing) => void;
+  duplicateFrom?: MarketListing | null;
 }
 
 export function MarketListingEditDialog({
@@ -100,6 +101,7 @@ export function MarketListingEditDialog({
   onSaved,
   mode = 'edit',
   onLogTransaction,
+  duplicateFrom,
 }: MarketListingEditDialogProps) {
   const { user } = useAuth();
   const { org } = useOrg();
@@ -528,58 +530,123 @@ export function MarketListingEditDialog({
     if (isCreateMode) {
       // Auto-generate listing ID for create mode
       setListingId(generateListingId());
-      setAddress('');
-      setBuilding('');
-      setUnit('');
-      setDisplayAddress('');
-      setDisplayAddressManuallyEdited(false);
-      setCity('Calgary');
-      setSubmarket('');
-      setSizeSf('');
-      setStatus('Active');
-      setListingType('');
-      setCalgaryQuad('');
-      setAskingRate('');
-      setOpCosts('');
-      setPropertyTax('');
-      setCondoFees('');
-      setSalePrice('');
-      setAvailabilityDate('');
-      setSubleaseExp('');
-      setLandlord('');
-      setBrokerSource('');
-      setBrochureLink('');
-      setWebsiteLink('');
-      setNotesPublic('');
-      setInternalNote('');
-      setWarehouseSf('');
-      setShopSf('');
-      setOfficeSf('');
-      setHasLand(false);
-      setGrossRate('');
-      setClearHeight('');
-      setDockDoors('');
-      setDriveInDoors('');
-      setDriveInDoorDimensions([]);
-      setBuildingDepth('');
-      setPowerAmps('');
-      setVoltage('');
-      setSprinkler('');
-      setHasSprinklers(false);
-      setHasCranes(false);
-      setCranes('');
-      setCraneTons('');
-      setCraneTonValues([]);
-      setYard(false);
-      setYardArea('');
-      setCrossDock(false);
-      setTrailerParking('');
-      setLandAcres('');
-      setZoning('');
-      setMua(false);
-      setMuaValue('');
-      setIsDistributionWarehouse(false);
-      setDevelopmentName('');
+
+      if (duplicateFrom) {
+        // Pre-fill from the duplicated listing
+        const src = duplicateFrom;
+        setAddress(src.address || '');
+        const parsed = parseBuildingUnitFromDisplayAddress(src.display_address || '', src.address || '');
+        setBuilding(parsed.building);
+        setUnit(parsed.unit);
+        setDisplayAddress(src.display_address || src.address || '');
+        setDisplayAddressManuallyEdited(!!(src.display_address && src.display_address !== src.address && !parsed.building && !parsed.unit));
+        setCity(src.city || 'Calgary');
+        setSubmarket(src.submarket || '');
+        setSizeSf(src.size_sf?.toString() || '');
+        setStatus('Active');
+        setListingType(src.listing_type || '');
+        setCalgaryQuad((src as any).calgary_quad || '');
+        setAskingRate(src.asking_rate_psf || '');
+        setOpCosts(src.op_costs || '');
+        setPropertyTax(src.property_tax || '');
+        setCondoFees((src as any).condo_fees || '');
+        setSalePrice(src.sale_price || '');
+        setAvailabilityDate(src.availability_date || '');
+        setSubleaseExp(src.sublease_exp || '');
+        setLandlord(src.landlord || '');
+        setBrokerSource(src.broker_source || '');
+        setBrochureLink((src as any).brochure_link || src.link || '');
+        setWebsiteLink((src as any).website_link || '');
+        setNotesPublic(src.notes_public || '');
+        setInternalNote(src.internal_note || '');
+        setWarehouseSf(src.warehouse_sf?.toString() || '');
+        setShopSf((src as any).shop_sf?.toString() || '');
+        setOfficeSf(src.office_sf?.toString() || '');
+        setHasLand((src as any).has_land || false);
+        setGrossRate((src as any).gross_rate || '');
+        setClearHeight(src.clear_height_ft?.toString() || '');
+        setDockDoors(src.dock_doors?.toString() || '');
+        setDriveInDoors(src.drive_in_doors?.toString() || '');
+        setDriveInDoorDimensions(Array.isArray((src as any).drive_in_door_dimensions) ? (src as any).drive_in_door_dimensions : []);
+        setBuildingDepth(src.building_depth || '');
+        setPowerAmps(src.power_amps || '');
+        setVoltage(src.voltage || '');
+        setSprinkler(src.sprinkler || '');
+        setHasSprinklers(!!(src.sprinkler));
+        const craneCount = parseInt(src.cranes || '0') || 0;
+        setHasCranes(craneCount > 0);
+        setCranes(src.cranes || '');
+        setCraneTons(src.crane_tons || '');
+        if (craneCount > 0 && src.crane_tons) {
+          const parts = src.crane_tons.split(',').map((s: string) => s.trim());
+          setCraneTonValues(Array.from({ length: craneCount }, (_, i) => parts[i] || ''));
+        } else {
+          setCraneTonValues(Array.from({ length: craneCount }, () => ''));
+        }
+        setYard(src.yard === 'Yes' || src.yard === 'true' || src.yard === '1');
+        setYardArea(src.yard_area || '');
+        setCrossDock(src.cross_dock === 'Yes' || src.cross_dock === 'true' || src.cross_dock === '1');
+        setTrailerParking(src.trailer_parking || '');
+        setLandAcres(src.land_acres || '');
+        setZoning(src.zoning || '');
+        setMua(!!(src.mua));
+        setMuaValue(src.mua || '');
+        setIsDistributionWarehouse(src.is_distribution_warehouse || false);
+        setDevelopmentName((src as any).development_name || '');
+      } else {
+        setAddress('');
+        setBuilding('');
+        setUnit('');
+        setDisplayAddress('');
+        setDisplayAddressManuallyEdited(false);
+        setCity('Calgary');
+        setSubmarket('');
+        setSizeSf('');
+        setStatus('Active');
+        setListingType('');
+        setCalgaryQuad('');
+        setAskingRate('');
+        setOpCosts('');
+        setPropertyTax('');
+        setCondoFees('');
+        setSalePrice('');
+        setAvailabilityDate('');
+        setSubleaseExp('');
+        setLandlord('');
+        setBrokerSource('');
+        setBrochureLink('');
+        setWebsiteLink('');
+        setNotesPublic('');
+        setInternalNote('');
+        setWarehouseSf('');
+        setShopSf('');
+        setOfficeSf('');
+        setHasLand(false);
+        setGrossRate('');
+        setClearHeight('');
+        setDockDoors('');
+        setDriveInDoors('');
+        setDriveInDoorDimensions([]);
+        setBuildingDepth('');
+        setPowerAmps('');
+        setVoltage('');
+        setSprinkler('');
+        setHasSprinklers(false);
+        setHasCranes(false);
+        setCranes('');
+        setCraneTons('');
+        setCraneTonValues([]);
+        setYard(false);
+        setYardArea('');
+        setCrossDock(false);
+        setTrailerParking('');
+        setLandAcres('');
+        setZoning('');
+        setMua(false);
+        setMuaValue('');
+        setIsDistributionWarehouse(false);
+        setDevelopmentName('');
+      }
     } else if (listing) {
       setListingId(listing.listing_id || '');
       setAddress(listing.address || '');
@@ -1046,10 +1113,10 @@ export function MarketListingEditDialog({
           onCloseClick={handleClose}
         >
           <DialogHeader>
-            <DialogTitle>{isCreateMode ? 'Add New Listing' : 'Edit Listing'}</DialogTitle>
+            <DialogTitle>{isCreateMode ? (duplicateFrom ? 'Duplicate Listing' : 'Add New Listing') : 'Edit Listing'}</DialogTitle>
             <DialogDescription>
               {isCreateMode 
-                ? 'Enter the details for the new market listing.'
+                ? (duplicateFrom ? `Duplicating ${duplicateFrom.display_address || duplicateFrom.address} — edit fields as needed.` : 'Enter the details for the new market listing.')
                 : `${listing?.display_address || listing?.address} • ${listing?.listing_id}`
               }
             </DialogDescription>

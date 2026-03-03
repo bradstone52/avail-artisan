@@ -26,7 +26,7 @@ import {
 import { StatusDropdown } from '@/components/market/StatusDropdown';
 import { EditMarketPinDialog } from '@/components/market/EditMarketPinDialog';
 import { LogTransactionDialog } from '@/components/market/LogTransactionDialog';
-import { ExternalLink, MapPin, MapPinOff, Hand, Pencil, Receipt, RotateCcw, ArrowUp, ArrowDown, ArrowUpDown, CheckCircle, Building2 } from 'lucide-react';
+import { ExternalLink, MapPin, MapPinOff, Hand, Pencil, Copy, Receipt, RotateCcw, ArrowUp, ArrowDown, ArrowUpDown, CheckCircle, Building2 } from 'lucide-react';
 import { format, differenceInDays, parseISO } from 'date-fns';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -39,6 +39,7 @@ export type SortableColumn = 'size_sf' | 'warehouse_sf' | 'office_sf' | 'dock_do
 interface MarketListingsTableProps {
   listings: MarketListing[];
   onEdit: (listing: MarketListing) => void;
+  onDuplicate?: (listing: MarketListing) => void;
   onRefresh: () => void;
   sortColumn: SortableColumn | null;
   sortDirection: SortDirection;
@@ -90,7 +91,7 @@ function calculateGrossRate(askRate: string | null, opCosts: string | null): str
   return `$${gross.toFixed(2)}`;
 }
 
-export function MarketListingsTable({ listings, onEdit, onRefresh, sortColumn, sortDirection, onSort }: MarketListingsTableProps) {
+export function MarketListingsTable({ listings, onEdit, onDuplicate, onRefresh, sortColumn, sortDirection, onSort }: MarketListingsTableProps) {
   const navigate = useNavigate();
   const { session } = useAuth();
   const scrollContainerRef = useRef<HTMLDivElement>(null);
@@ -873,6 +874,23 @@ export function MarketListingsTable({ listings, onEdit, onRefresh, sortColumn, s
                     </TooltipTrigger>
                     <TooltipContent>Edit Listing</TooltipContent>
                   </Tooltip>
+
+                  {/* Duplicate */}
+                  {onDuplicate && (
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-7 w-7"
+                          onClick={(e) => { e.stopPropagation(); onDuplicate(listing); }}
+                        >
+                          <Copy className="h-3.5 w-3.5" />
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>Duplicate Listing</TooltipContent>
+                    </Tooltip>
+                  )}
                   
                   {/* Log Transaction */}
                   <Tooltip>

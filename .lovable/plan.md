@@ -1,23 +1,32 @@
 
-## Plan: "Duplicate Listing" Action in Market Listings
+## Full App Retheme: Neo-Brutalist → Modern SaaS
 
-### What we're building
-A **Copy/Duplicate** button on each market listing row that opens the Create dialog pre-populated with all the existing listing's data, so the user can tweak just the bay number (or anything else) and save as a new listing.
+### Overview
+Replace the aggressive neo-brutalist visual language (thick black borders, hard-offset shadows, uppercase typography everywhere, warm paper background) with a clean, professional Modern SaaS aesthetic. All interactive behaviors are preserved.
 
-### How it works
-1. **New `onDuplicate` prop on `MarketListingsTable`** — adds a `Copy` icon button next to the existing Edit (pencil) button in the action toolbar on each row.
+### Files to change
 
-2. **`MarketListingEditDialog` gets a `duplicateFrom` prop** — when provided alongside `mode='create'`, the dialog initializes all form fields from the source listing instead of blank defaults. The listing ID gets auto-generated fresh (`ML-YYYYMMDD-RAND` format, matching existing logic), and `status` resets to `'Active'`.
+1. `src/index.css` - CSS variables + all component utility classes
+2. `src/components/ui/card.tsx` - Remove hard shadow/border, add soft shadow
+3. `src/components/ui/button.tsx` - Soften variants, remove uppercase
+4. `src/components/layout/AppLayout.tsx` - Sidebar styling
+5. `src/components/layout/MobileBottomNav.tsx` - Bottom nav styling
+6. `src/components/common/PageHeader.tsx` - Page title typography
 
-3. **`MarketListings.tsx` wires it up** — adds a `duplicatingListing` state, passes `onDuplicate` to the table, and passes `duplicateFrom={duplicatingListing}` to the existing Create dialog.
+### Color/Variable Changes
+- Background: warm paper → clean near-white (`0 0% 98%`)
+- Border: jet black → slate-200 (`220 13% 87%`)
+- Radius: 6px → 8px
+- Sidebar: white with light border (not black shadow)
+- Table headers: light gray (not inverted black/white)
+- Active nav: blue left accent bar + `bg-blue-50`
 
-### Changes
-- **`src/components/market/MarketListingsTable.tsx`**: Add `onDuplicate` prop, import `Copy` icon, add Copy button in the action row next to Edit.
-- **`src/components/market/MarketListingEditDialog.tsx`**: Add `duplicateFrom?: MarketListing` prop; in the `useEffect` that initializes form state, detect when `duplicateFrom` is set and pre-fill all fields from it (generating a new listing ID).
-- **`src/pages/MarketListings.tsx`**: Add `duplicatingListing` state, pass `onDuplicate={setDuplicatingListing}` to the table, and open the create dialog with `duplicateFrom` when that state is set.
+### Interactions Preserved
+- Row hover: `bg-slate-50` highlight
+- Row selection: `bg-blue-50` with blue border
+- Button hover: subtle translate + `shadow-md`
+- Nav hover: `hover:bg-slate-100` with border
+- Active nav: clear visual indicator
 
-### User experience
-- User clicks the **Copy** icon on any listing row
-- The "Add Listing" dialog opens, pre-filled with all the copied listing's specs
-- User changes what they need (e.g. address from "123 Main St Bay 1" → "123 Main St Bay 2")
-- Saves — creates a brand new listing with a fresh ID
+### What is NOT changed
+- All React logic, routes, auth, data hooks, PDF components, Supabase logic
