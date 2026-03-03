@@ -1008,7 +1008,7 @@ export default function MarketListings() {
           uniqueCities={uniqueCities}
           onSaved={() => {
             setSelectedIds(new Set());
-            refreshListings();
+            fetchListings();
           }}
         />
 
