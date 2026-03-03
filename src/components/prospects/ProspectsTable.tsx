@@ -405,7 +405,6 @@ function TasksCell({ prospectId, tasks }: { prospectId: string; tasks: ReturnTyp
           </div>
         </div>
       ))}
-      <InlineTaskAdder prospectId={prospectId} />
     </div>
   );
 }
