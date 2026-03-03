@@ -95,7 +95,11 @@ export function TaskFormDialog({ open, onOpenChange, prospectId, task }: TaskFor
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className="max-w-md">
+      <DialogContent
+        className="max-w-md"
+        onClick={(e) => e.stopPropagation()}
+        onDoubleClick={(e) => e.stopPropagation()}
+      >
         <DialogHeader>
           <DialogTitle>{isEditing ? 'Edit Task' : 'Add Task'}</DialogTitle>
         </DialogHeader>
