@@ -121,6 +121,26 @@ export function BulkEditListingsDialog({
         </p>
 
         <div className="space-y-4">
+          {/* Address */}
+          <div className="space-y-1.5">
+            <Label className="text-xs text-muted-foreground">Address</Label>
+            <Input
+              placeholder="— keep existing —"
+              value={address}
+              onChange={e => setAddress(e.target.value)}
+            />
+          </div>
+
+          {/* Display Address */}
+          <div className="space-y-1.5">
+            <Label className="text-xs text-muted-foreground">Display Address</Label>
+            <Input
+              placeholder="— keep existing —"
+              value={displayAddress}
+              onChange={e => setDisplayAddress(e.target.value)}
+            />
+          </div>
+
           {/* Submarket */}
           <div className="space-y-1.5">
             <Label className="text-xs text-muted-foreground">Submarket</Label>
