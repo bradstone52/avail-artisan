@@ -88,7 +88,7 @@ serve(async (req) => {
           prospect.prospect_type ? `<tr><td style="padding:8px 12px;font-size:12px;font-weight:600;color:#94a3b8;white-space:nowrap;text-transform:uppercase;letter-spacing:0.05em;">Type</td><td style="padding:8px 12px;font-size:14px;color:#334155;">${prospect.prospect_type}</td></tr>` : '',
         ].filter(Boolean).join('');
 
-        const subjectPrefix = isAssigned ? '📋 You've been assigned a task' : '📋 Task Reminder';
+        const subjectPrefix = isAssigned ? "\u{1F4CB} You've been assigned a task" : "\u{1F4CB} Task Reminder";
         const greetingLine = isAssigned
           ? `You have been assigned a task by a teammate that needs your attention.`
           : `You have a task coming up that needs your attention.`;
