@@ -15,7 +15,7 @@ import {
 import { Checkbox } from '@/components/ui/checkbox';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
-import { RefreshCw, Database, Search, X, Filter, Link2, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Plus, ChevronDown, Wrench, ClipboardCheck, FileSearch, AlertTriangle, Globe, MapPin, Copy } from 'lucide-react';
+import { RefreshCw, Database, Search, X, Filter, Link2, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Plus, ChevronDown, Wrench, ClipboardCheck, FileSearch, AlertTriangle, Globe, MapPin, Copy, Pencil } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { format } from 'date-fns';
 import { MarketListingEditDialog } from '@/components/market/MarketListingEditDialog';
@@ -27,6 +27,7 @@ import { AuditPdfDialog } from '@/components/market/AuditPdfDialog';
 import { AuditWebsiteDialog } from '@/components/market/AuditWebsiteDialog';
 import { UngeocodeListingsDialog } from '@/components/market/UngeocodeListingsDialog';
 import { DuplicateListingsDialog, normalizeAddressForDupeCheck } from '@/components/market/DuplicateListingsDialog';
+import { BulkEditListingsDialog } from '@/components/market/BulkEditListingsDialog';
 
 const SIZE_RANGES = [
   { label: 'All Sizes', value: 'all', min: 0, max: Infinity },
@@ -88,6 +89,33 @@ export default function MarketListings() {
   const [isUngeocodeDialogOpen, setIsUngeocodeDialogOpen] = useState(false);
   const [isDuplicateDialogOpen, setIsDuplicateDialogOpen] = useState(false);
   const auditEditCallbackRef = useRef<((listingId: string) => void) | null>(null);
+
+  // Bulk selection state
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [isBulkEditOpen, setIsBulkEditOpen] = useState(false);
+
+  const handleToggleSelect = useCallback((id: string) => {
+    setSelectedIds(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  }, []);
+
+  const handleToggleSelectAll = useCallback((ids: string[]) => {
+    setSelectedIds(prev => {
+      const allSelected = ids.every(id => prev.has(id));
+      if (allSelected) {
+        const next = new Set(prev);
+        ids.forEach(id => next.delete(id));
+        return next;
+      } else {
+        const next = new Set(prev);
+        ids.forEach(id => next.add(id));
+        return next;
+      }
+    });
+  }, []);
 
   // Handle column sorting
   const handleSort = useCallback((column: SortableColumn) => {
@@ -887,6 +915,22 @@ export default function MarketListings() {
         ) : (
           <Card>
             <CardContent className="p-0">
+              {/* Selection toolbar */}
+              {selectedIds.size > 0 && (
+                <div className="flex items-center gap-3 px-4 py-2.5 border-b bg-primary/5">
+                  <span className="text-sm font-medium text-primary">
+                    {selectedIds.size} listing{selectedIds.size !== 1 ? 's' : ''} selected
+                  </span>
+                  <Button size="sm" onClick={() => setIsBulkEditOpen(true)}>
+                    <Pencil className="w-3.5 h-3.5 mr-1.5" />
+                    Bulk Edit
+                  </Button>
+                  <Button size="sm" variant="outline" onClick={() => setSelectedIds(new Set())}>
+                    <X className="w-3.5 h-3.5 mr-1" />
+                    Clear
+                  </Button>
+                </div>
+              )}
               <MarketListingsTable 
                 listings={paginatedListings} 
                 onEdit={setEditingListing}
@@ -895,6 +939,9 @@ export default function MarketListings() {
                 sortColumn={sortColumn}
                 sortDirection={sortDirection}
                 onSort={handleSort}
+                selectedIds={selectedIds}
+                onToggleSelect={handleToggleSelect}
+                onToggleSelectAll={handleToggleSelectAll}
               />
               
               {/* Pagination Controls */}
@@ -950,6 +997,19 @@ export default function MarketListings() {
             </CardContent>
           </Card>
         )}
+
+        {/* Bulk Edit Dialog */}
+        <BulkEditListingsDialog
+          open={isBulkEditOpen}
+          onOpenChange={setIsBulkEditOpen}
+          selectedIds={selectedIds}
+          uniqueSubmarkets={uniqueSubmarkets}
+          uniqueCities={uniqueCities}
+          onSaved={() => {
+            setSelectedIds(new Set());
+            refreshListings();
+          }}
+        />
 
         {/* Edit Dialog */}
         <MarketListingEditDialog

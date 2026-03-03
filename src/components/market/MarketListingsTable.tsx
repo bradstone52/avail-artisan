@@ -4,6 +4,7 @@ import { MarketListing } from '@/hooks/useMarketListings';
 import { useAuth } from '@/contexts/AuthContext';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
 import {
   Table,
   TableBody,
@@ -44,6 +45,9 @@ interface MarketListingsTableProps {
   sortColumn: SortableColumn | null;
   sortDirection: SortDirection;
   onSort: (column: SortableColumn) => void;
+  selectedIds?: Set<string>;
+  onToggleSelect?: (id: string) => void;
+  onToggleSelectAll?: (ids: string[]) => void;
 }
 
 function formatSF(sf: number | null): string {
@@ -91,7 +95,7 @@ function calculateGrossRate(askRate: string | null, opCosts: string | null): str
   return `$${gross.toFixed(2)}`;
 }
 
-export function MarketListingsTable({ listings, onEdit, onDuplicate, onRefresh, sortColumn, sortDirection, onSort }: MarketListingsTableProps) {
+export function MarketListingsTable({ listings, onEdit, onDuplicate, onRefresh, sortColumn, sortDirection, onSort, selectedIds, onToggleSelect, onToggleSelectAll }: MarketListingsTableProps) {
   const navigate = useNavigate();
   const { session } = useAuth();
   const scrollContainerRef = useRef<HTMLDivElement>(null);
@@ -459,6 +463,16 @@ export function MarketListingsTable({ listings, onEdit, onDuplicate, onRefresh, 
       <Table className="min-w-[3000px]" stickyHeader>
         <TableHeader className="sticky top-0 z-40">
           <TableRow className="bg-muted">
+            {onToggleSelectAll && (
+              <TableHead className="sticky left-0 top-0 z-50 w-10 bg-muted text-muted-foreground shadow-[2px_0_5px_-2px_rgba(0,0,0,0.08)] px-3">
+                <Checkbox
+                  checked={listings.length > 0 && listings.every(l => selectedIds?.has(l.id))}
+                  onCheckedChange={() => onToggleSelectAll(listings.map(l => l.id))}
+                  onClick={e => e.stopPropagation()}
+                  aria-label="Select all"
+                />
+              </TableHead>
+            )}
             <TableHead className="sticky left-0 top-0 z-50 min-w-[180px] bg-muted text-muted-foreground shadow-[2px_0_5px_-2px_rgba(0,0,0,0.08)]">Address</TableHead>
             <TableHead className="text-muted-foreground min-w-[130px] bg-muted">Submarket</TableHead>
             <TableHead className="text-muted-foreground min-w-[100px] bg-muted">City</TableHead>
@@ -549,6 +563,19 @@ export function MarketListingsTable({ listings, onEdit, onDuplicate, onRefresh, 
               )}
               onClick={() => setSelectedRowId(isSelected ? null : listing.id)}
             >
+              {/* Checkbox */}
+              {onToggleSelect && (
+                <TableCell
+                  className={`sticky left-0 z-20 w-10 px-3 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.08)] transition-colors ${stickyBg} ${stickyHoverClass}`}
+                  onClick={e => e.stopPropagation()}
+                >
+                  <Checkbox
+                    checked={selectedIds?.has(listing.id) ?? false}
+                    onCheckedChange={() => onToggleSelect(listing.id)}
+                    aria-label="Select row"
+                  />
+                </TableCell>
+              )}
               {/* Address - Sticky with shadow right border that persists during scroll */}
               <TableCell className={`sticky left-0 z-20 font-medium shadow-[2px_0_5px_-2px_rgba(0,0,0,0.3)] transition-colors ${stickyBg} ${stickyHoverClass}`}>
                 <div className="min-w-[180px] max-w-[220px] whitespace-normal break-words leading-tight py-1">
