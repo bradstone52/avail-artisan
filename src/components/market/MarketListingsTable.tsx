@@ -44,6 +44,9 @@ interface MarketListingsTableProps {
   sortColumn: SortableColumn | null;
   sortDirection: SortDirection;
   onSort: (column: SortableColumn) => void;
+  selectedIds?: Set<string>;
+  onToggleSelect?: (id: string) => void;
+  onToggleSelectAll?: (ids: string[]) => void;
 }
 
 function formatSF(sf: number | null): string {
