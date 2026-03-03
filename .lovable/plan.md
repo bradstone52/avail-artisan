@@ -1,32 +1,42 @@
 
-## Full App Retheme: Neo-Brutalist → Modern SaaS
+## Two-Part Plan
 
-### Overview
-Replace the aggressive neo-brutalist visual language (thick black borders, hard-offset shadows, uppercase typography everywhere, warm paper background) with a clean, professional Modern SaaS aesthetic. All interactive behaviors are preserved.
+---
 
-### Files to change
+### Part 1: Fix Doug's Deals Visibility
 
-1. `src/index.css` - CSS variables + all component utility classes
-2. `src/components/ui/card.tsx` - Remove hard shadow/border, add soft shadow
-3. `src/components/ui/button.tsx` - Soften variants, remove uppercase
-4. `src/components/layout/AppLayout.tsx` - Sidebar styling
-5. `src/components/layout/MobileBottomNav.tsx` - Bottom nav styling
-6. `src/components/common/PageHeader.tsx` - Page title typography
+**Root cause:** The `deals` table SELECT policy requires `is_admin OR user_id = creator OR assigned agent`. Doug is a regular `member` with no agent record, so he sees nothing. The correct fix is to update the SELECT (and UPDATE) RLS policy to allow all org members to view deals — matching how most other tables in this app work.
 
-### Color/Variable Changes
-- Background: warm paper → clean near-white (`0 0% 98%`)
-- Border: jet black → slate-200 (`220 13% 87%`)
-- Radius: 6px → 8px
-- Sidebar: white with light border (not black shadow)
-- Table headers: light gray (not inverted black/white)
-- Active nav: blue left accent bar + `bg-blue-50`
+**Change:** One database migration to widen the `deals` SELECT policy to allow all org members to view deals in their org (while keeping DELETE still restricted to admins/creators).
 
-### Interactions Preserved
-- Row hover: `bg-slate-50` highlight
-- Row selection: `bg-blue-50` with blue border
-- Button hover: subtle translate + `shadow-md`
-- Nav hover: `hover:bg-slate-100` with border
-- Active nav: clear visual indicator
+```sql
+-- Replace the overly-strict SELECT policy
+DROP POLICY "Authorized users can view deals" ON deals;
+CREATE POLICY "Org members can view deals"
+  ON deals FOR SELECT
+  USING (org_id IN (SELECT get_user_org_ids(auth.uid())));
+```
 
-### What is NOT changed
-- All React logic, routes, auth, data hooks, PDF components, Supabase logic
+No code changes needed — the existing `useDeals` hook already queries by `org_id`.
+
+---
+
+### Part 2: Task Assignee + Targeted Reminder Emails
+
+**Goal:** When creating/editing a task, allow selecting which team member is the "main" on the task. The reminder email goes to that person's inbox (not just the creator's).
+
+**Database change:** Add `assigned_to uuid` column to `prospect_tasks` (nullable, references a user profile).
+
+**Files to change:**
+
+- **`supabase/migrations/`** — Add `assigned_to` column to `prospect_tasks`
+- **`src/types/prospect.ts`** — Add `assigned_to` to `ProspectTask` and `ProspectTaskFormData`
+- **`src/hooks/useProspectTasks.ts`** — Include `assigned_to` in create/update mutations
+- **`src/components/prospects/TaskFormDialog.tsx`** — Add an "Assigned To" dropdown (fetches org members from `profiles` via org membership), defaulting to the current user
+- **`src/components/prospects/ProspectTasksSection.tsx`** — Show an avatar/name chip on each task row for the assignee
+- **`supabase/functions/send-prospect-task-reminders/index.ts`** — Look up `assigned_to` profile first; fall back to `created_by` if not set. Send reminder to whichever user's email resolves
+
+**UX:**
+- "Assigned To" defaults to the logged-in user when creating a task
+- Displayed as a small name chip on the task card
+- Reminder email subject will say "You have been assigned a task..." if not the creator
