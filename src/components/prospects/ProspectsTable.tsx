@@ -686,7 +686,12 @@ export function ProspectsTable({ prospects, isLoading, onEdit }: ProspectsTableP
                     outlineClass,
                   )}
                   onClick={() => setSelectedRowId(isSelected ? null : prospect.id)}
-                  onDoubleClick={() => navigate(`/prospects/${prospect.id}`)}
+                   onDoubleClick={(e) => {
+                    const tag = (e.target as HTMLElement).tagName.toLowerCase();
+                    const interactive = ['input', 'textarea', 'button', 'select', 'a', 'label'];
+                    if (interactive.includes(tag) || (e.target as HTMLElement).closest('[role="dialog"],[data-radix-popper-content-wrapper]')) return;
+                    navigate(`/prospects/${prospect.id}`);
+                  }}
                 >
                   {isVisible('name') && (
                     <TableCell className={cellPadding}>
