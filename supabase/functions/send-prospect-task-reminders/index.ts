@@ -29,6 +29,7 @@ serve(async (req) => {
         notes,
         due_date,
         created_by,
+        assigned_to,
         prospect_id,
         prospects (
           name,
@@ -55,10 +56,14 @@ serve(async (req) => {
 
     for (const task of tasks) {
       try {
+        // Use assigned_to user if set, otherwise fall back to created_by
+        const recipientUserId = task.assigned_to || task.created_by;
+        const isAssigned = !!task.assigned_to && task.assigned_to !== task.created_by;
+
         const { data: profile } = await supabase
           .from('profiles')
           .select('email, full_name')
-          .eq('id', task.created_by)
+          .eq('id', recipientUserId)
           .maybeSingle();
 
         if (!profile?.email) continue;
@@ -83,6 +88,11 @@ serve(async (req) => {
           prospect.prospect_type ? `<tr><td style="padding:8px 12px;font-size:12px;font-weight:600;color:#94a3b8;white-space:nowrap;text-transform:uppercase;letter-spacing:0.05em;">Type</td><td style="padding:8px 12px;font-size:14px;color:#334155;">${prospect.prospect_type}</td></tr>` : '',
         ].filter(Boolean).join('');
 
+        const subjectPrefix = isAssigned ? '📋 You've been assigned a task' : '📋 Task Reminder';
+        const greetingLine = isAssigned
+          ? `You have been assigned a task by a teammate that needs your attention.`
+          : `You have a task coming up that needs your attention.`;
+
         const emailBody = `
           <!DOCTYPE html>
           <html>
@@ -98,7 +108,7 @@ serve(async (req) => {
                         <tr>
                           <td>
                             <div style="font-size:11px;font-weight:700;letter-spacing:0.15em;text-transform:uppercase;color:#64748b;margin-bottom:4px;">ClearView Partners</div>
-                            <div style="font-size:22px;font-weight:700;color:#ffffff;line-height:1.2;">Task Reminder</div>
+                            <div style="font-size:22px;font-weight:700;color:#ffffff;line-height:1.2;">${isAssigned ? 'Task Assigned to You' : 'Task Reminder'}</div>
                             <div style="font-size:12px;color:#94a3b8;margin-top:4px;">${today}</div>
                           </td>
                           <td align="right" style="vertical-align:top;">
@@ -116,7 +126,7 @@ serve(async (req) => {
                   <tr>
                     <td style="background:#ffffff;padding:24px 32px 16px;">
                       <p style="margin:0;font-size:15px;color:#334155;">Hi <strong>${profile.full_name ?? 'there'}</strong>,</p>
-                      <p style="margin:8px 0 0;font-size:14px;color:#64748b;line-height:1.6;">You have a task coming up that needs your attention.</p>
+                      <p style="margin:8px 0 0;font-size:14px;color:#64748b;line-height:1.6;">${greetingLine}</p>
                     </td>
                   </tr>
 
@@ -184,7 +194,7 @@ serve(async (req) => {
           body: JSON.stringify({
             from: `ClearView <${FROM_EMAIL}>`,
             to: [profile.email],
-            subject: `📋 Task Reminder: ${task.title} — ${prospectName}`,
+            subject: `${subjectPrefix}: ${task.title} — ${prospectName}`,
             html: emailBody,
           }),
         });
