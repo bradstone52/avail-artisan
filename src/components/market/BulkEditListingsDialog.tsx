@@ -30,6 +30,8 @@ export function BulkEditListingsDialog({
   uniqueCities,
   onSaved,
 }: BulkEditListingsDialogProps) {
+  const [address, setAddress] = useState('');
+  const [displayAddress, setDisplayAddress] = useState('');
   const [submarket, setSubmarket] = useState(UNSET);
   const [city, setCity] = useState('');
   const [status, setStatus] = useState(UNSET);
@@ -40,6 +42,8 @@ export function BulkEditListingsDialog({
   const [saving, setSaving] = useState(false);
 
   const reset = () => {
+    setAddress('');
+    setDisplayAddress('');
     setSubmarket(UNSET);
     setCity('');
     setStatus(UNSET);
@@ -59,6 +63,8 @@ export function BulkEditListingsDialog({
       updated_at: new Date().toISOString(),
     };
 
+    if (address.trim()) updates.address = address.trim();
+    if (displayAddress.trim()) updates.display_address = displayAddress.trim();
     if (submarket !== UNSET) updates.submarket = submarket;
     if (city.trim()) updates.city = city.trim();
     if (status !== UNSET) updates.status = status;
@@ -82,6 +88,16 @@ export function BulkEditListingsDialog({
 
       if (error) throw error;
 
+      // Trigger re-geocoding for each listing if address or city changed
+      if (updates.address || updates.city) {
+        const ids = Array.from(selectedIds);
+        await Promise.allSettled(
+          ids.map(id =>
+            supabase.functions.invoke('geocode-market-listing', { body: { listingId: id } })
+          )
+        );
+      }
+
       toast.success(`Updated ${selectedIds.size} listing${selectedIds.size !== 1 ? 's' : ''}`);
       onSaved();
       handleClose();
@@ -95,7 +111,7 @@ export function BulkEditListingsDialog({
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className="max-w-md">
+      <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Bulk Edit — {selectedIds.size} listing{selectedIds.size !== 1 ? 's' : ''}</DialogTitle>
         </DialogHeader>
@@ -105,6 +121,26 @@ export function BulkEditListingsDialog({
         </p>
 
         <div className="space-y-4">
+          {/* Address */}
+          <div className="space-y-1.5">
+            <Label className="text-xs text-muted-foreground">Address</Label>
+            <Input
+              placeholder="— keep existing —"
+              value={address}
+              onChange={e => setAddress(e.target.value)}
+            />
+          </div>
+
+          {/* Display Address */}
+          <div className="space-y-1.5">
+            <Label className="text-xs text-muted-foreground">Display Address</Label>
+            <Input
+              placeholder="— keep existing —"
+              value={displayAddress}
+              onChange={e => setDisplayAddress(e.target.value)}
+            />
+          </div>
+
           {/* Submarket */}
           <div className="space-y-1.5">
             <Label className="text-xs text-muted-foreground">Submarket</Label>
