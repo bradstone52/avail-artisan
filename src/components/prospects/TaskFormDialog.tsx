@@ -32,12 +32,19 @@ function useOrgMembers() {
     queryKey: ['org_members_profiles', org?.id],
     queryFn: async () => {
       if (!org?.id) return [];
-      const { data, error } = await supabase
+      const { data: members, error } = await supabase
         .from('org_members')
-        .select('user_id, profiles(id, full_name, email)')
+        .select('user_id')
         .eq('org_id', org.id);
       if (error) throw error;
-      return (data ?? []).map((m: any) => m.profiles).filter(Boolean) as { id: string; full_name: string | null; email: string | null }[];
+      const userIds = (members ?? []).map((m) => m.user_id);
+      if (userIds.length === 0) return [];
+      const { data: profiles, error: profilesError } = await supabase
+        .from('profiles')
+        .select('id, full_name, email')
+        .in('id', userIds);
+      if (profilesError) throw profilesError;
+      return (profiles ?? []) as { id: string; full_name: string | null; email: string | null }[];
     },
     enabled: !!org?.id,
   });
