@@ -889,7 +889,8 @@ export default function MarketListings() {
             <CardContent className="p-0">
               <MarketListingsTable 
                 listings={paginatedListings} 
-                onEdit={setEditingListing} 
+                onEdit={setEditingListing}
+                onDuplicate={(listing) => { setDuplicatingListing(listing); setIsCreateDialogOpen(true); }}
                 onRefresh={refreshListings}
                 sortColumn={sortColumn}
                 sortDirection={sortDirection}
