@@ -973,9 +973,10 @@ export default function MarketListings() {
         <MarketListingEditDialog
           listing={null}
           open={isCreateDialogOpen}
-          onOpenChange={setIsCreateDialogOpen}
+          onOpenChange={(open) => { setIsCreateDialogOpen(open); if (!open) setDuplicatingListing(null); }}
           onSaved={refreshListings}
           mode="create"
+          duplicateFrom={duplicatingListing}
         />
 
         {/* Fix Links Dialog */}
