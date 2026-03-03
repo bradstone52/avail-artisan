@@ -39,6 +39,7 @@ export type SortableColumn = 'size_sf' | 'warehouse_sf' | 'office_sf' | 'dock_do
 interface MarketListingsTableProps {
   listings: MarketListing[];
   onEdit: (listing: MarketListing) => void;
+  onDuplicate?: (listing: MarketListing) => void;
   onRefresh: () => void;
   sortColumn: SortableColumn | null;
   sortDirection: SortDirection;
