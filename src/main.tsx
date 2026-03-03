@@ -6,12 +6,15 @@ import { createRoot } from "react-dom/client";
 import App from "./App.tsx";
 import "./index.css";
 
-// Reset service workers and caches only in dev or when ?resetSW=1 is present.
-// Production loads do NOT wipe caches by default.
+// Reset service workers and caches in dev, when ?resetSW=1 is present,
+// OR when running on a Lovable preview URL (*.lovable.app) to prevent stale
+// cached versions from showing up in the preview iframe.
 // Wrapped in an IIFE to avoid top-level await (unsupported in ES2020 target).
 (async () => {
+  const isLovablePreview = window.location.hostname.endsWith('.lovable.app');
   const shouldReset =
     import.meta.env.DEV ||
+    isLovablePreview ||
     new URLSearchParams(window.location.search).get('resetSW') === '1';
 
   if (!shouldReset) return;
