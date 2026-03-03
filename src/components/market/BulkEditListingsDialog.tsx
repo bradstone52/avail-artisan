@@ -88,6 +88,16 @@ export function BulkEditListingsDialog({
 
       if (error) throw error;
 
+      // Trigger re-geocoding for each listing if address or city changed
+      if (updates.address || updates.city) {
+        const ids = Array.from(selectedIds);
+        await Promise.allSettled(
+          ids.map(id =>
+            supabase.functions.invoke('geocode-market-listing', { body: { listingId: id } })
+          )
+        );
+      }
+
       toast.success(`Updated ${selectedIds.size} listing${selectedIds.size !== 1 ? 's' : ''}`);
       onSaved();
       handleClose();
