@@ -1004,6 +1004,7 @@ export default function MarketListings() {
           open={isBulkEditOpen}
           onOpenChange={setIsBulkEditOpen}
           selectedIds={selectedIds}
+          listings={listings}
           uniqueSubmarkets={uniqueSubmarkets}
           uniqueCities={uniqueCities}
           onSaved={() => {
