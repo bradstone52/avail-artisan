@@ -441,77 +441,8 @@ function TasksCell({ prospectId, tasks }: { prospectId: string; tasks: ReturnTyp
     </div>
   );
 }
-        return (
-          <div
-            key={task.id}
-            className={cn(
-              'flex items-center gap-1.5 rounded px-2 py-1 text-xs border',
-              overdue && 'bg-red-50 border-red-200 dark:bg-red-950/30 dark:border-red-800',
-              dueToday && 'bg-amber-50 border-amber-200 dark:bg-amber-950/30 dark:border-amber-800',
-              !overdue && !dueToday && 'bg-muted border-border',
-            )}
-          >
-            <Checkbox
-              checked={task.completed}
-              onCheckedChange={(checked) =>
-                toggle.mutate({ id: task.id, prospectId, completed: checked === true })
-              }
-              className="h-3.5 w-3.5 shrink-0"
-            />
-            <div className="min-w-0 flex-1">
-              <InlineTaskEditor task={task} prospectId={prospectId} />
-              {task.due_date && (
-                <span className={cn('text-[10px]', overdue ? 'text-red-500' : dueToday ? 'text-amber-500' : 'text-muted-foreground')}>
-                  {overdue ? 'Overdue · ' : dueToday ? 'Due today · ' : ''}{format(parseISO(task.due_date), 'MMM d')}
-                </span>
-              )}
-            </div>
-          </div>
-        );
-      })}
-      <InlineTaskAdder prospectId={prospectId} />
-    </div>
-  );
-}
-    <div className="flex flex-col gap-1">
-      {tasks.map((task) => {
-        const overdue = task.due_date && isPast(parseISO(task.due_date)) && !isToday(parseISO(task.due_date));
-        const dueToday = task.due_date && isToday(parseISO(task.due_date));
-        return (
-          <div
-            key={task.id}
-            className={cn(
-              'flex items-center gap-1.5 rounded px-2 py-1 text-xs border',
-              overdue && 'bg-red-50 border-red-200 dark:bg-red-950/30 dark:border-red-800',
-              dueToday && 'bg-amber-50 border-amber-200 dark:bg-amber-950/30 dark:border-amber-800',
-              !overdue && !dueToday && 'bg-muted border-border',
-            )}
-          >
-            <Checkbox
-              checked={task.completed}
-              onCheckedChange={(checked) =>
-                toggle.mutate({ id: task.id, prospectId, completed: checked === true })
-              }
-              className="h-3.5 w-3.5 shrink-0"
-            />
-            <div className="min-w-0 flex-1">
-              <InlineTaskEditor task={task} prospectId={prospectId} />
-              {task.due_date && (
-                <span className={cn('text-[10px]', overdue ? 'text-red-500' : dueToday ? 'text-amber-500' : 'text-muted-foreground')}>
-                  {overdue ? 'Overdue · ' : dueToday ? 'Due today · ' : ''}{format(parseISO(task.due_date), 'MMM d')}
-                </span>
-              )}
-            </div>
-          </div>
-        );
-      })}
-      <InlineTaskAdder prospectId={prospectId} />
-    </div>
-  );
-}
-        const overdue = task.due_date && isPast(parseISO(task.due_date)) && !isToday(parseISO(task.due_date));
-        const dueToday = task.due_date && isToday(parseISO(task.due_date));
-        return (
+
+
           <div
             key={task.id}
             className={cn(
