@@ -91,6 +91,7 @@ interface MarketListingEditDialogProps {
   onSaved: () => void;
   mode?: 'edit' | 'create';
   onLogTransaction?: (listing: MarketListing) => void;
+  duplicateFrom?: MarketListing | null;
 }
 
 export function MarketListingEditDialog({
@@ -100,6 +101,7 @@ export function MarketListingEditDialog({
   onSaved,
   mode = 'edit',
   onLogTransaction,
+  duplicateFrom,
 }: MarketListingEditDialogProps) {
   const { user } = useAuth();
   const { org } = useOrg();
