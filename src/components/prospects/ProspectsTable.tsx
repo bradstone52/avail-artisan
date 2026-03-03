@@ -31,7 +31,7 @@ import { DensityToggle } from '@/components/common/DensityToggle';
 import { TaskFormDialog } from '@/components/prospects/TaskFormDialog';
 import { formatDate, formatNumber, formatCurrency } from '@/lib/format';
 import { useDeleteProspect, useLogProspectContact, useUpdateProspect, useSetProspectContactDate } from '@/hooks/useProspects';
-import { useAllProspectTasks, useToggleProspectTaskCompleted } from '@/hooks/useProspectTasks';
+import { useAllProspectTasks, useToggleProspectTaskCompleted, useCreateProspectTask } from '@/hooks/useProspectTasks';
 import { useTableColumnPrefs } from '@/hooks/useTableColumnPrefs';
 import { useTableDensity } from '@/hooks/useTableDensity';
 import { Eye, Pencil, Trash2, Search, X, MoreHorizontal, Phone, Mail, ArrowUpDown, ArrowUp, ArrowDown, CalendarIcon, CheckSquare, AlertCircle, ListPlus, Circle } from 'lucide-react';
@@ -194,9 +194,72 @@ function RequirementCell({ prospect }: { prospect: Prospect }) {
   );
 }
 
+function InlineTaskAdder({ prospectId }: { prospectId: string }) {
+  const [open, setOpen] = React.useState(false);
+  const [title, setTitle] = React.useState('');
+  const [dueDate, setDueDate] = React.useState('');
+  const createTask = useCreateProspectTask();
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!title.trim()) return;
+    try {
+      await createTask.mutateAsync({
+        prospectId,
+        formData: { title: title.trim(), notes: '', due_date: dueDate || '', reminder_at: '' },
+      });
+      setTitle('');
+      setDueDate('');
+      setOpen(false);
+    } catch {
+      // handled by mutation
+    }
+  };
+
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <Button
+          variant="ghost"
+          size="icon"
+          className="h-5 w-5 shrink-0 text-muted-foreground hover:text-foreground"
+          title="Quick add task"
+          onClick={(e) => e.stopPropagation()}
+        >
+          <ListPlus className="h-3.5 w-3.5" />
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent className="w-64 p-3 z-50" align="start" onClick={(e) => e.stopPropagation()}>
+        <form onSubmit={handleSubmit} className="space-y-2">
+          <Input
+            placeholder="Task title..."
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+            className="h-8 text-sm"
+            autoFocus
+          />
+          <Input
+            type="date"
+            value={dueDate}
+            onChange={(e) => setDueDate(e.target.value)}
+            className="h-8 text-sm"
+          />
+          <div className="flex justify-end gap-1.5">
+            <Button type="button" variant="ghost" size="sm" className="h-7 text-xs" onClick={() => setOpen(false)}>
+              Cancel
+            </Button>
+            <Button type="submit" size="sm" className="h-7 text-xs" disabled={!title.trim() || createTask.isPending}>
+              {createTask.isPending ? 'Adding...' : 'Add'}
+            </Button>
+          </div>
+        </form>
+      </PopoverContent>
+    </Popover>
+  );
+}
+
 function TasksCell({ prospectId, tasks }: { prospectId: string; tasks: ReturnType<typeof useAllProspectTasks>['data'] extends (infer T)[] | undefined ? T[] : never[] }) {
   const toggle = useToggleProspectTaskCompleted();
-  if (tasks.length === 0) return <span className="text-muted-foreground text-xs">—</span>;
   return (
     <div className="flex flex-col gap-1">
       {tasks.map((task) => {
@@ -236,6 +299,7 @@ function TasksCell({ prospectId, tasks }: { prospectId: string; tasks: ReturnTyp
           </div>
         );
       })}
+      <InlineTaskAdder prospectId={prospectId} />
     </div>
   );
 }
