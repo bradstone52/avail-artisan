@@ -563,6 +563,19 @@ export function MarketListingsTable({ listings, onEdit, onDuplicate, onRefresh, 
               )}
               onClick={() => setSelectedRowId(isSelected ? null : listing.id)}
             >
+              {/* Checkbox */}
+              {onToggleSelect && (
+                <TableCell
+                  className={`sticky left-0 z-20 w-10 px-3 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.08)] transition-colors ${stickyBg} ${stickyHoverClass}`}
+                  onClick={e => e.stopPropagation()}
+                >
+                  <Checkbox
+                    checked={selectedIds?.has(listing.id) ?? false}
+                    onCheckedChange={() => onToggleSelect(listing.id)}
+                    aria-label="Select row"
+                  />
+                </TableCell>
+              )}
               {/* Address - Sticky with shadow right border that persists during scroll */}
               <TableCell className={`sticky left-0 z-20 font-medium shadow-[2px_0_5px_-2px_rgba(0,0,0,0.3)] transition-colors ${stickyBg} ${stickyHoverClass}`}>
                 <div className="min-w-[180px] max-w-[220px] whitespace-normal break-words leading-tight py-1">
