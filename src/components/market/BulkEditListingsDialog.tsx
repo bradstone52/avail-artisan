@@ -4,14 +4,15 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Checkbox } from '@/components/ui/checkbox';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { MarketListing } from '@/hooks/useMarketListings';
 
 interface BulkEditListingsDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   selectedIds: Set<string>;
+  listings: MarketListing[];
   uniqueSubmarkets: string[];
   uniqueCities: string[];
   onSaved: () => void;
@@ -26,6 +27,7 @@ export function BulkEditListingsDialog({
   open,
   onOpenChange,
   selectedIds,
+  listings,
   uniqueSubmarkets,
   uniqueCities,
   onSaved,
@@ -59,24 +61,22 @@ export function BulkEditListingsDialog({
   };
 
   const handleSave = async () => {
-    const updates: Record<string, unknown> = {
+    const baseUpdates: Record<string, unknown> = {
       updated_at: new Date().toISOString(),
     };
 
-    if (address.trim()) {
-      updates.address = address.trim();
-      // Only update display_address if the user explicitly set it
-    }
-    if (displayAddress.trim()) updates.display_address = displayAddress.trim();
-    if (submarket !== UNSET) updates.submarket = submarket;
-    if (city.trim()) updates.city = city.trim();
-    if (status !== UNSET) updates.status = status;
-    if (listingType !== UNSET) updates.listing_type = listingType;
-    if (landlord.trim()) updates.landlord = landlord.trim();
-    if (brokerSource.trim()) updates.broker_source = brokerSource.trim();
-    if (isDistWarehouse !== null) updates.is_distribution_warehouse = isDistWarehouse;
+    if (submarket !== UNSET) baseUpdates.submarket = submarket;
+    if (city.trim()) baseUpdates.city = city.trim();
+    if (status !== UNSET) baseUpdates.status = status;
+    if (listingType !== UNSET) baseUpdates.listing_type = listingType;
+    if (landlord.trim()) baseUpdates.landlord = landlord.trim();
+    if (brokerSource.trim()) baseUpdates.broker_source = brokerSource.trim();
+    if (isDistWarehouse !== null) baseUpdates.is_distribution_warehouse = isDistWarehouse;
 
-    const fieldsSet = Object.keys(updates).length - 1; // exclude updated_at
+    const newAddress = address.trim();
+    const newDisplayAddress = displayAddress.trim();
+
+    const fieldsSet = Object.keys(baseUpdates).length - 1 + (newAddress ? 1 : 0) + (newDisplayAddress ? 1 : 0);
     if (fieldsSet === 0) {
       toast.error('No fields to update — fill in at least one field');
       return;
@@ -84,16 +84,47 @@ export function BulkEditListingsDialog({
 
     setSaving(true);
     try {
-      const { error } = await supabase
-        .from('market_listings')
-        .update(updates)
-        .in('id', Array.from(selectedIds));
+      const ids = Array.from(selectedIds);
 
-      if (error) throw error;
+      if (newAddress) {
+        // When address changes, update each listing individually so we can
+        // preserve the " — Building X — Unit Y" suffix in display_address.
+        const selectedListings = listings.filter(l => selectedIds.has(l.id));
+        await Promise.all(
+          selectedListings.map(listing => {
+            const perRowUpdates: Record<string, unknown> = { ...baseUpdates, address: newAddress };
 
-      // Trigger re-geocoding for each listing if address or city changed
-      if (updates.address || updates.city) {
-        const ids = Array.from(selectedIds);
+            if (newDisplayAddress) {
+              // User explicitly set a new display address — use it as-is
+              perRowUpdates.display_address = newDisplayAddress;
+            } else {
+              // Reconstruct display_address: replace old address prefix, keep building/unit suffix
+              const existing = listing.display_address || listing.address;
+              const oldAddress = listing.address;
+              if (existing.startsWith(oldAddress)) {
+                // e.g. "8919 Barlow Trail SE — Building 1 — Unit A" → "3400 87 Ave SE — Building 1 — Unit A"
+                const suffix = existing.slice(oldAddress.length); // " — Building 1 — Unit A"
+                perRowUpdates.display_address = newAddress + suffix;
+              } else {
+                // display_address was manually set differently — just update address, leave display_address alone
+              }
+            }
+
+            return supabase.from('market_listings').update(perRowUpdates).eq('id', listing.id);
+          })
+        );
+      } else {
+        // No address change — single batch update is safe
+        if (newDisplayAddress) baseUpdates.display_address = newDisplayAddress;
+        const { error } = await supabase
+          .from('market_listings')
+          .update(baseUpdates)
+          .in('id', ids);
+        if (error) throw error;
+      }
+
+      // Trigger re-geocoding if address or city changed
+      if (newAddress || baseUpdates.city) {
         await Promise.allSettled(
           ids.map(id =>
             supabase.functions.invoke('geocode-market-listing', { body: { listingId: id } })
