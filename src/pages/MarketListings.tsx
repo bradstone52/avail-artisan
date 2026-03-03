@@ -78,6 +78,7 @@ export default function MarketListings() {
   // Edit/Create dialog state
   const [editingListing, setEditingListing] = useState<MarketListing | null>(null);
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
+  const [duplicatingListing, setDuplicatingListing] = useState<MarketListing | null>(null);
   const [isFixLinksDialogOpen, setIsFixLinksDialogOpen] = useState(false);
   const [transactionListing, setTransactionListing] = useState<MarketListing | null>(null);
   const [isUpdateCheckerOpen, setIsUpdateCheckerOpen] = useState(false);
