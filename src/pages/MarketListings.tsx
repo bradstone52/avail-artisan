@@ -90,6 +90,33 @@ export default function MarketListings() {
   const [isDuplicateDialogOpen, setIsDuplicateDialogOpen] = useState(false);
   const auditEditCallbackRef = useRef<((listingId: string) => void) | null>(null);
 
+  // Bulk selection state
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [isBulkEditOpen, setIsBulkEditOpen] = useState(false);
+
+  const handleToggleSelect = useCallback((id: string) => {
+    setSelectedIds(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  }, []);
+
+  const handleToggleSelectAll = useCallback((ids: string[]) => {
+    setSelectedIds(prev => {
+      const allSelected = ids.every(id => prev.has(id));
+      if (allSelected) {
+        const next = new Set(prev);
+        ids.forEach(id => next.delete(id));
+        return next;
+      } else {
+        const next = new Set(prev);
+        ids.forEach(id => next.add(id));
+        return next;
+      }
+    });
+  }, []);
+
   // Handle column sorting
   const handleSort = useCallback((column: SortableColumn) => {
     if (sortColumn === column) {
