@@ -31,7 +31,7 @@ import { DensityToggle } from '@/components/common/DensityToggle';
 import { TaskFormDialog } from '@/components/prospects/TaskFormDialog';
 import { formatDate, formatNumber, formatCurrency } from '@/lib/format';
 import { useDeleteProspect, useLogProspectContact, useUpdateProspect, useSetProspectContactDate } from '@/hooks/useProspects';
-import { useAllProspectTasks, useToggleProspectTaskCompleted, useCreateProspectTask, useUpdateProspectTask } from '@/hooks/useProspectTasks';
+import { useAllProspectTasks, useToggleProspectTaskCompleted, useCreateProspectTask } from '@/hooks/useProspectTasks';
 import { useTableColumnPrefs } from '@/hooks/useTableColumnPrefs';
 import { useTableDensity } from '@/hooks/useTableDensity';
 import { Eye, Pencil, Trash2, Search, X, MoreHorizontal, Phone, Mail, ArrowUpDown, ArrowUp, ArrowDown, CalendarIcon, CheckSquare, AlertCircle, ListPlus, Circle } from 'lucide-react';
@@ -276,94 +276,6 @@ function InlineTaskAdder({ prospectId }: { prospectId: string }) {
   );
 }
 
-function InlineTaskEditor({ task, prospectId }: { task: { id: string; title: string; due_date?: string | null; reminder_at?: string | null; notes?: string | null; completed: boolean; reminder_sent: boolean; prospect_id: string; org_id?: string | null; created_by?: string | null; created_at: string; updated_at: string }; prospectId: string }) {
-  const [open, setOpen] = React.useState(false);
-  const [title, setTitle] = React.useState(task.title);
-  const [dueDate, setDueDate] = React.useState(task.due_date ?? '');
-  const [reminderAt, setReminderAt] = React.useState(task.reminder_at ? task.reminder_at.slice(0, 16) : '');
-  const updateTask = useUpdateProspectTask();
-
-  const handleOpen = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    setTitle(task.title);
-    setDueDate(task.due_date ?? '');
-    setReminderAt(task.reminder_at ? task.reminder_at.slice(0, 16) : '');
-    setOpen(true);
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!title.trim()) return;
-    try {
-      await updateTask.mutateAsync({
-        id: task.id,
-        prospectId,
-        title: title.trim(),
-        due_date: dueDate || null,
-        reminder_at: reminderAt ? new Date(reminderAt).toISOString() : task.reminder_at,
-      });
-      setOpen(false);
-    } catch {
-      // handled by mutation
-    }
-  };
-
-  return (
-    <Popover open={open} onOpenChange={setOpen}>
-      <PopoverTrigger asChild>
-        <button
-          className="text-left truncate max-w-[140px] hover:underline focus:outline-none"
-          onClick={handleOpen}
-          title="Click to edit"
-        >
-          {task.title}
-        </button>
-      </PopoverTrigger>
-      <PopoverContent className="w-72 p-3 z-50" align="start" onClick={(e) => e.stopPropagation()}>
-        <p className="text-xs font-semibold mb-3">Edit Task</p>
-        <form onSubmit={handleSubmit} className="space-y-2.5">
-          <div className="space-y-1">
-            <label className="text-xs font-medium text-foreground">Title *</label>
-            <Input
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              className="h-8 text-xs"
-              autoFocus
-              required
-            />
-          </div>
-          <div className="space-y-1">
-            <label className="text-xs font-medium text-foreground">Due Date</label>
-            <Input
-              type="date"
-              value={dueDate}
-              onChange={(e) => setDueDate(e.target.value)}
-              className="h-8 text-xs"
-            />
-          </div>
-          <div className="space-y-1">
-            <label className="text-xs font-medium text-foreground">Email Reminder</label>
-            <Input
-              type="datetime-local"
-              value={reminderAt}
-              onChange={(e) => setReminderAt(e.target.value)}
-              className="h-8 text-xs"
-            />
-          </div>
-          <div className="flex justify-end gap-1.5 pt-1">
-            <Button type="button" variant="ghost" size="sm" className="h-7 text-xs" onClick={() => setOpen(false)}>
-              Cancel
-            </Button>
-            <Button type="submit" size="sm" className="h-7 text-xs" disabled={!title.trim() || updateTask.isPending}>
-              {updateTask.isPending ? 'Saving...' : 'Save'}
-            </Button>
-          </div>
-        </form>
-      </PopoverContent>
-    </Popover>
-  );
-}
-
 function TasksCell({ prospectId, tasks }: { prospectId: string; tasks: ReturnType<typeof useAllProspectTasks>['data'] extends (infer T)[] | undefined ? T[] : never[] }) {
   const toggle = useToggleProspectTaskCompleted();
   return (
@@ -388,42 +300,8 @@ function TasksCell({ prospectId, tasks }: { prospectId: string; tasks: ReturnTyp
               }
               className="h-3.5 w-3.5 shrink-0"
             />
-            <div className="min-w-0 flex-1">
-              <InlineTaskEditor task={task} prospectId={prospectId} />
-              {task.due_date && (
-                <span className={cn('text-[10px] block', overdue ? 'text-red-500' : dueToday ? 'text-amber-500' : 'text-muted-foreground')}>
-                  {overdue ? 'Overdue · ' : dueToday ? 'Due today · ' : ''}{format(parseISO(task.due_date), 'MMM d')}
-                </span>
-              )}
-            </div>
-          </div>
-        );
-      })}
-      <InlineTaskAdder prospectId={prospectId} />
-    </div>
-  );
-}
-
-
-          <div
-            key={task.id}
-            className={cn(
-              'flex items-center gap-1.5 rounded px-2 py-1 text-xs border',
-              overdue && 'bg-red-50 border-red-200 dark:bg-red-950/30 dark:border-red-800',
-              dueToday && 'bg-amber-50 border-amber-200 dark:bg-amber-950/30 dark:border-amber-800',
-              !overdue && !dueToday && 'bg-muted border-border',
-            )}
-          >
-            <Checkbox
-              checked={task.completed}
-              onCheckedChange={(checked) =>
-                toggle.mutate({ id: task.id, prospectId, completed: checked === true })
-              }
-              className="h-3.5 w-3.5 shrink-0"
-            />
             <div className="min-w-0">
-              <InlineTaskEditor task={task} prospectId={prospectId} />
-            </div>
+              <span className={cn(
                 'font-medium truncate block',
                 overdue && 'text-red-700 dark:text-red-400',
                 dueToday && 'text-amber-700 dark:text-amber-400',
