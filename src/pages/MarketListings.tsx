@@ -15,7 +15,7 @@ import {
 import { Checkbox } from '@/components/ui/checkbox';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
-import { RefreshCw, Database, Search, X, Filter, Link2, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Plus, ChevronDown, Wrench, ClipboardCheck, FileSearch, AlertTriangle, Globe, MapPin, Copy } from 'lucide-react';
+import { RefreshCw, Database, Search, X, Filter, Link2, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Plus, ChevronDown, Wrench, ClipboardCheck, FileSearch, AlertTriangle, Globe, MapPin, Copy, Pencil } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { format } from 'date-fns';
 import { MarketListingEditDialog } from '@/components/market/MarketListingEditDialog';
@@ -27,6 +27,7 @@ import { AuditPdfDialog } from '@/components/market/AuditPdfDialog';
 import { AuditWebsiteDialog } from '@/components/market/AuditWebsiteDialog';
 import { UngeocodeListingsDialog } from '@/components/market/UngeocodeListingsDialog';
 import { DuplicateListingsDialog, normalizeAddressForDupeCheck } from '@/components/market/DuplicateListingsDialog';
+import { BulkEditListingsDialog } from '@/components/market/BulkEditListingsDialog';
 
 const SIZE_RANGES = [
   { label: 'All Sizes', value: 'all', min: 0, max: Infinity },
