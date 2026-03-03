@@ -874,6 +874,23 @@ export function MarketListingsTable({ listings, onEdit, onDuplicate, onRefresh, 
                     </TooltipTrigger>
                     <TooltipContent>Edit Listing</TooltipContent>
                   </Tooltip>
+
+                  {/* Duplicate */}
+                  {onDuplicate && (
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-7 w-7"
+                          onClick={(e) => { e.stopPropagation(); onDuplicate(listing); }}
+                        >
+                          <Copy className="h-3.5 w-3.5" />
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>Duplicate Listing</TooltipContent>
+                    </Tooltip>
+                  )}
                   
                   {/* Log Transaction */}
                   <Tooltip>
