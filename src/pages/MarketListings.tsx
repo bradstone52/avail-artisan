@@ -915,6 +915,22 @@ export default function MarketListings() {
         ) : (
           <Card>
             <CardContent className="p-0">
+              {/* Selection toolbar */}
+              {selectedIds.size > 0 && (
+                <div className="flex items-center gap-3 px-4 py-2.5 border-b bg-primary/5">
+                  <span className="text-sm font-medium text-primary">
+                    {selectedIds.size} listing{selectedIds.size !== 1 ? 's' : ''} selected
+                  </span>
+                  <Button size="sm" onClick={() => setIsBulkEditOpen(true)}>
+                    <Pencil className="w-3.5 h-3.5 mr-1.5" />
+                    Bulk Edit
+                  </Button>
+                  <Button size="sm" variant="outline" onClick={() => setSelectedIds(new Set())}>
+                    <X className="w-3.5 h-3.5 mr-1" />
+                    Clear
+                  </Button>
+                </div>
+              )}
               <MarketListingsTable 
                 listings={paginatedListings} 
                 onEdit={setEditingListing}
@@ -923,6 +939,9 @@ export default function MarketListings() {
                 sortColumn={sortColumn}
                 sortDirection={sortDirection}
                 onSort={handleSort}
+                selectedIds={selectedIds}
+                onToggleSelect={handleToggleSelect}
+                onToggleSelectAll={handleToggleSelectAll}
               />
               
               {/* Pagination Controls */}
