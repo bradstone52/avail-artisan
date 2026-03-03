@@ -403,8 +403,8 @@ function TasksCell({ prospectId, tasks }: { prospectId: string; tasks: ReturnTyp
     </div>
   );
 }
-  const toggle = useToggleProspectTaskCompleted();
-  return (
+
+
     <div className="flex flex-col gap-1">
       {tasks.map((task) => {
         const overdue = task.due_date && isPast(parseISO(task.due_date)) && !isToday(parseISO(task.due_date));
