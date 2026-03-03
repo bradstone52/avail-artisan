@@ -198,6 +198,7 @@ function InlineTaskAdder({ prospectId }: { prospectId: string }) {
   const [open, setOpen] = React.useState(false);
   const [title, setTitle] = React.useState('');
   const [dueDate, setDueDate] = React.useState('');
+  const [reminderAt, setReminderAt] = React.useState('');
   const createTask = useCreateProspectTask();
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -206,10 +207,11 @@ function InlineTaskAdder({ prospectId }: { prospectId: string }) {
     try {
       await createTask.mutateAsync({
         prospectId,
-        formData: { title: title.trim(), notes: '', due_date: dueDate || '', reminder_at: '' },
+        formData: { title: title.trim(), notes: '', due_date: dueDate || '', reminder_at: reminderAt || '' },
       });
       setTitle('');
       setDueDate('');
+      setReminderAt('');
       setOpen(false);
     } catch {
       // handled by mutation
@@ -229,22 +231,38 @@ function InlineTaskAdder({ prospectId }: { prospectId: string }) {
           <ListPlus className="h-3.5 w-3.5" />
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="w-64 p-3 z-50" align="start" onClick={(e) => e.stopPropagation()}>
-        <form onSubmit={handleSubmit} className="space-y-2">
-          <Input
-            placeholder="Task title..."
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-            className="h-8 text-sm"
-            autoFocus
-          />
-          <Input
-            type="date"
-            value={dueDate}
-            onChange={(e) => setDueDate(e.target.value)}
-            className="h-8 text-sm"
-          />
-          <div className="flex justify-end gap-1.5">
+      <PopoverContent className="w-72 p-3 z-50" align="start" onClick={(e) => e.stopPropagation()}>
+        <p className="text-xs font-semibold mb-3">Quick Add Task</p>
+        <form onSubmit={handleSubmit} className="space-y-2.5">
+          <div className="space-y-1">
+            <label className="text-xs font-medium text-foreground">Title *</label>
+            <Input
+              placeholder="e.g., Send proposal, Follow up on tour"
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              className="h-8 text-xs"
+              autoFocus
+            />
+          </div>
+          <div className="space-y-1">
+            <label className="text-xs font-medium text-foreground">Due Date</label>
+            <Input
+              type="date"
+              value={dueDate}
+              onChange={(e) => setDueDate(e.target.value)}
+              className="h-8 text-xs"
+            />
+          </div>
+          <div className="space-y-1">
+            <label className="text-xs font-medium text-foreground">Email Reminder</label>
+            <Input
+              type="datetime-local"
+              value={reminderAt}
+              onChange={(e) => setReminderAt(e.target.value)}
+              className="h-8 text-xs"
+            />
+          </div>
+          <div className="flex justify-end gap-1.5 pt-1">
             <Button type="button" variant="ghost" size="sm" className="h-7 text-xs" onClick={() => setOpen(false)}>
               Cancel
             </Button>
