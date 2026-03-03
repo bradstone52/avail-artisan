@@ -72,6 +72,7 @@ export function useCreateProspectTask() {
           prospect_id: prospectId,
           org_id: org?.id ?? null,
           created_by: user.id,
+          assigned_to: formData.assigned_to || user.id,
           title: formData.title,
           notes: formData.notes || null,
           due_date: formData.due_date || null,
