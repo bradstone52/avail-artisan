@@ -30,6 +30,8 @@ export function BulkEditListingsDialog({
   uniqueCities,
   onSaved,
 }: BulkEditListingsDialogProps) {
+  const [address, setAddress] = useState('');
+  const [displayAddress, setDisplayAddress] = useState('');
   const [submarket, setSubmarket] = useState(UNSET);
   const [city, setCity] = useState('');
   const [status, setStatus] = useState(UNSET);
