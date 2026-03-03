@@ -107,6 +107,7 @@ export function TaskFormDialog({ open, onOpenChange, prospectId, task }: TaskFor
               id="task-title"
               value={formData.title}
               onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+              onDoubleClick={(e) => e.stopPropagation()}
               placeholder="e.g., Send proposal, Follow up on tour"
               required
             />
