@@ -1113,10 +1113,10 @@ export function MarketListingEditDialog({
           onCloseClick={handleClose}
         >
           <DialogHeader>
-            <DialogTitle>{isCreateMode ? 'Add New Listing' : 'Edit Listing'}</DialogTitle>
+            <DialogTitle>{isCreateMode ? (duplicateFrom ? 'Duplicate Listing' : 'Add New Listing') : 'Edit Listing'}</DialogTitle>
             <DialogDescription>
               {isCreateMode 
-                ? 'Enter the details for the new market listing.'
+                ? (duplicateFrom ? `Duplicating ${duplicateFrom.display_address || duplicateFrom.address} — edit fields as needed.` : 'Enter the details for the new market listing.')
                 : `${listing?.display_address || listing?.address} • ${listing?.listing_id}`
               }
             </DialogDescription>
