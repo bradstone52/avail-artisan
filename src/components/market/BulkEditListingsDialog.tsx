@@ -65,9 +65,7 @@ export function BulkEditListingsDialog({
 
     if (address.trim()) {
       updates.address = address.trim();
-      // If address changes but display_address is not explicitly set, clear it
-      // so the table shows the new address (display_address takes priority in display)
-      if (!displayAddress.trim()) updates.display_address = null;
+      // Only update display_address if the user explicitly set it
     }
     if (displayAddress.trim()) updates.display_address = displayAddress.trim();
     if (submarket !== UNSET) updates.submarket = submarket;
