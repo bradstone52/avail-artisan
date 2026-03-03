@@ -94,7 +94,7 @@ function calculateGrossRate(askRate: string | null, opCosts: string | null): str
   return `$${gross.toFixed(2)}`;
 }
 
-export function MarketListingsTable({ listings, onEdit, onDuplicate, onRefresh, sortColumn, sortDirection, onSort }: MarketListingsTableProps) {
+export function MarketListingsTable({ listings, onEdit, onDuplicate, onRefresh, sortColumn, sortDirection, onSort, selectedIds, onToggleSelect, onToggleSelectAll }: MarketListingsTableProps) {
   const navigate = useNavigate();
   const { session } = useAuth();
   const scrollContainerRef = useRef<HTMLDivElement>(null);
