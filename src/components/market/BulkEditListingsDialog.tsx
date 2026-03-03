@@ -111,7 +111,7 @@ export function BulkEditListingsDialog({
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className="max-w-md">
+      <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Bulk Edit — {selectedIds.size} listing{selectedIds.size !== 1 ? 's' : ''}</DialogTitle>
         </DialogHeader>
