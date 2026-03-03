@@ -462,6 +462,16 @@ export function MarketListingsTable({ listings, onEdit, onDuplicate, onRefresh, 
       <Table className="min-w-[3000px]" stickyHeader>
         <TableHeader className="sticky top-0 z-40">
           <TableRow className="bg-muted">
+            {onToggleSelectAll && (
+              <TableHead className="sticky left-0 top-0 z-50 w-10 bg-muted text-muted-foreground shadow-[2px_0_5px_-2px_rgba(0,0,0,0.08)] px-3">
+                <Checkbox
+                  checked={listings.length > 0 && listings.every(l => selectedIds?.has(l.id))}
+                  onCheckedChange={() => onToggleSelectAll(listings.map(l => l.id))}
+                  onClick={e => e.stopPropagation()}
+                  aria-label="Select all"
+                />
+              </TableHead>
+            )}
             <TableHead className="sticky left-0 top-0 z-50 min-w-[180px] bg-muted text-muted-foreground shadow-[2px_0_5px_-2px_rgba(0,0,0,0.08)]">Address</TableHead>
             <TableHead className="text-muted-foreground min-w-[130px] bg-muted">Submarket</TableHead>
             <TableHead className="text-muted-foreground min-w-[100px] bg-muted">City</TableHead>
