@@ -397,7 +397,7 @@ function TasksCell({ prospectId, tasks }: { prospectId: string; tasks: ReturnTyp
             onCheckedChange={(checked) =>
               toggle.mutate({ id: task.id, prospectId, completed: checked === true })
             }
-            className="h-3.5 w-3.5 shrink-0"
+            className="h-4 w-4 shrink-0 border-2 border-muted-foreground/50"
             onClick={(e) => e.stopPropagation()}
           />
           <div className="flex-1 min-w-0">
