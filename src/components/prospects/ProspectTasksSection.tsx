@@ -126,7 +126,38 @@ function ReminderPopover({ task, prospectId }: { task: ProspectTask; prospectId:
   );
 }
 
-function TaskRow({ task, prospectId }: { task: ProspectTask; prospectId: string }) {
+function useOrgMemberProfiles() {
+  const { org } = useOrg();
+  return useQuery({
+    queryKey: ['org_members_profiles_section', org?.id],
+    queryFn: async () => {
+      if (!org?.id) return [] as { id: string; full_name: string | null }[];
+      const { data } = await supabase
+        .from('org_members')
+        .select('user_id, profiles(id, full_name)')
+        .eq('org_id', org.id);
+      return ((data ?? []).map((m: any) => m.profiles).filter(Boolean)) as { id: string; full_name: string | null }[];
+    },
+    enabled: !!org?.id,
+  });
+}
+
+function AssigneeChip({ userId, members }: { userId: string | null | undefined; members: { id: string; full_name: string | null }[] }) {
+  if (!userId) return null;
+  const member = members.find(m => m.id === userId);
+  const name = member?.full_name ?? '?';
+  const initials = name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
+  return (
+    <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
+      <Avatar className="h-4 w-4">
+        <AvatarFallback className="text-[9px]">{initials}</AvatarFallback>
+      </Avatar>
+      {name}
+    </span>
+  );
+}
+
+function TaskRow({ task, prospectId, members }: { task: ProspectTask; prospectId: string; members: { id: string; full_name: string | null }[] }) {
   const toggle = useToggleProspectTaskCompleted();
   const deleteTask = useDeleteProspectTask();
   const [editOpen, setEditOpen] = useState(false);
@@ -153,8 +184,9 @@ function TaskRow({ task, prospectId }: { task: ProspectTask; prospectId: string 
         {task.notes && (
           <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2">{task.notes}</p>
         )}
-        <div className="flex items-center gap-2 mt-1">
+        <div className="flex items-center gap-2 mt-1 flex-wrap">
           <DueDateLabel date={task.due_date} />
+          <AssigneeChip userId={task.assigned_to} members={members} />
           {task.reminder_at && !task.reminder_sent && (
             <Badge variant="outline" className="text-xs gap-1 py-0 border-amber-300 text-amber-600">
               <Bell className="h-2.5 w-2.5" />
