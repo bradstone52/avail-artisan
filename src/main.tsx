@@ -11,7 +11,7 @@ import "./index.css";
 // cached versions from showing up in the preview iframe.
 // Wrapped in an IIFE to avoid top-level await (unsupported in ES2020 target).
 (async () => {
-  const isLovablePreview = window.location.hostname.endsWith('.lovable.app');
+  const isLovablePreview = window.location.hostname.endsWith('.lovable.app') || window.location.hostname.endsWith('.lovable.dev');
   const shouldReset =
     import.meta.env.DEV ||
     isLovablePreview ||
