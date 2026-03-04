@@ -6,10 +6,8 @@ import { createRoot } from "react-dom/client";
 import App from "./App.tsx";
 import "./index.css";
 
-// Reset service workers and caches in dev, when ?resetSW=1 is present,
-// OR when running on a Lovable preview URL (*.lovable.app) to prevent stale
-// cached versions from showing up in the preview iframe.
-// Wrapped in an IIFE to avoid top-level await (unsupported in ES2020 target).
+// Aggressively reset service workers and caches on every load in dev/preview.
+// Uses sessionStorage to prevent infinite reload loops.
 (async () => {
   const isLovablePreview = window.location.hostname.endsWith('.lovable.app') || window.location.hostname.endsWith('.lovable.dev');
   const shouldReset =
@@ -18,6 +16,9 @@ import "./index.css";
     new URLSearchParams(window.location.search).get('resetSW') === '1';
 
   if (!shouldReset) return;
+
+  // Prevent reload loop: only reload once per session
+  const alreadyReset = sessionStorage.getItem('sw_reset_done') === __BUILD_TIME__;
 
   try {
     if ('caches' in window) {
@@ -28,8 +29,8 @@ import "./index.css";
       const regs = await navigator.serviceWorker.getRegistrations();
       const hadActive = regs.some(r => !!r.active);
       await Promise.all(regs.map(r => r.unregister()));
-      if (hadActive) {
-        // Reload once; resetSW param won't be present after reload so no loop.
+      if (hadActive && !alreadyReset) {
+        sessionStorage.setItem('sw_reset_done', __BUILD_TIME__);
         window.location.reload();
         return;
       }
@@ -37,6 +38,8 @@ import "./index.css";
   } catch {
     // Silently ignore cache/SW errors
   }
+  // Mark as reset even if no SW was active
+  sessionStorage.setItem('sw_reset_done', __BUILD_TIME__);
 })();
 
 createRoot(document.getElementById("root")!).render(<App />);
