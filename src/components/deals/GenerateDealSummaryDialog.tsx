@@ -415,8 +415,8 @@ export function GenerateDealSummaryDialog({ open, onOpenChange, deal }: Generate
         leaseRatePsf: (deal as any).lease_rate_psf,
         leaseRates: (deal as any).lease_rates ?? null,
         leaseTermMonths: (deal as any).lease_term_months,
-        commencementDate: (deal as any).commencement_date,
-        expiryDate: (deal as any).expiry_date,
+        commencementDate: commencementDate ? format(commencementDate, 'yyyy-MM-dd') : ((deal as any).commencement_date ?? null),
+        expiryDate: expiryDate ? format(expiryDate, 'yyyy-MM-dd') : ((deal as any).expiry_date ?? null),
         sellerLawyer: {
           name: deal.seller_lawyer_name,
           firm: deal.seller_lawyer_firm,
