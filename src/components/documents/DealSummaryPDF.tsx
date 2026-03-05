@@ -203,7 +203,7 @@ export function DealSummaryPDF({
   const effectiveDateToUse = isLease ? commencementDate : effectiveDate;
   if (effectiveDateToUse) timelineEvents.push({ date: effectiveDateToUse, label: fmtDateShort(effectiveDateToUse), detail: isLease ? 'Commencement Date — Lease commences' : 'Effective Date — Agreement executed' });
   validDeposits.forEach((d, i) => {
-    if (d.due_date) timelineEvents.push({ date: d.due_date, label: fmtDateShort(d.due_date), detail: `${depositLabel(i)} — ${fmt(d.amount)}` });
+    if (d.due_date) timelineEvents.push({ date: d.due_date, label: fmtDateShort(d.due_date), detail: `${depositLabel(i, isLease)} — ${fmt(d.amount)}` });
   });
   validConditions.forEach(c => {
     if (c.due_date) timelineEvents.push({ date: c.due_date, label: fmtDateShort(c.due_date), detail: `Condition — ${c.description}` });
@@ -331,7 +331,7 @@ export function DealSummaryPDF({
                   </View>
                   {validDeposits.map((d, i) => (
                     <View style={i === validDeposits.length - 1 ? s.tableRowLast : s.tableRow} key={i}>
-                      <Text style={[s.tableCell, { width: '35%' }]}>{depositLabel(i)}</Text>
+                      <Text style={[s.tableCell, { width: '35%' }]}>{depositLabel(i, isLease)}</Text>
                       <Text style={[s.tableCell, { width: '30%' }]}>{fmt(d.amount)}</Text>
                       <Text style={[s.tableCell, { width: '35%' }]}>{fmtDateShort(d.due_date)}</Text>
                     </View>
