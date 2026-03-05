@@ -303,6 +303,14 @@ export function DealSummaryPDF({
                   <Text style={s.propValue}>{fmtDate(expiryDate)}</Text>
                 </View>
               )}
+              {isLease && freeRentMonths && freeRentMonths.length > 0 && (
+                <View style={s.propRowLast}>
+                  <Text style={s.propLabel}>Free Rent</Text>
+                  <Text style={s.propValue}>
+                    {freeRentMonths.map(fr => `${fr.months} mo ${fr.type} (Yr ${fr.year})`).join(', ')}
+                  </Text>
+                </View>
+              )}
             </View>
           </View>
         </View>
