@@ -196,7 +196,7 @@ export function DealSummaryPDF({
   // Build timeline events
   const timelineEvents: { date: string; label: string; detail: string }[] = [];
   const effectiveDateToUse = isLease ? commencementDate : effectiveDate;
-  if (effectiveDateToUse) timelineEvents.push({ date: effectiveDateToUse, label: fmtDateShort(effectiveDateToUse), detail: `${isLease ? 'Commencement Date' : 'Effective Date'} — Agreement executed` });
+  if (effectiveDateToUse) timelineEvents.push({ date: effectiveDateToUse, label: fmtDateShort(effectiveDateToUse), detail: isLease ? 'Commencement Date — Lease commences' : 'Effective Date — Agreement executed' });
   validDeposits.forEach((d, i) => {
     if (d.due_date) timelineEvents.push({ date: d.due_date, label: fmtDateShort(d.due_date), detail: `${depositLabel(i)} — ${fmt(d.amount)}` });
   });

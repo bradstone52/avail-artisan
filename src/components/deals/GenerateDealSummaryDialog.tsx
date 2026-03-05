@@ -115,6 +115,17 @@ export function GenerateDealSummaryDialog({ open, onOpenChange, deal }: Generate
     fetchAgents();
   }, [open, deal]);
 
+  // Lease-type awareness
+  const dealTypeLower = deal.deal_type?.toLowerCase() || '';
+  const isSublease = dealTypeLower === 'sublease';
+  const isLeaseType = ['lease', 'sublease', 'renewal', 'lease renewal'].includes(dealTypeLower);
+  const usePV = !!(deal as any).use_purchaser_vendor;
+  const sellerLabel = isSublease ? 'Sublandlord' : isLeaseType ? 'Landlord' : (usePV ? 'Vendor' : 'Seller');
+  const buyerLabel = isSublease ? 'Subtenant' : isLeaseType ? 'Tenant' : (usePV ? 'Purchaser' : 'Buyer');
+  const actingPartyOptions = isLeaseType
+    ? [sellerLabel, buyerLabel, 'Both']
+    : [usePV ? 'Vendor' : 'Seller', usePV ? 'Purchaser' : 'Buyer', 'Both'];
+
   // Basic Info state
   const [vendor, setVendor] = useState('Clearview Commercial Realty Inc.');
   const [purchaser, setPurchaser] = useState('');
