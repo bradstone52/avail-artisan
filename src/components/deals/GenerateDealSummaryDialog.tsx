@@ -396,6 +396,7 @@ export function GenerateDealSummaryDialog({ open, onOpenChange, deal }: Generate
         usePurchaserVendor: !!(deal as any).use_purchaser_vendor,
         dealType: deal.deal_type,
         leaseRatePsf: (deal as any).lease_rate_psf,
+        leaseRates: (deal as any).lease_rates ?? null,
         leaseTermMonths: (deal as any).lease_term_months,
         commencementDate: (deal as any).commencement_date,
         expiryDate: (deal as any).expiry_date,
