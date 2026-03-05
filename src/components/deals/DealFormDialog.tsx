@@ -846,6 +846,12 @@ export function DealFormDialog({ open, onOpenChange, deal }: DealFormDialogProps
                   })}
                 </div>
               )}
+            </div>
+          )}
+
+          {isLeaseDeal && (
+            <div className="space-y-2">
+              <Label>Lease Term (Months)</Label>
               <FormattedNumberInput
                 value={formData.lease_term_months}
                 onChange={(value) => {
