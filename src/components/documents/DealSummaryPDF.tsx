@@ -203,7 +203,7 @@ export function DealSummaryPDF({
   validConditions.forEach(c => {
     if (c.due_date) timelineEvents.push({ date: c.due_date, label: fmtDateShort(c.due_date), detail: `Condition — ${c.description}` });
   });
-  if (closingDate) timelineEvents.push({ date: closingDate, label: fmtDateShort(closingDate), detail: `Closing — Balance of ${fmt(balanceOnClosing)}` });
+  if (closingDate) timelineEvents.push({ date: closingDate, label: fmtDateShort(closingDate), detail: `${isLease ? 'Possession' : 'Closing'} — Balance of ${fmt(balanceOnClosing)}` });
   // Sort by date
   timelineEvents.sort((a, b) => a.date.localeCompare(b.date));
 
