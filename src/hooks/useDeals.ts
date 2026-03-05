@@ -22,7 +22,7 @@ export function useDeals() {
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      return data as Deal[];
+      return data as unknown as Deal[];
     },
     enabled: !!user && !!org?.id,
   });
