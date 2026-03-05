@@ -110,6 +110,7 @@ const EMPTY_FORM: ExtendedDealFormData = {
   lease_term_months: undefined,
   commencement_date: '',
   expiry_date: '',
+  lease_rates: [],
   deal_value: undefined,
   commission_percent: 3,
   close_date: '',
