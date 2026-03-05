@@ -378,7 +378,9 @@ export function DealFormDialog({ open, onOpenChange, deal }: DealFormDialogProps
     const rates = formData.lease_rates;
     if (!rates?.length) return;
     const sf = formData.size_sf ?? 0;
-    const newValue = sf > 0 ? calcLeaseVal(rates, sf) : undefined;
+    const gross = sf > 0 ? calcLeaseVal(rates, sf) : undefined;
+    const deduction = sf > 0 ? calcFreeRentDeduction(formData.free_rent_months, rates, sf) : 0;
+    const newValue = gross != null ? gross - deduction : undefined;
     setFormData(prev => ({ ...prev, deal_value: newValue }));
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [formData.size_sf]);
