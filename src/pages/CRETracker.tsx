@@ -97,6 +97,7 @@ export default function CRETracker() {
           activeDealsCount={activeDeals.length}
           prospectsCount={prospectsLoading ? undefined : (prospects?.length ?? 0)}
           listingsCount={listingsLoading ? undefined : listings.length}
+          tasksCount={openTasksCount}
         />
 
         <Tabs value={activeTab} onValueChange={setActiveTab}>
@@ -127,6 +128,9 @@ export default function CRETracker() {
           </TabsContent>
           <TabsContent value="contact-finder" className="mt-4">
             <ContactFinderTab />
+          </TabsContent>
+          <TabsContent value="tasks" className="mt-4">
+            <CRETasksTab />
           </TabsContent>
         </Tabs>
       </div>
