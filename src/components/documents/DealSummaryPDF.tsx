@@ -143,12 +143,12 @@ const s = StyleSheet.create({
   propValue: { width: '60%', padding: 5, fontSize: 7.5 },
   
   // Timeline
-  timelineContainer: { paddingLeft: 10, marginBottom: 4 },
-  timelineItem: { flexDirection: 'row', marginBottom: 6 },
-  timelineLine: { width: 14, alignItems: 'center' },
-  timelineDot: { width: 7, height: 7, borderRadius: 4, backgroundColor: ORANGE, marginTop: 3 },
-  timelineConnector: { width: 2, backgroundColor: BORDER, height: 10, marginLeft: 2 },
-  timelineContent: { flex: 1, paddingLeft: 5 },
+  timelineContainer: { paddingLeft: 6, marginBottom: 4 },
+  timelineItem: { flexDirection: 'row', alignItems: 'flex-start', marginBottom: 7 },
+  timelineLine: { width: 14, paddingTop: 2 },
+  timelineDot: { width: 7, height: 7, borderRadius: 4, backgroundColor: ORANGE },
+  timelineConnector: { width: 0, height: 0 },
+  timelineContent: { flex: 1, paddingLeft: 4 },
   timelineDate: { fontSize: 8, fontWeight: 'bold', marginBottom: 1 },
   timelineDesc: { fontSize: 7, color: MUTED },
   
