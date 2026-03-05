@@ -280,7 +280,7 @@ export function DealSummaryPDF({
                   return (
                     <View style={s.propRow}>
                       <Text style={s.propLabel}>Lease Rate Schedule</Text>
-                      <Text style={s.propValue}>{leaseRates.map(r => `Yr ${r.year}: $${Number(r.rate_psf).toFixed(2)}/SF × ${r.months} mo`).join('\n')}</Text>
+                      <Text style={s.propValue}>{leaseRates.map(r => `Yr ${r.year}: $${Number(r.rate_psf).toFixed(2)}/SF × ${r.months} Month`).join('\n')}</Text>
                     </View>
                   );
                 }
@@ -307,7 +307,7 @@ export function DealSummaryPDF({
                 <View style={s.propRowLast}>
                   <Text style={s.propLabel}>Free Rent</Text>
                   <Text style={s.propValue}>
-                    {freeRentMonths.map(fr => `${fr.months} mo ${fr.type} (Yr ${fr.year})`).join(', ')}
+                    {freeRentMonths.map(fr => `${fr.months} Month ${fr.type} (Yr ${fr.year})`).join(', ')}
                   </Text>
                 </View>
               )}
@@ -324,7 +324,7 @@ export function DealSummaryPDF({
               <Text style={s.finValue}>{fmt(purchasePrice)}</Text>
               {isLease && freeRentMonths && freeRentMonths.length > 0 && (
                 <Text style={{ fontSize: 6.5, color: MUTED, marginTop: 2 }}>
-                  Incl. {freeRentMonths.map(fr => `${fr.months} mo ${fr.type}`).join(', ')}
+                  Incl. {freeRentMonths.map(fr => `${fr.months} Month ${fr.type}`).join(', ')}
                 </Text>
               )}
             </View>
