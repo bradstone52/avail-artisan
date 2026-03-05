@@ -53,7 +53,7 @@ export function DealPartiesSection({ deal, onUpdate }: DealPartiesSectionProps) 
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Building2 className="w-5 h-5" />
-            Seller Information
+            {sellerLabel} Information
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -95,7 +95,7 @@ export function DealPartiesSection({ deal, onUpdate }: DealPartiesSectionProps) 
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Building2 className="w-5 h-5" />
-            Buyer Information
+            {buyerLabel} Information
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
