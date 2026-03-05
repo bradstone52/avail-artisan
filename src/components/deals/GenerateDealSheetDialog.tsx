@@ -518,7 +518,7 @@ export function GenerateDealSheetDialog({ open, onOpenChange, deal }: GenerateDe
                         <Input value={deal.city || ''} disabled className="bg-muted" />
                       </div>
                       <div className="space-y-2">
-                        <Label>Closing Date</Label>
+                        <Label>{isLeaseType ? 'Possession Date' : 'Closing Date'}</Label>
                         <Popover>
                           <PopoverTrigger asChild>
                             <Button
