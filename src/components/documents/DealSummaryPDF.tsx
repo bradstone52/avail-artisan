@@ -184,7 +184,9 @@ export function DealSummaryPDF({
 }: DealSummaryPDFProps) {
   const dealTypeLower = dealType?.toLowerCase() || '';
   const isSublease = dealTypeLower === 'sublease';
-  const isLease = ['lease', 'sublease', 'renewal'].includes(dealTypeLower);
+  const isLease = ['lease', 'sublease', 'renewal', 'lease renewal'].includes(dealTypeLower);
+  const netLeaseLabel = isSublease ? 'Net Sublease Value' : 'Net Lease Value';
+  const dealValueLabel = isLease ? netLeaseLabel : 'Purchase Price';
   const sellerLabel = isSublease ? 'Sublandlord' : isLease ? 'Landlord' : (usePurchaserVendor ? 'Vendor' : 'Seller');
   const buyerLabel = isSublease ? 'Subtenant' : isLease ? 'Tenant' : (usePurchaserVendor ? 'Purchaser' : 'Buyer');
   const agentLabel = isLease ? 'Leasing' : 'Selling';
@@ -203,7 +205,7 @@ export function DealSummaryPDF({
   validConditions.forEach(c => {
     if (c.due_date) timelineEvents.push({ date: c.due_date, label: fmtDateShort(c.due_date), detail: `Condition — ${c.description}` });
   });
-  if (closingDate) timelineEvents.push({ date: closingDate, label: fmtDateShort(closingDate), detail: `${isLease ? 'Possession' : 'Closing'} — Balance of ${fmt(balanceOnClosing)}` });
+  if (closingDate) timelineEvents.push({ date: closingDate, label: fmtDateShort(closingDate), detail: isLease ? 'Occupancy Date' : `Closing — Balance of ${fmt(balanceOnClosing)}` });
   // Sort by date
   timelineEvents.sort((a, b) => a.date.localeCompare(b.date));
 
@@ -292,21 +294,23 @@ export function DealSummaryPDF({
         </View>
 
         {/* ── FINANCIAL SUMMARY ── */}
-        <View wrap={false}>
+          <View wrap={false}>
           <Text style={s.sectionTitle}>Financial Summary</Text>
           <View style={s.finRow}>
             <View style={s.finCard}>
-              <Text style={s.finLabel}>{isLease ? 'Deal Value' : 'Purchase Price'}</Text>
+              <Text style={s.finLabel}>{dealValueLabel}</Text>
               <Text style={s.finValue}>{fmt(purchasePrice)}</Text>
             </View>
             <View style={s.finCard}>
               <Text style={s.finLabel}>Total Deposits</Text>
               <Text style={s.finValue}>{fmt(totalDeposits)}</Text>
             </View>
-            <View style={s.finCard}>
-              <Text style={s.finLabel}>Balance on Closing</Text>
-              <Text style={s.finValue}>{fmt(balanceOnClosing)}</Text>
-            </View>
+            {!isLease && (
+              <View style={s.finCard}>
+                <Text style={s.finLabel}>Balance on Closing</Text>
+                <Text style={s.finValue}>{fmt(balanceOnClosing)}</Text>
+              </View>
+            )}
           </View>
         </View>
 
@@ -333,21 +337,25 @@ export function DealSummaryPDF({
               </>
             )}
 
-            <Text style={s.sectionTitle}>Closing Details</Text>
-            <View style={s.table}>
-              <View style={s.propRow}>
-                <Text style={[s.propLabel, { width: '50%' }]}>{isLease ? 'Deal Value' : 'Purchase Price'}</Text>
-                <Text style={[s.propValue, { width: '50%' }]}>{fmt(purchasePrice)}</Text>
-              </View>
-              <View style={s.propRow}>
-                <Text style={[s.propLabel, { width: '50%' }]}>Balance Due on Closing</Text>
-                <Text style={[s.propValue, { width: '50%' }]}>{fmt(balanceOnClosing)}</Text>
-              </View>
-              <View style={s.propRowLast}>
-                <Text style={[s.propLabel, { width: '50%' }]}>Closing Date</Text>
-                <Text style={[s.propValue, { width: '50%' }]}>{fmtDate(closingDate) || ' '}</Text>
-              </View>
-            </View>
+            {!isLease && (
+              <>
+                <Text style={s.sectionTitle}>Closing Details</Text>
+                <View style={s.table}>
+                  <View style={s.propRow}>
+                    <Text style={[s.propLabel, { width: '50%' }]}>Purchase Price</Text>
+                    <Text style={[s.propValue, { width: '50%' }]}>{fmt(purchasePrice)}</Text>
+                  </View>
+                  <View style={s.propRow}>
+                    <Text style={[s.propLabel, { width: '50%' }]}>Balance Due on Closing</Text>
+                    <Text style={[s.propValue, { width: '50%' }]}>{fmt(balanceOnClosing)}</Text>
+                  </View>
+                  <View style={s.propRowLast}>
+                    <Text style={[s.propLabel, { width: '50%' }]}>Closing Date</Text>
+                    <Text style={[s.propValue, { width: '50%' }]}>{fmtDate(closingDate) || ' '}</Text>
+                  </View>
+                </View>
+              </>
+            )}
           </View>
 
           <View style={[s.colRight, { justifyContent: 'flex-start' }]}>
