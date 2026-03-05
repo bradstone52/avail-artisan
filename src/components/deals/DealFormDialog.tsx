@@ -181,6 +181,7 @@ export function DealFormDialog({ open, onOpenChange, deal }: DealFormDialogProps
         lease_term_months: (deal as any).lease_term_months ?? undefined,
         commencement_date: (deal as any).commencement_date || '',
         expiry_date: (deal as any).expiry_date || '',
+        lease_rates: (deal as any).lease_rates ?? [],
         deal_value: deal.deal_value ?? undefined,
         commission_percent: deal.commission_percent ?? 3,
         close_date: deal.close_date || '',
