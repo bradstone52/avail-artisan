@@ -615,49 +615,86 @@ export function DealFormDialog({ open, onOpenChange, deal }: DealFormDialogProps
           </div>
 
           {isLeaseDeal && (
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="commencement_date">Commencement Date</Label>
-                <Input
-                  id="commencement_date"
-                  type="date"
-                  value={formData.commencement_date}
-                  onChange={(e) => update({ commencement_date: e.target.value })}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="expiry_date">Expiry Date</Label>
-                <Input
-                  id="expiry_date"
-                  type="date"
-                  value={formData.expiry_date}
-                  onChange={(e) => update({ expiry_date: e.target.value })}
-                />
+            <div className="space-y-3">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="commencement_date">Commencement Date</Label>
+                  <Input
+                    id="commencement_date"
+                    type="date"
+                    value={formData.commencement_date}
+                    onChange={(e) => update({ commencement_date: e.target.value })}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="expiry_date">Expiry Date</Label>
+                  <Input
+                    id="expiry_date"
+                    type="date"
+                    value={formData.expiry_date}
+                    onChange={(e) => update({ expiry_date: e.target.value })}
+                  />
+                </div>
               </div>
             </div>
           )}
 
           {isLeaseDeal && (
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label>Lease Rate PSF</Label>
-                <FormattedNumberInput
-                  value={formData.lease_rate_psf}
-                  onChange={(value) => update({ lease_rate_psf: value ?? undefined })}
-                  prefix="$"
-                  suffix="/SF"
-                />
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <Label>Lease Rate Schedule</Label>
               </div>
-              <div className="space-y-2">
-                <Label>Lease Term (Months)</Label>
-                <FormattedNumberInput
-                  value={formData.lease_term_months}
-                  onChange={(value) => {
-                    leaseTermManuallyEdited.current = true;
-                    update({ lease_term_months: value ?? undefined });
+              {(formData.lease_rates && formData.lease_rates.length > 0) ? (
+                <LeaseRateSchedule
+                  rates={formData.lease_rates}
+                  sizeSf={formData.size_sf}
+                  leaseTermMonths={formData.lease_term_months}
+                  onChange={(rates) => {
+                    const sf = formData.size_sf ?? 0;
+                    const newValue = sf > 0 ? calcLeaseVal(rates, sf) : undefined;
+                    const avgRate = weightedAvg(rates);
+                    update({ lease_rates: rates, deal_value: newValue, lease_rate_psf: avgRate || undefined });
                   }}
                 />
-              </div>
+              ) : (
+                <div className="space-y-2">
+                  <FormattedNumberInput
+                    value={formData.lease_rate_psf}
+                    onChange={(value) => update({ lease_rate_psf: value ?? undefined })}
+                    prefix="$"
+                    suffix="/SF"
+                  />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="gap-1 text-xs"
+                    onClick={() => {
+                      const term = formData.lease_term_months || 12;
+                      const months = Math.min(12, term);
+                      const initRates: LeaseRateYear[] = [{ year: 1, rate_psf: formData.lease_rate_psf ?? 0, months }];
+                      const sf = formData.size_sf ?? 0;
+                      const newValue = sf > 0 ? calcLeaseVal(initRates, sf) : undefined;
+                      update({ lease_rates: initRates, deal_value: newValue });
+                    }}
+                  >
+                    + Use Rate Schedule
+                  </Button>
+                </div>
+              )}
+            </div>
+          )}
+
+          {isLeaseDeal && (
+            <div className="space-y-2">
+              <Label>Lease Term (Months)</Label>
+              <FormattedNumberInput
+                value={formData.lease_term_months}
+                onChange={(value) => {
+                  leaseTermManuallyEdited.current = true;
+                  update({ lease_term_months: value ?? undefined });
+                }}
+              />
             </div>
           )}
 
