@@ -413,6 +413,7 @@ export type Database = {
           deposit_due_date: string | null
           effective_date: string | null
           expiry_date: string | null
+          free_rent_months: Json | null
           gst_rate: number | null
           id: string
           internal_listing_id: string | null
@@ -469,6 +470,7 @@ export type Database = {
           deposit_due_date?: string | null
           effective_date?: string | null
           expiry_date?: string | null
+          free_rent_months?: Json | null
           gst_rate?: number | null
           id?: string
           internal_listing_id?: string | null
@@ -525,6 +527,7 @@ export type Database = {
           deposit_due_date?: string | null
           effective_date?: string | null
           expiry_date?: string | null
+          free_rent_months?: Json | null
           gst_rate?: number | null
           id?: string
           internal_listing_id?: string | null

@@ -417,6 +417,7 @@ export function GenerateDealSummaryDialog({ open, onOpenChange, deal }: Generate
         leaseTermMonths: (deal as any).lease_term_months,
         commencementDate: commencementDate ? format(commencementDate, 'yyyy-MM-dd') : ((deal as any).commencement_date ?? null),
         expiryDate: expiryDate ? format(expiryDate, 'yyyy-MM-dd') : ((deal as any).expiry_date ?? null),
+        freeRentMonths: (deal as any).free_rent_months ?? null,
         sellerLawyer: {
           name: deal.seller_lawyer_name,
           firm: deal.seller_lawyer_firm,

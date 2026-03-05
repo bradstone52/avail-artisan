@@ -59,6 +59,7 @@ export interface DealSummaryPDFProps {
   leaseTermMonths?: number | null;
   commencementDate?: string | null;
   expiryDate?: string | null;
+  freeRentMonths?: Array<{ type: string; months: number; year: number }> | null;
   // Legacy — kept for backward compat but unused
   actions?: any[];
   contacts?: any[];
@@ -184,6 +185,7 @@ export function DealSummaryPDF({
   usePurchaserVendor = false,
   sellerLawyer, buyerLawyer,
   dealType, leaseRatePsf, leaseRates, leaseTermMonths, commencementDate, expiryDate,
+  freeRentMonths,
 }: DealSummaryPDFProps) {
   const dealTypeLower = dealType?.toLowerCase() || '';
   const isSublease = dealTypeLower === 'sublease';
@@ -301,6 +303,14 @@ export function DealSummaryPDF({
                   <Text style={s.propValue}>{fmtDate(expiryDate)}</Text>
                 </View>
               )}
+              {isLease && freeRentMonths && freeRentMonths.length > 0 && (
+                <View style={s.propRowLast}>
+                  <Text style={s.propLabel}>Free Rent</Text>
+                  <Text style={s.propValue}>
+                    {freeRentMonths.map(fr => `${fr.months} mo ${fr.type} (Yr ${fr.year})`).join(', ')}
+                  </Text>
+                </View>
+              )}
             </View>
           </View>
         </View>
@@ -312,6 +322,11 @@ export function DealSummaryPDF({
             <View style={s.finCard}>
               <Text style={s.finLabel}>{dealValueLabel}</Text>
               <Text style={s.finValue}>{fmt(purchasePrice)}</Text>
+              {isLease && freeRentMonths && freeRentMonths.length > 0 && (
+                <Text style={{ fontSize: 6.5, color: MUTED, marginTop: 2 }}>
+                  Incl. {freeRentMonths.map(fr => `${fr.months} mo ${fr.type}`).join(', ')}
+                </Text>
+              )}
             </View>
             <View style={s.finCard}>
               <Text style={s.finLabel}>{isLease ? 'Total Deposit' : 'Total Deposits'}</Text>

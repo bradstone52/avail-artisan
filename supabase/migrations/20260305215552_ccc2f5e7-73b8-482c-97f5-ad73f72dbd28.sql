@@ -1,0 +1,1 @@
+ALTER TABLE public.deals ADD COLUMN IF NOT EXISTS free_rent_months jsonb;
