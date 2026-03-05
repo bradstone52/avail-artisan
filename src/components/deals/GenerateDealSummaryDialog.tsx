@@ -134,6 +134,9 @@ export function GenerateDealSummaryDialog({ open, onOpenChange, deal }: Generate
   const [propertyDescription, setPropertyDescription] = useState('');
   const [effectiveDate, setEffectiveDate] = useState<Date | undefined>(undefined);
   const [closingDate, setClosingDate] = useState<Date | undefined>(undefined);
+  // Lease-specific dates
+  const [commencementDate, setCommencementDate] = useState<Date | undefined>(undefined);
+  const [expiryDate, setExpiryDate] = useState<Date | undefined>(undefined);
   const [purchasePrice, setPurchasePrice] = useState('');
   const [purchasePriceDisplay, setPurchasePriceDisplay] = useState('');
 
