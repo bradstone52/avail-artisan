@@ -35,8 +35,8 @@ import { MarketListing } from '@/hooks/useMarketListings';
 import { ChevronDown } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { supabase } from '@/integrations/supabase/client';
-import type { Deal, DealFormData, DealType, DealStatus, LeaseRateYear } from '@/types/database';
-import { calcLeaseValue as calcLeaseVal, weightedAvgRate as weightedAvg } from '@/types/database';
+import type { Deal, DealFormData, DealType, DealStatus, LeaseRateYear, FreeRentEntry } from '@/types/database';
+import { calcLeaseValue as calcLeaseVal, weightedAvgRate as weightedAvg, calcFreeRentDeduction } from '@/types/database';
 
 interface DealFormDialogProps {
   open: boolean;
@@ -57,6 +57,7 @@ interface ExtendedDealFormData {
   commencement_date?: string;
   expiry_date?: string;
   lease_rates?: LeaseRateYear[];
+  free_rent_months?: FreeRentEntry[];
   deal_value?: number;
   commission_percent?: number;
   close_date?: string;
@@ -111,6 +112,7 @@ const EMPTY_FORM: ExtendedDealFormData = {
   commencement_date: '',
   expiry_date: '',
   lease_rates: [],
+  free_rent_months: [],
   deal_value: undefined,
   commission_percent: 3,
   close_date: '',
