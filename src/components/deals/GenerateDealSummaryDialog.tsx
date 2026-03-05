@@ -961,7 +961,7 @@ export function GenerateDealSummaryDialog({ open, onOpenChange, deal }: Generate
                       </Popover>
                     </div>
                     <div className="space-y-1">
-                      <Label className="text-xs">Possession Date</Label>
+                      <Label className="text-xs">Occupancy Date</Label>
                       <Popover>
                         <PopoverTrigger asChild>
                           <Button variant="outline" className={cn("w-full justify-start text-left font-normal h-8 text-sm", !closingDate && "text-muted-foreground")}>
@@ -1010,7 +1010,7 @@ export function GenerateDealSummaryDialog({ open, onOpenChange, deal }: Generate
               )}
 
               <div className="space-y-1">
-                <Label className="text-xs">Deal Value</Label>
+                <Label className="text-xs">{isLeaseType ? (isSublease ? 'Net Sublease Value' : 'Net Lease Value') : 'Deal Value'}</Label>
                 <div className="relative">
                   <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">$</span>
                   <Input 
@@ -1039,13 +1039,15 @@ export function GenerateDealSummaryDialog({ open, onOpenChange, deal }: Generate
                   <span>{formatCurrency(totalDeposits)}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-muted-foreground">Deal Value:</span>
+                  <span className="text-muted-foreground">{isLeaseType ? (isSublease ? 'Net Sublease Value:' : 'Net Lease Value:') : 'Deal Value:'}</span>
                   <span>{formatCurrency(purchasePriceNum)}</span>
                 </div>
-                <div className="flex justify-between font-medium">
-                  <span>{isLeaseType ? 'Balance on Possession:' : 'Balance on Closing:'}</span>
-                  <span className="text-primary">{formatCurrency(balanceOnClosing)}</span>
-                </div>
+                {!isLeaseType && (
+                  <div className="flex justify-between font-medium">
+                    <span>Balance on Closing:</span>
+                    <span className="text-primary">{formatCurrency(balanceOnClosing)}</span>
+                  </div>
+                )}
               </div>
             </TabsContent>
 

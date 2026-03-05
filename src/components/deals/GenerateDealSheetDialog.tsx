@@ -92,6 +92,7 @@ export function GenerateDealSheetDialog({ open, onOpenChange, deal }: GenerateDe
   const [buyerName, setBuyerName] = useState(deal.buyer_name || '');
   const [buyerBrokerageId, setBuyerBrokerageId] = useState(deal.buyer_brokerage_id || '');
   const [dealValue, setDealValue] = useState(deal.deal_value || 0);
+  useEffect(() => { if (open) setDealValue(deal.deal_value ?? 0); }, [open, deal.deal_value]);
   const [commissionPercent, setCommissionPercent] = useState(deal.commission_percent || 3);
   const [otherBrokeragePercent, setOtherBrokeragePercent] = useState(deal.other_brokerage_percent ?? 1.5);
   const [clearviewPercent, setClearviewPercent] = useState(deal.clearview_percent ?? 1.5);
@@ -518,7 +519,7 @@ export function GenerateDealSheetDialog({ open, onOpenChange, deal }: GenerateDe
                         <Input value={deal.city || ''} disabled className="bg-muted" />
                       </div>
                       <div className="space-y-2">
-                        <Label>{isLeaseType ? 'Possession Date' : 'Closing Date'}</Label>
+                        <Label>{isLeaseType ? 'Occupancy Date' : 'Closing Date'}</Label>
                         <Popover>
                           <PopoverTrigger asChild>
                             <Button
