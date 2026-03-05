@@ -58,16 +58,16 @@ export function DealPartiesSection({ deal, onUpdate }: DealPartiesSectionProps) 
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="space-y-2">
-            <Label>Seller Name</Label>
+            <Label>{sellerLabel} Name</Label>
             <Input
               value={formData.seller_name}
               onChange={(e) => setFormData({ ...formData, seller_name: e.target.value })}
-              placeholder="Enter seller name"
+              placeholder={`Enter ${sellerLabel.toLowerCase()} name`}
             />
           </div>
           <div className="space-y-2">
             <div className="flex items-center justify-between">
-              <Label>Seller Brokerage</Label>
+              <Label>{sellerLabel} Brokerage</Label>
               <Button variant="ghost" size="sm" onClick={() => setAddDialogOpen(true)}>
                 <Plus className="w-4 h-4 mr-1" />
                 Add New
@@ -100,16 +100,16 @@ export function DealPartiesSection({ deal, onUpdate }: DealPartiesSectionProps) 
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="space-y-2">
-            <Label>Buyer Name</Label>
+            <Label>{buyerLabel} Name</Label>
             <Input
               value={formData.buyer_name}
               onChange={(e) => setFormData({ ...formData, buyer_name: e.target.value })}
-              placeholder="Enter buyer name"
+              placeholder={`Enter ${buyerLabel.toLowerCase()} name`}
             />
           </div>
           <div className="space-y-2">
             <div className="flex items-center justify-between">
-              <Label>Buyer Brokerage</Label>
+              <Label>{buyerLabel} Brokerage</Label>
               <Button variant="ghost" size="sm" onClick={() => setAddDialogOpen(true)}>
                 <Plus className="w-4 h-4 mr-1" />
                 Add New
