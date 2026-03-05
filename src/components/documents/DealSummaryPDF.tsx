@@ -209,8 +209,17 @@ export function DealSummaryPDF({
     if (c.due_date) timelineEvents.push({ date: c.due_date, label: fmtDateShort(c.due_date), detail: `Condition — ${c.description}` });
   });
   if (closingDate) timelineEvents.push({ date: closingDate, label: fmtDateShort(closingDate), detail: isLease ? 'Occupancy Date' : `Closing — Balance of ${fmt(balanceOnClosing)}` });
-  // Sort by date
+  // Sort by date then group by date
   timelineEvents.sort((a, b) => a.date.localeCompare(b.date));
+  const groupedTimeline: { date: string; label: string; details: string[] }[] = [];
+  for (const evt of timelineEvents) {
+    const last = groupedTimeline[groupedTimeline.length - 1];
+    if (last && last.date === evt.date) {
+      last.details.push(evt.detail);
+    } else {
+      groupedTimeline.push({ date: evt.date, label: evt.label, details: [evt.detail] });
+    }
+  }
 
   return (
     <Document>
@@ -362,18 +371,20 @@ export function DealSummaryPDF({
           </View>
 
           <View style={[s.colRight, { justifyContent: 'flex-start' }]}>
-            {timelineEvents.length > 0 && (
+          {groupedTimeline.length > 0 && (
               <>
                 <Text style={s.sectionTitle}>Transaction Timeline</Text>
                 <View style={s.timelineContainer}>
-                  {timelineEvents.map((evt, i) => (
+                  {groupedTimeline.map((evt, i) => (
                     <View style={s.timelineItem} key={i}>
                       <View style={s.timelineLine}>
                         <View style={s.timelineDot} />
                       </View>
                       <View style={s.timelineContent}>
                         <Text style={s.timelineDate}>{evt.label}</Text>
-                        <Text style={s.timelineDesc}>{evt.detail}</Text>
+                        {evt.details.map((detail, j) => (
+                          <Text style={s.timelineDesc} key={j}>{detail}</Text>
+                        ))}
                       </View>
                     </View>
                   ))}
