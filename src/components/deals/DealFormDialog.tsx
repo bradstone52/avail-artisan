@@ -609,7 +609,7 @@ export function DealFormDialog({ open, onOpenChange, deal }: DealFormDialogProps
               </Select>
             </div>
             <div className="space-y-2">
-              <Label htmlFor="close_date">Close Date</Label>
+              <Label htmlFor="close_date">{isLeaseDeal ? 'Occupancy Date' : 'Close Date'}</Label>
               <Input
                 id="close_date"
                 type="date"
