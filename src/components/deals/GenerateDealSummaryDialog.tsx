@@ -808,9 +808,9 @@ export function GenerateDealSummaryDialog({ open, onOpenChange, deal }: Generate
                     <SelectValue placeholder="Select party" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="Vendor">Vendor</SelectItem>
-                    <SelectItem value="Purchaser">Purchaser</SelectItem>
-                    <SelectItem value="Both">Both</SelectItem>
+                    {actingPartyOptions.map(opt => (
+                      <SelectItem key={opt} value={opt}>{opt}</SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>
