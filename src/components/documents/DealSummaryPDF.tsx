@@ -185,6 +185,7 @@ export function DealSummaryPDF({
   usePurchaserVendor = false,
   sellerLawyer, buyerLawyer,
   dealType, leaseRatePsf, leaseRates, leaseTermMonths, commencementDate, expiryDate,
+  freeRentMonths,
 }: DealSummaryPDFProps) {
   const dealTypeLower = dealType?.toLowerCase() || '';
   const isSublease = dealTypeLower === 'sublease';
