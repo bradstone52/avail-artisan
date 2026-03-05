@@ -59,6 +59,7 @@ export interface DealSummaryPDFProps {
   leaseTermMonths?: number | null;
   commencementDate?: string | null;
   expiryDate?: string | null;
+  freeRentMonths?: Array<{ type: string; months: number; year: number }> | null;
   // Legacy — kept for backward compat but unused
   actions?: any[];
   contacts?: any[];

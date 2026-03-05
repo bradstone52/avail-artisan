@@ -67,6 +67,7 @@ export function useCreateDeal() {
         lease_rate_psf: formData.lease_rate_psf ?? null,
         lease_term_months: formData.lease_term_months ?? null,
         lease_rates: formData.lease_rates ?? null,
+        free_rent_months: formData.free_rent_months?.length ? formData.free_rent_months : null,
         user_id: user.id,
         org_id: org.id,
       };
@@ -106,6 +107,7 @@ export function useUpdateDeal() {
         lease_rate_psf: formData.lease_rate_psf ?? null,
         lease_term_months: formData.lease_term_months ?? null,
         lease_rates: formData.lease_rates ?? null,
+        free_rent_months: formData.free_rent_months?.length ? formData.free_rent_months : null,
       };
 
       const { data, error } = await supabase
