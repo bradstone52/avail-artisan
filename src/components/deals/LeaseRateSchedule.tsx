@@ -47,15 +47,20 @@ export function LeaseRateSchedule({
   const term = leaseTermMonths ?? 0;
   const monthsWarning = term > 0 && totalMonths !== term;
 
-  // Local string state for rate_psf inputs so decimals can be typed freely
-  const [rateInputs, setRateInputs] = useState<string[]>(() => rates.map(r => r.rate_psf === 0 ? '' : String(r.rate_psf)));
+  // Local string state for rate_psf inputs so decimal typing works freely
+  const [rateInputs, setRateInputs] = useState<string[]>(
+    () => rates.map(r => r.rate_psf === 0 ? '' : String(r.rate_psf))
+  );
 
-  // Sync rateInputs length when rates array length changes (add/remove year)
+  // Sync length when rows are added/removed
   useEffect(() => {
     setRateInputs(prev => {
       if (prev.length === rates.length) return prev;
-      return rates.map((r, i) => prev[i] !== undefined ? prev[i] : (r.rate_psf === 0 ? '' : String(r.rate_psf)));
+      return rates.map((r, i) =>
+        i < prev.length ? prev[i] : (r.rate_psf === 0 ? '' : String(r.rate_psf))
+      );
     });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [rates.length]);
 
   const addYear = () => {
@@ -65,19 +70,47 @@ export function LeaseRateSchedule({
       ...r,
       months: distributed[i] ?? r.months,
     }));
-    newRates.push({ year: newCount, rate_psf: rates[rates.length - 1]?.rate_psf ?? 0, months: distributed[newCount - 1] ?? 12 });
+    const lastRate = rates[rates.length - 1]?.rate_psf ?? 0;
+    newRates.push({ year: newCount, rate_psf: lastRate, months: distributed[newCount - 1] ?? 12 });
     onChange(newRates);
   };
 
   const removeYear = (idx: number) => {
     const next = rates.filter((_, i) => i !== idx).map((r, i) => ({ ...r, year: i + 1 }));
+    setRateInputs(prev => prev.filter((_, i) => i !== idx));
     onChange(next);
   };
 
-  const update = (idx: number, field: 'rate_psf' | 'months', raw: string) => {
-    const val = parseFloat(raw.replace(/[^0-9.]/g, '')) || 0;
-    const next = rates.map((r, i) => i === idx ? { ...r, [field]: val } : r);
+  const updateMonths = (idx: number, raw: string) => {
+    const val = parseFloat(raw.replace(/[^0-9]/g, '')) || 0;
+    const next = rates.map((r, i) => i === idx ? { ...r, months: val } : r);
     onChange(next);
+  };
+
+  const handleRateChange = (idx: number, raw: string) => {
+    // Allow typing freely: only strip characters that can never be part of a decimal number
+    const cleaned = raw.replace(/[^0-9.]/g, '');
+    // Prevent multiple decimal points
+    const parts = cleaned.split('.');
+    const sanitized = parts.length > 2 ? parts[0] + '.' + parts.slice(1).join('') : cleaned;
+    setRateInputs(prev => prev.map((v, i) => i === idx ? sanitized : v));
+
+    // Update the rate in parent state only if it's a valid number
+    const parsed = parseFloat(sanitized);
+    if (!isNaN(parsed)) {
+      const next = rates.map((r, i) => i === idx ? { ...r, rate_psf: parsed } : r);
+      onChange(next);
+    }
+  };
+
+  const handleRateBlur = (idx: number) => {
+    // On blur, format to 2 decimal places if there's a valid number
+    const parsed = parseFloat(rateInputs[idx]);
+    if (!isNaN(parsed) && parsed > 0) {
+      setRateInputs(prev => prev.map((v, i) => i === idx ? parsed.toFixed(2) : v));
+      const next = rates.map((r, i) => i === idx ? { ...r, rate_psf: parsed } : r);
+      onChange(next);
+    }
   };
 
   if (readOnly) {
@@ -124,16 +157,18 @@ export function LeaseRateSchedule({
               <span className="text-muted-foreground text-sm">$</span>
               <Input
                 className="h-8 text-sm"
-                value={r.rate_psf === 0 ? '' : r.rate_psf}
-                onChange={(e) => update(i, 'rate_psf', e.target.value)}
+                value={rateInputs[i] ?? ''}
+                onChange={(e) => handleRateChange(i, e.target.value)}
+                onBlur={() => handleRateBlur(i)}
                 placeholder="0.00"
+                inputMode="decimal"
               />
               <span className="text-muted-foreground text-sm whitespace-nowrap">/SF</span>
             </div>
             <Input
               className="h-8 text-sm"
               value={r.months === 0 ? '' : r.months}
-              onChange={(e) => update(i, 'months', e.target.value)}
+              onChange={(e) => updateMonths(i, e.target.value)}
               placeholder="12"
             />
             <span className="text-sm text-right">
