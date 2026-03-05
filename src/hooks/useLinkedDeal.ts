@@ -20,7 +20,7 @@ export function useLinkedDeal(listingId: string | undefined) {
         .maybeSingle();
 
       if (error) throw error;
-      return data as Deal | null;
+      return data as unknown as Deal | null;
     },
     enabled: !!user && !!listingId,
   });

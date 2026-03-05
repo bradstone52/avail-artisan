@@ -200,6 +200,7 @@ export interface DealFormData {
   lease_term_months?: number | null;
   commencement_date?: string | null;
   expiry_date?: string | null;
+  lease_rates?: LeaseRateYear[] | null;
   deal_value?: number | null;
   commission_percent?: number;
   close_date?: string | null;
