@@ -144,11 +144,11 @@ const s = StyleSheet.create({
   
   // Timeline
   timelineContainer: { paddingLeft: 10, marginBottom: 4 },
-  timelineItem: { flexDirection: 'row', marginBottom: 0 },
-  timelineLine: { width: 16, alignItems: 'center', position: 'relative' },
-  timelineDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: ORANGE, marginTop: 2 },
-  timelineConnector: { width: 2, backgroundColor: BORDER, flex: 1, marginLeft: 3, marginRight: 3 },
-  timelineContent: { flex: 1, paddingLeft: 6, paddingBottom: 6 },
+  timelineItem: { flexDirection: 'row', marginBottom: 6 },
+  timelineLine: { width: 14, alignItems: 'center' },
+  timelineDot: { width: 7, height: 7, borderRadius: 4, backgroundColor: ORANGE, marginTop: 3 },
+  timelineConnector: { width: 2, backgroundColor: BORDER, height: 10, marginLeft: 2 },
+  timelineContent: { flex: 1, paddingLeft: 5 },
   timelineDate: { fontSize: 8, fontWeight: 'bold', marginBottom: 1 },
   timelineDesc: { fontSize: 7, color: MUTED },
   
@@ -362,14 +362,14 @@ export function DealSummaryPDF({
             {timelineEvents.length > 0 && (
               <>
                 <Text style={s.sectionTitle}>Transaction Timeline</Text>
-                <View style={[s.timelineContainer, { flex: 1, justifyContent: 'space-between' }]}>
+                <View style={s.timelineContainer}>
                   {timelineEvents.map((evt, i) => (
-                    <View style={[s.timelineItem, { flex: 1 }]} key={i}>
+                    <View style={s.timelineItem} key={i}>
                       <View style={s.timelineLine}>
                         <View style={s.timelineDot} />
                         {i < timelineEvents.length - 1 && <View style={s.timelineConnector} />}
                       </View>
-                      <View style={[s.timelineContent, { flex: 1 }]}>
+                      <View style={s.timelineContent}>
                         <Text style={s.timelineDate}>{evt.label}</Text>
                         <Text style={s.timelineDesc}>{evt.detail}</Text>
                       </View>
