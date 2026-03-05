@@ -26,7 +26,8 @@ import {
   Briefcase,
   UserSearch,
   ContactRound,
-  Calculator
+  Calculator,
+  CheckSquare
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 

@@ -16,7 +16,9 @@ import { CREOverviewTab } from '@/components/cre-tracker/CREOverviewTab';
 import { CREDealsTab } from '@/components/cre-tracker/CREDealsTab';
 import { CREProspectsTab } from '@/components/cre-tracker/CREProspectsTab';
 import { CREListingsTab } from '@/components/cre-tracker/CREListingsTab';
+import { CRETasksTab } from '@/components/cre-tracker/CRETasksTab';
 import { ContactFinderTab } from '@/components/cre-tracker/ContactFinderTab';
+import { useUserTasks } from '@/hooks/useUserTasks';
 import type { CalendarEvent } from '@/components/cre-tracker/CRECalendarSection';
 
 const VALID_TABS = ['overview', 'deals', 'prospects', 'listings', 'contacts', 'contact-finder'] as const;
