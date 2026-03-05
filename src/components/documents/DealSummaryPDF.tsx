@@ -322,6 +322,11 @@ export function DealSummaryPDF({
             <View style={s.finCard}>
               <Text style={s.finLabel}>{dealValueLabel}</Text>
               <Text style={s.finValue}>{fmt(purchasePrice)}</Text>
+              {isLease && freeRentMonths && freeRentMonths.length > 0 && (
+                <Text style={{ fontSize: 6.5, color: MUTED, marginTop: 2 }}>
+                  Incl. {freeRentMonths.map(fr => `${fr.months} mo ${fr.type}`).join(', ')}
+                </Text>
+              )}
             </View>
             <View style={s.finCard}>
               <Text style={s.finLabel}>{isLease ? 'Total Deposit' : 'Total Deposits'}</Text>
