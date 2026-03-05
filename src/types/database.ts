@@ -1,4 +1,23 @@
 export type ListingType = 'Lease' | 'Sale' | 'Sublease';
+
+export interface LeaseRateYear {
+  year: number;
+  rate_psf: number;
+  months: number;
+}
+
+/** Shared helper: calculate total lease value from a rate schedule */
+export function calcLeaseValue(rates: LeaseRateYear[], sizeSf: number): number {
+  return rates.reduce((sum, r) => sum + (r.rate_psf * sizeSf * r.months / 12), 0);
+}
+
+/** Weighted average PSF across all years */
+export function weightedAvgRate(rates: LeaseRateYear[]): number {
+  const totalMonths = rates.reduce((s, r) => s + r.months, 0);
+  if (!totalMonths) return 0;
+  const weightedSum = rates.reduce((s, r) => s + r.rate_psf * r.months, 0);
+  return weightedSum / totalMonths;
+}
 export type ListingStatus = 'Active' | 'Under Contract' | 'Sold/Leased' | 'Unknown/Removed';
 export type DealSource = 'Direct' | 'Referral' | 'Marketing' | 'Cold Call' | 'Website' | 'Other';
 export type DealType = 'Lease' | 'Sale' | 'Sublease' | 'Renewal';
