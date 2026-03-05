@@ -1,5 +1,25 @@
 export type ListingType = 'Lease' | 'Sale' | 'Sublease';
 
+export interface FreeRentEntry {
+  type: 'Net Free' | 'Gross Free';
+  months: number;
+  year: number;
+}
+
+/** Deduction to subtract from gross lease value for free rent months */
+export function calcFreeRentDeduction(
+  freeRent: FreeRentEntry[] | null | undefined,
+  rates: LeaseRateYear[],
+  sizeSf: number,
+): number {
+  if (!freeRent?.length || !sizeSf) return 0;
+  return freeRent.reduce((sum, entry) => {
+    const rateYear = rates.find(r => r.year === entry.year);
+    if (!rateYear) return sum;
+    return sum + (rateYear.rate_psf * sizeSf * entry.months) / 12;
+  }, 0);
+}
+
 export interface LeaseRateYear {
   year: number;
   rate_psf: number;
@@ -117,6 +137,7 @@ export interface Deal {
   commencement_date?: string | null;
   expiry_date?: string | null;
   lease_rates?: LeaseRateYear[] | null;
+  free_rent_months?: FreeRentEntry[] | null;
   deal_value?: number | null;
   commission_percent?: number | null;
   close_date?: string | null;
@@ -201,6 +222,7 @@ export interface DealFormData {
   commencement_date?: string | null;
   expiry_date?: string | null;
   lease_rates?: LeaseRateYear[] | null;
+  free_rent_months?: FreeRentEntry[] | null;
   deal_value?: number | null;
   commission_percent?: number;
   close_date?: string | null;
