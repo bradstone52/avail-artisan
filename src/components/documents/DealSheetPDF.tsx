@@ -265,7 +265,7 @@ export function DealSheetPDF({ deal, conditions, deposits, getAgent, getBrokerag
                 </View>
               )}
               <View style={s.propRowLast}>
-                <Text style={s.propLabel}>{isLease ? 'Possession Date' : 'Closing Date'}</Text>
+                <Text style={s.propLabel}>{isLease ? 'Occupancy Date' : 'Closing Date'}</Text>
                 <Text style={s.propValue}>{fmtDate(deal.close_date) || '—'}</Text>
               </View>
             </View>
