@@ -55,6 +55,7 @@ export interface DealSummaryPDFProps {
   // Lease-specific fields
   dealType?: string;
   leaseRatePsf?: number | null;
+  leaseRates?: Array<{ year: number; rate_psf: number; months: number }> | null;
   leaseTermMonths?: number | null;
   commencementDate?: string | null;
   expiryDate?: string | null;
@@ -179,7 +180,7 @@ export function DealSummaryPDF({
   listingAgents = [], sellingAgents = [],
   usePurchaserVendor = false,
   sellerLawyer, buyerLawyer,
-  dealType, leaseRatePsf, leaseTermMonths, commencementDate, expiryDate,
+  dealType, leaseRatePsf, leaseRates, leaseTermMonths, commencementDate, expiryDate,
 }: DealSummaryPDFProps) {
   const dealTypeLower = dealType?.toLowerCase() || '';
   const isSublease = dealTypeLower === 'sublease';
@@ -258,12 +259,22 @@ export function DealSummaryPDF({
                 <Text style={s.propLabel}>{isLease ? 'Commencement Date' : 'Effective Date'}</Text>
                 <Text style={s.propValue}>{fmtDate(isLease ? commencementDate : effectiveDate) || ' '}</Text>
               </View>
-              {isLease && leaseRatePsf != null && (
-                <View style={s.propRow}>
-                  <Text style={s.propLabel}>Lease Rate PSF</Text>
-                  <Text style={s.propValue}>{`$${Number(leaseRatePsf).toFixed(2)}/SF`}</Text>
-                </View>
-              )}
+              {isLease && (() => {
+                if (leaseRates?.length) {
+                  return (
+                    <View style={s.propRow}>
+                      <Text style={s.propLabel}>Lease Rate Schedule</Text>
+                      <Text style={s.propValue}>{leaseRates.map(r => `Yr ${r.year}: $${Number(r.rate_psf).toFixed(2)}/SF × ${r.months} mo`).join('\n')}</Text>
+                    </View>
+                  );
+                }
+                return leaseRatePsf != null ? (
+                  <View style={s.propRow}>
+                    <Text style={s.propLabel}>Lease Rate PSF</Text>
+                    <Text style={s.propValue}>{`$${Number(leaseRatePsf).toFixed(2)}/SF`}</Text>
+                  </View>
+                ) : null;
+              })()}
               {isLease && leaseTermMonths != null && (
                 <View style={s.propRow}>
                   <Text style={s.propLabel}>Lease Term</Text>

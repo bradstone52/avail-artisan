@@ -227,12 +227,25 @@ export function DealSheetPDF({ deal, conditions, deposits, getAgent, getBrokerag
                 <Text style={s.propLabel}>Premises Size</Text>
                 <Text style={s.propValue}>{deal.size_sf ? `${fmtNumber(deal.size_sf)} ${(deal as any).is_land_deal ? 'Ac' : 'SF'}` : '—'}</Text>
               </View>
-              {isLease && (deal as any).lease_rate_psf != null && (
-                <View style={s.propRow}>
-                  <Text style={s.propLabel}>Lease Rate PSF</Text>
-                  <Text style={s.propValue}>{`$${Number((deal as any).lease_rate_psf).toFixed(2)}/SF`}</Text>
-                </View>
-              )}
+              {isLease && (() => {
+                const leaseRates = (deal as any).lease_rates as any[] | null;
+                if (leaseRates?.length) {
+                  return (
+                    <>
+                      <View style={s.propRow}>
+                        <Text style={s.propLabel}>Lease Rate Schedule</Text>
+                        <Text style={s.propValue}>{leaseRates.map((r: any) => `Yr ${r.year}: $${Number(r.rate_psf).toFixed(2)}/SF × ${r.months} mo`).join('\n')}</Text>
+                      </View>
+                    </>
+                  );
+                }
+                return (deal as any).lease_rate_psf != null ? (
+                  <View style={s.propRow}>
+                    <Text style={s.propLabel}>Lease Rate PSF</Text>
+                    <Text style={s.propValue}>{`$${Number((deal as any).lease_rate_psf).toFixed(2)}/SF`}</Text>
+                  </View>
+                ) : null;
+              })()}
               {isLease && (deal as any).lease_term_months != null && (
                 <View style={s.propRow}>
                   <Text style={s.propLabel}>Lease Term</Text>

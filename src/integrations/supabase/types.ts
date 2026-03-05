@@ -418,6 +418,7 @@ export type Database = {
           internal_listing_id: string | null
           is_land_deal: boolean
           lease_rate_psf: number | null
+          lease_rates: Json | null
           lease_term_months: number | null
           lease_value: number | null
           listing_agent1_id: string | null
@@ -473,6 +474,7 @@ export type Database = {
           internal_listing_id?: string | null
           is_land_deal?: boolean
           lease_rate_psf?: number | null
+          lease_rates?: Json | null
           lease_term_months?: number | null
           lease_value?: number | null
           listing_agent1_id?: string | null
@@ -528,6 +530,7 @@ export type Database = {
           internal_listing_id?: string | null
           is_land_deal?: boolean
           lease_rate_psf?: number | null
+          lease_rates?: Json | null
           lease_term_months?: number | null
           lease_value?: number | null
           listing_agent1_id?: string | null

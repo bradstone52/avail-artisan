@@ -22,7 +22,7 @@ export function useDeals() {
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      return data as Deal[];
+      return data as unknown as Deal[];
     },
     enabled: !!user && !!org?.id,
   });
@@ -43,7 +43,7 @@ export function useDeal(id: string | undefined) {
         .maybeSingle();
 
       if (error) throw error;
-      return data as Deal | null;
+      return data as unknown as Deal | null;
     },
     enabled: !!user && !!id,
   });
@@ -66,18 +66,19 @@ export function useCreateDeal() {
         expiry_date: formData.expiry_date || null,
         lease_rate_psf: formData.lease_rate_psf ?? null,
         lease_term_months: formData.lease_term_months ?? null,
+        lease_rates: formData.lease_rates ?? null,
         user_id: user.id,
         org_id: org.id,
       };
 
       const { data, error } = await supabase
         .from('deals')
-        .insert(sanitizedData)
+        .insert(sanitizedData as any)
         .select()
         .single();
 
       if (error) throw error;
-      return data as Deal;
+      return data as unknown as Deal;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['deals'] });
@@ -104,17 +105,18 @@ export function useUpdateDeal() {
         expiry_date: formData.expiry_date || null,
         lease_rate_psf: formData.lease_rate_psf ?? null,
         lease_term_months: formData.lease_term_months ?? null,
+        lease_rates: formData.lease_rates ?? null,
       };
 
       const { data, error } = await supabase
         .from('deals')
-        .update(sanitizedData)
+        .update(sanitizedData as any)
         .eq('id', id)
         .select()
         .single();
 
       if (error) throw error;
-      return data as Deal;
+      return data as unknown as Deal;
     },
     onSuccess: async (data) => {
       queryClient.invalidateQueries({ queryKey: ['deals'] });

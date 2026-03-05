@@ -6,7 +6,8 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { FileText, Save } from 'lucide-react';
-import type { Deal, DealType, DealStatus } from '@/types/database';
+import { LeaseRateSchedule } from '@/components/deals/LeaseRateSchedule';
+import type { Deal, DealType, DealStatus, LeaseRateYear } from '@/types/database';
 
 interface DealBasicSectionProps {
   deal: Deal;
@@ -90,11 +91,24 @@ export function DealBasicSection({ deal, onUpdate }: DealBasicSectionProps) {
 
         {['Lease', 'Sublease', 'Renewal'].includes(deal.deal_type) && (
           <div className="grid grid-cols-2 gap-4">
-            {(deal as any).lease_rate_psf != null && (
-              <div className="space-y-2">
-                <Label>Lease Rate PSF</Label>
-                <Input value={`$${Number((deal as any).lease_rate_psf).toFixed(2)}/SF`} disabled className="bg-muted" />
+            {(deal as any).lease_rates?.length > 0 ? (
+              <div className="col-span-2 space-y-2">
+                <Label>Lease Rate Schedule</Label>
+                <LeaseRateSchedule
+                  rates={(deal as any).lease_rates as LeaseRateYear[]}
+                  sizeSf={deal.size_sf ?? undefined}
+                  leaseTermMonths={(deal as any).lease_term_months ?? undefined}
+                  onChange={() => {}}
+                  readOnly
+                />
               </div>
+            ) : (
+              (deal as any).lease_rate_psf != null && (
+                <div className="space-y-2">
+                  <Label>Lease Rate PSF</Label>
+                  <Input value={`$${Number((deal as any).lease_rate_psf).toFixed(2)}/SF`} disabled className="bg-muted" />
+                </div>
+              )
             )}
             {(deal as any).lease_term_months != null && (
               <div className="space-y-2">
