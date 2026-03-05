@@ -47,6 +47,17 @@ export function LeaseRateSchedule({
   const term = leaseTermMonths ?? 0;
   const monthsWarning = term > 0 && totalMonths !== term;
 
+  // Local string state for rate_psf inputs so decimals can be typed freely
+  const [rateInputs, setRateInputs] = useState<string[]>(() => rates.map(r => r.rate_psf === 0 ? '' : String(r.rate_psf)));
+
+  // Sync rateInputs length when rates array length changes (add/remove year)
+  useEffect(() => {
+    setRateInputs(prev => {
+      if (prev.length === rates.length) return prev;
+      return rates.map((r, i) => prev[i] !== undefined ? prev[i] : (r.rate_psf === 0 ? '' : String(r.rate_psf)));
+    });
+  }, [rates.length]);
+
   const addYear = () => {
     const newCount = rates.length + 1;
     const distributed = distributeMonths(newCount, term || newCount * 12);
