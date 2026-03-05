@@ -55,6 +55,7 @@ export interface DealSummaryPDFProps {
   // Lease-specific fields
   dealType?: string;
   leaseRatePsf?: number | null;
+  leaseRates?: Array<{ year: number; rate_psf: number; months: number }> | null;
   leaseTermMonths?: number | null;
   commencementDate?: string | null;
   expiryDate?: string | null;
