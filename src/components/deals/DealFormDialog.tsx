@@ -27,6 +27,7 @@ import { FormattedNumberInput } from '@/components/common/FormattedNumberInput';
 import { Switch } from '@/components/ui/switch';
 import { ListingCombobox } from '@/components/deals/ListingCombobox';
 import { PropertyCombobox } from '@/components/deals/PropertyCombobox';
+import { LeaseRateSchedule } from '@/components/deals/LeaseRateSchedule';
 import { useCreateDeal, useUpdateDeal } from '@/hooks/useDeals';
 import { useAgents } from '@/hooks/useAgents';
 import { useBrokerages } from '@/hooks/useBrokerages';
@@ -34,7 +35,8 @@ import { MarketListing } from '@/hooks/useMarketListings';
 import { ChevronDown } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { supabase } from '@/integrations/supabase/client';
-import type { Deal, DealFormData, DealType, DealStatus } from '@/types/database';
+import type { Deal, DealFormData, DealType, DealStatus, LeaseRateYear, calcLeaseValue, weightedAvgRate } from '@/types/database';
+import { calcLeaseValue as calcLeaseVal, weightedAvgRate as weightedAvg } from '@/types/database';
 
 interface DealFormDialogProps {
   open: boolean;
