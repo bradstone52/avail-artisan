@@ -673,7 +673,9 @@ export function DealFormDialog({ open, onOpenChange, deal }: DealFormDialogProps
                   onChange={(rates) => {
                     setFormData(prev => {
                       const sf = prev.size_sf ?? 0;
-                      const newValue = sf > 0 ? calcLeaseVal(rates, sf) : undefined;
+                      const gross = sf > 0 ? calcLeaseVal(rates, sf) : undefined;
+                      const deduction = sf > 0 ? calcFreeRentDeduction(prev.free_rent_months, rates, sf) : 0;
+                      const newValue = gross != null ? gross - deduction : undefined;
                       const avgRate = weightedAvg(rates);
                       return { ...prev, lease_rates: rates, deal_value: newValue, lease_rate_psf: avgRate || undefined };
                     });
@@ -698,7 +700,9 @@ export function DealFormDialog({ open, onOpenChange, deal }: DealFormDialogProps
                         const months = Math.min(12, term);
                         const initRates: LeaseRateYear[] = [{ year: 1, rate_psf: prev.lease_rate_psf ?? 0, months }];
                         const sf = prev.size_sf ?? 0;
-                        const newValue = sf > 0 ? calcLeaseVal(initRates, sf) : undefined;
+                        const gross = sf > 0 ? calcLeaseVal(initRates, sf) : undefined;
+                        const deduction = sf > 0 ? calcFreeRentDeduction(prev.free_rent_months, initRates, sf) : 0;
+                        const newValue = gross != null ? gross - deduction : undefined;
                         return { ...prev, lease_rates: initRates, deal_value: newValue };
                       });
                     }}
@@ -710,9 +714,138 @@ export function DealFormDialog({ open, onOpenChange, deal }: DealFormDialogProps
             </div>
           )}
 
+          {/* Free Rent block — Lease / Sublease only */}
           {isLeaseDeal && (
             <div className="space-y-2">
-              <Label>Lease Term (Months)</Label>
+              <div className="flex items-center justify-between">
+                <Label>Free Rent</Label>
+                <div className="flex gap-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="h-7 text-xs gap-1"
+                    onClick={() => {
+                      const rates = formData.lease_rates ?? [];
+                      const firstYear = rates.length ? rates[0].year : 1;
+                      const entry: FreeRentEntry = { type: 'Net Free', months: 1, year: firstYear };
+                      const newFR = [...(formData.free_rent_months ?? []), entry];
+                      setFormData(prev => {
+                        const sf = prev.size_sf ?? 0;
+                        const deduction = sf > 0 && rates.length ? calcFreeRentDeduction(newFR, rates, sf) : 0;
+                        const gross = sf > 0 && rates.length ? calcLeaseVal(rates, sf) : prev.deal_value;
+                        return { ...prev, free_rent_months: newFR, deal_value: gross != null ? gross - deduction : prev.deal_value };
+                      });
+                    }}
+                  >
+                    + Net Free
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="h-7 text-xs gap-1"
+                    onClick={() => {
+                      const rates = formData.lease_rates ?? [];
+                      const firstYear = rates.length ? rates[0].year : 1;
+                      const entry: FreeRentEntry = { type: 'Gross Free', months: 1, year: firstYear };
+                      const newFR = [...(formData.free_rent_months ?? []), entry];
+                      setFormData(prev => {
+                        const sf = prev.size_sf ?? 0;
+                        const deduction = sf > 0 && rates.length ? calcFreeRentDeduction(newFR, rates, sf) : 0;
+                        const gross = sf > 0 && rates.length ? calcLeaseVal(rates, sf) : prev.deal_value;
+                        return { ...prev, free_rent_months: newFR, deal_value: gross != null ? gross - deduction : prev.deal_value };
+                      });
+                    }}
+                  >
+                    + Gross Free
+                  </Button>
+                </div>
+              </div>
+              {(formData.free_rent_months ?? []).length > 0 && (
+                <div className="border border-border rounded-md divide-y divide-border text-sm">
+                  <div className="grid grid-cols-[1fr_1fr_80px_32px] gap-2 px-3 py-1.5 bg-muted/50 text-xs font-medium text-muted-foreground">
+                    <span>Type</span>
+                    <span>Applies to Year</span>
+                    <span>Months</span>
+                    <span />
+                  </div>
+                  {(formData.free_rent_months ?? []).map((entry, idx) => {
+                    const rateYears = (formData.lease_rates ?? []).map(r => r.year);
+                    const availableYears = rateYears.length ? rateYears : [1];
+                    return (
+                      <div key={idx} className="grid grid-cols-[1fr_1fr_80px_32px] gap-2 items-center px-3 py-2">
+                        <span className={`text-xs font-medium px-2 py-0.5 rounded-full w-fit ${entry.type === 'Net Free' ? 'bg-blue-100 text-blue-800' : 'bg-amber-100 text-amber-800'}`}>
+                          {entry.type}
+                        </span>
+                        <Select
+                          value={String(entry.year)}
+                          onValueChange={(val) => {
+                            const updated = (formData.free_rent_months ?? []).map((e, i) =>
+                              i === idx ? { ...e, year: Number(val) } : e
+                            );
+                            setFormData(prev => {
+                              const rates = prev.lease_rates ?? [];
+                              const sf = prev.size_sf ?? 0;
+                              const deduction = sf > 0 && rates.length ? calcFreeRentDeduction(updated, rates, sf) : 0;
+                              const gross = sf > 0 && rates.length ? calcLeaseVal(rates, sf) : prev.deal_value;
+                              return { ...prev, free_rent_months: updated, deal_value: gross != null ? gross - deduction : prev.deal_value };
+                            });
+                          }}
+                        >
+                          <SelectTrigger className="h-7 text-xs">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {availableYears.map(y => (
+                              <SelectItem key={y} value={String(y)}>Year {y}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <Input
+                          type="number"
+                          min={1}
+                          max={formData.lease_term_months ?? 999}
+                          value={entry.months}
+                          onChange={(e) => {
+                            const months = Math.max(1, parseInt(e.target.value) || 1);
+                            const updated = (formData.free_rent_months ?? []).map((en, i) =>
+                              i === idx ? { ...en, months } : en
+                            );
+                            setFormData(prev => {
+                              const rates = prev.lease_rates ?? [];
+                              const sf = prev.size_sf ?? 0;
+                              const deduction = sf > 0 && rates.length ? calcFreeRentDeduction(updated, rates, sf) : 0;
+                              const gross = sf > 0 && rates.length ? calcLeaseVal(rates, sf) : prev.deal_value;
+                              return { ...prev, free_rent_months: updated, deal_value: gross != null ? gross - deduction : prev.deal_value };
+                            });
+                          }}
+                          className="h-7 text-xs"
+                        />
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          className="h-7 w-7 text-destructive hover:text-destructive"
+                          onClick={() => {
+                            const updated = (formData.free_rent_months ?? []).filter((_, i) => i !== idx);
+                            setFormData(prev => {
+                              const rates = prev.lease_rates ?? [];
+                              const sf = prev.size_sf ?? 0;
+                              const deduction = sf > 0 && rates.length ? calcFreeRentDeduction(updated, rates, sf) : 0;
+                              const gross = sf > 0 && rates.length ? calcLeaseVal(rates, sf) : prev.deal_value;
+                              return { ...prev, free_rent_months: updated, deal_value: gross != null ? gross - deduction : prev.deal_value };
+                            });
+                          }}
+                        >
+                          <span className="sr-only">Remove</span>
+                          ×
+                        </Button>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
               <FormattedNumberInput
                 value={formData.lease_term_months}
                 onChange={(value) => {
