@@ -101,8 +101,11 @@ export function GenerateDealSheetDialog({ open, onOpenChange, deal }: GenerateDe
   );
 
   const usePV = !!(deal as any).use_purchaser_vendor;
-  const sellerLabel = usePV ? 'Vendor' : 'Seller';
-  const buyerLabel = usePV ? 'Purchaser' : 'Buyer';
+  const dealTypeLower = deal.deal_type?.toLowerCase() || '';
+  const isSublease = dealTypeLower === 'sublease';
+  const isLeaseType = ['lease', 'sublease', 'renewal'].includes(dealTypeLower);
+  const sellerLabel = isSublease ? 'Sublandlord' : isLeaseType ? 'Landlord' : (usePV ? 'Vendor' : 'Seller');
+  const buyerLabel = isSublease ? 'Subtenant' : isLeaseType ? 'Tenant' : (usePV ? 'Purchaser' : 'Buyer');
 
   // Local conditions & deposits
   const [localConditions, setLocalConditions] = useState<LocalCondition[]>([]);

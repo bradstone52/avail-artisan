@@ -17,6 +17,12 @@ interface DealPartiesSectionProps {
 export function DealPartiesSection({ deal, onUpdate }: DealPartiesSectionProps) {
   const { data: brokerages } = useBrokerages();
   const [saving, setSaving] = useState(false);
+
+  const dealTypeLower = deal.deal_type?.toLowerCase() || '';
+  const isSublease = dealTypeLower === 'sublease';
+  const isLeaseType = ['lease', 'sublease', 'renewal'].includes(dealTypeLower);
+  const sellerLabel = isSublease ? 'Sublandlord' : isLeaseType ? 'Landlord' : 'Seller';
+  const buyerLabel = isSublease ? 'Subtenant' : isLeaseType ? 'Tenant' : 'Buyer';
   const [addDialogOpen, setAddDialogOpen] = useState(false);
 
   const [formData, setFormData] = useState({
@@ -47,21 +53,21 @@ export function DealPartiesSection({ deal, onUpdate }: DealPartiesSectionProps) 
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Building2 className="w-5 h-5" />
-            Seller Information
+            {sellerLabel} Information
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="space-y-2">
-            <Label>Seller Name</Label>
+            <Label>{sellerLabel} Name</Label>
             <Input
               value={formData.seller_name}
               onChange={(e) => setFormData({ ...formData, seller_name: e.target.value })}
-              placeholder="Enter seller name"
+              placeholder={`Enter ${sellerLabel.toLowerCase()} name`}
             />
           </div>
           <div className="space-y-2">
             <div className="flex items-center justify-between">
-              <Label>Seller Brokerage</Label>
+              <Label>{sellerLabel} Brokerage</Label>
               <Button variant="ghost" size="sm" onClick={() => setAddDialogOpen(true)}>
                 <Plus className="w-4 h-4 mr-1" />
                 Add New
@@ -89,21 +95,21 @@ export function DealPartiesSection({ deal, onUpdate }: DealPartiesSectionProps) 
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Building2 className="w-5 h-5" />
-            Buyer Information
+            {buyerLabel} Information
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="space-y-2">
-            <Label>Buyer Name</Label>
+            <Label>{buyerLabel} Name</Label>
             <Input
               value={formData.buyer_name}
               onChange={(e) => setFormData({ ...formData, buyer_name: e.target.value })}
-              placeholder="Enter buyer name"
+              placeholder={`Enter ${buyerLabel.toLowerCase()} name`}
             />
           </div>
           <div className="space-y-2">
             <div className="flex items-center justify-between">
-              <Label>Buyer Brokerage</Label>
+              <Label>{buyerLabel} Brokerage</Label>
               <Button variant="ghost" size="sm" onClick={() => setAddDialogOpen(true)}>
                 <Plus className="w-4 h-4 mr-1" />
                 Add New

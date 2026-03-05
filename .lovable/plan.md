@@ -1,48 +1,32 @@
 
-## Understanding the problem
+## Full App Retheme: Neo-Brutalist → Modern SaaS
 
-The label derivation logic is spread across 4 places. Currently `isLease` is `['lease', 'sublease', 'renewal'].includes(...)` which groups all three together and produces "Landlord"/"Tenant". Sublease needs distinct labels: **"Sublandlord"** / **"Subtenant"**.
+### Overview
+Replace the aggressive neo-brutalist visual language (thick black borders, hard-offset shadows, uppercase typography everywhere, warm paper background) with a clean, professional Modern SaaS aesthetic. All interactive behaviors are preserved.
 
-### Files affected
+### Files to change
 
-**1. `src/components/deals/DealFormDialog.tsx` (line 429–430)**
-- `sellerLabel` and `buyerLabel` derivation
-- Currently: `isLeaseDeal ? 'Landlord' : ...`
-- Fix: if `Sublease` → `'Sublandlord'` / `'Subtenant'`; if Lease/Renewal → `'Landlord'` / `'Tenant'`
+1. `src/index.css` - CSS variables + all component utility classes
+2. `src/components/ui/card.tsx` - Remove hard shadow/border, add soft shadow
+3. `src/components/ui/button.tsx` - Soften variants, remove uppercase
+4. `src/components/layout/AppLayout.tsx` - Sidebar styling
+5. `src/components/layout/MobileBottomNav.tsx` - Bottom nav styling
+6. `src/components/common/PageHeader.tsx` - Page title typography
 
-**2. `src/components/deals/GenerateDealSheetDialog.tsx` (lines 103–105)**
-- `sellerLabel` and `buyerLabel` are computed without any lease check at all
-- Currently: `usePV ? 'Vendor' : 'Seller'` / `usePV ? 'Purchaser' : 'Buyer'`
-- Fix: add deal-type-aware labels: Sublease → `'Sublandlord'`/`'Subtenant'`, Lease/Renewal → `'Landlord'`/`'Tenant'`
+### Color/Variable Changes
+- Background: warm paper → clean near-white (`0 0% 98%`)
+- Border: jet black → slate-200 (`220 13% 87%`)
+- Radius: 6px → 8px
+- Sidebar: white with light border (not black shadow)
+- Table headers: light gray (not inverted black/white)
+- Active nav: blue left accent bar + `bg-blue-50`
 
-**3. `src/components/documents/DealSheetPDF.tsx` (lines 159–164)**
-- `sellerLabel` / `buyerLabel` derivation
-- Currently: `isLease ? 'Landlord' : ...`
-- Fix: check for `sublease` specifically → `'Sublandlord'`/`'Subtenant'`; Lease/Renewal → `'Landlord'`/`'Tenant'`
+### Interactions Preserved
+- Row hover: `bg-slate-50` highlight
+- Row selection: `bg-blue-50` with blue border
+- Button hover: subtle translate + `shadow-md`
+- Nav hover: `hover:bg-slate-100` with border
+- Active nav: clear visual indicator
 
-**4. `src/components/documents/DealSummaryPDF.tsx` (lines 184–187)**
-- Same `isLease ? 'Landlord'` pattern, reads `dealType` prop
-- Fix: same sublease-specific check
-
-**5. `src/components/deals/detail/DealPartiesSection.tsx`**
-- Labels are completely hardcoded as "Seller" / "Buyer" — no deal-type awareness at all
-- Fix: accept `deal` prop (already has it via `deal: Deal`) and derive labels dynamically
-
-### Label derivation helper (shared pattern)
-
-Create a simple inline helper used in all 5 locations:
-
-```
-const dealTypeLower = deal.deal_type?.toLowerCase();
-const isSublease = dealTypeLower === 'sublease';
-const isLeaseType = ['lease', 'sublease', 'renewal'].includes(dealTypeLower || '');
-
-const sellerLabel = isSublease ? 'Sublandlord' : isLeaseType ? 'Landlord' : (usePV ? 'Vendor' : 'Seller');
-const buyerLabel  = isSublease ? 'Subtenant'   : isLeaseType ? 'Tenant'   : (usePV ? 'Purchaser' : 'Buyer');
-```
-
-### Summary of changes
-- **5 file edits** — DealFormDialog, GenerateDealSheetDialog, DealSheetPDF, DealSummaryPDF, DealPartiesSection
-- **No migrations needed** — purely label/display logic
-- All PDFs (Deal Sheet and Deal Summary) will automatically render "Sublandlord"/"Subtenant" when the deal type is Sublease
-- The parties section in the deal detail view will also correctly display "Sublandlord"/"Subtenant"
+### What is NOT changed
+- All React logic, routes, auth, data hooks, PDF components, Supabase logic

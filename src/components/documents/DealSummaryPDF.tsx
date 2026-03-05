@@ -181,9 +181,11 @@ export function DealSummaryPDF({
   sellerLawyer, buyerLawyer,
   dealType, leaseRatePsf, leaseTermMonths, commencementDate, expiryDate,
 }: DealSummaryPDFProps) {
-  const isLease = ['lease', 'sublease', 'renewal'].includes(dealType?.toLowerCase() || '');
-  const sellerLabel = isLease ? 'Landlord' : (usePurchaserVendor ? 'Vendor' : 'Seller');
-  const buyerLabel = isLease ? 'Tenant' : (usePurchaserVendor ? 'Purchaser' : 'Buyer');
+  const dealTypeLower = dealType?.toLowerCase() || '';
+  const isSublease = dealTypeLower === 'sublease';
+  const isLease = ['lease', 'sublease', 'renewal'].includes(dealTypeLower);
+  const sellerLabel = isSublease ? 'Sublandlord' : isLease ? 'Landlord' : (usePurchaserVendor ? 'Vendor' : 'Seller');
+  const buyerLabel = isSublease ? 'Subtenant' : isLease ? 'Tenant' : (usePurchaserVendor ? 'Purchaser' : 'Buyer');
   const agentLabel = isLease ? 'Leasing' : 'Selling';
   const validDeposits = deposits.filter(d => d.amount > 0);
   const totalDeposits = validDeposits.reduce((sum, d) => sum + d.amount, 0);
