@@ -35,7 +35,7 @@ import { MarketListing } from '@/hooks/useMarketListings';
 import { ChevronDown } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { supabase } from '@/integrations/supabase/client';
-import type { Deal, DealFormData, DealType, DealStatus, LeaseRateYear, calcLeaseValue, weightedAvgRate } from '@/types/database';
+import type { Deal, DealFormData, DealType, DealStatus, LeaseRateYear } from '@/types/database';
 import { calcLeaseValue as calcLeaseVal, weightedAvgRate as weightedAvg } from '@/types/database';
 
 interface DealFormDialogProps {
