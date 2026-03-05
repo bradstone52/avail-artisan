@@ -196,14 +196,14 @@ export function DealSummaryPDF({
   // Build timeline events
   const timelineEvents: { date: string; label: string; detail: string }[] = [];
   const effectiveDateToUse = isLease ? commencementDate : effectiveDate;
-  if (effectiveDateToUse) timelineEvents.push({ date: effectiveDateToUse, label: fmtDateShort(effectiveDateToUse), detail: `${isLease ? 'Commencement Date' : 'Effective Date'} — Agreement executed` });
+  if (effectiveDateToUse) timelineEvents.push({ date: effectiveDateToUse, label: fmtDateShort(effectiveDateToUse), detail: isLease ? 'Commencement Date — Lease commences' : 'Effective Date — Agreement executed' });
   validDeposits.forEach((d, i) => {
     if (d.due_date) timelineEvents.push({ date: d.due_date, label: fmtDateShort(d.due_date), detail: `${depositLabel(i)} — ${fmt(d.amount)}` });
   });
   validConditions.forEach(c => {
     if (c.due_date) timelineEvents.push({ date: c.due_date, label: fmtDateShort(c.due_date), detail: `Condition — ${c.description}` });
   });
-  if (closingDate) timelineEvents.push({ date: closingDate, label: fmtDateShort(closingDate), detail: `Closing — Balance of ${fmt(balanceOnClosing)}` });
+  if (closingDate) timelineEvents.push({ date: closingDate, label: fmtDateShort(closingDate), detail: `${isLease ? 'Possession' : 'Closing'} — Balance of ${fmt(balanceOnClosing)}` });
   // Sort by date
   timelineEvents.sort((a, b) => a.date.localeCompare(b.date));
 

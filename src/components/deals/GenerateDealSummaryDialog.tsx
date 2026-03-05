@@ -115,6 +115,17 @@ export function GenerateDealSummaryDialog({ open, onOpenChange, deal }: Generate
     fetchAgents();
   }, [open, deal]);
 
+  // Lease-type awareness
+  const dealTypeLower = deal.deal_type?.toLowerCase() || '';
+  const isSublease = dealTypeLower === 'sublease';
+  const isLeaseType = ['lease', 'sublease', 'renewal', 'lease renewal'].includes(dealTypeLower);
+  const usePV = !!(deal as any).use_purchaser_vendor;
+  const sellerLabel = isSublease ? 'Sublandlord' : isLeaseType ? 'Landlord' : (usePV ? 'Vendor' : 'Seller');
+  const buyerLabel = isSublease ? 'Subtenant' : isLeaseType ? 'Tenant' : (usePV ? 'Purchaser' : 'Buyer');
+  const actingPartyOptions = isLeaseType
+    ? [sellerLabel, buyerLabel, 'Both']
+    : [usePV ? 'Vendor' : 'Seller', usePV ? 'Purchaser' : 'Buyer', 'Both'];
+
   // Basic Info state
   const [vendor, setVendor] = useState('Clearview Commercial Realty Inc.');
   const [purchaser, setPurchaser] = useState('');
@@ -123,6 +134,9 @@ export function GenerateDealSummaryDialog({ open, onOpenChange, deal }: Generate
   const [propertyDescription, setPropertyDescription] = useState('');
   const [effectiveDate, setEffectiveDate] = useState<Date | undefined>(undefined);
   const [closingDate, setClosingDate] = useState<Date | undefined>(undefined);
+  // Lease-specific dates
+  const [commencementDate, setCommencementDate] = useState<Date | undefined>(undefined);
+  const [expiryDate, setExpiryDate] = useState<Date | undefined>(undefined);
   const [purchasePrice, setPurchasePrice] = useState('');
   const [purchasePriceDisplay, setPurchasePriceDisplay] = useState('');
 
@@ -204,6 +218,9 @@ export function GenerateDealSummaryDialog({ open, onOpenChange, deal }: Generate
       setEffectiveDate((deal as any).effective_date ? new Date((deal as any).effective_date + 'T00:00:00') : undefined);
       // Transfer closing date from deal (set by Deal Sheet)
       setClosingDate(deal.close_date ? new Date(deal.close_date + 'T00:00:00') : undefined);
+      // Pre-populate lease-specific dates
+      setCommencementDate((deal as any).commencement_date ? new Date((deal as any).commencement_date + 'T00:00:00') : undefined);
+      setExpiryDate((deal as any).expiry_date ? new Date((deal as any).expiry_date + 'T00:00:00') : undefined);
       // Transfer deal value from deal (set by Deal Sheet) to Purchase Price
       const initialPrice = deal.deal_value ? deal.deal_value : 0;
       setPurchasePrice(initialPrice.toString());
@@ -398,8 +415,8 @@ export function GenerateDealSummaryDialog({ open, onOpenChange, deal }: Generate
         leaseRatePsf: (deal as any).lease_rate_psf,
         leaseRates: (deal as any).lease_rates ?? null,
         leaseTermMonths: (deal as any).lease_term_months,
-        commencementDate: (deal as any).commencement_date,
-        expiryDate: (deal as any).expiry_date,
+        commencementDate: commencementDate ? format(commencementDate, 'yyyy-MM-dd') : ((deal as any).commencement_date ?? null),
+        expiryDate: expiryDate ? format(expiryDate, 'yyyy-MM-dd') : ((deal as any).expiry_date ?? null),
         sellerLawyer: {
           name: deal.seller_lawyer_name,
           firm: deal.seller_lawyer_firm,
@@ -791,9 +808,9 @@ export function GenerateDealSummaryDialog({ open, onOpenChange, deal }: Generate
                     <SelectValue placeholder="Select party" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="Vendor">Vendor</SelectItem>
-                    <SelectItem value="Purchaser">Purchaser</SelectItem>
-                    <SelectItem value="Both">Both</SelectItem>
+                    {actingPartyOptions.map(opt => (
+                      <SelectItem key={opt} value={opt}>{opt}</SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>
@@ -857,20 +874,20 @@ export function GenerateDealSummaryDialog({ open, onOpenChange, deal }: Generate
             <TabsContent value="basic" className="space-y-2 m-0">
               <div className="grid grid-cols-2 gap-2">
                 <div className="space-y-1">
-                  <Label className="text-xs">{(deal as any).use_purchaser_vendor ? 'Vendor' : 'Seller'}</Label>
+                  <Label className="text-xs">{sellerLabel}</Label>
                   <Input 
                     value={vendor} 
                     onChange={(e) => setVendor(e.target.value)}
-                    placeholder={`${(deal as any).use_purchaser_vendor ? 'Vendor' : 'Seller'} name`}
+                    placeholder={`${sellerLabel} name`}
                     className="h-8 text-sm"
                   />
                 </div>
                 <div className="space-y-1">
-                  <Label className="text-xs">{(deal as any).use_purchaser_vendor ? 'Purchaser' : 'Buyer'}</Label>
+                  <Label className="text-xs">{buyerLabel}</Label>
                   <Input 
                     value={purchaser}
                     onChange={(e) => setPurchaser(e.target.value)}
-                    placeholder={`${(deal as any).use_purchaser_vendor ? 'Purchaser' : 'Buyer'} name`}
+                    placeholder={`${buyerLabel} name`}
                     className="h-8 text-sm"
                   />
                 </div>
@@ -896,63 +913,104 @@ export function GenerateDealSummaryDialog({ open, onOpenChange, deal }: Generate
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-2">
-                <div className="space-y-1">
-                  <Label className="text-xs">Effective Date</Label>
-                  <Popover>
-                    <PopoverTrigger asChild>
-                      <Button
-                        variant="outline"
-                        className={cn(
-                          "w-full justify-start text-left font-normal h-8 text-sm",
-                          !effectiveDate && "text-muted-foreground"
-                        )}
-                      >
-                        <CalendarIcon className="mr-2 h-3.5 w-3.5" />
-                        {effectiveDate ? format(effectiveDate, "yyyy-MM-dd") : "yyyy - mm - dd"}
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0" align="start">
-                      <Calendar
-                        mode="single"
-                        selected={effectiveDate}
-                        onSelect={setEffectiveDate}
-                        initialFocus
-                        className="pointer-events-auto"
-                      />
-                    </PopoverContent>
-                  </Popover>
+              {isLeaseType ? (
+                <>
+                  <div className="grid grid-cols-2 gap-2">
+                    <div className="space-y-1">
+                      <Label className="text-xs">Commencement Date</Label>
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <Button variant="outline" className={cn("w-full justify-start text-left font-normal h-8 text-sm", !commencementDate && "text-muted-foreground")}>
+                            <CalendarIcon className="mr-2 h-3.5 w-3.5" />
+                            {commencementDate ? format(commencementDate, "yyyy-MM-dd") : "yyyy - mm - dd"}
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0" align="start">
+                          <Calendar mode="single" selected={commencementDate} onSelect={setCommencementDate} initialFocus className="pointer-events-auto" />
+                        </PopoverContent>
+                      </Popover>
+                    </div>
+                    <div className="space-y-1">
+                      <Label className="text-xs">Expiry Date</Label>
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <Button variant="outline" className={cn("w-full justify-start text-left font-normal h-8 text-sm", !expiryDate && "text-muted-foreground")}>
+                            <CalendarIcon className="mr-2 h-3.5 w-3.5" />
+                            {expiryDate ? format(expiryDate, "yyyy-MM-dd") : "yyyy - mm - dd"}
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0" align="start">
+                          <Calendar mode="single" selected={expiryDate} onSelect={setExpiryDate} initialFocus className="pointer-events-auto" />
+                        </PopoverContent>
+                      </Popover>
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-2">
+                    <div className="space-y-1">
+                      <Label className="text-xs">Effective Date</Label>
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <Button variant="outline" className={cn("w-full justify-start text-left font-normal h-8 text-sm", !effectiveDate && "text-muted-foreground")}>
+                            <CalendarIcon className="mr-2 h-3.5 w-3.5" />
+                            {effectiveDate ? format(effectiveDate, "yyyy-MM-dd") : "yyyy - mm - dd"}
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0" align="start">
+                          <Calendar mode="single" selected={effectiveDate} onSelect={setEffectiveDate} initialFocus className="pointer-events-auto" />
+                        </PopoverContent>
+                      </Popover>
+                    </div>
+                    <div className="space-y-1">
+                      <Label className="text-xs">Possession Date</Label>
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <Button variant="outline" className={cn("w-full justify-start text-left font-normal h-8 text-sm", !closingDate && "text-muted-foreground")}>
+                            <CalendarIcon className="mr-2 h-3.5 w-3.5" />
+                            {closingDate ? format(closingDate, "yyyy-MM-dd") : "yyyy - mm - dd"}
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0" align="start">
+                          <Calendar mode="single" selected={closingDate} onSelect={setClosingDate} initialFocus className="pointer-events-auto" />
+                        </PopoverContent>
+                      </Popover>
+                    </div>
+                  </div>
+                </>
+              ) : (
+                <div className="grid grid-cols-2 gap-2">
+                  <div className="space-y-1">
+                    <Label className="text-xs">Effective Date</Label>
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <Button variant="outline" className={cn("w-full justify-start text-left font-normal h-8 text-sm", !effectiveDate && "text-muted-foreground")}>
+                          <CalendarIcon className="mr-2 h-3.5 w-3.5" />
+                          {effectiveDate ? format(effectiveDate, "yyyy-MM-dd") : "yyyy - mm - dd"}
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0" align="start">
+                        <Calendar mode="single" selected={effectiveDate} onSelect={setEffectiveDate} initialFocus className="pointer-events-auto" />
+                      </PopoverContent>
+                    </Popover>
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-xs">Closing Date</Label>
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <Button variant="outline" className={cn("w-full justify-start text-left font-normal h-8 text-sm", !closingDate && "text-muted-foreground")}>
+                          <CalendarIcon className="mr-2 h-3.5 w-3.5" />
+                          {closingDate ? format(closingDate, "yyyy-MM-dd") : "yyyy - mm - dd"}
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0" align="start">
+                        <Calendar mode="single" selected={closingDate} onSelect={setClosingDate} initialFocus className="pointer-events-auto" />
+                      </PopoverContent>
+                    </Popover>
+                  </div>
                 </div>
-                <div className="space-y-1">
-                  <Label className="text-xs">Closing Date</Label>
-                  <Popover>
-                    <PopoverTrigger asChild>
-                      <Button
-                        variant="outline"
-                        className={cn(
-                          "w-full justify-start text-left font-normal h-8 text-sm",
-                          !closingDate && "text-muted-foreground"
-                        )}
-                      >
-                        <CalendarIcon className="mr-2 h-3.5 w-3.5" />
-                        {closingDate ? format(closingDate, "yyyy-MM-dd") : "yyyy - mm - dd"}
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0" align="start">
-                      <Calendar
-                        mode="single"
-                        selected={closingDate}
-                        onSelect={setClosingDate}
-                        initialFocus
-                        className="pointer-events-auto"
-                      />
-                    </PopoverContent>
-                  </Popover>
-                </div>
-              </div>
+              )}
 
               <div className="space-y-1">
-                <Label className="text-xs">Purchase Price</Label>
+                <Label className="text-xs">Deal Value</Label>
                 <div className="relative">
                   <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">$</span>
                   <Input 
@@ -981,11 +1039,11 @@ export function GenerateDealSummaryDialog({ open, onOpenChange, deal }: Generate
                   <span>{formatCurrency(totalDeposits)}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-muted-foreground">Purchase Price:</span>
+                  <span className="text-muted-foreground">Deal Value:</span>
                   <span>{formatCurrency(purchasePriceNum)}</span>
                 </div>
                 <div className="flex justify-between font-medium">
-                  <span>Balance on Closing:</span>
+                  <span>{isLeaseType ? 'Balance on Possession:' : 'Balance on Closing:'}</span>
                   <span className="text-primary">{formatCurrency(balanceOnClosing)}</span>
                 </div>
               </div>

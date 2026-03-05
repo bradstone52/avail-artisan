@@ -1,84 +1,32 @@
 
-## What's wrong
+## Full App Retheme: Neo-Brutalist → Modern SaaS
 
-The `GenerateDealSummaryDialog` "Basic Info" tab uses **hardcoded purchase-oriented field labels and variable names** regardless of deal type. The PDFs themselves already handle the label switching correctly (Landlord/Tenant etc.) but the **dialog forms feeding into them still show sale-centric terminology**.
+### Overview
+Replace the aggressive neo-brutalist visual language (thick black borders, hard-offset shadows, uppercase typography everywhere, warm paper background) with a clean, professional Modern SaaS aesthetic. All interactive behaviors are preserved.
 
-### Issues found across both dialogs + PDFs
+### Files to change
 
----
+1. `src/index.css` - CSS variables + all component utility classes
+2. `src/components/ui/card.tsx` - Remove hard shadow/border, add soft shadow
+3. `src/components/ui/button.tsx` - Soften variants, remove uppercase
+4. `src/components/layout/AppLayout.tsx` - Sidebar styling
+5. `src/components/layout/MobileBottomNav.tsx` - Bottom nav styling
+6. `src/components/common/PageHeader.tsx` - Page title typography
 
-### 1. `GenerateDealSummaryDialog.tsx` — Basic Info tab (lines 860–965)
+### Color/Variable Changes
+- Background: warm paper → clean near-white (`0 0% 98%`)
+- Border: jet black → slate-200 (`220 13% 87%`)
+- Radius: 6px → 8px
+- Sidebar: white with light border (not black shadow)
+- Table headers: light gray (not inverted black/white)
+- Active nav: blue left accent bar + `bg-blue-50`
 
-**Field labels are hardcoded for a sale:**
-- `vendor` state variable / label: always shows **"Seller"** or **"Vendor"** — should be **"Sublandlord"** / **"Landlord"** for lease types
-- `purchaser` state variable / label: always shows **"Buyer"** or **"Purchaser"** — should be **"Subtenant"** / **"Tenant"** for lease types
-- Field label `Purchase Price` (line 954) — should be **"Deal Value"** for lease types
-- `Closing Date` label (line 927) — should be **"Possession Date"** for lease types
+### Interactions Preserved
+- Row hover: `bg-slate-50` highlight
+- Row selection: `bg-blue-50` with blue border
+- Button hover: subtle translate + `shadow-md`
+- Nav hover: `hover:bg-slate-100` with border
+- Active nav: clear visual indicator
 
-**"Acting Party" dropdown in the Actions section (lines 794–797) is hardcoded:**
-```tsx
-<SelectItem value="Vendor">Vendor</SelectItem>
-<SelectItem value="Purchaser">Purchaser</SelectItem>
-<SelectItem value="Both">Both</SelectItem>
-```
-For lease types should be **Landlord/Tenant** (or Sublandlord/Subtenant), for sale should respect the Vendor/Purchaser vs Seller/Buyer toggle.
-
-**Financial summary sidebar in Deposits tab (lines 983–990):**
-- `Purchase Price:` label hardcoded — should be `Deal Value` for leases
-
----
-
-### 2. `GenerateDealSummaryDialog.tsx` — Missing lease fields in Basic Info tab
-
-For a Lease/Sublease deal, the Basic Info tab currently shows no lease-specific fields. There is no way to enter or confirm:
-- Commencement Date
-- Expiry Date
-- Lease Term
-
-These need to be added (pre-populated from the deal) when `isLeaseType` is true, replacing or supplementing `Effective Date` and `Closing Date`.
-
----
-
-### 3. `GenerateDealSheetDialog.tsx` — Basic tab (line 521–546)
-
-The `Closing Date` label is **always "Closing Date"** — should be **"Possession Date"** for lease types (already correct in the PDF but not in the dialog form).
-
----
-
-### 4. `DealSummaryPDF.tsx` — "Closing Details" section (line 339) and timeline (line 206)
-
-- Line 339: `{isLease ? 'Deal Value' : 'Purchase Price'}` — already correct ✓
-- Line 206 (timeline): closing detail text says `"Closing — Balance of..."` — for lease deals it should say `"Possession — Balance of..."` 
-- Line 199: commencement date entry says `"Effective Date — Agreement executed"` — for lease should say `"Commencement Date — Lease commences"`
-
----
-
-### Summary of all changes needed
-
-**`GenerateDealSummaryDialog.tsx`** — 5 fixes:
-1. Add lease-type awareness: `const isSublease / isLeaseType / sellerLabel / buyerLabel` computed from `deal.deal_type`
-2. "Seller/Vendor" label → `sellerLabel` (Sublandlord / Landlord / Seller / Vendor)
-3. "Buyer/Purchaser" label → `buyerLabel`  
-4. "Purchase Price" label → `isLeaseType ? 'Deal Value' : (usePV ? 'Purchase Price' : 'Purchase Price')`
-5. "Closing Date" label → `isLeaseType ? 'Possession Date' : 'Closing Date'`
-6. Add commencement/expiry date fields (pre-populated) when `isLeaseType`, alongside or replacing the Effective Date
-7. "Acting Party" dropdown options → derive from deal type: Sublandlord/Subtenant, Landlord/Tenant, or Vendor/Purchaser or Seller/Buyer
-8. "Purchase Price:" in deposits sidebar → `isLeaseType ? 'Deal Value' : 'Purchase Price'`
-
-**`GenerateDealSheetDialog.tsx`** — 1 fix:
-1. "Closing Date" label (line 521) → `isLeaseType ? 'Possession Date' : 'Closing Date'`
-
-**`DealSummaryPDF.tsx`** — 2 fixes:
-1. Timeline closing entry (line 206): `"Closing — ..."` → `isLease ? "Possession — ..." : "Closing — ..."`
-2. Timeline commencement entry (line 199): label when `isLease` should say `"Commencement Date — Lease commences"` rather than `"Effective Date — Agreement executed"`
-
-**`DealSheetPDF.tsx`** — already correct (no changes needed)
-
----
-
-### No migrations needed — all UI/label changes only
-
-### Files to edit: 3
-- `src/components/deals/GenerateDealSummaryDialog.tsx`
-- `src/components/deals/GenerateDealSheetDialog.tsx`  
-- `src/components/documents/DealSummaryPDF.tsx`
+### What is NOT changed
+- All React logic, routes, auth, data hooks, PDF components, Supabase logic

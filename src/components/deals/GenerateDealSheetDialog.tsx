@@ -103,7 +103,7 @@ export function GenerateDealSheetDialog({ open, onOpenChange, deal }: GenerateDe
   const usePV = !!(deal as any).use_purchaser_vendor;
   const dealTypeLower = deal.deal_type?.toLowerCase() || '';
   const isSublease = dealTypeLower === 'sublease';
-  const isLeaseType = ['lease', 'sublease', 'renewal'].includes(dealTypeLower);
+  const isLeaseType = ['lease', 'sublease', 'renewal', 'lease renewal'].includes(dealTypeLower);
   const sellerLabel = isSublease ? 'Sublandlord' : isLeaseType ? 'Landlord' : (usePV ? 'Vendor' : 'Seller');
   const buyerLabel = isSublease ? 'Subtenant' : isLeaseType ? 'Tenant' : (usePV ? 'Purchaser' : 'Buyer');
 
@@ -518,7 +518,7 @@ export function GenerateDealSheetDialog({ open, onOpenChange, deal }: GenerateDe
                         <Input value={deal.city || ''} disabled className="bg-muted" />
                       </div>
                       <div className="space-y-2">
-                        <Label>Closing Date</Label>
+                        <Label>{isLeaseType ? 'Possession Date' : 'Closing Date'}</Label>
                         <Popover>
                           <PopoverTrigger asChild>
                             <Button
