@@ -349,6 +349,7 @@ export function DealFormDialog({ open, onOpenChange, deal }: DealFormDialogProps
         commencement_date: dealData.commencement_date || null,
         expiry_date: dealData.expiry_date || null,
         lease_rates: dealData.lease_rates?.length ? dealData.lease_rates : null,
+        free_rent_months: dealData.free_rent_months?.length ? dealData.free_rent_months : null,
         other_brokerage_percent: dealData.other_brokerage_percent ?? null,
         clearview_percent: dealData.clearview_percent ?? null,
         gst_rate: dealData.gst_rate ?? null,
