@@ -85,7 +85,10 @@ const fmtDateShort = (d: string | null | undefined): string => {
   } catch { return ''; }
 };
 
-const depositLabel = (i: number) => ['First Deposit', 'Second Deposit', 'Third Deposit'][i] || `Deposit ${i + 1}`;
+const depositLabel = (i: number, isLeaseType = false) => {
+  if (isLeaseType) return ['Deposit', 'Second Deposit', 'Third Deposit'][i] || `Deposit ${i + 1}`;
+  return ['First Deposit', 'Second Deposit', 'Third Deposit'][i] || `Deposit ${i + 1}`;
+};
 
 const ORANGE = '#e8792b';
 const PEACH = '#fdf0e6';
@@ -302,7 +305,7 @@ export function DealSummaryPDF({
               <Text style={s.finValue}>{fmt(purchasePrice)}</Text>
             </View>
             <View style={s.finCard}>
-              <Text style={s.finLabel}>Total Deposits</Text>
+              <Text style={s.finLabel}>{isLease ? 'Total Deposit' : 'Total Deposits'}</Text>
               <Text style={s.finValue}>{fmt(totalDeposits)}</Text>
             </View>
             {!isLease && (
