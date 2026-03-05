@@ -26,7 +26,8 @@ import {
   Briefcase,
   UserSearch,
   ContactRound,
-  Calculator
+  Calculator,
+  CheckSquare
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -71,6 +72,7 @@ const navigation: NavigationEntry[] = [
       { name: 'Deals', href: '/cre-tracker?tab=deals', icon: Briefcase },
       { name: 'Prospects', href: '/cre-tracker?tab=prospects', icon: UserSearch },
       { name: 'Internal Listings', href: '/cre-tracker?tab=listings', icon: FileSpreadsheet },
+      { name: 'My Tasks', href: '/cre-tracker?tab=tasks', icon: CheckSquare },
       { name: 'BrokerageDB', href: '/cre-tracker?tab=contacts', icon: Users },
       { name: 'Contact Finder', href: '/cre-tracker?tab=contact-finder', icon: ContactRound },
     ]

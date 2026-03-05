@@ -16,10 +16,12 @@ import { CREOverviewTab } from '@/components/cre-tracker/CREOverviewTab';
 import { CREDealsTab } from '@/components/cre-tracker/CREDealsTab';
 import { CREProspectsTab } from '@/components/cre-tracker/CREProspectsTab';
 import { CREListingsTab } from '@/components/cre-tracker/CREListingsTab';
+import { CRETasksTab } from '@/components/cre-tracker/CRETasksTab';
 import { ContactFinderTab } from '@/components/cre-tracker/ContactFinderTab';
+import { useUserTasks } from '@/hooks/useUserTasks';
 import type { CalendarEvent } from '@/components/cre-tracker/CRECalendarSection';
 
-const VALID_TABS = ['overview', 'deals', 'prospects', 'listings', 'contacts', 'contact-finder'] as const;
+const VALID_TABS = ['overview', 'deals', 'prospects', 'listings', 'contacts', 'contact-finder', 'tasks'] as const;
 type CRETab = typeof VALID_TABS[number];
 const DEFAULT_TAB: CRETab = 'overview';
 function parseTab(value: string | null): CRETab {
@@ -32,6 +34,8 @@ export default function CRETracker() {
   const upcomingFollowUps = useUpcomingFollowUps(365);
   const { data: prospects, isLoading: prospectsLoading } = useProspects();
   const { listings, isLoading: listingsLoading } = useInternalListings();
+  const { data: userTasks = [] } = useUserTasks();
+  const openTasksCount = userTasks.filter((t) => !t.completed).length;
 
   const activeDeals = deals.filter(d => d.status === 'Conditional' || d.status === 'Firm');
   const closedDeals = deals.filter(d => d.status === 'Closed');
@@ -93,6 +97,7 @@ export default function CRETracker() {
           activeDealsCount={activeDeals.length}
           prospectsCount={prospectsLoading ? undefined : (prospects?.length ?? 0)}
           listingsCount={listingsLoading ? undefined : listings.length}
+          tasksCount={openTasksCount}
         />
 
         <Tabs value={activeTab} onValueChange={setActiveTab}>
@@ -123,6 +128,9 @@ export default function CRETracker() {
           </TabsContent>
           <TabsContent value="contact-finder" className="mt-4">
             <ContactFinderTab />
+          </TabsContent>
+          <TabsContent value="tasks" className="mt-4">
+            <CRETasksTab />
           </TabsContent>
         </Tabs>
       </div>

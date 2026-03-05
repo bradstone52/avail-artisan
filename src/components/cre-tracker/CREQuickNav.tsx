@@ -1,4 +1,4 @@
-import { Briefcase, UserSearch, Users, Calendar, Building2, ContactRound } from 'lucide-react';
+import { Briefcase, UserSearch, Users, Calendar, Building2, ContactRound, CheckSquare } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 
 interface QuickNavItem {
@@ -15,20 +15,22 @@ interface CREQuickNavProps {
   activeDealsCount: number;
   prospectsCount?: number;
   listingsCount?: number;
+  tasksCount?: number;
 }
 
-export function CREQuickNav({ activeTab, setActiveTab, activeDealsCount, prospectsCount, listingsCount }: CREQuickNavProps) {
+export function CREQuickNav({ activeTab, setActiveTab, activeDealsCount, prospectsCount, listingsCount, tasksCount }: CREQuickNavProps) {
   const quickNav: QuickNavItem[] = [
     { title: 'Overview', icon: Calendar, tab: 'overview', color: 'bg-muted' },
     { title: 'Deals', icon: Briefcase, tab: 'deals', stat: `${activeDealsCount} active`, color: 'bg-primary' },
     { title: 'Prospects', icon: UserSearch, tab: 'prospects', stat: prospectsCount !== undefined ? `${prospectsCount} total` : '—', color: 'bg-secondary' },
     { title: 'Internal Listings', icon: Building2, tab: 'listings', stat: listingsCount !== undefined ? `${listingsCount} total` : '—', color: 'bg-accent' },
+    { title: 'My Tasks', icon: CheckSquare, tab: 'tasks', stat: tasksCount !== undefined ? `${tasksCount} open` : '—', color: 'bg-muted' },
     { title: 'BrokerageDB', icon: Users, tab: 'contacts', color: 'bg-muted' },
     { title: 'Contact Finder', icon: ContactRound, tab: 'contact-finder', color: 'bg-primary' },
   ];
 
   return (
-    <div className="grid grid-cols-2 md:grid-cols-6 gap-3">
+    <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-3">
       {quickNav.map((item) => (
         <button
           key={item.title}
