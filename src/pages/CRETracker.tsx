@@ -34,6 +34,8 @@ export default function CRETracker() {
   const upcomingFollowUps = useUpcomingFollowUps(365);
   const { data: prospects, isLoading: prospectsLoading } = useProspects();
   const { listings, isLoading: listingsLoading } = useInternalListings();
+  const { data: userTasks = [] } = useUserTasks();
+  const openTasksCount = userTasks.filter((t) => !t.completed).length;
 
   const activeDeals = deals.filter(d => d.status === 'Conditional' || d.status === 'Firm');
   const closedDeals = deals.filter(d => d.status === 'Closed');
