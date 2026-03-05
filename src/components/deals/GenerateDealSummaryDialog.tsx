@@ -868,20 +868,20 @@ export function GenerateDealSummaryDialog({ open, onOpenChange, deal }: Generate
             <TabsContent value="basic" className="space-y-2 m-0">
               <div className="grid grid-cols-2 gap-2">
                 <div className="space-y-1">
-                  <Label className="text-xs">{(deal as any).use_purchaser_vendor ? 'Vendor' : 'Seller'}</Label>
+                  <Label className="text-xs">{sellerLabel}</Label>
                   <Input 
                     value={vendor} 
                     onChange={(e) => setVendor(e.target.value)}
-                    placeholder={`${(deal as any).use_purchaser_vendor ? 'Vendor' : 'Seller'} name`}
+                    placeholder={`${sellerLabel} name`}
                     className="h-8 text-sm"
                   />
                 </div>
                 <div className="space-y-1">
-                  <Label className="text-xs">{(deal as any).use_purchaser_vendor ? 'Purchaser' : 'Buyer'}</Label>
+                  <Label className="text-xs">{buyerLabel}</Label>
                   <Input 
                     value={purchaser}
                     onChange={(e) => setPurchaser(e.target.value)}
-                    placeholder={`${(deal as any).use_purchaser_vendor ? 'Purchaser' : 'Buyer'} name`}
+                    placeholder={`${buyerLabel} name`}
                     className="h-8 text-sm"
                   />
                 </div>
