@@ -209,8 +209,17 @@ export function DealSummaryPDF({
     if (c.due_date) timelineEvents.push({ date: c.due_date, label: fmtDateShort(c.due_date), detail: `Condition — ${c.description}` });
   });
   if (closingDate) timelineEvents.push({ date: closingDate, label: fmtDateShort(closingDate), detail: isLease ? 'Occupancy Date' : `Closing — Balance of ${fmt(balanceOnClosing)}` });
-  // Sort by date
+  // Sort by date then group by date
   timelineEvents.sort((a, b) => a.date.localeCompare(b.date));
+  const groupedTimeline: { date: string; label: string; details: string[] }[] = [];
+  for (const evt of timelineEvents) {
+    const last = groupedTimeline[groupedTimeline.length - 1];
+    if (last && last.date === evt.date) {
+      last.details.push(evt.detail);
+    } else {
+      groupedTimeline.push({ date: evt.date, label: evt.label, details: [evt.detail] });
+    }
+  }
 
   return (
     <Document>
