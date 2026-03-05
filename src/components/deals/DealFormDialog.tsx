@@ -56,6 +56,7 @@ interface ExtendedDealFormData {
   lease_term_months?: number;
   commencement_date?: string;
   expiry_date?: string;
+  lease_rates?: LeaseRateYear[];
   deal_value?: number;
   commission_percent?: number;
   close_date?: string;
