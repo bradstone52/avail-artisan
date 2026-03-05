@@ -367,7 +367,6 @@ export function DealSummaryPDF({
                     <View style={s.timelineItem} key={i}>
                       <View style={s.timelineLine}>
                         <View style={s.timelineDot} />
-                        {i < timelineEvents.length - 1 && <View style={s.timelineConnector} />}
                       </View>
                       <View style={s.timelineContent}>
                         <Text style={s.timelineDate}>{evt.label}</Text>
