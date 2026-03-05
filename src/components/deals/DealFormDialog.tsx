@@ -700,12 +700,20 @@ export function DealFormDialog({ open, onOpenChange, deal }: DealFormDialogProps
 
           <div className="grid grid-cols-3 gap-4">
             <div className="space-y-2">
-              <Label>Deal Value</Label>
-              <FormattedNumberInput
-                value={formData.deal_value}
-                onChange={(value) => update({ deal_value: value ?? undefined })}
-                prefix="$"
-              />
+              <Label>Deal Value {formData.lease_rates?.length ? <span className="text-xs text-muted-foreground font-normal">(auto-calculated)</span> : null}</Label>
+              {formData.lease_rates?.length ? (
+                <Input
+                  value={formData.deal_value ? `$${formData.deal_value.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : '—'}
+                  disabled
+                  className="bg-muted"
+                />
+              ) : (
+                <FormattedNumberInput
+                  value={formData.deal_value}
+                  onChange={(value) => update({ deal_value: value ?? undefined })}
+                  prefix="$"
+                />
+              )}
             </div>
             <div className="space-y-2">
               <Label>Commission %</Label>
