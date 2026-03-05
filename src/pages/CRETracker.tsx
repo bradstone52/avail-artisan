@@ -21,7 +21,7 @@ import { ContactFinderTab } from '@/components/cre-tracker/ContactFinderTab';
 import { useUserTasks } from '@/hooks/useUserTasks';
 import type { CalendarEvent } from '@/components/cre-tracker/CRECalendarSection';
 
-const VALID_TABS = ['overview', 'deals', 'prospects', 'listings', 'contacts', 'contact-finder'] as const;
+const VALID_TABS = ['overview', 'deals', 'prospects', 'listings', 'contacts', 'contact-finder', 'tasks'] as const;
 type CRETab = typeof VALID_TABS[number];
 const DEFAULT_TAB: CRETab = 'overview';
 function parseTab(value: string | null): CRETab {
