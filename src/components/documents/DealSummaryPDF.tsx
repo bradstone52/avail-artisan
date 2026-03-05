@@ -402,7 +402,7 @@ export function DealSummaryPDF({
         )}
 
         {/* ── IMPORTANT DATES ── */}
-        {validDates.length > 0 && (
+        {!isLease && validDates.length > 0 && (
           <View wrap={false}>
             <Text style={s.sectionTitle}>Important Dates</Text>
             <View style={s.table}>
