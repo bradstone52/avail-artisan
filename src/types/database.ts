@@ -116,6 +116,7 @@ export interface Deal {
   lease_term_months?: number | null;
   commencement_date?: string | null;
   expiry_date?: string | null;
+  lease_rates?: LeaseRateYear[] | null;
   deal_value?: number | null;
   commission_percent?: number | null;
   close_date?: string | null;
