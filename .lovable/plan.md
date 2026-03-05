@@ -1,56 +1,32 @@
 
-## Root Cause
+## Full App Retheme: Neo-Brutalist → Modern SaaS
 
-There are **two related bugs** preventing deal value from populating on a Sublease deal:
+### Overview
+Replace the aggressive neo-brutalist visual language (thick black borders, hard-offset shadows, uppercase typography everywhere, warm paper background) with a clean, professional Modern SaaS aesthetic. All interactive behaviors are preserved.
 
-**Bug 1 — Stale closure on `size_sf` in the schedule `onChange`**
-In `DealFormDialog.tsx` lines 657-662, the `onChange` callback for `LeaseRateSchedule` captures `formData.size_sf` from the render-time closure:
-```ts
-onChange={(rates) => {
-  const sf = formData.size_sf ?? 0;  // ← stale closure!
-  const newValue = sf > 0 ? calcLeaseVal(rates, sf) : undefined;
-  ...
-}}
-```
-If the user enters/changes `size_sf` after the schedule section first renders, `sf` is stale and `deal_value` computes as `undefined`.
+### Files to change
 
-**Bug 2 — No recalculation when `size_sf` changes while a schedule exists**
-There is no `useEffect` watching `formData.size_sf` that would recompute `deal_value` when the schedule is already populated. So if the user enters size before or after adding years to the schedule, and the stale value was `0`, the deal value is never updated.
+1. `src/index.css` - CSS variables + all component utility classes
+2. `src/components/ui/card.tsx` - Remove hard shadow/border, add soft shadow
+3. `src/components/ui/button.tsx` - Soften variants, remove uppercase
+4. `src/components/layout/AppLayout.tsx` - Sidebar styling
+5. `src/components/layout/MobileBottomNav.tsx` - Bottom nav styling
+6. `src/components/common/PageHeader.tsx` - Page title typography
 
-Also — `'Lease Renewal'` is not in the `isLeaseDeal` check (line 370) or `dealTypes` array (line 98), but that's a pre-existing separate issue and not causing this bug.
+### Color/Variable Changes
+- Background: warm paper → clean near-white (`0 0% 98%`)
+- Border: jet black → slate-200 (`220 13% 87%`)
+- Radius: 6px → 8px
+- Sidebar: white with light border (not black shadow)
+- Table headers: light gray (not inverted black/white)
+- Active nav: blue left accent bar + `bg-blue-50`
 
----
+### Interactions Preserved
+- Row hover: `bg-slate-50` highlight
+- Row selection: `bg-blue-50` with blue border
+- Button hover: subtle translate + `shadow-md`
+- Nav hover: `hover:bg-slate-100` with border
+- Active nav: clear visual indicator
 
-## Fix
-
-**File: `src/components/deals/DealFormDialog.tsx`**
-
-**Fix 1** — Use `setFormData` functional updater in the schedule `onChange` to always read the latest `size_sf`:
-
-```ts
-onChange={(rates) => {
-  setFormData(prev => {
-    const sf = prev.size_sf ?? 0;
-    const newValue = sf > 0 ? calcLeaseVal(rates, sf) : undefined;
-    const avgRate = weightedAvg(rates);
-    return { ...prev, lease_rates: rates, deal_value: newValue, lease_rate_psf: avgRate || undefined };
-  });
-}}
-```
-
-**Fix 2** — Add a `useEffect` to recalculate `deal_value` when `size_sf` changes and a schedule is active:
-
-```ts
-useEffect(() => {
-  const rates = formData.lease_rates;
-  if (!rates?.length) return;
-  const sf = formData.size_sf ?? 0;
-  const newValue = sf > 0 ? calcLeaseVal(rates, sf) : undefined;
-  setFormData(prev => ({ ...prev, deal_value: newValue }));
-}, [formData.size_sf]);
-```
-
-Also fix the "Use Rate Schedule" button's `onClick` (lines 677-684) similarly to use the latest `size_sf`.
-
-**Files to change: 1**
-- `src/components/deals/DealFormDialog.tsx` — fix stale closure + add recalculation effect
+### What is NOT changed
+- All React logic, routes, auth, data hooks, PDF components, Supabase logic

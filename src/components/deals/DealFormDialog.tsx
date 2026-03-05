@@ -367,7 +367,17 @@ export function DealFormDialog({ open, onOpenChange, deal }: DealFormDialogProps
 
   const update = (fields: Partial<ExtendedDealFormData>) => setFormData(prev => ({ ...prev, ...fields }));
 
-  const isLeaseDeal = ['Lease', 'Sublease', 'Renewal'].includes(formData.deal_type);
+  const isLeaseDeal = ['Lease', 'Sublease', 'Renewal', 'Lease Renewal'].includes(formData.deal_type);
+
+  // Recalculate deal_value when size_sf changes and a rate schedule is already set
+  useEffect(() => {
+    const rates = formData.lease_rates;
+    if (!rates?.length) return;
+    const sf = formData.size_sf ?? 0;
+    const newValue = sf > 0 ? calcLeaseVal(rates, sf) : undefined;
+    setFormData(prev => ({ ...prev, deal_value: newValue }));
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [formData.size_sf]);
 
   // Auto-calculate lease term from commencement & expiry dates
   const leaseTermManuallyEdited = useRef(false);
@@ -655,10 +665,12 @@ export function DealFormDialog({ open, onOpenChange, deal }: DealFormDialogProps
                   sizeSf={formData.size_sf}
                   leaseTermMonths={formData.lease_term_months}
                   onChange={(rates) => {
-                    const sf = formData.size_sf ?? 0;
-                    const newValue = sf > 0 ? calcLeaseVal(rates, sf) : undefined;
-                    const avgRate = weightedAvg(rates);
-                    update({ lease_rates: rates, deal_value: newValue, lease_rate_psf: avgRate || undefined });
+                    setFormData(prev => {
+                      const sf = prev.size_sf ?? 0;
+                      const newValue = sf > 0 ? calcLeaseVal(rates, sf) : undefined;
+                      const avgRate = weightedAvg(rates);
+                      return { ...prev, lease_rates: rates, deal_value: newValue, lease_rate_psf: avgRate || undefined };
+                    });
                   }}
                 />
               ) : (
@@ -675,12 +687,14 @@ export function DealFormDialog({ open, onOpenChange, deal }: DealFormDialogProps
                     size="sm"
                     className="gap-1 text-xs"
                     onClick={() => {
-                      const term = formData.lease_term_months || 12;
-                      const months = Math.min(12, term);
-                      const initRates: LeaseRateYear[] = [{ year: 1, rate_psf: formData.lease_rate_psf ?? 0, months }];
-                      const sf = formData.size_sf ?? 0;
-                      const newValue = sf > 0 ? calcLeaseVal(initRates, sf) : undefined;
-                      update({ lease_rates: initRates, deal_value: newValue });
+                      setFormData(prev => {
+                        const term = prev.lease_term_months || 12;
+                        const months = Math.min(12, term);
+                        const initRates: LeaseRateYear[] = [{ year: 1, rate_psf: prev.lease_rate_psf ?? 0, months }];
+                        const sf = prev.size_sf ?? 0;
+                        const newValue = sf > 0 ? calcLeaseVal(initRates, sf) : undefined;
+                        return { ...prev, lease_rates: initRates, deal_value: newValue };
+                      });
                     }}
                   >
                     + Use Rate Schedule
