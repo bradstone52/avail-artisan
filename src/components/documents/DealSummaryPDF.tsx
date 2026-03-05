@@ -180,7 +180,7 @@ export function DealSummaryPDF({
   listingAgents = [], sellingAgents = [],
   usePurchaserVendor = false,
   sellerLawyer, buyerLawyer,
-  dealType, leaseRatePsf, leaseTermMonths, commencementDate, expiryDate,
+  dealType, leaseRatePsf, leaseRates, leaseTermMonths, commencementDate, expiryDate,
 }: DealSummaryPDFProps) {
   const dealTypeLower = dealType?.toLowerCase() || '';
   const isSublease = dealTypeLower === 'sublease';
