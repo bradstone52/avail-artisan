@@ -234,7 +234,7 @@ export function DealSheetPDF({ deal, conditions, deposits, getAgent, getBrokerag
                     <>
                       <View style={s.propRow}>
                         <Text style={s.propLabel}>Lease Rate Schedule</Text>
-                        <Text style={s.propValue}>{leaseRates.map((r: any) => `Yr ${r.year}: $${Number(r.rate_psf).toFixed(2)}/SF × ${r.months} mo`).join('\n')}</Text>
+                        <Text style={s.propValue}>{leaseRates.map((r: any) => `Yr ${r.year}: $${Number(r.rate_psf).toFixed(2)}/SF × ${r.months} Month`).join('\n')}</Text>
                       </View>
                     </>
                   );
@@ -264,6 +264,16 @@ export function DealSheetPDF({ deal, conditions, deposits, getAgent, getBrokerag
                   <Text style={s.propValue}>{fmtDate((deal as any).expiry_date)}</Text>
                 </View>
               )}
+              {isLease && (() => {
+                const freeRent = (deal as any).free_rent_months as Array<{ type: string; months: number; year: number }> | null;
+                if (!freeRent?.length) return null;
+                return (
+                  <View style={s.propRow}>
+                    <Text style={s.propLabel}>Free Rent</Text>
+                    <Text style={s.propValue}>{freeRent.map(fr => `${fr.months} Month ${fr.type} (Yr ${fr.year})`).join(', ')}</Text>
+                  </View>
+                );
+              })()}
               <View style={s.propRowLast}>
                 <Text style={s.propLabel}>{isLease ? 'Occupancy Date' : 'Closing Date'}</Text>
                 <Text style={s.propValue}>{fmtDate(deal.close_date) || '—'}</Text>
@@ -279,6 +289,11 @@ export function DealSheetPDF({ deal, conditions, deposits, getAgent, getBrokerag
             <View style={s.finCard}>
               <Text style={s.finLabel}>{valueLabel}</Text>
               <Text style={s.finValue}>{fmtCurrency(dealValue)}</Text>
+              {isLease && (() => {
+                const freeRent = (deal as any).free_rent_months as Array<{ type: string; months: number; year: number }> | null;
+                if (!freeRent?.length) return null;
+                return <Text style={{ fontSize: 6.5, color: MUTED, marginTop: 2 }}>Incl. {freeRent.map(fr => `${fr.months} Month ${fr.type}`).join(', ')}</Text>;
+              })()}
             </View>
             <View style={s.finCard}>
               <Text style={s.finLabel}>Commission ({commissionRate}%)</Text>
