@@ -426,8 +426,9 @@ export function DealFormDialog({ open, onOpenChange, deal }: DealFormDialogProps
     };
   }, [formData.address, formData.city, hasLinkedListing, lookupSubmarket]);
 
-  const sellerLabel = isLeaseDeal ? 'Landlord' : (formData.use_purchaser_vendor ? 'Vendor' : 'Seller');
-  const buyerLabel = isLeaseDeal ? 'Tenant' : (formData.use_purchaser_vendor ? 'Purchaser' : 'Buyer');
+  const isSubleaseDeal = formData.deal_type === 'Sublease';
+  const sellerLabel = isSubleaseDeal ? 'Sublandlord' : isLeaseDeal ? 'Landlord' : (formData.use_purchaser_vendor ? 'Vendor' : 'Seller');
+  const buyerLabel = isSubleaseDeal ? 'Subtenant' : isLeaseDeal ? 'Tenant' : (formData.use_purchaser_vendor ? 'Purchaser' : 'Buyer');
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>

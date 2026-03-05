@@ -17,6 +17,12 @@ interface DealPartiesSectionProps {
 export function DealPartiesSection({ deal, onUpdate }: DealPartiesSectionProps) {
   const { data: brokerages } = useBrokerages();
   const [saving, setSaving] = useState(false);
+
+  const dealTypeLower = deal.deal_type?.toLowerCase() || '';
+  const isSublease = dealTypeLower === 'sublease';
+  const isLeaseType = ['lease', 'sublease', 'renewal'].includes(dealTypeLower);
+  const sellerLabel = isSublease ? 'Sublandlord' : isLeaseType ? 'Landlord' : 'Seller';
+  const buyerLabel = isSublease ? 'Subtenant' : isLeaseType ? 'Tenant' : 'Buyer';
   const [addDialogOpen, setAddDialogOpen] = useState(false);
 
   const [formData, setFormData] = useState({

@@ -156,10 +156,12 @@ export function DealSheetPDF({ deal, conditions, deposits, getAgent, getBrokerag
   const sellingAgent1 = getAgent(deal.selling_agent1_id);
   const sellingAgent2 = getAgent(deal.selling_agent2_id);
 
-  const isLease = ['lease', 'sublease', 'renewal'].includes(deal.deal_type?.toLowerCase() || '');
+  const dealTypeLower = deal.deal_type?.toLowerCase() || '';
+  const isSublease = dealTypeLower === 'sublease';
+  const isLease = ['lease', 'sublease', 'renewal'].includes(dealTypeLower);
   const usePV = !!(deal as any).use_purchaser_vendor;
-  const sellerLabel = isLease ? 'Landlord' : (usePV ? 'Vendor' : 'Seller');
-  const buyerLabel = isLease ? 'Tenant' : (usePV ? 'Purchaser' : 'Buyer');
+  const sellerLabel = isSublease ? 'Sublandlord' : isLease ? 'Landlord' : (usePV ? 'Vendor' : 'Seller');
+  const buyerLabel = isSublease ? 'Subtenant' : isLease ? 'Tenant' : (usePV ? 'Purchaser' : 'Buyer');
   const valueLabel = isLease ? 'Deal Value' : 'Sale Price';
   const agentLabel = isLease ? 'Leasing' : 'Selling';
 
