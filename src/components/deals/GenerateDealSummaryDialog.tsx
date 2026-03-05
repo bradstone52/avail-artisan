@@ -1039,11 +1039,11 @@ export function GenerateDealSummaryDialog({ open, onOpenChange, deal }: Generate
                   <span>{formatCurrency(totalDeposits)}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-muted-foreground">Purchase Price:</span>
+                  <span className="text-muted-foreground">Deal Value:</span>
                   <span>{formatCurrency(purchasePriceNum)}</span>
                 </div>
                 <div className="flex justify-between font-medium">
-                  <span>Balance on Closing:</span>
+                  <span>{isLeaseType ? 'Balance on Possession:' : 'Balance on Closing:'}</span>
                   <span className="text-primary">{formatCurrency(balanceOnClosing)}</span>
                 </div>
               </div>
