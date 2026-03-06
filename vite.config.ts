@@ -126,7 +126,7 @@ export default defineConfig(({ mode }) => ({
     // Generate a manifest for cache invalidation tracking
     manifest: true,
   },
-  // Define build timestamp for debugging cache issues
+  // Define build timestamp for debugging cache issues — force rebuild 2026-03-06
   define: {
     __BUILD_TIME__: JSON.stringify(new Date().toISOString()),
     // Buffer polyfill for react-pdf compatibility
