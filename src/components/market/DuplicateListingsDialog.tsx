@@ -20,24 +20,18 @@ import { ConfirmDialog } from '@/components/common/ConfirmDialog';
  * Does NOT strip "lot" because lot numbers typically represent distinct parcels.
  */
 export function normalizeAddressForDupeCheck(listing: { address: string; display_address?: string | null }): string {
-  // Prefer display_address — it usually includes lot / unit detail that
-  // the bare address field may lack (e.g. "Rme Lands" vs "Rme Lands — Lot 3").
+  // Prefer display_address — it includes unit/building detail that makes
+  // each unit a distinct listing (e.g. "Building 2 — Unit B" vs "Unit J").
   const raw = (listing.display_address || listing.address || '');
-  let s = raw.toLowerCase().trim().replace(/\s+/g, ' ');
+  let s = raw.toLowerCase().trim();
 
-  // Normalise em-dashes / en-dashes to regular hyphens
+  // Normalise em-dashes / en-dashes to regular hyphens so formatting
+  // differences don't prevent matching truly identical addresses.
   s = s.replace(/[—–]/g, '-');
 
-  // Remove segments after hyphens that are building/unit/suite identifiers
-  // e.g. "- building b", "- unit 140", "- suite 200", "- bay 3"
-  // NOTE: "lot" is intentionally excluded — lots are distinct parcels.
-  s = s.replace(/\s*-\s*(building|bldg|unit|suite|ste|bay)\b[^-]*/gi, '');
-
-  // Also strip standalone "#123", "unit 123", "suite 200" etc. not after a dash
-  s = s.replace(/\b(unit|suite|ste|bay|bldg|building)\s*#?\s*\w+/gi, '');
-  s = s.replace(/#\s*\w+/, '');
-
-  // Collapse whitespace again and trim trailing hyphens / spaces
+  // Collapse whitespace and trim trailing hyphens / spaces only.
+  // Do NOT strip unit/building/suite/bay identifiers — they distinguish
+  // independent units from one another and must be preserved.
   return s.replace(/\s+/g, ' ').replace(/[\s-]+$/, '').trim();
 }
 
