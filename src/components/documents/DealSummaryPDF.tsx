@@ -69,7 +69,7 @@ export interface DealSummaryPDFProps {
 // ── helpers ──────────────────────────────────────────────
 const fmt = (v: number | null | undefined): string => {
   if (v == null) return '';
-  return new Intl.NumberFormat('en-CA', { style: 'currency', currency: 'CAD', minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(v);
+  return new Intl.NumberFormat('en-CA', { style: 'currency', currency: 'CAD', minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(v);
 };
 
 const fmtDate = (d: string | null | undefined): string => {
