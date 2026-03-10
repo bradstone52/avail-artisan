@@ -88,6 +88,7 @@ export function useUpdateUserTask() {
 
 export function useToggleUserTaskCompleted() {
   const queryClient = useQueryClient();
+  const { user } = useAuth();
 
   return useMutation({
     mutationFn: async ({ id, completed }: { id: string; completed: boolean }) => {
@@ -102,9 +103,10 @@ export function useToggleUserTaskCompleted() {
       return data as UserTask;
     },
     onMutate: async ({ id, completed }) => {
-      await queryClient.cancelQueries({ queryKey: ['user_tasks'] });
-      const previous = queryClient.getQueryData<UserTask[]>(['user_tasks']);
-      queryClient.setQueryData<UserTask[]>(['user_tasks'], (old) =>
+      const key = ['user_tasks', user?.id];
+      await queryClient.cancelQueries({ queryKey: key });
+      const previous = queryClient.getQueryData<UserTask[]>(key);
+      queryClient.setQueryData<UserTask[]>(key, (old) =>
         old?.map((t) => (t.id === id ? { ...t, completed } : t)) ?? []
       );
       return { previous };
@@ -113,7 +115,7 @@ export function useToggleUserTaskCompleted() {
       queryClient.invalidateQueries({ queryKey: ['user_tasks'] });
     },
     onError: (_err, _vars, context) => {
-      if (context?.previous) queryClient.setQueryData(['user_tasks'], context.previous);
+      if (context?.previous) queryClient.setQueryData(['user_tasks', user?.id], context.previous);
       toast.error('Failed to update task');
     },
   });
@@ -121,6 +123,7 @@ export function useToggleUserTaskCompleted() {
 
 export function useDeleteUserTask() {
   const queryClient = useQueryClient();
+  const { user } = useAuth();
 
   return useMutation({
     mutationFn: async (id: string) => {
@@ -132,9 +135,10 @@ export function useDeleteUserTask() {
       if (error) throw error;
     },
     onMutate: async (id) => {
-      await queryClient.cancelQueries({ queryKey: ['user_tasks'] });
-      const previous = queryClient.getQueryData<UserTask[]>(['user_tasks']);
-      queryClient.setQueryData<UserTask[]>(['user_tasks'], (old) =>
+      const key = ['user_tasks', user?.id];
+      await queryClient.cancelQueries({ queryKey: key });
+      const previous = queryClient.getQueryData<UserTask[]>(key);
+      queryClient.setQueryData<UserTask[]>(key, (old) =>
         old?.filter((t) => t.id !== id) ?? []
       );
       return { previous };
@@ -144,7 +148,7 @@ export function useDeleteUserTask() {
       toast.success('Task deleted');
     },
     onError: (_err, _id, context) => {
-      if (context?.previous) queryClient.setQueryData(['user_tasks'], context.previous);
+      if (context?.previous) queryClient.setQueryData(['user_tasks', user?.id], context.previous);
       toast.error('Failed to delete task');
     },
   });
