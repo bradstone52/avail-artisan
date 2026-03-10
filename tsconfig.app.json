@@ -26,8 +26,10 @@
     "target": "ES2020",
     "useDefineForClassFields": true
   },
-  "include": [
-    "src",
+  "files": [
     "node_modules/@types/google.maps/index.d.ts"
+  ],
+  "include": [
+    "src"
   ]
 }
