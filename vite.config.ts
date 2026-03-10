@@ -50,24 +50,25 @@ export default defineConfig(({ mode }) => ({
         ],
       },
       workbox: {
-        maximumFileSizeToCacheInBytes: 5 * 1024 * 1024, // 5 MB limit
-        globPatterns: ["**/*.{ico,png,svg,woff,woff2}"], // Only cache static assets, NOT JS/CSS/HTML
+        maximumFileSizeToCacheInBytes: 5 * 1024 * 1024,
+        // Only pre-cache truly static assets (fonts, icons) — never JS/CSS/HTML
+        globPatterns: ["**/*.{ico,png,svg,woff,woff2}"],
         skipWaiting: true,
         clientsClaim: true,
         cleanupOutdatedCaches: true,
-        navigateFallback: "index.html",
+        // NEVER use navigateFallback — it causes the SW to serve a stale
+        // cached index.html after every new deployment until the SW self-destructs.
+        navigateFallback: null,
         runtimeCaching: [
           {
-            // Always fetch fresh JS/CSS/HTML — never serve stale app bundles
+            // JS/CSS already have content-hash filenames; use NetworkOnly so the
+            // browser's own HTTP cache handles them. The SW must never intercept
+            // these or users will see old bundles after a deploy.
             urlPattern: /\.(?:js|css|html)$/i,
-            handler: "NetworkFirst",
-            options: {
-              cacheName: "app-shell",
-              networkTimeoutSeconds: 10,
-            },
+            handler: "NetworkOnly",
           },
           {
-            // Never cache Supabase API calls - always go to network
+            // Never cache Supabase API calls
             urlPattern: /^https:\/\/.*\.supabase\.co\/.*/i,
             handler: "NetworkOnly",
           },
@@ -83,11 +84,9 @@ export default defineConfig(({ mode }) => ({
               cacheName: "google-fonts-cache",
               expiration: {
                 maxEntries: 10,
-                maxAgeSeconds: 60 * 60 * 24 * 365, // 1 year
+                maxAgeSeconds: 60 * 60 * 24 * 365,
               },
-              cacheableResponse: {
-                statuses: [0, 200],
-              },
+              cacheableResponse: { statuses: [0, 200] },
             },
           },
           {
@@ -97,11 +96,9 @@ export default defineConfig(({ mode }) => ({
               cacheName: "gstatic-fonts-cache",
               expiration: {
                 maxEntries: 10,
-                maxAgeSeconds: 60 * 60 * 24 * 365, // 1 year
+                maxAgeSeconds: 60 * 60 * 24 * 365,
               },
-              cacheableResponse: {
-                statuses: [0, 200],
-              },
+              cacheableResponse: { statuses: [0, 200] },
             },
           },
         ],
