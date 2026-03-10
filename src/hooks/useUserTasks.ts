@@ -111,8 +111,11 @@ export function useToggleUserTaskCompleted() {
       );
       return { previous };
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['user_tasks'] });
+    onSuccess: (data) => {
+      const key = ['user_tasks', user?.id];
+      queryClient.setQueryData<UserTask[]>(key, (old) =>
+        old?.map((t) => (t.id === data.id ? data : t)) ?? []
+      );
     },
     onError: (_err, _vars, context) => {
       if (context?.previous) queryClient.setQueryData(['user_tasks', user?.id], context.previous);
