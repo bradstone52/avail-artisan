@@ -141,11 +141,27 @@ export function useToggleProspectTaskCompleted() {
       if (error) throw error;
       return data as ProspectTask;
     },
+    onMutate: async ({ id, completed }) => {
+      // Optimistically update the org-level tasks list used by ProspectTasksSection
+      await queryClient.cancelQueries({ queryKey: ['prospect_tasks_all_org'] });
+      const previousData = queryClient.getQueriesData<any[]>({ queryKey: ['prospect_tasks_all_org'] });
+      queryClient.setQueriesData<any[]>({ queryKey: ['prospect_tasks_all_org'] }, (old) =>
+        old?.map((t) => (t.id === id ? { ...t, completed } : t)) ?? []
+      );
+      return { previousData };
+    },
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['prospect_tasks', data.prospect_id] });
       queryClient.invalidateQueries({ queryKey: ['prospect_tasks_all'] });
+      queryClient.invalidateQueries({ queryKey: ['prospect_tasks_all_org'] });
     },
-    onError: (error) => {
+    onError: (error, _vars, context) => {
+      // Rollback optimistic update
+      if (context?.previousData) {
+        context.previousData.forEach(([queryKey, data]) => {
+          queryClient.setQueryData(queryKey, data);
+        });
+      }
       console.error('Error toggling task:', error);
       toast.error('Failed to update task');
     },
