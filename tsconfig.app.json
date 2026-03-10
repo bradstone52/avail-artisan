@@ -24,7 +24,6 @@
     "skipLibCheck": true,
     "strict": false,
     "target": "ES2020",
-    "types": ["google.maps"],
     "useDefineForClassFields": true
   },
   "files": [
@@ -34,3 +33,4 @@
     "src"
   ]
 }
+
