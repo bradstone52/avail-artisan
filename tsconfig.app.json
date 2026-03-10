@@ -24,10 +24,10 @@
     "skipLibCheck": true,
     "strict": false,
     "target": "ES2020",
-    "typeRoots": ["./node_modules/@types"],
     "useDefineForClassFields": true
   },
   "include": [
-    "src"
+    "src",
+    "node_modules/@types/google.maps/index.d.ts"
   ]
 }
