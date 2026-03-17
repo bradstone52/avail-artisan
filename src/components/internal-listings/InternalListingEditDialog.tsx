@@ -94,6 +94,7 @@ const formSchema = z.object({
   brochure_link: z.string().optional(),
   website_link: z.string().optional(),
   additional_features: z.string().optional(),
+  website_published: z.boolean().optional(),
 });
 
 interface InternalListingEditDialogProps {
