@@ -53,6 +53,7 @@ export default function InternalListingDetail() {
   const { data: statusHistory } = useInternalListingStatusHistory(id);
   const { updateListing } = useInternalListings();
   const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [activeTab, setActiveTab] = useState('overview');
 
   const handleEditSubmit = (data: InternalListingFormData) => {
     if (!listing) return;
@@ -133,10 +134,7 @@ export default function InternalListingDetail() {
              <Button
                variant="outline"
                className="gap-2"
-               onClick={() => {
-                 const marketingTab = document.querySelector('[value="marketing"]') as HTMLButtonElement;
-                 marketingTab?.click();
-               }}
+               onClick={() => setActiveTab('marketing')}
              >
                <Sparkles className="h-4 w-4" />
                <span className="hidden sm:inline">Generate Brochure</span>
@@ -148,7 +146,7 @@ export default function InternalListingDetail() {
            </div>
         </div>
 
-        <Tabs defaultValue="overview" className="space-y-4">
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
           <TabsList className="flex-wrap h-auto gap-y-1">
             <TabsTrigger value="overview" className="gap-2">
               <Building2 className="h-4 w-4" />
