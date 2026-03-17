@@ -1,6 +1,5 @@
 /**
- * PhotoStrip.tsx — Horizontal strip of up to 3 photos
- * Extracted from ListingBrochurePDF.tsx
+ * PhotoStrip.tsx — Horizontal strip of up to 3 gallery photos
  */
 import { View, Image, StyleSheet } from '@react-pdf/renderer';
 import { C } from '../styles/tokens';
@@ -9,22 +8,19 @@ import type { BrochurePhoto } from '@/lib/brochures/brochureTypes';
 const s = StyleSheet.create({
   strip: {
     flexDirection: 'row' as const,
-    gap: 8,
-    marginTop: 10,
-    marginBottom: 10,
+    gap:           6,
+    marginBottom:  12,
   },
   photo: {
-    flex: 1,
-    height: 110,
-    objectFit: 'cover' as const,
-    borderWidth: 0.5,
-    borderColor: C.border,
+    flex:         1,
+    height:       120,
+    objectFit:    'cover' as const,
+    borderWidth:  0.5,
+    borderColor:  C.border,
   },
 });
 
-interface PhotoStripProps {
-  photos: BrochurePhoto[];
-}
+interface PhotoStripProps { photos: BrochurePhoto[]; }
 
 export function PhotoStrip({ photos }: PhotoStripProps) {
   if (!photos.length) return null;

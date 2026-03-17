@@ -1,37 +1,51 @@
 /**
- * PricingCard.tsx — Individual pricing card (asking rent or sale price)
- * Extracted from ListingBrochurePDF.tsx
+ * PricingCard.tsx — Clean pricing block, bordered not filled
  */
 import { View, Text, StyleSheet } from '@react-pdf/renderer';
 import { C } from '../styles/tokens';
 import type { BrochureData } from '@/lib/brochures/brochureTypes';
 
 const s = StyleSheet.create({
-  sectionTitle: {
-    fontSize: 10,
-    fontWeight: 'bold',
-    color: C.accent,
+  wrapper:  { marginBottom: 14 },
+  heading: {
+    fontSize:      7,
+    fontWeight:    'bold',
+    color:         C.inkMid,
     textTransform: 'uppercase',
-    letterSpacing: 1,
-    marginBottom: 6,
-    paddingBottom: 3,
-    borderBottomWidth: 1.5,
-    borderBottomColor: C.accent,
+    letterSpacing: 1.1,
+    marginBottom:  5,
+    paddingBottom: 4,
+    borderBottomWidth: 1,
+    borderBottomColor: C.navy,
   },
   card: {
-    backgroundColor: C.accent,
-    padding: 10,
-    borderRadius: 2,
-    marginBottom: 6,
+    borderWidth:      0.75,
+    borderColor:      C.navy,
+    borderLeftWidth:  3,
+    borderLeftColor:  C.gold,
+    paddingVertical:  10,
+    paddingHorizontal: 12,
+    marginBottom:     6,
+    backgroundColor:  C.navyTint,
   },
   cardLabel: {
-    fontSize: 6.5,
-    color: C.accentLight,
+    fontSize:      6.5,
+    color:         C.inkMid,
     textTransform: 'uppercase',
-    letterSpacing: 1,
-    marginBottom: 2,
+    letterSpacing: 0.9,
+    marginBottom:  3,
   },
-  cardValue: { fontSize: 14, fontWeight: 'bold', color: C.white },
+  cardValue: {
+    fontSize:   18,
+    fontWeight: 'bold',
+    color:      C.navy,
+    lineHeight: 1.1,
+  },
+  cardSub: {
+    fontSize: 7,
+    color:    C.inkMid,
+    marginTop: 2,
+  },
 });
 
 interface PricingBlockProps {
@@ -41,12 +55,13 @@ interface PricingBlockProps {
 export function PricingBlock({ pricing }: PricingBlockProps) {
   if (!pricing.show) return null;
   return (
-    <View>
-      <Text style={s.sectionTitle}>Pricing</Text>
+    <View style={s.wrapper}>
+      <Text style={s.heading}>Pricing</Text>
       {pricing.rent && (
         <View style={s.card}>
           <Text style={s.cardLabel}>Asking Rent</Text>
           <Text style={s.cardValue}>{pricing.rent}</Text>
+          <Text style={s.cardSub}>Per Square Foot / Annum</Text>
         </View>
       )}
       {pricing.price && (

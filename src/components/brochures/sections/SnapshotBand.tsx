@@ -1,6 +1,5 @@
 /**
- * SnapshotBand.tsx — Full-width key-metrics band (coloured strip)
- * Extracted from ListingBrochurePDF.tsx
+ * SnapshotBand.tsx — Full-width key metrics strip on a dark background
  */
 import { View, Text, StyleSheet } from '@react-pdf/renderer';
 import { C } from '../styles/tokens';
@@ -8,37 +7,39 @@ import type { BrochureSpecRow } from '@/lib/brochures/brochureTypes';
 
 const s = StyleSheet.create({
   band: {
-    flexDirection: 'row' as const,
-    backgroundColor: C.accent,
-    marginVertical: 12,
+    flexDirection:   'row' as const,
+    backgroundColor: C.navy,
+    marginBottom:    14,
   },
   cell: {
-    flex: 1,
-    paddingVertical: 10,
-    paddingHorizontal: 8,
-    alignItems: 'center' as const,
+    flex:             1,
+    paddingVertical:  10,
+    paddingHorizontal: 10,
+    alignItems:       'center' as const,
     borderRightWidth: 0.5,
-    borderRightColor: '#2a4f7a',
+    borderRightColor: C.navyLight,
   },
   cellLast: {
-    flex: 1,
-    paddingVertical: 10,
-    paddingHorizontal: 8,
-    alignItems: 'center' as const,
+    flex:             1,
+    paddingVertical:  10,
+    paddingHorizontal: 10,
+    alignItems:       'center' as const,
   },
   label: {
-    fontSize: 6,
-    color: C.accentLight,
+    fontSize:      6,
+    color:         '#a0b4c8',
     textTransform: 'uppercase',
-    letterSpacing: 0.8,
-    marginBottom: 2,
+    letterSpacing: 0.9,
+    marginBottom:  3,
   },
-  value: { fontSize: 11, fontWeight: 'bold', color: C.white },
+  value: {
+    fontSize:   12,
+    fontWeight: 'bold',
+    color:      C.white,
+  },
 });
 
-interface SnapshotBandProps {
-  snapshots: BrochureSpecRow[];
-}
+interface SnapshotBandProps { snapshots: BrochureSpecRow[]; }
 
 export function SnapshotBand({ snapshots }: SnapshotBandProps) {
   if (!snapshots.length) return null;
