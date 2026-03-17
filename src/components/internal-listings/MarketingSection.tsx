@@ -557,9 +557,9 @@ export function MarketingSection({ listing, onPhotoUpdate }: MarketingSectionPro
             </Card>
 
             {/* Confidential broker notes */}
-            <Card className="border border-amber-200 bg-amber-50/30">
+            <Card className="border border-border bg-muted/30">
               <CardHeader>
-                <CardTitle className="text-base flex items-center gap-2 text-amber-700 dark:text-amber-400">
+                <CardTitle className="text-base flex items-center gap-2 text-muted-foreground">
                   Confidential Broker Notes
                 </CardTitle>
               </CardHeader>
