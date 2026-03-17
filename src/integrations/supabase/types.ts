@@ -1273,6 +1273,7 @@ export type Database = {
           updated_at: string
           warehouse_sf: number | null
           website_link: string | null
+          website_published: boolean
           yard: string | null
           zoning: string | null
         }
@@ -1337,6 +1338,7 @@ export type Database = {
           updated_at?: string
           warehouse_sf?: number | null
           website_link?: string | null
+          website_published?: boolean
           yard?: string | null
           zoning?: string | null
         }
@@ -1401,6 +1403,7 @@ export type Database = {
           updated_at?: string
           warehouse_sf?: number | null
           website_link?: string | null
+          website_published?: boolean
           yard?: string | null
           zoning?: string | null
         }
@@ -3050,6 +3053,47 @@ export type Database = {
             columns: ["org_id"]
             isOneToOne: false
             referencedRelation: "orgs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      public_listing_inquiries: {
+        Row: {
+          company: string | null
+          created_at: string
+          email: string
+          id: string
+          listing_id: string
+          message: string
+          name: string
+          phone: string | null
+        }
+        Insert: {
+          company?: string | null
+          created_at?: string
+          email: string
+          id?: string
+          listing_id: string
+          message: string
+          name: string
+          phone?: string | null
+        }
+        Update: {
+          company?: string | null
+          created_at?: string
+          email?: string
+          id?: string
+          listing_id?: string
+          message?: string
+          name?: string
+          phone?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "public_listing_inquiries_listing_id_fkey"
+            columns: ["listing_id"]
+            isOneToOne: false
+            referencedRelation: "internal_listings"
             referencedColumns: ["id"]
           },
         ]
