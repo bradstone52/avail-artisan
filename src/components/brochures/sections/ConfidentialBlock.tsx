@@ -1,37 +1,35 @@
 /**
- * ConfidentialBlock.tsx — Amber "Confidential – Broker Notes" box
- * Extracted from ListingBrochurePDF.tsx
+ * ConfidentialBlock.tsx — Broker-only notes panel
  */
 import { View, Text, StyleSheet } from '@react-pdf/renderer';
 import { C } from '../styles/tokens';
 
 const s = StyleSheet.create({
-  box: {
-    backgroundColor: '#fef3c7',
-    padding: 10,
-    marginTop: 8,
+  wrapper: {
+    borderWidth:     0.75,
+    borderColor:     C.gold,
     borderLeftWidth: 3,
-    borderLeftColor: C.yellow,
+    borderLeftColor: C.gold,
+    padding:         10,
+    marginTop:       8,
   },
-  title: {
-    fontSize: 7.5,
-    fontWeight: 'bold',
-    color: '#92400e',
-    marginBottom: 3,
+  label: {
+    fontSize:      6.5,
+    fontWeight:    'bold',
+    color:         C.gold,
     textTransform: 'uppercase',
-    letterSpacing: 0.5,
+    letterSpacing: 0.8,
+    marginBottom:  4,
   },
-  text: { fontSize: 7.5, color: '#78350f', lineHeight: 1.4 },
+  text: { fontSize: 7.5, color: C.inkDark, lineHeight: 1.5 },
 });
 
-interface ConfidentialBlockProps {
-  notes: string;
-}
+interface ConfidentialBlockProps { notes: string; }
 
 export function ConfidentialBlock({ notes }: ConfidentialBlockProps) {
   return (
-    <View style={s.box}>
-      <Text style={s.title}>Confidential — Broker Notes</Text>
+    <View style={s.wrapper}>
+      <Text style={s.label}>Confidential — For Broker Use Only</Text>
       <Text style={s.text}>{notes}</Text>
     </View>
   );
