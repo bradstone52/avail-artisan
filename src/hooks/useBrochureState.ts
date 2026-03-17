@@ -1,20 +1,18 @@
 /**
- * useBrochureState.ts
+ * useBrochureState.ts  (Phase 2 — backed by Supabase persistence)
  *
- * Manages all brochure UI state for a single listing:
- *  - AI-generated marketing content
- *  - manual overrides (persisted to localStorage)
- *  - map zoom / offset
- *  - UI flags (generating, downloading, editing)
+ * Thin adapter over useBrochurePersistence that exposes the same surface
+ * as Phase 1 so MarketingSection doesn't need a full rewrite.
  *
- * PERSISTENCE:
- * Overrides are stored in localStorage under the key `brochure_overrides_<listingId>`.
- * This survives page refreshes without a DB migration.
- * When you're ready to make overrides team-shareable, the shape is already a clean JSONB
- * blob — just POST it to a `brochure_overrides` table and read it back here.
+ * New in Phase 2:
+ *  - state loads from / saves to the `brochure_states` DB table
+ *  - localStorage is used only as a backup / migration path
+ *  - `saveState` persists the whole blob
+ *  - map controls now stored in persisted state
  */
 
-import { useState, useCallback, useEffect } from 'react';
+import { useCallback } from 'react';
+import { useBrochurePersistence } from './useBrochurePersistence';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import type {
@@ -23,23 +21,10 @@ import type {
   BrochureSourceListing,
 } from '@/lib/brochures/brochureTypes';
 
-const localKey = (listingId: string) => `brochure_overrides_${listingId}`;
-
-function loadOverrides(listingId: string): BrochureOverrides {
-  try {
-    const raw = localStorage.getItem(localKey(listingId));
-    if (raw) return JSON.parse(raw) as BrochureOverrides;
-  } catch { /* ignore */ }
-  return {};
-}
-
-function saveOverrides(listingId: string, overrides: BrochureOverrides) {
-  try {
-    localStorage.setItem(localKey(listingId), JSON.stringify(overrides));
-  } catch { /* ignore */ }
-}
-
 export interface UseBrochureStateResult {
+  // ── Loading ──
+  isLoadingState: boolean;
+
   // ── Marketing content ──
   marketing: BrochureMarketingContent | null;
   isGenerating: boolean;
@@ -69,23 +54,23 @@ export interface UseBrochureStateResult {
   // ── Download ──
   isDownloading: boolean;
   setIsDownloading: (v: boolean) => void;
+
+  // ── Persistence ──
+  isSaving: boolean;
+  saveState: () => Promise<void>;
 }
 
+// isGenerating and isEditing/isDownloading remain local — not persisted
+import { useState } from 'react';
+
 export function useBrochureState(listing: Pick<BrochureSourceListing, 'id'>): UseBrochureStateResult {
-  const [marketing, setMarketing]               = useState<BrochureMarketingContent | null>(null);
-  const [isGenerating, setIsGenerating]         = useState(false);
-  const [overrides, setOverrides]               = useState<BrochureOverrides>(() => loadOverrides(listing.id));
-  const [isEditing, setIsEditing]               = useState(false);
-  const [includeConfidential, setIncludeConf]   = useState(false);
-  const [mapZoom, setMapZoom]                   = useState(14);
-  const [mapOffset, setMapOffset]               = useState({ lat: 0, lng: 0 });
-  const [isDownloading, setIsDownloading]       = useState(false);
+  const persistence = useBrochurePersistence(listing.id);
 
-  // Persist overrides whenever they change
-  useEffect(() => {
-    saveOverrides(listing.id, overrides);
-  }, [listing.id, overrides]);
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
+  const [isDownloading, setIsDownloading] = useState(false);
 
+  // ── Generate marketing content ──────────────────────────────────────────────
   const generateMarketing = useCallback(async () => {
     setIsGenerating(true);
     try {
@@ -94,7 +79,8 @@ export function useBrochureState(listing: Pick<BrochureSourceListing, 'id'>): Us
       });
       if (error) throw error;
       if (data.error) throw new Error(data.error);
-      setMarketing(data as BrochureMarketingContent);
+      // Store marketing content in persisted state
+      persistence.updateState({ marketing: data as BrochureMarketingContent });
       toast.success('Marketing content generated!');
     } catch (err) {
       console.error('generate marketing error:', err);
@@ -102,59 +88,73 @@ export function useBrochureState(listing: Pick<BrochureSourceListing, 'id'>): Us
     } finally {
       setIsGenerating(false);
     }
-  }, [listing]);
+  }, [listing, persistence]);
 
+  // ── Override helpers ────────────────────────────────────────────────────────
   const updateOverride = useCallback(
     <K extends keyof BrochureOverrides>(key: K, value: BrochureOverrides[K]) => {
-      setOverrides(prev => ({ ...prev, [key]: value }));
+      persistence.updateState({
+        overrides: { ...persistence.state.overrides, [key]: value },
+      });
     },
-    []
+    [persistence]
   );
 
   const resetOverrides = useCallback(() => {
-    setOverrides({});
-    localStorage.removeItem(localKey(listing.id));
+    persistence.updateState({ overrides: {} });
+    try { localStorage.removeItem(`brochure_overrides_${listing.id}`); } catch { /* ignore */ }
     toast.success('Overrides cleared');
-  }, [listing.id]);
+  }, [listing.id, persistence]);
 
-  const handleZoomIn  = () => setMapZoom(z => Math.min(z + 1, 20));
-  const handleZoomOut = () => setMapZoom(z => Math.max(z - 1, 10));
+  // ── Map controls ────────────────────────────────────────────────────────────
+  const handleZoomIn = () =>
+    persistence.updateState({ mapZoom: Math.min(persistence.state.mapZoom + 1, 20) });
+  const handleZoomOut = () =>
+    persistence.updateState({ mapZoom: Math.max(persistence.state.mapZoom - 1, 10) });
 
   const handlePan = (direction: 'up' | 'down' | 'left' | 'right') => {
+    const { mapZoom, mapOffsetLat, mapOffsetLng } = persistence.state;
     const pan = 0.005 * Math.pow(2, 14 - mapZoom);
-    setMapOffset(prev => {
-      switch (direction) {
-        case 'up':    return { ...prev, lat: prev.lat + pan };
-        case 'down':  return { ...prev, lat: prev.lat - pan };
-        case 'left':  return { ...prev, lng: prev.lng - pan };
-        case 'right': return { ...prev, lng: prev.lng + pan };
-      }
-    });
+    let lat = mapOffsetLat;
+    let lng = mapOffsetLng;
+    if (direction === 'up')    lat += pan;
+    if (direction === 'down')  lat -= pan;
+    if (direction === 'left')  lng -= pan;
+    if (direction === 'right') lng += pan;
+    persistence.updateState({ mapOffsetLat: lat, mapOffsetLng: lng });
   };
 
-  const handleResetMap = () => {
-    setMapZoom(14);
-    setMapOffset({ lat: 0, lng: 0 });
-  };
+  const handleResetMap = () =>
+    persistence.updateState({ mapZoom: 14, mapOffsetLat: 0, mapOffsetLng: 0 });
 
   return {
-    marketing,
+    isLoadingState: persistence.isLoading,
+
+    marketing:       persistence.state.marketing,
     isGenerating,
     generateMarketing,
-    overrides,
+
+    overrides:      persistence.state.overrides,
     updateOverride,
     resetOverrides,
+
     isEditing,
     setIsEditing,
-    includeConfidential,
-    setIncludeConfidential: setIncludeConf,
-    mapZoom,
-    mapOffset,
+
+    includeConfidential: persistence.state.includeConfidential,
+    setIncludeConfidential: (v) => persistence.updateState({ includeConfidential: v }),
+
+    mapZoom:     persistence.state.mapZoom,
+    mapOffset:   { lat: persistence.state.mapOffsetLat, lng: persistence.state.mapOffsetLng },
     handleZoomIn,
     handleZoomOut,
     handlePan,
     handleResetMap,
+
     isDownloading,
     setIsDownloading,
+
+    isSaving:  persistence.isSaving,
+    saveState: persistence.saveState,
   };
 }
