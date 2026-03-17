@@ -68,6 +68,65 @@ export type Database = {
           },
         ]
       }
+      brochure_states: {
+        Row: {
+          gallery_photo_ids: Json
+          hero_photo_id: string | null
+          hero_photo_url: string | null
+          id: string
+          include_confidential: boolean
+          listing_id: string
+          map_offset_lat: number
+          map_offset_lng: number
+          map_zoom: number
+          marketing_json: Json | null
+          overrides_json: Json
+          template_key: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          gallery_photo_ids?: Json
+          hero_photo_id?: string | null
+          hero_photo_url?: string | null
+          id?: string
+          include_confidential?: boolean
+          listing_id: string
+          map_offset_lat?: number
+          map_offset_lng?: number
+          map_zoom?: number
+          marketing_json?: Json | null
+          overrides_json?: Json
+          template_key?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          gallery_photo_ids?: Json
+          hero_photo_id?: string | null
+          hero_photo_url?: string | null
+          id?: string
+          include_confidential?: boolean
+          listing_id?: string
+          map_offset_lat?: number
+          map_offset_lng?: number
+          map_zoom?: number
+          marketing_json?: Json | null
+          overrides_json?: Json
+          template_key?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "brochure_states_listing_id_fkey"
+            columns: ["listing_id"]
+            isOneToOne: true
+            referencedRelation: "internal_listings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       brokerage_profiles: {
         Row: {
           created_at: string
