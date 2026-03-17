@@ -1,268 +1,149 @@
- import { useState, useCallback, useEffect } from 'react';
- import { pdf } from '@react-pdf/renderer';
- import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
- import { Button } from '@/components/ui/button';
- import { Checkbox } from '@/components/ui/checkbox';
- import { Label } from '@/components/ui/label';
- import { Textarea } from '@/components/ui/textarea';
- import { Input } from '@/components/ui/input';
- import { Skeleton } from '@/components/ui/skeleton';
- import { supabase } from '@/integrations/supabase/client';
- import { toast } from 'sonner';
+/**
+ * MarketingSection.tsx  (refactored — Phase 1)
+ *
+ * Orchestrates the brochure workflow:
+ *  - photo upload / map preview (unchanged behavior)
+ *  - AI generation via generate-listing-marketing
+ *  - manual override editing (persisted via useBrochureState)
+ *  - PDF download via BrochureEngine + buildBrochureData
+ *
+ * MIGRATION NOTE:
+ * ListingBrochurePDF.tsx is still present but is no longer called here.
+ * It can be removed once this refactor is verified stable in production.
+ *
+ * Heavy lifting has moved to:
+ *   src/hooks/useBrochureState.ts       — state + persistence
+ *   src/lib/brochures/buildBrochureData.ts  — data normalization
+ *   src/lib/brochures/brochureImageUtils.ts — image conversion
+ *   src/components/brochures/BrochureEngine.tsx — template dispatch
+ */
+import { useState, useCallback, useEffect } from 'react';
+import { pdf } from '@react-pdf/renderer';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import { Input } from '@/components/ui/input';
+import { Skeleton } from '@/components/ui/skeleton';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
 import { useDropzone } from 'react-dropzone';
 import { AspectRatio } from '@/components/ui/aspect-ratio';
- import {
-   Sparkles,
-   FileText,
-   Download,
-   RefreshCw,
-   Pencil,
-   Save,
-   X,
-  Upload,
-  Image as ImageIcon,
-  Trash2,
-  MapPin,
-  ZoomIn,
-  ZoomOut,
-  ChevronUp,
-  ChevronDown,
-  ChevronLeft,
-  ChevronRight,
-  RotateCcw,
-  Plus,
-  Images,
- } from 'lucide-react';
- import { ListingBrochurePDF, MarketingContent, BrochureListingData } from './ListingBrochurePDF';
+import {
+  Sparkles, FileText, Download, RefreshCw, Pencil, Save, X,
+  Upload, Image as ImageIcon, Trash2, MapPin, ZoomIn, ZoomOut,
+  ChevronUp, ChevronDown, ChevronLeft, ChevronRight, RotateCcw,
+  Plus, Images, RotateCw,
+} from 'lucide-react';
+
 import { useInternalListingPhotos } from '@/hooks/useInternalListingPhotos';
 import { useOrg } from '@/hooks/useOrg';
- 
- interface MarketingSectionProps {
-   listing: {
-     id: string;
-     address: string;
-     display_address?: string | null;
-     city: string;
-     submarket: string;
-     deal_type: string;
-     size_sf: number | null;
-     warehouse_sf: number | null;
-     office_sf: number | null;
-     second_floor_office_sf?: number | null;
-     land_acres: number | null;
-     clear_height_ft: number | null;
-     dock_doors: number | null;
-     drive_in_doors: number | null;
-     drive_in_door_dimensions?: unknown[] | null;
-     asking_rent_psf: number | null;
-     asking_sale_price: number | null;
-     property_type: string | null;
-     power: string | null;
-     yard: string | null;
-     zoning: string | null;
-     description: string | null;
-     broker_remarks: string | null;
-     loading_type: string | null;
-     cam: number | null;
-     op_costs: number | null;
-     taxes: number | null;
-     gross_rate: number | null;
-     listing_number: string | null;
-      latitude: number | null;
-      longitude: number | null;
-      photo_url: string | null;
-      // Extended building features
-      has_sprinklers?: boolean | null;
-      sprinklers_esfr?: boolean | null;
-      has_heated?: boolean | null;
-      has_air_conditioning?: boolean | null;
-      has_led_lighting?: boolean | null;
-      has_rail_access?: boolean | null;
-      has_mua?: boolean | null;
-      mua_units?: number | null;
-      mua_cfm_ratings?: unknown[] | null;
-      additional_features?: string | null;
-      estimated_annual_tax?: number | null;
-      assessed_value?: number | null;
-   };
-    onPhotoUpdate?: (photoUrl: string | null) => void;
- }
- 
+import { useBrochureState } from '@/hooks/useBrochureState';
+import { buildBrochureData } from '@/lib/brochures/buildBrochureData';
+import { toCompatibleBase64, convertPhotosToBase64 } from '@/lib/brochures/brochureImageUtils';
+import { BrochureEngine } from '@/components/brochures/BrochureEngine';
+import type { BrochureSourceListing } from '@/lib/brochures/brochureTypes';
+
+// Re-export for backwards compatibility (other files may still import from here)
+export type { BrochureSourceListing as BrochureListingData };
+
+interface MarketingSectionProps {
+  listing: BrochureSourceListing & {
+    description?: string | null;
+    broker_remarks?: string | null;
+  };
+  onPhotoUpdate?: (photoUrl: string | null) => void;
+}
+
 export function MarketingSection({ listing, onPhotoUpdate }: MarketingSectionProps) {
-   const [isGenerating, setIsGenerating] = useState(false);
-   const [marketingContent, setMarketingContent] = useState<MarketingContent | null>(null);
-   const [isEditing, setIsEditing] = useState(false);
-   const [editedContent, setEditedContent] = useState<MarketingContent | null>(null);
-   const [includeConfidential, setIncludeConfidential] = useState(false);
-   const [isDownloading, setIsDownloading] = useState(false);
+  const { org } = useOrg();
+
+  // ── Brochure state ──────────────────────────────────────────────────────────
+  const {
+    marketing, isGenerating, generateMarketing,
+    overrides, updateOverride, resetOverrides,
+    isEditing, setIsEditing,
+    includeConfidential, setIncludeConfidential,
+    mapZoom, mapOffset, handleZoomIn, handleZoomOut, handlePan, handleResetMap,
+    isDownloading, setIsDownloading,
+  } = useBrochureState(listing);
+
+  // ── Photo state ─────────────────────────────────────────────────────────────
+  const [photoUrl, setPhotoUrl] = useState<string | null>(listing.photo_url ?? null);
   const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
-  const [photoUrl, setPhotoUrl] = useState<string | null>(listing.photo_url);
-  const [isGeocoding, setIsGeocoding] = useState(false);
-  const [coordinates, setCoordinates] = useState<{ lat: number | null; lng: number | null }>({
-    lat: listing.latitude,
-    lng: listing.longitude,
-  });
-  const [googleMapsKey, setGoogleMapsKey] = useState<string | null>(null);
+  const [isUploadingAdditional, setIsUploadingAdditional] = useState(false);
+  const { photos: additionalPhotos, uploadPhoto, deletePhoto } = useInternalListingPhotos(listing.id);
+
+  // ── Coordinate / map state ──────────────────────────────────────────────────
+  const [coordinates, setCoordinates] = useState({ lat: listing.latitude ?? null, lng: listing.longitude ?? null });
   const [mapImageUrl, setMapImageUrl] = useState<string | null>(null);
   const [mapLoading, setMapLoading] = useState(false);
   const [mapError, setMapError] = useState<string | null>(null);
-  const [mapZoom, setMapZoom] = useState(14);
-  const [mapOffset, setMapOffset] = useState({ lat: 0, lng: 0 });
+  const [isGeocoding, setIsGeocoding] = useState(false);
 
-  // Additional photos
-  const { photos: additionalPhotos, uploadPhoto, deletePhoto, isLoading: photosLoading } = useInternalListingPhotos(listing.id);
-  const { org } = useOrg();
-  const [isUploadingAdditional, setIsUploadingAdditional] = useState(false);
-
-  // Sync coordinates when listing prop changes (e.g., after parent refetch)
+  // Sync coordinates when listing prop updates (e.g. after geocode)
   useEffect(() => {
-    setCoordinates({
-      lat: listing.latitude,
-      lng: listing.longitude,
-    });
+    setCoordinates({ lat: listing.latitude ?? null, lng: listing.longitude ?? null });
   }, [listing.latitude, listing.longitude]);
 
-  // Fetch Google Maps API key for map preview - refetch when coordinates change or if key is missing
-  const fetchMapsKey = useCallback(async () => {
-    try {
-      const { data: tokenData } = await supabase.functions.invoke('get-google-maps-token', {
-        body: { authenticated: true }
-      });
-      if (tokenData?.apiKey) {
-        setGoogleMapsKey(tokenData.apiKey);
-        return true;
-      }
-    } catch (error) {
-      console.warn('Could not fetch maps key for preview:', error);
-    }
-    return false;
-  }, []);
-
+  // Fetch static map preview
   useEffect(() => {
-    // Fetch key on mount and when coordinates are set (e.g., after geocoding)
-    if (!googleMapsKey) {
-      fetchMapsKey();
-    }
-  }, [googleMapsKey, fetchMapsKey, coordinates.lat, coordinates.lng]);
+    let active = true;
+    const prev = mapImageUrl;
 
-  // Fetch map image via proxy when we have coordinates
-  useEffect(() => {
-    const fetchMapImage = async () => {
-      if (!coordinates.lat || !coordinates.lng) {
-        setMapImageUrl(null);
-        return;
-      }
-
+    const fetchMap = async () => {
+      if (!coordinates.lat || !coordinates.lng) { setMapImageUrl(null); return; }
       setMapLoading(true);
       setMapError(null);
-
       try {
-        // Use proxy endpoint to avoid referrer restrictions
         const { data: sessionData } = await supabase.auth.getSession();
-        if (!sessionData.session?.access_token) {
-          throw new Error('Not authenticated');
-        }
-
-        // Calculate adjusted center with offset
-        const adjustedLat = coordinates.lat + mapOffset.lat;
-        const adjustedLng = coordinates.lng + mapOffset.lng;
-        
-        // Add cache-buster to force fresh fetch; marker stays at original coords
-        const proxyUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/proxy-static-map?lat=${adjustedLat}&lng=${adjustedLng}&markerLat=${coordinates.lat}&markerLng=${coordinates.lng}&zoom=${mapZoom}&size=800x450&scale=2&maptype=roadmap&_t=${Date.now()}`;
-        
-        const response = await fetch(proxyUrl, {
-          headers: {
-            Authorization: `Bearer ${sessionData.session.access_token}`,
-          },
-        });
-
-        if (!response.ok) {
-          const errorData = await response.json().catch(() => ({}));
-          throw new Error(errorData.error || 'Failed to load map');
-        }
-
-        const blob = await response.blob();
+        if (!sessionData.session?.access_token) throw new Error('Not authenticated');
+        const adjLat = coordinates.lat + mapOffset.lat;
+        const adjLng = coordinates.lng + mapOffset.lng;
+        const url = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/proxy-static-map?lat=${adjLat}&lng=${adjLng}&markerLat=${coordinates.lat}&markerLng=${coordinates.lng}&zoom=${mapZoom}&size=800x450&scale=2&maptype=roadmap&_t=${Date.now()}`;
+        const resp = await fetch(url, { headers: { Authorization: `Bearer ${sessionData.session.access_token}` } });
+        if (!resp.ok) throw new Error('Failed to load map');
+        const blob = await resp.blob();
         const blobUrl = URL.createObjectURL(blob);
-        
-        // Clean up previous blob URL
-        if (mapImageUrl) {
-          URL.revokeObjectURL(mapImageUrl);
+        if (active) {
+          if (prev) URL.revokeObjectURL(prev);
+          setMapImageUrl(blobUrl);
+        } else {
+          URL.revokeObjectURL(blobUrl);
         }
-        
-        setMapImageUrl(blobUrl);
-      } catch (error) {
-        console.error('Failed to load map image:', error);
-        setMapError(error instanceof Error ? error.message : 'Failed to load map');
+      } catch (err) {
+        if (active) setMapError(err instanceof Error ? err.message : 'Failed to load map');
       } finally {
-        setMapLoading(false);
+        if (active) setMapLoading(false);
       }
     };
 
-    fetchMapImage();
-
-    // Cleanup on unmount
+    fetchMap();
     return () => {
-      if (mapImageUrl) {
-        URL.revokeObjectURL(mapImageUrl);
-      }
+      active = false;
+      if (prev) URL.revokeObjectURL(prev);
     };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [coordinates.lat, coordinates.lng, mapZoom, mapOffset.lat, mapOffset.lng]);
 
-  // Map control handlers
-  const handleZoomIn = () => setMapZoom(prev => Math.min(prev + 1, 20));
-  const handleZoomOut = () => setMapZoom(prev => Math.max(prev - 1, 10));
-  
-  const handlePan = (direction: 'up' | 'down' | 'left' | 'right') => {
-    // Pan amount decreases with higher zoom (more zoomed in = smaller pan)
-    const panAmount = 0.005 * Math.pow(2, 14 - mapZoom);
-    setMapOffset(prev => {
-      switch (direction) {
-        case 'up': return { ...prev, lat: prev.lat + panAmount };
-        case 'down': return { ...prev, lat: prev.lat - panAmount };
-        case 'left': return { ...prev, lng: prev.lng - panAmount };
-        case 'right': return { ...prev, lng: prev.lng + panAmount };
-        default: return prev;
-      }
-    });
-  };
-  
-  const handleResetMap = () => {
-    setMapZoom(14);
-    setMapOffset({ lat: 0, lng: 0 });
-  };
-
+  // ── Photo upload ────────────────────────────────────────────────────────────
   const onDrop = useCallback(async (acceptedFiles: File[]) => {
     const file = acceptedFiles[0];
     if (!file) return;
-
     setIsUploadingPhoto(true);
     try {
-      const fileExt = file.name.split('.').pop();
-      const fileName = `${listing.id}/${Date.now()}.${fileExt}`;
-
-      const { error: uploadError } = await supabase.storage
-        .from('internal-listing-photos')
-        .upload(fileName, file, { upsert: true });
-
-      if (uploadError) throw uploadError;
-
-      const { data: { publicUrl } } = supabase.storage
-        .from('internal-listing-photos')
-        .getPublicUrl(fileName);
-
-      // Update the listing record
-      const { error: updateError } = await supabase
-        .from('internal_listings')
-        .update({ photo_url: publicUrl })
-        .eq('id', listing.id);
-
-      if (updateError) throw updateError;
-
+      const ext  = file.name.split('.').pop();
+      const path = `${listing.id}/${Date.now()}.${ext}`;
+      const { error: upErr } = await supabase.storage.from('internal-listing-photos').upload(path, file, { upsert: true });
+      if (upErr) throw upErr;
+      const { data: { publicUrl } } = supabase.storage.from('internal-listing-photos').getPublicUrl(path);
+      const { error: dbErr } = await supabase.from('internal_listings').update({ photo_url: publicUrl }).eq('id', listing.id);
+      if (dbErr) throw dbErr;
       setPhotoUrl(publicUrl);
       onPhotoUpdate?.(publicUrl);
-      toast.success('Photo uploaded successfully');
-    } catch (error) {
-      console.error('Error uploading photo:', error);
+      toast.success('Photo uploaded');
+    } catch (err) {
       toast.error('Failed to upload photo');
     } finally {
       setIsUploadingPhoto(false);
@@ -270,578 +151,285 @@ export function MarketingSection({ listing, onPhotoUpdate }: MarketingSectionPro
   }, [listing.id, onPhotoUpdate]);
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
-    onDrop,
-    accept: { 'image/*': ['.jpg', '.jpeg', '.png', '.webp'] },
-    maxFiles: 1,
-    maxSize: 10 * 1024 * 1024, // 10MB
-  });
-
-  // Additional photos dropzone
-  const onDropAdditional = useCallback(async (acceptedFiles: File[]) => {
-    if (!org?.id) {
-      toast.error('Organization not found');
-      return;
-    }
-    
-    setIsUploadingAdditional(true);
-    try {
-      for (const file of acceptedFiles) {
-        await uploadPhoto.mutateAsync({ file, orgId: org.id });
-      }
-    } finally {
-      setIsUploadingAdditional(false);
-    }
-  }, [org?.id, uploadPhoto]);
-
-  const {
-    getRootProps: getAdditionalRootProps,
-    getInputProps: getAdditionalInputProps,
-    isDragActive: isAdditionalDragActive,
-  } = useDropzone({
-    onDrop: onDropAdditional,
-    accept: { 'image/*': ['.jpg', '.jpeg', '.png', '.webp'] },
-    maxFiles: 10,
-    maxSize: 10 * 1024 * 1024,
+    onDrop, accept: { 'image/*': ['.jpg', '.jpeg', '.png', '.webp'] }, maxFiles: 1, maxSize: 10 * 1024 * 1024,
   });
 
   const handleRemovePhoto = async () => {
-    try {
-      const { error } = await supabase
-        .from('internal_listings')
-        .update({ photo_url: null })
-        .eq('id', listing.id);
-
-      if (error) throw error;
-
-      setPhotoUrl(null);
-      onPhotoUpdate?.(null);
-      toast.success('Photo removed');
-    } catch (error) {
-      console.error('Error removing photo:', error);
-      toast.error('Failed to remove photo');
-    }
+    const { error } = await supabase.from('internal_listings').update({ photo_url: null }).eq('id', listing.id);
+    if (error) { toast.error('Failed to remove photo'); return; }
+    setPhotoUrl(null);
+    onPhotoUpdate?.(null);
+    toast.success('Photo removed');
   };
- 
+
+  const onDropAdditional = useCallback(async (files: File[]) => {
+    if (!org?.id) { toast.error('Organization not found'); return; }
+    setIsUploadingAdditional(true);
+    try { for (const f of files) await uploadPhoto.mutateAsync({ file: f, orgId: org.id }); }
+    finally { setIsUploadingAdditional(false); }
+  }, [org?.id, uploadPhoto]);
+
+  const { getRootProps: getAddlRootProps, getInputProps: getAddlInputProps, isDragActive: isAddlDragActive } = useDropzone({
+    onDrop: onDropAdditional, accept: { 'image/*': ['.jpg', '.jpeg', '.png', '.webp'] }, maxFiles: 10, maxSize: 10 * 1024 * 1024,
+  });
+
+  // ── Geocode ─────────────────────────────────────────────────────────────────
   const handleGeocode = async () => {
     setIsGeocoding(true);
     try {
-      // Get Google Maps API key
-      const { data: tokenData, error: tokenError } = await supabase.functions.invoke('get-google-maps-token', {
-        body: { authenticated: true }
-      });
-
-      if (tokenError || !tokenData?.apiKey) {
-        throw new Error('Failed to get map token');
-      }
-
-      // Geocode the address
-      const address = `${listing.address}, ${listing.city}, AB, Canada`;
-      const geocodeUrl = `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(address)}&key=${tokenData.apiKey}`;
-      
-      const response = await fetch(geocodeUrl);
-      const data = await response.json();
-
-      if (data.status !== 'OK' || !data.results?.[0]) {
-        throw new Error('Address not found');
-      }
-
-      const location = data.results[0].geometry.location;
-      
-      // Update the listing
-      const { error: updateError } = await supabase
-        .from('internal_listings')
-        .update({
-          latitude: location.lat,
-          longitude: location.lng,
-        })
-        .eq('id', listing.id);
-
-      if (updateError) throw updateError;
-
-      setCoordinates({ lat: location.lat, lng: location.lng });
-      onPhotoUpdate?.(photoUrl); // Trigger refetch
-      toast.success('Location geocoded successfully');
-    } catch (error) {
-      console.error('Error geocoding:', error);
-      toast.error(error instanceof Error ? error.message : 'Failed to geocode address');
+      const { data: tokenData, error: tokenErr } = await supabase.functions.invoke('get-google-maps-token', { body: { authenticated: true } });
+      if (tokenErr || !tokenData?.apiKey) throw new Error('Failed to get map token');
+      const addr = `${listing.address}, ${listing.city}, AB, Canada`;
+      const geoResp = await fetch(`https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(addr)}&key=${tokenData.apiKey}`);
+      const geoData = await geoResp.json();
+      if (geoData.status !== 'OK' || !geoData.results?.[0]) throw new Error('Address not found');
+      const loc = geoData.results[0].geometry.location;
+      const { error: dbErr } = await supabase.from('internal_listings').update({ latitude: loc.lat, longitude: loc.lng }).eq('id', listing.id);
+      if (dbErr) throw dbErr;
+      setCoordinates({ lat: loc.lat, lng: loc.lng });
+      onPhotoUpdate?.(photoUrl);
+      toast.success('Location geocoded');
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Failed to geocode');
     } finally {
       setIsGeocoding(false);
     }
   };
 
-   const generateMarketingContent = async () => {
-     setIsGenerating(true);
-     try {
-       const { data, error } = await supabase.functions.invoke('generate-listing-marketing', {
-         body: { listing }
-       });
- 
-       if (error) throw error;
-       if (data.error) throw new Error(data.error);
- 
-       setMarketingContent(data);
-       setEditedContent(data);
-       toast.success('Marketing content generated!');
-     } catch (error) {
-       console.error('Error generating marketing:', error);
-       toast.error(error instanceof Error ? error.message : 'Failed to generate marketing content');
-     } finally {
-       setIsGenerating(false);
-     }
-   };
- 
-   const handleSaveEdits = () => {
-     if (editedContent) {
-       setMarketingContent(editedContent);
-       setIsEditing(false);
-       toast.success('Changes saved');
-     }
-   };
- 
-   const handleCancelEdit = () => {
-     setEditedContent(marketingContent);
-     setIsEditing(false);
-   };
- 
-   const downloadPDF = async () => {
-     if (!marketingContent) return;
-     
-     setIsDownloading(true);
-     try {
-      // Fetch styled map image via proxy (uses current zoom and offset)
-      let staticMapBase64: string | undefined;
+  // ── PDF download ─────────────────────────────────────────────────────────────
+  const downloadPDF = async () => {
+    if (!marketing) return;
+    setIsDownloading(true);
+    try {
+      // 1. Fetch map as base64
+      let staticMapBase64: string | null = null;
       if (coordinates.lat && coordinates.lng) {
         try {
           const { data: sessionData } = await supabase.auth.getSession();
           if (sessionData.session?.access_token) {
-            // Calculate adjusted center with current offset
-            const adjustedLat = coordinates.lat + mapOffset.lat;
-            const adjustedLng = coordinates.lng + mapOffset.lng;
-            
-            const proxyUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/proxy-static-map?lat=${adjustedLat}&lng=${adjustedLng}&markerLat=${coordinates.lat}&markerLng=${coordinates.lng}&zoom=${mapZoom}&size=800x450&scale=2&maptype=roadmap`;
-            
-            const response = await fetch(proxyUrl, {
-              headers: {
-                Authorization: `Bearer ${sessionData.session.access_token}`,
-              },
-            });
-            
-            if (response.ok) {
-              const blob = await response.blob();
-              // Convert to base64 data URL for react-pdf
-              const reader = new FileReader();
-              staticMapBase64 = await new Promise((resolve) => {
-                reader.onloadend = () => resolve(reader.result as string);
+            const adjLat = coordinates.lat + mapOffset.lat;
+            const adjLng = coordinates.lng + mapOffset.lng;
+            const proxyUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/proxy-static-map?lat=${adjLat}&lng=${adjLng}&markerLat=${coordinates.lat}&markerLng=${coordinates.lng}&zoom=${mapZoom}&size=800x450&scale=2&maptype=roadmap`;
+            const resp = await fetch(proxyUrl, { headers: { Authorization: `Bearer ${sessionData.session.access_token}` } });
+            if (resp.ok) {
+              const blob = await resp.blob();
+              staticMapBase64 = await new Promise<string>((res) => {
+                const reader = new FileReader();
+                reader.onloadend = () => res(reader.result as string);
                 reader.readAsDataURL(blob);
               });
             }
           }
-        } catch (mapError) {
-          console.warn('Could not fetch map image:', mapError);
-        }
+        } catch { /* map is optional */ }
       }
 
-      // Helper: fetch an image and re-encode it via canvas to ensure react-pdf
-      // receives a compatible JPEG data-URL (works even for WebP/AVIF sources).
-      const toCompatibleBase64 = async (url: string): Promise<string | null> => {
-        try {
-          const resp = await fetch(url);
-          if (!resp.ok) return null;
-          const blob = await resp.blob();
-          const bmp = await createImageBitmap(blob);
-          const canvas = document.createElement('canvas');
-          canvas.width = bmp.width;
-          canvas.height = bmp.height;
-          const ctx = canvas.getContext('2d');
-          if (!ctx) return null;
-          ctx.drawImage(bmp, 0, 0);
-          bmp.close();
-          return canvas.toDataURL('image/jpeg', 0.92);
-        } catch (e) {
-          console.warn('Image conversion failed for', url, e);
-          return null;
-        }
-      };
+      // 2. Convert hero photo
+      const heroBase64 = photoUrl ? await toCompatibleBase64(photoUrl) : null;
 
-      // Convert hero photo to base64 for react-pdf
-      let heroPhotoBase64: string | undefined;
-      if (photoUrl) {
-        const b64 = await toCompatibleBase64(photoUrl);
-        if (b64) heroPhotoBase64 = b64;
-      }
+      // 3. Convert gallery photos
+      const galleryBase64 = await convertPhotosToBase64(additionalPhotos);
 
-      // Convert additional photos to base64 for react-pdf (avoids CORS/fetch errors)
-      const photosAsBase64 = await Promise.all(
-        additionalPhotos.map(async (photo) => {
-          const b64 = await toCompatibleBase64(photo.photo_url);
-          return b64 ? { ...photo, photo_url: b64 } : photo;
-        })
-      );
-
-      // Use current photoUrl state (which may have been updated via upload)
-      const listingWithPhoto: BrochureListingData = {
-        ...listing,
-        photo_url: heroPhotoBase64 || photoUrl,
-        latitude: coordinates.lat,
-        longitude: coordinates.lng,
-        drive_in_door_dimensions: (listing.drive_in_door_dimensions as (string | null)[] | null) ?? null,
-        mua_cfm_ratings: (listing.mua_cfm_ratings as (string | null)[] | null) ?? null,
-      };
-
-       const doc = (
-         <ListingBrochurePDF 
-          listing={listingWithPhoto} 
-           marketing={marketingContent}
-           includeConfidential={includeConfidential}
-          staticMapUrl={staticMapBase64}
-          additionalPhotos={photosAsBase64}
-         />
-       );
-       
-       const blob = await pdf(doc).toBlob();
-       const url = URL.createObjectURL(blob);
-       const link = document.createElement('a');
-       link.href = url;
-       link.download = `${listing.address.replace(/[^a-zA-Z0-9]/g, '-')}-Brochure.pdf`;
-       link.click();
-       URL.revokeObjectURL(url);
-       toast.success('PDF downloaded!');
-     } catch (error) {
-       console.error('Error generating PDF:', error);
-       toast.error('Failed to generate PDF');
-     } finally {
-       setIsDownloading(false);
-     }
-   };
- 
-   const downloadIDML = () => {
-     if (!marketingContent) return;
-     
-     // Generate IDML-ready content as JSON
-     const idmlContent = {
-       metadata: {
-         version: '1.0',
-         generated: new Date().toISOString(),
-         listing_id: listing.id,
-         listing_number: listing.listing_number,
-       },
-        assets: {
-          photo_url: photoUrl,
-          latitude: listing.latitude,
-          longitude: listing.longitude,
+      // 4. Build normalized data
+      const brochureData = buildBrochureData({
+        listing: {
+          ...listing,
+          photo_url: heroBase64 ?? photoUrl,
+          latitude: coordinates.lat,
+          longitude: coordinates.lng,
         },
-       content: {
-         headline: marketingContent.headline,
-         tagline: marketingContent.tagline,
-         address: listing.display_address || listing.address,
-         city: listing.city,
-         submarket: listing.submarket,
-         deal_type: listing.deal_type,
-         description: marketingContent.description,
-         highlights: marketingContent.highlights,
-         broker_pitch: includeConfidential ? marketingContent.broker_pitch : null,
-       },
-       specifications: {
-         size_sf: listing.size_sf,
-         warehouse_sf: listing.warehouse_sf,
-         office_sf: listing.office_sf,
-         land_acres: listing.land_acres,
-         clear_height_ft: listing.clear_height_ft,
-         dock_doors: listing.dock_doors,
-         drive_in_doors: listing.drive_in_doors,
-         loading_type: listing.loading_type,
-         power: listing.power,
-         yard: listing.yard,
-         zoning: listing.zoning,
-         property_type: listing.property_type,
-       },
-       financials: {
-         asking_rent_psf: listing.asking_rent_psf,
-         asking_sale_price: listing.asking_sale_price,
-         cam: listing.cam,
-         op_costs: listing.op_costs,
-         taxes: listing.taxes,
-         gross_rate: listing.gross_rate,
-       }
-     };
- 
-     const blob = new Blob([JSON.stringify(idmlContent, null, 2)], { type: 'application/json' });
-     const url = URL.createObjectURL(blob);
-     const link = document.createElement('a');
-     link.href = url;
-     link.download = `${listing.address.replace(/[^a-zA-Z0-9]/g, '-')}-IDML-Data.json`;
-     link.click();
-     URL.revokeObjectURL(url);
-     toast.success('IDML data exported! Import into InDesign via Data Merge.');
-   };
- 
-  const hasLocation = coordinates.lat && coordinates.lng;
+        marketing,
+        staticMapBase64,
+        photos: galleryBase64.map(p => ({ id: p.id, photo_url: p.photo_url, caption: p.caption, sort_order: p.sort_order })),
+        overrides,
+        includeConfidential,
+      });
 
-   return (
-     <div className="space-y-6">
-      {/* Photo Upload Section */}
-       <Card>
+      // 5. Render via engine
+      const blob = await pdf(<BrochureEngine data={brochureData} />).toBlob();
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `${listing.address.replace(/[^a-zA-Z0-9]/g, '-')}-Brochure.pdf`;
+      link.click();
+      URL.revokeObjectURL(url);
+      toast.success('PDF downloaded!');
+    } catch (err) {
+      console.error('PDF generation error:', err);
+      toast.error('Failed to generate PDF');
+    } finally {
+      setIsDownloading(false);
+    }
+  };
+
+  // ── IDML export ──────────────────────────────────────────────────────────────
+  const downloadIDML = () => {
+    if (!marketing) return;
+    const payload = {
+      metadata: { version: '2.0', generated: new Date().toISOString(), listing_id: listing.id, listing_number: listing.listing_number },
+      assets: { photo_url: photoUrl, latitude: coordinates.lat, longitude: coordinates.lng },
+      content: {
+        headline: overrides.headline ?? marketing.headline,
+        tagline: overrides.tagline ?? marketing.tagline,
+        address: listing.display_address || listing.address,
+        city: listing.city,
+        submarket: listing.submarket,
+        deal_type: listing.deal_type,
+        description: overrides.description ?? marketing.description,
+        highlights: overrides.highlights ?? marketing.highlights,
+        broker_pitch: includeConfidential ? marketing.broker_pitch : null,
+      },
+      specifications: {
+        size_sf: listing.size_sf, warehouse_sf: listing.warehouse_sf, office_sf: listing.office_sf,
+        land_acres: listing.land_acres, clear_height_ft: listing.clear_height_ft,
+        dock_doors: listing.dock_doors, drive_in_doors: listing.drive_in_doors,
+        loading_type: listing.loading_type, power: listing.power, yard: listing.yard,
+        zoning: listing.zoning, property_type: listing.property_type,
+      },
+      financials: {
+        asking_rent_psf: listing.asking_rent_psf, asking_sale_price: listing.asking_sale_price,
+        cam: listing.cam, op_costs: listing.op_costs, taxes: listing.taxes, gross_rate: listing.gross_rate,
+      },
+    };
+    const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `${listing.address.replace(/[^a-zA-Z0-9]/g, '-')}-IDML-Data.json`;
+    link.click();
+    URL.revokeObjectURL(url);
+    toast.success('IDML data exported!');
+  };
+
+  const hasLocation = !!(coordinates.lat && coordinates.lng);
+  // Active marketing (overrides applied inline in editing)
+  const displayMarketing = marketing
+    ? {
+        headline:    overrides.headline    ?? marketing.headline,
+        tagline:     overrides.tagline     ?? marketing.tagline,
+        description: overrides.description ?? marketing.description,
+        highlights:  overrides.highlights  ?? marketing.highlights,
+        broker_pitch: marketing.broker_pitch,
+      }
+    : null;
+
+  // ── Render ───────────────────────────────────────────────────────────────────
+  return (
+    <div className="space-y-6">
+      {/* Hero Photo */}
+      <Card>
         <CardHeader>
           <CardTitle className="text-base flex items-center gap-2">
-            <ImageIcon className="h-4 w-4" />
-            Brochure Photo
+            <ImageIcon className="h-4 w-4" />Brochure Photo
           </CardTitle>
         </CardHeader>
         <CardContent>
           {photoUrl ? (
             <div className="space-y-4">
-              <AspectRatio ratio={16 / 9} className="overflow-hidden rounded-lg border">
-                <img
-                  src={photoUrl}
-                  alt="Listing photo"
-                  className="object-cover w-full h-full"
-                />
+              <AspectRatio ratio={16/9} className="overflow-hidden rounded-lg border">
+                <img src={photoUrl} alt="Listing photo" className="object-cover w-full h-full" />
               </AspectRatio>
               <div className="flex gap-2">
                 <div {...getRootProps()} className="flex-1">
                   <input {...getInputProps()} />
                   <Button variant="outline" className="w-full" disabled={isUploadingPhoto}>
-                    {isUploadingPhoto ? (
-                      <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
-                    ) : (
-                      <Upload className="h-4 w-4 mr-2" />
-                    )}
+                    {isUploadingPhoto ? <RefreshCw className="h-4 w-4 mr-2 animate-spin" /> : <Upload className="h-4 w-4 mr-2" />}
                     Replace Photo
                   </Button>
                 </div>
-                <Button variant="outline" onClick={handleRemovePhoto}>
-                  <Trash2 className="h-4 w-4" />
-                </Button>
+                <Button variant="outline" onClick={handleRemovePhoto}><Trash2 className="h-4 w-4" /></Button>
               </div>
             </div>
           ) : (
-            <div
-              {...getRootProps()}
-              className={`border-2 border-dashed rounded-lg p-8 text-center cursor-pointer transition-colors ${
-                isDragActive
-                  ? 'border-primary bg-primary/5'
-                  : 'border-muted-foreground/25 hover:border-primary/50'
-              }`}
-            >
+            <div {...getRootProps()} className={`border-2 border-dashed rounded-lg p-8 text-center cursor-pointer transition-colors ${isDragActive ? 'border-primary bg-primary/5' : 'border-muted-foreground/25 hover:border-primary/50'}`}>
               <input {...getInputProps()} />
-              {isUploadingPhoto ? (
-                <RefreshCw className="h-8 w-8 mx-auto mb-2 animate-spin text-primary" />
-              ) : (
-                <Upload className="h-8 w-8 mx-auto mb-2 text-muted-foreground" />
-              )}
-              <p className="text-sm text-muted-foreground">
-                {isDragActive ? 'Drop image here...' : 'Drag & drop a photo, or click to select'}
-              </p>
-              <p className="text-xs text-muted-foreground mt-1">
-                JPG, PNG, or WebP up to 10MB
-              </p>
+              {isUploadingPhoto ? <RefreshCw className="h-8 w-8 mx-auto mb-2 animate-spin text-primary" /> : <Upload className="h-8 w-8 mx-auto mb-2 text-muted-foreground" />}
+              <p className="text-sm text-muted-foreground">{isDragActive ? 'Drop image here...' : 'Drag & drop a photo, or click to select'}</p>
+              <p className="text-xs text-muted-foreground mt-1">JPG, PNG, or WebP up to 10MB</p>
             </div>
           )}
         </CardContent>
       </Card>
 
-      {/* Additional Photos Section */}
+      {/* Additional Photos */}
       <Card>
         <CardHeader>
           <CardTitle className="text-base flex items-center gap-2">
-            <Images className="h-4 w-4" />
-            Additional Photos
-            {additionalPhotos.length > 0 && (
-              <span className="text-xs bg-muted px-2 py-0.5 rounded-full">
-                {additionalPhotos.length}
-              </span>
-            )}
+            <Images className="h-4 w-4" />Additional Photos
+            {additionalPhotos.length > 0 && <span className="text-xs bg-muted px-2 py-0.5 rounded-full">{additionalPhotos.length}</span>}
           </CardTitle>
         </CardHeader>
         <CardContent>
-          {/* Existing photos grid */}
           {additionalPhotos.length > 0 && (
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-4">
               {additionalPhotos.map((photo) => (
                 <div key={photo.id} className="relative group">
-                  <AspectRatio ratio={4 / 3} className="overflow-hidden rounded border border-border">
-                    <img
-                      src={photo.photo_url}
-                      alt="Property photo"
-                      className="object-cover w-full h-full"
-                    />
+                  <AspectRatio ratio={4/3} className="overflow-hidden rounded border border-border">
+                    <img src={photo.photo_url} alt="Property photo" className="object-cover w-full h-full" />
                   </AspectRatio>
-                  <Button
-                    variant="destructive"
-                    size="icon"
-                    className="absolute top-1 right-1 h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
-                    onClick={() => deletePhoto.mutate(photo.id)}
-                  >
+                  <Button variant="destructive" size="icon" className="absolute top-1 right-1 h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity" onClick={() => deletePhoto.mutate(photo.id)}>
                     <Trash2 className="h-3 w-3" />
                   </Button>
                 </div>
               ))}
             </div>
           )}
-          
-          {/* Upload area */}
-          <div
-            {...getAdditionalRootProps()}
-            className={`border-2 border-dashed rounded-lg p-6 text-center cursor-pointer transition-colors ${
-              isAdditionalDragActive
-                ? 'border-primary bg-primary/5'
-                : 'border-muted-foreground/25 hover:border-primary/50'
-            }`}
-          >
-            <input {...getAdditionalInputProps()} />
-            {isUploadingAdditional ? (
-              <RefreshCw className="h-6 w-6 mx-auto mb-2 animate-spin text-primary" />
-            ) : (
-              <Plus className="h-6 w-6 mx-auto mb-2 text-muted-foreground" />
-            )}
-            <p className="text-sm text-muted-foreground">
-              {isAdditionalDragActive ? 'Drop images here...' : 'Add more photos for the brochure'}
-            </p>
-            <p className="text-xs text-muted-foreground mt-1">
-              These will appear on a second page in the PDF
-            </p>
+          <div {...getAddlRootProps()} className={`border-2 border-dashed rounded-lg p-6 text-center cursor-pointer transition-colors ${isAddlDragActive ? 'border-primary bg-primary/5' : 'border-muted-foreground/25 hover:border-primary/50'}`}>
+            <input {...getAddlInputProps()} />
+            {isUploadingAdditional ? <RefreshCw className="h-6 w-6 mx-auto mb-2 animate-spin text-primary" /> : <Plus className="h-6 w-6 mx-auto mb-2 text-muted-foreground" />}
+            <p className="text-sm text-muted-foreground">{isAddlDragActive ? 'Drop images here...' : 'Add more photos for the brochure'}</p>
+            <p className="text-xs text-muted-foreground mt-1">These will appear on a second page in the PDF</p>
           </div>
         </CardContent>
       </Card>
 
-      {/* Location Map Preview */}
+      {/* Location Map */}
       <Card>
         <CardHeader>
           <CardTitle className="text-base flex items-center gap-2">
-            <MapPin className="h-4 w-4" />
-            Location Map
+            <MapPin className="h-4 w-4" />Location Map
           </CardTitle>
         </CardHeader>
         <CardContent>
           {hasLocation ? (
             <div className="space-y-2">
               <div className="relative">
-                <AspectRatio ratio={16 / 9} className="overflow-hidden rounded-lg border border-border bg-muted">
+                <AspectRatio ratio={16/9} className="overflow-hidden rounded-lg border border-border bg-muted">
                   {mapLoading ? (
-                    <div className="flex items-center justify-center h-full">
-                      <RefreshCw className="h-6 w-6 animate-spin text-muted-foreground" />
-                    </div>
+                    <div className="flex items-center justify-center h-full"><RefreshCw className="h-6 w-6 animate-spin text-muted-foreground" /></div>
                   ) : mapError ? (
-                    <div className="flex flex-col items-center justify-center h-full text-muted-foreground">
-                      <MapPin className="h-6 w-6 mb-2" />
-                      <p className="text-xs">{mapError}</p>
-                    </div>
+                    <div className="flex flex-col items-center justify-center h-full text-muted-foreground"><MapPin className="h-6 w-6 mb-2" /><p className="text-xs">{mapError}</p></div>
                   ) : mapImageUrl ? (
-                    <img
-                      src={mapImageUrl}
-                      alt="Location map"
-                      className="object-cover w-full h-full"
-                    />
+                    <img src={mapImageUrl} alt="Location map" className="object-cover w-full h-full" />
                   ) : (
-                    <div className="flex items-center justify-center h-full">
-                      <RefreshCw className="h-6 w-6 animate-spin text-muted-foreground" />
-                    </div>
+                    <div className="flex items-center justify-center h-full"><RefreshCw className="h-6 w-6 animate-spin text-muted-foreground" /></div>
                   )}
                 </AspectRatio>
-                
-                {/* Map Controls Overlay */}
                 <div className="absolute top-2 right-2 flex flex-col gap-1">
-                  {/* Zoom controls */}
                   <div className="flex flex-col bg-background/90 backdrop-blur-sm rounded border border-border shadow-sm">
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-8 w-8 rounded-none rounded-t"
-                      onClick={handleZoomIn}
-                      disabled={mapZoom >= 20 || mapLoading}
-                    >
-                      <ZoomIn className="h-4 w-4" />
-                    </Button>
-                    <div className="text-xs text-center py-0.5 border-y border-foreground/20 font-mono">
-                      {mapZoom}
-                    </div>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-8 w-8 rounded-none rounded-b"
-                      onClick={handleZoomOut}
-                      disabled={mapZoom <= 10 || mapLoading}
-                    >
-                      <ZoomOut className="h-4 w-4" />
-                    </Button>
+                    <Button variant="ghost" size="icon" className="h-8 w-8 rounded-none rounded-t" onClick={handleZoomIn} disabled={mapZoom >= 20 || mapLoading}><ZoomIn className="h-4 w-4" /></Button>
+                    <div className="text-xs text-center py-0.5 border-y border-foreground/20 font-mono">{mapZoom}</div>
+                    <Button variant="ghost" size="icon" className="h-8 w-8 rounded-none rounded-b" onClick={handleZoomOut} disabled={mapZoom <= 10 || mapLoading}><ZoomOut className="h-4 w-4" /></Button>
                   </div>
                 </div>
-                
-                {/* Pan controls */}
                 <div className="absolute bottom-2 right-2 bg-background/90 backdrop-blur-sm rounded border border-border shadow-sm p-1">
                   <div className="grid grid-cols-3 gap-0.5">
-                    <div />
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-7 w-7"
-                      onClick={() => handlePan('up')}
-                      disabled={mapLoading}
-                    >
-                      <ChevronUp className="h-4 w-4" />
-                    </Button>
-                    <div />
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-7 w-7"
-                      onClick={() => handlePan('left')}
-                      disabled={mapLoading}
-                    >
-                      <ChevronLeft className="h-4 w-4" />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-7 w-7"
-                      onClick={handleResetMap}
-                      disabled={mapLoading}
-                      title="Reset to original position"
-                    >
-                      <RotateCcw className="h-3 w-3" />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-7 w-7"
-                      onClick={() => handlePan('right')}
-                      disabled={mapLoading}
-                    >
-                      <ChevronRight className="h-4 w-4" />
-                    </Button>
-                    <div />
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-7 w-7"
-                      onClick={() => handlePan('down')}
-                      disabled={mapLoading}
-                    >
-                      <ChevronDown className="h-4 w-4" />
-                    </Button>
-                    <div />
+                    <div /><Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handlePan('up')} disabled={mapLoading}><ChevronUp className="h-4 w-4" /></Button><div />
+                    <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handlePan('left')} disabled={mapLoading}><ChevronLeft className="h-4 w-4" /></Button>
+                    <Button variant="ghost" size="icon" className="h-7 w-7" onClick={handleResetMap} disabled={mapLoading} title="Reset"><RotateCcw className="h-3 w-3" /></Button>
+                    <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handlePan('right')} disabled={mapLoading}><ChevronRight className="h-4 w-4" /></Button>
+                    <div /><Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handlePan('down')} disabled={mapLoading}><ChevronDown className="h-4 w-4" /></Button><div />
                   </div>
                 </div>
               </div>
-              <p className="text-xs text-muted-foreground text-center">
-                Adjust zoom and position using controls • Map will be included in PDF brochure
-              </p>
+              <p className="text-xs text-muted-foreground text-center">Adjust zoom and position • Map will be included in PDF</p>
             </div>
           ) : (
             <div className="text-center py-8">
               <MapPin className="h-8 w-8 mx-auto mb-3 text-muted-foreground" />
               <p className="text-sm text-muted-foreground mb-1">No location coordinates available</p>
               <p className="text-xs text-muted-foreground mb-4">Geocode the listing to include a map in the brochure</p>
-              <Button 
-                variant="outline" 
-                onClick={handleGeocode}
-                disabled={isGeocoding}
-              >
-                {isGeocoding ? (
-                  <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
-                ) : (
-                  <MapPin className="h-4 w-4 mr-2" />
-                )}
+              <Button variant="outline" onClick={handleGeocode} disabled={isGeocoding}>
+                {isGeocoding ? <RefreshCw className="h-4 w-4 mr-2 animate-spin" /> : <MapPin className="h-4 w-4 mr-2" />}
                 Geocode Address
               </Button>
             </div>
@@ -849,234 +437,151 @@ export function MarketingSection({ listing, onPhotoUpdate }: MarketingSectionPro
         </CardContent>
       </Card>
 
-       {/* Generate Button */}
-       {!marketingContent && !isGenerating && (
-         <Card>
-           <CardContent className="py-12 text-center">
-             <Sparkles className="h-12 w-12 mx-auto mb-4 text-primary" />
-             <h3 className="text-lg font-semibold mb-2">AI-Powered Marketing</h3>
-             <p className="text-muted-foreground mb-6 max-w-md mx-auto">
-               Generate professional marketing copy including headlines, descriptions, and key highlights using AI.
-             </p>
-             <Button onClick={generateMarketingContent} size="lg">
-               <Sparkles className="h-4 w-4 mr-2" />
-               Generate Marketing Content
-             </Button>
-           </CardContent>
-         </Card>
-       )}
- 
-       {/* Loading State */}
-       {isGenerating && (
-         <Card>
-           <CardContent className="py-12">
-             <div className="flex flex-col items-center gap-4">
-               <RefreshCw className="h-8 w-8 animate-spin text-primary" />
-               <p className="text-muted-foreground">Generating marketing content...</p>
-               <div className="space-y-3 w-full max-w-md">
-                 <Skeleton className="h-6 w-3/4" />
-                 <Skeleton className="h-4 w-full" />
-                 <Skeleton className="h-4 w-full" />
-                 <Skeleton className="h-4 w-2/3" />
-               </div>
-             </div>
-           </CardContent>
-         </Card>
-       )}
- 
-       {/* Generated Content */}
-       {marketingContent && !isGenerating && (
-         <>
-           {/* Actions Bar */}
+      {/* Generate / Loading */}
+      {!marketing && !isGenerating && (
+        <Card>
+          <CardContent className="py-12 text-center">
+            <Sparkles className="h-12 w-12 mx-auto mb-4 text-primary" />
+            <h3 className="text-lg font-semibold mb-2">AI-Powered Marketing</h3>
+            <p className="text-muted-foreground mb-6 max-w-md mx-auto">Generate professional marketing copy including headlines, descriptions, and key highlights using AI.</p>
+            <Button onClick={generateMarketing} size="lg"><Sparkles className="h-4 w-4 mr-2" />Generate Marketing Content</Button>
+          </CardContent>
+        </Card>
+      )}
+      {isGenerating && (
+        <Card>
+          <CardContent className="py-12">
+            <div className="flex flex-col items-center gap-4">
+              <RefreshCw className="h-8 w-8 animate-spin text-primary" />
+              <p className="text-muted-foreground">Generating marketing content...</p>
+              <div className="space-y-3 w-full max-w-md">
+                <Skeleton className="h-6 w-3/4" /><Skeleton className="h-4 w-full" /><Skeleton className="h-4 w-full" /><Skeleton className="h-4 w-2/3" />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Generated content */}
+      {displayMarketing && !isGenerating && (
+        <>
+          {/* Actions Bar */}
+          <Card>
+            <CardContent className="py-4">
+              <div className="flex flex-wrap items-center justify-between gap-4">
+                <div className="flex items-center gap-4">
+                  <div className="flex items-center space-x-2">
+                    <Checkbox id="confidential" checked={includeConfidential} onCheckedChange={(v) => setIncludeConfidential(v as boolean)} />
+                    <Label htmlFor="confidential" className="text-sm">Include broker notes</Label>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Button variant="ghost" size="sm" onClick={resetOverrides} title="Reset all overrides"><RotateCw className="h-4 w-4" /></Button>
+                  <Button variant="outline" onClick={generateMarketing} disabled={isGenerating}>
+                    <RefreshCw className="h-4 w-4 mr-2" />Regenerate
+                  </Button>
+                  {!isEditing ? (
+                    <Button variant="outline" onClick={() => setIsEditing(true)}><Pencil className="h-4 w-4 mr-2" />Edit</Button>
+                  ) : (
+                    <>
+                      <Button variant="outline" onClick={() => setIsEditing(false)}><X className="h-4 w-4 mr-2" />Done</Button>
+                    </>
+                  )}
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Headline & Tagline */}
+          <div className="grid md:grid-cols-2 gap-6">
             <Card>
-              <CardContent className="py-4">
-               <div className="flex flex-wrap items-center justify-between gap-4">
-                 <div className="flex items-center gap-4">
-                   <div className="flex items-center space-x-2">
-                     <Checkbox
-                       id="confidential"
-                       checked={includeConfidential}
-                       onCheckedChange={(checked) => setIncludeConfidential(checked as boolean)}
-                     />
-                     <Label htmlFor="confidential" className="text-sm">
-                       Include broker notes
-                     </Label>
-                   </div>
-                 </div>
-                 <div className="flex items-center gap-2">
-                   <Button
-                     variant="outline"
-                     onClick={generateMarketingContent}
-                     disabled={isGenerating}
-                   >
-                     <RefreshCw className="h-4 w-4 mr-2" />
-                     Regenerate
-                   </Button>
-                   {!isEditing ? (
-                     <Button variant="outline" onClick={() => setIsEditing(true)}>
-                       <Pencil className="h-4 w-4 mr-2" />
-                       Edit
-                     </Button>
-                   ) : (
-                     <>
-                       <Button variant="outline" onClick={handleCancelEdit}>
-                         <X className="h-4 w-4 mr-2" />
-                         Cancel
-                       </Button>
-                       <Button onClick={handleSaveEdits}>
-                         <Save className="h-4 w-4 mr-2" />
-                         Save
-                       </Button>
-                     </>
-                   )}
-                 </div>
-               </div>
-             </CardContent>
-           </Card>
- 
-           {/* Content Preview / Edit */}
-           <div className="grid md:grid-cols-2 gap-6">
-             {/* Headline & Tagline */}
-      <Card>
-                 <CardHeader>
-                  <CardTitle className="text-base">Headline & Tagline</CardTitle>
-               </CardHeader>
-               <CardContent className="space-y-4">
-                 {isEditing && editedContent ? (
-                   <>
-                     <div>
-                       <Label className="text-xs text-muted-foreground">Headline</Label>
-                       <Input
-                         value={editedContent.headline}
-                         onChange={(e) => setEditedContent({ ...editedContent, headline: e.target.value })}
-                       />
-                     </div>
-                     <div>
-                       <Label className="text-xs text-muted-foreground">Tagline</Label>
-                       <Input
-                         value={editedContent.tagline}
-                         onChange={(e) => setEditedContent({ ...editedContent, tagline: e.target.value })}
-                       />
-                     </div>
-                   </>
-                 ) : (
-                   <>
-                     <div>
-                       <p className="text-xs text-muted-foreground mb-1">Headline</p>
-                       <p className="text-lg font-semibold">{marketingContent.headline}</p>
-                     </div>
-                     <div>
-                       <p className="text-xs text-muted-foreground mb-1">Tagline</p>
-                       <p className="text-primary">{marketingContent.tagline}</p>
-                     </div>
-                   </>
-                 )}
-               </CardContent>
-             </Card>
- 
-             {/* Key Highlights */}
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-base">Key Highlights</CardTitle>
-               </CardHeader>
-               <CardContent>
-                 {isEditing && editedContent ? (
-                   <Textarea
-                     value={editedContent.highlights.join('\n')}
-                     onChange={(e) => setEditedContent({
-                       ...editedContent,
-                       highlights: e.target.value.split('\n').filter(h => h.trim())
-                     })}
-                     rows={6}
-                     placeholder="One highlight per line"
-                   />
-                 ) : (
-                   <ul className="space-y-2">
-                     {marketingContent.highlights.map((highlight, idx) => (
-                       <li key={idx} className="flex items-start gap-2">
-                         <span className="w-1.5 h-1.5 rounded-full bg-primary mt-2 flex-shrink-0" />
-                         <span className="text-sm">{highlight}</span>
-                       </li>
-                     ))}
-                   </ul>
-                 )}
-               </CardContent>
-             </Card>
-           </div>
- 
-           {/* Description */}
+              <CardHeader><CardTitle className="text-base">Headline & Tagline</CardTitle></CardHeader>
+              <CardContent className="space-y-4">
+                {isEditing ? (
+                  <>
+                    <div>
+                      <Label className="text-xs text-muted-foreground">Headline</Label>
+                      <Input value={displayMarketing.headline} onChange={(e) => updateOverride('headline', e.target.value)} />
+                    </div>
+                    <div>
+                      <Label className="text-xs text-muted-foreground">Tagline</Label>
+                      <Input value={displayMarketing.tagline} onChange={(e) => updateOverride('tagline', e.target.value)} />
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <div><p className="text-xs text-muted-foreground mb-1">Headline</p><p className="text-lg font-semibold">{displayMarketing.headline}</p></div>
+                    <div><p className="text-xs text-muted-foreground mb-1">Tagline</p><p className="text-primary">{displayMarketing.tagline}</p></div>
+                  </>
+                )}
+              </CardContent>
+            </Card>
+
             <Card>
-              <CardHeader>
-                <CardTitle className="text-base">Property Description</CardTitle>
-             </CardHeader>
-             <CardContent>
-               {isEditing && editedContent ? (
-                 <Textarea
-                   value={editedContent.description}
-                   onChange={(e) => setEditedContent({ ...editedContent, description: e.target.value })}
-                   rows={6}
-                 />
-               ) : (
-                 <p className="text-sm leading-relaxed whitespace-pre-line">
-                   {marketingContent.description}
-                 </p>
-               )}
-             </CardContent>
-           </Card>
- 
-           {/* Broker Pitch */}
-            <Card className="border border-amber-200 bg-amber-50/30">
-              <CardHeader>
-               <CardTitle className="text-base flex items-center gap-2">
-                 <span className="text-amber-600 dark:text-amber-400">Confidential</span>
-                 Broker Notes
-               </CardTitle>
-             </CardHeader>
-             <CardContent>
-               {isEditing && editedContent ? (
-                 <Textarea
-                   value={editedContent.broker_pitch}
-                   onChange={(e) => setEditedContent({ ...editedContent, broker_pitch: e.target.value })}
-                   rows={3}
-                 />
-               ) : (
-                 <p className="text-sm leading-relaxed">{marketingContent.broker_pitch}</p>
-               )}
-             </CardContent>
-           </Card>
- 
-           {/* Download Actions */}
-            <Card>
-              <CardContent className="py-6">
-               <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-                 <Button
-                   onClick={downloadPDF}
-                   disabled={isDownloading}
-                   size="lg"
-                 >
-                   {isDownloading ? (
-                     <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
-                   ) : (
-                     <FileText className="h-4 w-4 mr-2" />
-                   )}
-                   Download PDF Brochure
-                 </Button>
-                 <Button
-                   variant="outline"
-                   onClick={downloadIDML}
-                   size="lg"
-                 >
-                   <Download className="h-4 w-4 mr-2" />
-                   Export for InDesign
-                 </Button>
-               </div>
-               <p className="text-xs text-muted-foreground text-center mt-3">
-                 IDML export provides structured data for Adobe InDesign Data Merge
-               </p>
-             </CardContent>
-           </Card>
-         </>
-       )}
-     </div>
-   );
- }
+              <CardHeader><CardTitle className="text-base">Key Highlights</CardTitle></CardHeader>
+              <CardContent>
+                {isEditing ? (
+                  <Textarea
+                    value={displayMarketing.highlights.join('\n')}
+                    onChange={(e) => updateOverride('highlights', e.target.value.split('\n').filter(h => h.trim()))}
+                    rows={6}
+                    placeholder="One highlight per line"
+                  />
+                ) : (
+                  <ul className="space-y-2">
+                    {displayMarketing.highlights.map((h, i) => (
+                      <li key={i} className="flex items-start gap-2">
+                        <span className="w-1.5 h-1.5 rounded-full bg-primary mt-2 flex-shrink-0" />
+                        <span className="text-sm">{h}</span>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Description */}
+          <Card>
+            <CardHeader><CardTitle className="text-base">Property Description</CardTitle></CardHeader>
+            <CardContent>
+              {isEditing ? (
+                <Textarea value={displayMarketing.description} onChange={(e) => updateOverride('description', e.target.value)} rows={6} />
+              ) : (
+                <p className="text-sm leading-relaxed whitespace-pre-line">{displayMarketing.description}</p>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Broker Pitch */}
+          <Card className="border border-amber-200 bg-amber-50/30">
+            <CardHeader>
+              <CardTitle className="text-base flex items-center gap-2">
+                <span className="text-amber-600 dark:text-amber-400">Confidential</span> Broker Notes
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-sm leading-relaxed">{displayMarketing.broker_pitch}</p>
+            </CardContent>
+          </Card>
+
+          {/* Download Actions */}
+          <Card>
+            <CardContent className="py-6">
+              <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
+                <Button onClick={downloadPDF} disabled={isDownloading} size="lg">
+                  {isDownloading ? <RefreshCw className="h-4 w-4 mr-2 animate-spin" /> : <FileText className="h-4 w-4 mr-2" />}
+                  Download PDF Brochure
+                </Button>
+                <Button variant="outline" onClick={downloadIDML} size="lg">
+                  <Download className="h-4 w-4 mr-2" />Export for InDesign
+                </Button>
+              </div>
+              <p className="text-xs text-muted-foreground text-center mt-3">IDML export provides structured data for Adobe InDesign Data Merge</p>
+            </CardContent>
+          </Card>
+        </>
+      )}
+    </div>
+  );
+}
