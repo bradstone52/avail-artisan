@@ -159,5 +159,9 @@ export function useBrochureState(listing: Pick<BrochureSourceListing, 'id'>): Us
 
     isSaving:  persistence.isSaving,
     saveState: persistence.saveState,
+
+    // Expose the raw persistence result so consumers (MarketingSection)
+    // can pass it to BrochureEditorPanel without calling useBrochurePersistence twice
+    persistence,
   };
 }
