@@ -62,6 +62,8 @@ const App = () => (
         <BrowserRouter>
           <Routes>
             {/* Public routes - no authentication required */}
+            <Route path="/market" element={<PublicMarket />} />
+            <Route path="/market/:id" element={<PublicMarketDetail />} />
             <Route path="/auth" element={<Auth />} />
             <Route path="/install" element={<Install />} />
             <Route path="/share/:token" element={<SharePage />} />
