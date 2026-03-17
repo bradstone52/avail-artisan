@@ -22,7 +22,7 @@ import { DensityToggle } from '@/components/common/DensityToggle';
 import { formatNumber, formatCurrency } from '@/lib/format';
 import { useTableColumnPrefs } from '@/hooks/useTableColumnPrefs';
 import { useTableDensity } from '@/hooks/useTableDensity';
-import { MoreHorizontal, Eye, Pencil, Trash2 } from 'lucide-react';
+import { MoreHorizontal, Eye, Pencil, Trash2, Globe } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { differenceInDays, differenceInWeeks, differenceInMonths, parseISO } from 'date-fns';
 import { InternalListing } from '@/hooks/useInternalListings';
@@ -165,7 +165,14 @@ export function InternalListingsTable({
                   {isVisible('address') && (
                     <TableCell className={cn('font-medium', cellPadding)}>
                       <div className="flex flex-col">
-                        <span>{listing.display_address || listing.address}</span>
+                        <div className="flex items-center gap-1.5">
+                          <span>{listing.display_address || listing.address}</span>
+                          {(listing as any).website_published && (
+                            <span title="Published to website">
+                              <Globe className="w-3.5 h-3.5 text-green-600 flex-shrink-0" />
+                            </span>
+                          )}
+                        </div>
                         {!isCompact && listing.listing_number && (
                           <span className="text-xs text-muted-foreground">#{listing.listing_number}</span>
                         )}
