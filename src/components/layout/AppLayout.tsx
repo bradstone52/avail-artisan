@@ -27,7 +27,8 @@ import {
   UserSearch,
   ContactRound,
   Calculator,
-  CheckSquare
+  CheckSquare,
+  Globe
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -85,6 +86,7 @@ const navigation: NavigationEntry[] = [
 
 const adminNavigation = [
   { name: 'Management', href: '/admin/users', icon: Users },
+  { name: 'Public Market', href: '/admin/public-market', icon: Globe },
 ];
 
 export function AppLayout({ children }: AppLayoutProps) {

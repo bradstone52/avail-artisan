@@ -19,6 +19,7 @@ import TransactionForm from "./pages/TransactionForm";
 import IssueBuilder from "./pages/IssueBuilder";
 import SharePage from "./pages/SharePage";
 import AdminUsers from "./pages/AdminUsers";
+import AdminPublicMarket from "./pages/AdminPublicMarket";
 import JoinTeam from "./pages/JoinTeam";
 import Recipients from "./pages/Recipients";
 import TrackingRedirect from "./pages/TrackingRedirect";
@@ -87,7 +88,8 @@ const App = () => (
             <Route path="/transactions/:id/edit" element={<ProtectedRoute><TransactionForm /></ProtectedRoute>} />
             <Route path="/issue-builder" element={<ProtectedRoute><IssueBuilder /></ProtectedRoute>} />
             <Route path="/pdf/open-map" element={<PdfOpenMap />} />
-            <Route path="/admin/users" element={<ProtectedRoute><AdminUsers /></ProtectedRoute>} />
+             <Route path="/admin/users" element={<ProtectedRoute><AdminUsers /></ProtectedRoute>} />
+             <Route path="/admin/public-market" element={<ProtectedRoute><AdminPublicMarket /></ProtectedRoute>} />
             <Route path="/recipients" element={<ProtectedRoute><Recipients /></ProtectedRoute>} />
             <Route path="/pdf-import" element={<ProtectedRoute><PdfImport /></ProtectedRoute>} />
             <Route path="/account" element={<ProtectedRoute><AccountSettings /></ProtectedRoute>} />
