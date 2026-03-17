@@ -611,9 +611,6 @@ export function InternalListingEditDialog({
       website_published: data.website_published ?? false,
       broker_remarks: data.broker_remarks,
       confidential_summary: data.confidential_summary,
-      brochure_link: data.brochure_link,
-      website_link: data.website_link,
-      additional_features: data.additional_features,
     };
     onSubmit(cleanedData);
   };
