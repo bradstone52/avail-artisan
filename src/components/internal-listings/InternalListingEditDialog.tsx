@@ -231,6 +231,7 @@ export function InternalListingEditDialog({
         brochure_link: listing.brochure_link || '',
         website_link: listing.website_link || '',
         additional_features: listing.additional_features || '',
+        website_published: (listing as any).website_published ?? false,
       });
     } else {
       form.reset({
@@ -259,8 +260,8 @@ export function InternalListingEditDialog({
         has_sprinklers: false,
         sprinklers_esfr: false,
         has_led_lighting: false,
-        has_rail_access: false,
         has_air_conditioning: false,
+        has_rail_access: false,
         deal_type: 'Lease',
         asking_rent_psf: undefined,
         asking_sale_price: undefined,
@@ -282,6 +283,7 @@ export function InternalListingEditDialog({
         brochure_link: '',
         website_link: '',
         additional_features: '',
+        website_published: false,
       });
     }
   }, [listing, form]);
