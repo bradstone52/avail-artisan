@@ -58,6 +58,9 @@ export interface UseBrochureStateResult {
   // ── Persistence ──
   isSaving: boolean;
   saveState: () => Promise<void>;
+
+  // ── Raw persistence (for editor panel) ──
+  persistence: import('./useBrochurePersistence').UseBrochurePersistenceResult;
 }
 
 // isGenerating and isEditing/isDownloading remain local — not persisted
