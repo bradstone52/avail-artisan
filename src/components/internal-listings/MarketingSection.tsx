@@ -59,10 +59,8 @@ export function MarketingSection({ listing, onPhotoUpdate }: MarketingSectionPro
     isDownloading, setIsDownloading,
     isSaving, saveState,
     isLoadingState,
+    persistence,
   } = useBrochureState(listing);
-
-  // Also grab persistence state directly for the editor panel
-  const persistence = useBrochurePersistence(listing.id);
 
   // ── Photo state ─────────────────────────────────────────────────────────────
   const [photoUrl, setPhotoUrl] = useState<string | null>(listing.photo_url ?? null);
