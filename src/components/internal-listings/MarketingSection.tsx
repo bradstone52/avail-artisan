@@ -52,7 +52,6 @@ export function MarketingSection({ listing, onPhotoUpdate }: MarketingSectionPro
   const {
     marketing, isGenerating, generateMarketing,
     overrides, updateOverride, resetOverrides,
-    isEditing, setIsEditing,
     includeConfidential, setIncludeConfidential,
     mapZoom, mapOffset, handleZoomIn, handleZoomOut, handlePan, handleResetMap,
     isDownloading, setIsDownloading,
