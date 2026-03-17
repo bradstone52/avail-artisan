@@ -19,6 +19,7 @@ import TransactionForm from "./pages/TransactionForm";
 import IssueBuilder from "./pages/IssueBuilder";
 import SharePage from "./pages/SharePage";
 import AdminUsers from "./pages/AdminUsers";
+import AdminPublicMarket from "./pages/AdminPublicMarket";
 import JoinTeam from "./pages/JoinTeam";
 import Recipients from "./pages/Recipients";
 import TrackingRedirect from "./pages/TrackingRedirect";
