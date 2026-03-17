@@ -133,6 +133,8 @@ export interface BrochureOverrides {
   highlights?: string[];
   /** Custom disclaimer text (replaces the default) */
   disclaimer?: string;
+  /** Optional location paragraph shown below the map */
+  locationParagraph?: string;
   /** Which template to use */
   templateKey?: BrochureTemplateKey;
   /** ID of the hero photo (from BrochurePhoto[].id). Null = use listing.photo_url */
