@@ -22,7 +22,7 @@ import { DensityToggle } from '@/components/common/DensityToggle';
 import { formatNumber, formatCurrency } from '@/lib/format';
 import { useTableColumnPrefs } from '@/hooks/useTableColumnPrefs';
 import { useTableDensity } from '@/hooks/useTableDensity';
-import { MoreHorizontal, Eye, Pencil, Trash2 } from 'lucide-react';
+import { MoreHorizontal, Eye, Pencil, Trash2, Globe } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { differenceInDays, differenceInWeeks, differenceInMonths, parseISO } from 'date-fns';
 import { InternalListing } from '@/hooks/useInternalListings';
