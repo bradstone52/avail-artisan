@@ -88,7 +88,8 @@ const App = () => (
             <Route path="/transactions/:id/edit" element={<ProtectedRoute><TransactionForm /></ProtectedRoute>} />
             <Route path="/issue-builder" element={<ProtectedRoute><IssueBuilder /></ProtectedRoute>} />
             <Route path="/pdf/open-map" element={<PdfOpenMap />} />
-            <Route path="/admin/users" element={<ProtectedRoute><AdminUsers /></ProtectedRoute>} />
+             <Route path="/admin/users" element={<ProtectedRoute><AdminUsers /></ProtectedRoute>} />
+             <Route path="/admin/public-market" element={<ProtectedRoute><AdminPublicMarket /></ProtectedRoute>} />
             <Route path="/recipients" element={<ProtectedRoute><Recipients /></ProtectedRoute>} />
             <Route path="/pdf-import" element={<ProtectedRoute><PdfImport /></ProtectedRoute>} />
             <Route path="/account" element={<ProtectedRoute><AccountSettings /></ProtectedRoute>} />
