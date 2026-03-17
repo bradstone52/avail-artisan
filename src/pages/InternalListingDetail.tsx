@@ -53,6 +53,7 @@ export default function InternalListingDetail() {
   const { data: statusHistory } = useInternalListingStatusHistory(id);
   const { updateListing } = useInternalListings();
   const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [activeTab, setActiveTab] = useState('overview');
 
   const handleEditSubmit = (data: InternalListingFormData) => {
     if (!listing) return;
