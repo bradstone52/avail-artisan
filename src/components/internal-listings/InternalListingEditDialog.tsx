@@ -176,6 +176,7 @@ export function InternalListingEditDialog({
       brochure_link: '',
       website_link: '',
       additional_features: '',
+      website_published: false,
     },
   });
 
