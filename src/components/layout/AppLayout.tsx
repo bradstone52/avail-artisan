@@ -86,6 +86,7 @@ const navigation: NavigationEntry[] = [
 
 const adminNavigation = [
   { name: 'Management', href: '/admin/users', icon: Users },
+  { name: 'Public Market', href: '/admin/public-market', icon: Globe },
 ];
 
 export function AppLayout({ children }: AppLayoutProps) {
