@@ -28,7 +28,6 @@ import {
 import { useInternalListingPhotos } from '@/hooks/useInternalListingPhotos';
 import { useOrg } from '@/hooks/useOrg';
 import { useBrochureState } from '@/hooks/useBrochureState';
-import { useBrochurePersistence } from '@/hooks/useBrochurePersistence';
 import { buildBrochureData } from '@/lib/brochures/buildBrochureData';
 import { toCompatibleBase64, convertPhotosToBase64 } from '@/lib/brochures/brochureImageUtils';
 import { BrochureEngine } from '@/components/brochures/BrochureEngine';
