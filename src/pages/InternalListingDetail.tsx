@@ -134,10 +134,7 @@ export default function InternalListingDetail() {
              <Button
                variant="outline"
                className="gap-2"
-               onClick={() => {
-                 const marketingTab = document.querySelector('[value="marketing"]') as HTMLButtonElement;
-                 marketingTab?.click();
-               }}
+               onClick={() => setActiveTab('marketing')}
              >
                <Sparkles className="h-4 w-4" />
                <span className="hidden sm:inline">Generate Brochure</span>
