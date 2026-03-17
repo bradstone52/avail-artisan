@@ -1626,6 +1626,28 @@ export function InternalListingEditDialog({
                     </FormItem>
                   )}
                 />
+
+                {/* Publish to Website toggle */}
+                <FormField
+                  control={form.control}
+                  name="website_published"
+                  render={({ field }) => (
+                    <FormItem className="flex items-center justify-between rounded-lg border border-border p-4 bg-muted/30">
+                      <div className="space-y-0.5">
+                        <FormLabel className="flex items-center gap-2 text-base">
+                          <Globe className="h-4 w-4 text-green-600" />
+                          Publish to Website
+                        </FormLabel>
+                        <p className="text-xs text-muted-foreground">
+                          Show this listing on the public industrialmarket.ca portal
+                        </p>
+                      </div>
+                      <FormControl>
+                        <Switch checked={field.value ?? false} onCheckedChange={field.onChange} />
+                      </FormControl>
+                    </FormItem>
+                  )}
+                />
               </TabsContent>
             </Tabs>
 

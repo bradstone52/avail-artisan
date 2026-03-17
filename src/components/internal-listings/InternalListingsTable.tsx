@@ -165,7 +165,12 @@ export function InternalListingsTable({
                   {isVisible('address') && (
                     <TableCell className={cn('font-medium', cellPadding)}>
                       <div className="flex flex-col">
-                        <span>{listing.display_address || listing.address}</span>
+                        <div className="flex items-center gap-1.5">
+                          <span>{listing.display_address || listing.address}</span>
+                          {(listing as any).website_published && (
+                            <Globe className="w-3.5 h-3.5 text-green-600 flex-shrink-0" title="Published to website" />
+                          )}
+                        </div>
                         {!isCompact && listing.listing_number && (
                           <span className="text-xs text-muted-foreground">#{listing.listing_number}</span>
                         )}
