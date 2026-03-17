@@ -120,6 +120,7 @@ export interface InternalListingFormData {
   has_led_lighting?: boolean;
   has_rail_access?: boolean;
   has_air_conditioning?: boolean;
+  website_published?: boolean;
 }
 
 export interface InternalListingStatusHistory {

@@ -168,7 +168,9 @@ export function InternalListingsTable({
                         <div className="flex items-center gap-1.5">
                           <span>{listing.display_address || listing.address}</span>
                           {(listing as any).website_published && (
-                            <Globe className="w-3.5 h-3.5 text-green-600 flex-shrink-0" title="Published to website" />
+                            <span title="Published to website">
+                              <Globe className="w-3.5 h-3.5 text-green-600 flex-shrink-0" />
+                            </span>
                           )}
                         </div>
                         {!isCompact && listing.listing_number && (
