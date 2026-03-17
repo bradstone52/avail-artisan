@@ -27,7 +27,8 @@ import {
   UserSearch,
   ContactRound,
   Calculator,
-  CheckSquare
+  CheckSquare,
+  Globe
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
