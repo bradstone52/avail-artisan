@@ -2,39 +2,41 @@
  * tokens.ts — ClearView Commercial Realty design tokens
  *
  * Palette: deep navy primary, warm off-white page, slate borders,
- * gold accent bar. Restrained, print-calibrated, institutional.
+ * gold accent. Restrained, print-calibrated, institutional.
  */
 export const C = {
   // ── Core palette ──────────────────────────────────────────────────────────
   /** Deep navy — primary brand, headers, section titles */
-  navy:         '#1c2f4a',
-  /** Lighter navy — secondary text on dark bg */
-  navyLight:    '#2e4a6e',
+  navy:         '#1a2e46',
+  /** Mid navy — subtle rule lines on dark bg */
+  navyMid:      '#243d5c',
   /** Warm off-white — page background */
-  pageBg:       '#fafaf8',
+  pageBg:       '#f9f9f7',
   /** Near-black — body text, values */
   ink:          '#1a1d23',
   /** Dark gray — secondary body text */
   inkDark:      '#2d3340',
-  /** Mid gray — labels, captions */
-  inkMid:       '#5a6070',
+  /** Mid gray — labels, captions, sub-text */
+  inkMid:       '#5c6370',
   /** Light gray — muted / disabled */
-  inkLight:     '#8a9099',
+  inkLight:     '#8c939f',
   /** Pure white */
   white:        '#ffffff',
 
   // ── Structural ────────────────────────────────────────────────────────────
   /** Hairline borders */
-  border:       '#d8dce4',
-  /** Table alternating row */
-  rowEven:      '#f3f4f6',
-  /** Table label column */
-  rowLabel:     '#edf0f4',
+  border:       '#d6dae3',
+  /** Slightly warmer border for tables */
+  borderWarm:   '#dcdfe6',
+  /** Table alternating even row */
+  rowEven:      '#f4f5f7',
+  /** Table label column background */
+  rowLabel:     '#eceef2',
 
   // ── Accent ────────────────────────────────────────────────────────────────
-  /** Gold rule line — used sparingly for visual anchors */
-  gold:         '#b8860b',
-  /** Pale navy tint — card backgrounds */
+  /** Warm gold — used for structural rules, bullets, accents */
+  gold:         '#b08a0e',
+  /** Pale navy tint — card / band backgrounds */
   navyTint:     '#eef2f7',
 } as const;
 
