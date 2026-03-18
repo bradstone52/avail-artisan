@@ -1,24 +1,34 @@
 /**
  * IndustrialStandard/index.tsx
  *
- * 3-page industrial brochure — clean institutional layout.
+ * 3-page institutional industrial CRE brochure.
  *
- * PAGE 1 — Cover
- *   Full-bleed hero image → navy header bar (address, city, submarket) →
- *   two-column body: headline/tagline/description left, secondary photo right →
- *   thin footer
+ * ─────────────────────────────────────────────────────────────────────────────
+ * PAGE 1 — COVER
+ *   • Full-bleed hero image (fills ~55% of page height)
+ *   • Navy identity bar: address (large) · city/submarket · listing number
+ *   • 2px gold rule — visual anchor between identity bar and body
+ *   • Two-column body:
+ *       Left (60%): Headline → tagline → description
+ *       Right (40%): Secondary photo → 4 quick-hit spec chips
  *
- * PAGE 2 — Specifications & Pricing
- *   Wide spec table left (60%) · pricing card + map right (40%)
+ * PAGE 2 — SPECIFICATIONS & PRICING
+ *   • Two columns (62% / 38%)
+ *       Left: Property Details spec table → Additional Costs table → features
+ *       Right: Pricing card → Location map
  *
- * PAGE 3 — Highlights, Gallery & Broker Notes
- *   Navy snapshot band → two-column highlights → photo strip → broker notes
+ * PAGE 3 — HIGHLIGHTS, GALLERY & BROKER NOTES
+ *   • Full-width navy snapshot metrics band
+ *   • Key Highlights two-column bullet list
+ *   • Photo strip (up to 3 photos)
+ *   • Confidential broker notes (if enabled)
  *
  * Design intent:
- *   - Restrained, print-calibrated commercial brokerage style
- *   - Deep navy + gold accent, warm off-white page
- *   - Strong typographic hierarchy, no decorative clutter
- *   - Every element earns its space
+ *   Restrained, print-calibrated commercial brokerage aesthetic.
+ *   Navy + gold accent. Warm off-white page.
+ *   Consistent section heading treatment across all tables.
+ *   Every element earns its space — no decorative noise.
+ * ─────────────────────────────────────────────────────────────────────────────
  */
 import { Document, Page, View, Text, Image, StyleSheet } from '@react-pdf/renderer';
 import { BrochureHeader }    from '../../sections/BrochureHeader';
@@ -33,70 +43,75 @@ import { ConfidentialBlock } from '../../sections/ConfidentialBlock';
 import { C }                 from '../../styles/tokens';
 import type { BrochureData } from '@/lib/brochures/brochureTypes';
 
-// ─── Shared page geometry ────────────────────────────────────────────────────
-const PAGE_H_PADDING = 40;
-const PAGE_BODY_TOP  = 14;
-const FOOTER_HEIGHT  = 36; // clearance above absolute footer
+// ─── Shared geometry ──────────────────────────────────────────────────────────
+const PAD_H      = 38;   // horizontal page padding
+const BODY_TOP   = 16;   // top padding for body sections
+const FOOTER_H   = 34;   // space reserved for absolute footer
 
 const s = StyleSheet.create({
+
+  // ── Base page ──────────────────────────────────────────────────────────────
   page: {
     fontSize:        9,
     fontFamily:      'Helvetica',
     backgroundColor: C.pageBg,
-    paddingBottom:   FOOTER_HEIGHT,
+    paddingBottom:   FOOTER_H,
   },
 
-  // ── Page 1: Cover ──────────────────────────────────────────────────────────
+  // ═══════════════════════════════════════════════════════════════════════════
+  // PAGE 1 — COVER
+  // ═══════════════════════════════════════════════════════════════════════════
+
   heroImage: {
-    width:      '100%',
-    height:     252,
-    objectFit:  'cover' as const,
+    width:     '100%',
+    height:    248,
+    objectFit: 'cover' as const,
   },
 
-  // Address identity block — sits over a solid navy bar below the hero
+  // Navy identity bar — sits directly below hero
   identityBar: {
     backgroundColor:   C.navy,
-    paddingHorizontal: PAGE_H_PADDING,
-    paddingVertical:   10,
+    paddingHorizontal: PAD_H,
+    paddingVertical:   11,
     flexDirection:     'row' as const,
     justifyContent:    'space-between',
     alignItems:        'flex-end',
   },
-  identityLeft:    {},
+  identityLeft: { flex: 1 },
   addressLine: {
-    fontSize:   16,
-    fontWeight: 'bold',
-    color:      C.white,
-    marginBottom: 2,
+    fontSize:     17,
+    fontWeight:   'bold',
+    color:        C.white,
+    lineHeight:   1.15,
+    marginBottom: 3,
   },
   subLine: {
-    fontSize:      8,
-    color:         '#a0b4c8',
-    letterSpacing: 0.4,
+    fontSize:      7.5,
+    color:         '#8faecc',
+    letterSpacing: 0.3,
   },
-  listingNum: {
-    fontSize:  7,
-    color:     '#a0b4c8',
+  listingNumber: {
+    fontSize:  6.5,
+    color:     '#8faecc',
     textAlign: 'right' as const,
-    marginBottom: 2,
   },
 
-  // Thin gold rule
+  // Gold rule — 2 px, full bleed to identity bar padding
   goldRule: {
-    height:          2,
-    backgroundColor: C.gold,
-    marginHorizontal: PAGE_H_PADDING,
+    height:           2,
+    backgroundColor:  C.gold,
+    marginHorizontal: PAD_H,
   },
 
-  // Cover body
+  // Cover body: headline/description left, photo+chips right
   coverBody: {
-    paddingHorizontal: PAGE_H_PADDING,
-    paddingTop:        14,
+    paddingHorizontal: PAD_H,
+    paddingTop:        BODY_TOP,
     flexDirection:     'row' as const,
     gap:               20,
   },
-  coverColLeft:  { flex: 3 },
-  coverColRight: { flex: 2 },
+  coverLeft:  { flex: 3 },
+  coverRight: { flex: 2 },
 
   coverHeadline: {
     fontSize:     13,
@@ -106,41 +121,69 @@ const s = StyleSheet.create({
     marginBottom: 5,
   },
   coverTagline: {
-    fontSize:     8.5,
+    fontSize:     8,
     color:        C.inkMid,
-    marginBottom: 10,
-    fontStyle:    'italic',
+    fontStyle:    'italic' as const,
+    marginBottom: 9,
   },
   coverDesc: {
-    fontSize:   8,
-    lineHeight: 1.6,
+    fontSize:   7.5,
+    lineHeight: 1.65,
     color:      C.inkDark,
   },
+
   secondaryPhoto: {
     width:        '100%',
-    height:       130,
+    height:       124,
     objectFit:    'cover' as const,
     borderWidth:  0.5,
     borderColor:  C.border,
     marginBottom: 8,
   },
 
-  // ── Page 2: Specs ──────────────────────────────────────────────────────────
-  pageBody: {
-    paddingHorizontal: PAGE_H_PADDING,
-    paddingTop:        PAGE_BODY_TOP,
+  // Quick-hit spec chips in cover right column
+  chipRow: {
+    flexDirection:     'row' as const,
+    justifyContent:    'space-between',
+    alignItems:        'center',
+    paddingVertical:   4,
+    borderBottomWidth: 0.5,
+    borderBottomColor: C.border,
   },
-  twoCol:  { flexDirection: 'row' as const, gap: 18 },
-  colMain: { flex: 3 },
-  colSide: { flex: 2 },
+  chipLabel: {
+    fontSize:      6.5,
+    color:         C.inkMid,
+    textTransform: 'uppercase' as const,
+    letterSpacing: 0.4,
+  },
+  chipValue: {
+    fontSize:   8,
+    fontWeight: 'bold',
+    color:      C.navy,
+    textAlign:  'right' as const,
+  },
 
-  // ── Page 3: Highlights / Gallery ──────────────────────────────────────────
-  // (uses pageBody + standard section components)
+  // ═══════════════════════════════════════════════════════════════════════════
+  // PAGE 2 — SPECIFICATIONS & PRICING
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  pageBody: {
+    paddingHorizontal: PAD_H,
+    paddingTop:        BODY_TOP,
+  },
+  twoCol:  { flexDirection: 'row' as const, gap: 20 },
+  colMain: { flex: 62 },   // ~62%
+  colSide: { flex: 38 },   // ~38%
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // PAGE 3 — HIGHLIGHTS / GALLERY / NOTES
+  // (uses pageBody + shared section components)
+  // ═══════════════════════════════════════════════════════════════════════════
 });
 
-interface IndustrialStandardBrochureProps { data: BrochureData; }
+interface Props { data: BrochureData; }
 
-export function IndustrialStandardBrochure({ data }: IndustrialStandardBrochureProps) {
+export function IndustrialStandardBrochure({ data }: Props) {
   const {
     cover, copy, specs, features, financials,
     snapshots, pricing, location, gallery,
@@ -151,9 +194,9 @@ export function IndustrialStandardBrochure({ data }: IndustrialStandardBrochureP
   return (
     <Document>
 
-      {/* ═══════════════════════════════════════════════════════════════════
+      {/* ─────────────────────────────────────────────────────────────────────
           PAGE 1 — COVER
-      ═══════════════════════════════════════════════════════════════════ */}
+      ───────────────────────────────────────────────────────────────────── */}
       <Page size="LETTER" style={s.page}>
         <BrochureHeader dealTypeLabel={dealTypeLabel} />
 
@@ -162,7 +205,7 @@ export function IndustrialStandardBrochure({ data }: IndustrialStandardBrochureP
           <Image src={cover.heroPhotoUrl} style={s.heroImage} />
         )}
 
-        {/* Navy identity bar */}
+        {/* Identity bar */}
         <View style={s.identityBar}>
           <View style={s.identityLeft}>
             <Text style={s.addressLine}>{cover.displayAddress}</Text>
@@ -171,52 +214,55 @@ export function IndustrialStandardBrochure({ data }: IndustrialStandardBrochureP
             </Text>
           </View>
           {listingNumber && (
-            <Text style={s.listingNum}>{listingNumber}</Text>
+            <Text style={s.listingNumber}>{listingNumber}</Text>
           )}
         </View>
 
         {/* Gold rule */}
         <View style={s.goldRule} />
 
-        {/* Body: headline + description left, secondary photo right */}
+        {/* Body */}
         <View style={s.coverBody}>
-          <View style={s.coverColLeft}>
+
+          {/* Left — copy */}
+          <View style={s.coverLeft}>
             <Text style={s.coverHeadline}>{copy.headline}</Text>
-            {visibility.tagline && (
+            {visibility.tagline && copy.tagline ? (
               <Text style={s.coverTagline}>{copy.tagline}</Text>
-            )}
-            {visibility.description && (
+            ) : null}
+            {visibility.description && copy.description ? (
               <Text style={s.coverDesc}>{copy.description}</Text>
-            )}
+            ) : null}
           </View>
 
-          <View style={s.coverColRight}>
+          {/* Right — secondary photo + quick specs */}
+          <View style={s.coverRight}>
             {cover.secondaryPhotoUrl && (
               <Image src={cover.secondaryPhotoUrl} style={s.secondaryPhoto} />
             )}
-            {/* Quick-hit specs in right column if there are key ones */}
             {snapshots.slice(0, 4).map((snap, i) => (
-              <View key={i} style={{ flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 3, borderBottomWidth: 0.5, borderBottomColor: C.border }}>
-                <Text style={{ fontSize: 7, color: C.inkMid, textTransform: 'uppercase', letterSpacing: 0.5 }}>{snap.label}</Text>
-                <Text style={{ fontSize: 8, fontWeight: 'bold', color: C.navy }}>{snap.value}</Text>
+              <View key={i} style={s.chipRow}>
+                <Text style={s.chipLabel}>{snap.label}</Text>
+                <Text style={s.chipValue}>{snap.value}</Text>
               </View>
             ))}
           </View>
+
         </View>
 
         <BrochureFooter address={cover.displayAddress} city={cover.city} disclaimer={disclaimer} />
       </Page>
 
-      {/* ═══════════════════════════════════════════════════════════════════
+      {/* ─────────────────────────────────────────────────────────────────────
           PAGE 2 — SPECIFICATIONS & PRICING
-      ═══════════════════════════════════════════════════════════════════ */}
+      ───────────────────────────────────────────────────────────────────── */}
       <Page size="LETTER" style={s.page}>
         <BrochureHeader dealTypeLabel={dealTypeLabel} />
 
         <View style={s.pageBody}>
           <View style={s.twoCol}>
 
-            {/* Left column: spec table + financials */}
+            {/* Left — spec tables */}
             <View style={s.colMain}>
               {visibility.specs && (
                 <SpecTable rows={specs} features={features} />
@@ -226,13 +272,13 @@ export function IndustrialStandardBrochure({ data }: IndustrialStandardBrochureP
               )}
             </View>
 
-            {/* Right column: pricing card + map */}
+            {/* Right — pricing + map */}
             <View style={s.colSide}>
               {visibility.pricing && (
                 <PricingBlock pricing={pricing} />
               )}
               {visibility.map && (
-                <MapSection location={location} topSpacing={pricing.show ? 0 : 0} />
+                <MapSection location={location} />
               )}
             </View>
 
@@ -242,9 +288,9 @@ export function IndustrialStandardBrochure({ data }: IndustrialStandardBrochureP
         <BrochureFooter address={cover.displayAddress} city={cover.city} disclaimer={disclaimer} />
       </Page>
 
-      {/* ═══════════════════════════════════════════════════════════════════
+      {/* ─────────────────────────────────────────────────────────────────────
           PAGE 3 — HIGHLIGHTS, GALLERY & BROKER NOTES
-      ═══════════════════════════════════════════════════════════════════ */}
+      ───────────────────────────────────────────────────────────────────── */}
       <Page size="LETTER" style={s.page}>
         <BrochureHeader dealTypeLabel={dealTypeLabel} />
 
