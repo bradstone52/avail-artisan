@@ -1,30 +1,36 @@
 /**
- * MapSection.tsx — Static map with heading and caption
+ * MapSection.tsx
+ *
+ * Static map with navy heading bar and light border frame.
  */
 import { View, Text, Image, StyleSheet } from '@react-pdf/renderer';
 import { C } from '../styles/tokens';
 import type { BrochureData } from '@/lib/brochures/brochureTypes';
 
 const s = StyleSheet.create({
-  wrapper: { marginBottom: 14 },
+  wrapper: { marginBottom: 16 },
+
   heading: {
-    fontSize:      7,
-    fontWeight:    'bold',
-    color:         C.inkMid,
-    textTransform: 'uppercase',
-    letterSpacing: 1.1,
-    marginBottom:  5,
-    paddingBottom: 4,
-    borderBottomWidth: 1,
-    borderBottomColor: C.navy,
+    fontSize:          6.5,
+    fontWeight:        'bold',
+    color:             C.white,
+    backgroundColor:   C.navy,
+    textTransform:     'uppercase' as const,
+    letterSpacing:     1.2,
+    paddingVertical:   4,
+    paddingHorizontal: 7,
+    marginBottom:      0,
   },
+
   mapImage: {
     width:        '100%',
-    height:       185,
+    height:       180,
     objectFit:    'cover' as const,
     borderWidth:  0.5,
     borderColor:  C.border,
+    borderTopWidth: 0,
   },
+
   caption: {
     fontSize:  6,
     color:     C.inkLight,

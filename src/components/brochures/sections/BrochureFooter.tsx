@@ -1,35 +1,38 @@
 /**
- * BrochureFooter.tsx — Absolute-positioned page footer
+ * BrochureFooter.tsx
+ *
+ * Thin absolute footer: address (left) · disclaimer (right).
+ * Rendered on every page via `fixed`.
  */
 import { View, Text, StyleSheet } from '@react-pdf/renderer';
 import { C } from '../styles/tokens';
 
 const s = StyleSheet.create({
   footer: {
-    position:    'absolute' as const,
-    bottom:      18,
-    left:        40,
-    right:       40,
+    position:       'absolute' as const,
+    bottom:         16,
+    left:           38,
+    right:          38,
     borderTopWidth: 0.5,
     borderTopColor: C.border,
-    paddingTop:  5,
+    paddingTop:     5,
     flexDirection:  'row' as const,
     justifyContent: 'space-between',
-    alignItems:  'flex-start',
+    alignItems:     'flex-start',
   },
   address:    { fontSize: 6.5, color: C.inkLight },
   disclaimer: {
     fontSize:   5.5,
     color:      C.inkLight,
     textAlign:  'right' as const,
-    maxWidth:   '62%',
-    lineHeight: 1.4,
+    maxWidth:   '60%',
+    lineHeight: 1.45,
   },
 });
 
 interface BrochureFooterProps {
-  address: string;
-  city:    string;
+  address:    string;
+  city:       string;
   disclaimer: string;
 }
 
