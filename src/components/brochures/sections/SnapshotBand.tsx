@@ -1,5 +1,5 @@
 /**
- * SnapshotBand.tsx — Full-width key metrics strip on a dark background
+ * SnapshotBand.tsx — Full-width key metrics strip
  */
 import { View, Text, StyleSheet } from '@react-pdf/renderer';
 import { C } from '../styles/tokens';
@@ -9,31 +9,31 @@ const s = StyleSheet.create({
   band: {
     flexDirection:   'row' as const,
     backgroundColor: C.navy,
-    marginBottom:    14,
+    marginBottom:    16,
   },
   cell: {
     flex:             1,
-    paddingVertical:  10,
+    paddingVertical:  11,
     paddingHorizontal: 10,
     alignItems:       'center' as const,
     borderRightWidth: 0.5,
-    borderRightColor: C.navyLight,
+    borderRightColor: C.navyMid,
   },
   cellLast: {
     flex:             1,
-    paddingVertical:  10,
+    paddingVertical:  11,
     paddingHorizontal: 10,
     alignItems:       'center' as const,
   },
   label: {
-    fontSize:      6,
-    color:         '#a0b4c8',
-    textTransform: 'uppercase',
+    fontSize:      5.5,
+    color:         '#8fb3cc',
+    textTransform: 'uppercase' as const,
     letterSpacing: 0.9,
-    marginBottom:  3,
+    marginBottom:  4,
   },
   value: {
-    fontSize:   12,
+    fontSize:   13,
     fontWeight: 'bold',
     color:      C.white,
   },

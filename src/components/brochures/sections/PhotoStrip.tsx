@@ -1,5 +1,8 @@
 /**
- * PhotoStrip.tsx — Horizontal strip of up to 3 gallery photos
+ * PhotoStrip.tsx
+ *
+ * Horizontal row of up to 3 gallery photos, equal width.
+ * Thin border frame matches SpecTable row styling.
  */
 import { View, Image, StyleSheet } from '@react-pdf/renderer';
 import { C } from '../styles/tokens';
@@ -8,12 +11,12 @@ import type { BrochurePhoto } from '@/lib/brochures/brochureTypes';
 const s = StyleSheet.create({
   strip: {
     flexDirection: 'row' as const,
-    gap:           6,
-    marginBottom:  12,
+    gap:           5,
+    marginBottom:  14,
   },
   photo: {
     flex:         1,
-    height:       120,
+    height:       116,
     objectFit:    'cover' as const,
     borderWidth:  0.5,
     borderColor:  C.border,

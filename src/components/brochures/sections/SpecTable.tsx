@@ -1,61 +1,93 @@
 /**
- * SpecTable.tsx — Two-column spec table with clean alternating rows
+ * SpecTable.tsx
+ *
+ * Two-column spec table.
+ * - Full-width navy section heading with thin underline
+ * - Label column: light slate bg, muted uppercase text
+ * - Value column: white bg, normal-weight ink text
+ * - Alternating even-row tint for easy scanning
+ * - Optional feature bullet list below the table
  */
 import { View, Text, StyleSheet } from '@react-pdf/renderer';
 import { C } from '../styles/tokens';
 import type { BrochureSpecRow } from '@/lib/brochures/brochureTypes';
 
+const LABEL_W = '42%';
+const VALUE_W = '58%';
+
 const s = StyleSheet.create({
-  wrapper:     { marginBottom: 14 },
+  wrapper:  { marginBottom: 16 },
+
+  // Section heading ─────────────────────────────────────────────────────────
   heading: {
-    fontSize:      7,
-    fontWeight:    'bold',
-    color:         C.inkMid,
-    textTransform: 'uppercase',
-    letterSpacing: 1.1,
-    marginBottom:  5,
-    paddingBottom: 4,
-    borderBottomWidth: 1,
-    borderBottomColor: C.navy,
+    fontSize:          6.5,
+    fontWeight:        'bold',
+    color:             C.white,
+    backgroundColor:   C.navy,
+    textTransform:     'uppercase' as const,
+    letterSpacing:     1.2,
+    paddingVertical:   4,
+    paddingHorizontal: 7,
+    marginBottom:      0,
   },
-  table:   { borderWidth: 0.5, borderColor: C.border },
+
+  // Table container
+  table: {
+    borderWidth:  0.5,
+    borderColor:  C.borderWarm,
+    borderTopWidth: 0,
+  },
+
+  // Row variants ─────────────────────────────────────────────────────────────
   row: {
-    flexDirection:   'row' as const,
+    flexDirection:     'row' as const,
     borderBottomWidth: 0.5,
-    borderBottomColor: C.border,
+    borderBottomColor: C.borderWarm,
   },
-  rowLast: { flexDirection: 'row' as const },
-  rowEven: { backgroundColor: C.rowEven },
+  rowLast:  { flexDirection: 'row' as const },
+  rowOdd:   { backgroundColor: C.white },
+  rowEven:  { backgroundColor: C.rowEven },
+
+  // Label cell
   label: {
-    width:           '40%',
-    backgroundColor: C.rowLabel,
-    paddingVertical: 4,
+    width:             LABEL_W,
+    backgroundColor:   C.rowLabel,
+    paddingVertical:   4.5,
     paddingHorizontal: 8,
+    borderRightWidth:  0.5,
+    borderRightColor:  C.borderWarm,
   },
   labelText: {
-    fontSize:      7.5,
+    fontSize:      7,
     color:         C.inkMid,
     fontWeight:    'bold',
-    letterSpacing: 0.2,
+    letterSpacing: 0.1,
   },
+
+  // Value cell
   value: {
-    width:           '60%',
-    paddingVertical: 4,
+    width:             VALUE_W,
+    paddingVertical:   4.5,
     paddingHorizontal: 8,
   },
-  valueText: { fontSize: 8, color: C.ink },
-  // Features list below the table
-  features:  { marginTop: 8, marginBottom: 4 },
-  featureRow: { flexDirection: 'row' as const, marginBottom: 3 },
-  dot: {
-    width:  3.5,
-    height: 3.5,
-    backgroundColor: C.gold,
-    marginRight: 6,
-    marginTop:   3.5,
-    borderRadius: 2,
+  valueText: { fontSize: 7.5, color: C.ink },
+
+  // Feature bullets ─────────────────────────────────────────────────────────
+  featuresWrapper: { marginTop: 9 },
+  featureRow: {
+    flexDirection: 'row' as const,
+    marginBottom:  3.5,
+    alignItems:    'flex-start' as const,
   },
-  featureText: { fontSize: 7.5, color: C.inkDark, lineHeight: 1.4 },
+  bullet: {
+    width:           3.5,
+    height:          3.5,
+    backgroundColor: C.gold,
+    marginRight:     6,
+    marginTop:       3,
+    flexShrink:      0,
+  },
+  featureText: { fontSize: 7.5, color: C.inkDark, lineHeight: 1.45 },
 });
 
 interface SpecTableProps {
@@ -76,7 +108,7 @@ export function SpecTable({ rows, features = [], title = 'Property Details' }: S
           return (
             <View
               key={idx}
-              style={[isLast ? s.rowLast : s.row, isEven ? s.rowEven : {}]}
+              style={[isLast ? s.rowLast : s.row, isEven ? s.rowEven : s.rowOdd]}
             >
               <View style={s.label}>
                 <Text style={s.labelText}>{row.label}</Text>
@@ -90,10 +122,10 @@ export function SpecTable({ rows, features = [], title = 'Property Details' }: S
       </View>
 
       {features.length > 0 && (
-        <View style={s.features}>
+        <View style={s.featuresWrapper}>
           {features.map((f, i) => (
             <View key={i} style={s.featureRow}>
-              <View style={s.dot} />
+              <View style={s.bullet} />
               <Text style={s.featureText}>{f}</Text>
             </View>
           ))}

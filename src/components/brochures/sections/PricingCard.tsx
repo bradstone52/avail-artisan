@@ -1,56 +1,60 @@
 /**
- * PricingCard.tsx — Clean pricing block, bordered not filled
+ * PricingCard.tsx
+ *
+ * Compact pricing block — navy heading bar + one card per price point.
+ * Card: white bg, navy left accent, gold rule, clean value hierarchy.
  */
 import { View, Text, StyleSheet } from '@react-pdf/renderer';
 import { C } from '../styles/tokens';
 import type { BrochureData } from '@/lib/brochures/brochureTypes';
 
 const s = StyleSheet.create({
-  wrapper:  { marginBottom: 14 },
+  wrapper: { marginBottom: 16 },
+
   heading: {
-    fontSize:      7,
-    fontWeight:    'bold',
-    color:         C.inkMid,
-    textTransform: 'uppercase',
-    letterSpacing: 1.1,
-    marginBottom:  5,
-    paddingBottom: 4,
-    borderBottomWidth: 1,
-    borderBottomColor: C.navy,
+    fontSize:          6.5,
+    fontWeight:        'bold',
+    color:             C.white,
+    backgroundColor:   C.navy,
+    textTransform:     'uppercase' as const,
+    letterSpacing:     1.2,
+    paddingVertical:   4,
+    paddingHorizontal: 7,
+    marginBottom:      6,
   },
+
   card: {
-    borderWidth:      0.75,
-    borderColor:      C.navy,
+    borderWidth:      0.5,
+    borderColor:      C.border,
     borderLeftWidth:  3,
     borderLeftColor:  C.gold,
     paddingVertical:  10,
     paddingHorizontal: 12,
     marginBottom:     6,
-    backgroundColor:  C.navyTint,
+    backgroundColor:  C.white,
   },
+
   cardLabel: {
-    fontSize:      6.5,
+    fontSize:      6,
     color:         C.inkMid,
-    textTransform: 'uppercase',
-    letterSpacing: 0.9,
-    marginBottom:  3,
+    textTransform: 'uppercase' as const,
+    letterSpacing: 1.0,
+    marginBottom:  4,
   },
   cardValue: {
-    fontSize:   18,
+    fontSize:   20,
     fontWeight: 'bold',
     color:      C.navy,
-    lineHeight: 1.1,
+    lineHeight: 1.0,
   },
   cardSub: {
-    fontSize: 7,
-    color:    C.inkMid,
-    marginTop: 2,
+    fontSize:  6.5,
+    color:     C.inkMid,
+    marginTop: 3,
   },
 });
 
-interface PricingBlockProps {
-  pricing: BrochureData['pricing'];
-}
+interface PricingBlockProps { pricing: BrochureData['pricing']; }
 
 export function PricingBlock({ pricing }: PricingBlockProps) {
   if (!pricing.show) return null;
