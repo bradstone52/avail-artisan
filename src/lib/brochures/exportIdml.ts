@@ -575,93 +575,121 @@ ${swatches.map(sw => {
 
 function buildDesignMap(data: BrochureData): string {
   const addr = esc(data.cover.displayAddress);
-  return `<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?>
-<Document xmlns:idPkg=\"http://ns.adobe.com/AdobeInDesign/idml/1.0/packaging\"
-  DOMVersion=\"18.0\"
-  Self=\"d\"
-  ActiveLayer=\"u1\"
-  UniquenessKey=\"${uid()}\"
-  StoryList=\"spr1_story spr2_story spr3_story\"
-  ZeroPoint=\"0 0\"
-  ActiveProcess=\"CMYK\"
-  MetadataPacketPreference=\"MetadataPacketPreference/$ID/[Default]\"
-  Name=\"${addr} Brochure\">
-  <idPkg:Story src=\"Stories/Story_spr1.xml\" />
-  <idPkg:Story src=\"Stories/Story_spr2.xml\" />
-  <idPkg:Story src=\"Stories/Story_spr3.xml\" />
-  <idPkg:Spread src=\"Spreads/Spread_spr1.xml\" />
-  <idPkg:Spread src=\"Spreads/Spread_spr2.xml\" />
-  <idPkg:Spread src=\"Spreads/Spread_spr3.xml\" />
-  <idPkg:MasterSpread src=\"MasterSpreads/MasterSpread_uNone.xml\" />
-  <idPkg:Graphic src=\"Resources/Graphic.xml\" />
-  <idPkg:Fonts src=\"Resources/Fonts.xml\" />
-  <idPkg:Styles src=\"Resources/Styles.xml\" />
-  <idPkg:Preferences src=\"Resources/Preferences.xml\" />
-  <Layer Self=\"u1\" Name=\"Layer 1\" />
-</Document>`;
+  return [
+    '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>',
+    '<Document xmlns:idPkg="http://ns.adobe.com/AdobeInDesign/idml/1.0/packaging"',
+    '  DOMVersion="18.0"',
+    '  Self="d"',
+    '  ActiveLayer="u1"',
+    `  UniquenessKey="${uid()}"`,
+    '  StoryList="spr1_story spr2_story spr3_story"',
+    '  ZeroPoint="0 0"',
+    '  ActiveProcess="CMYK"',
+    '  MetadataPacketPreference="MetadataPacketPreference/$ID/[Default]"',
+    `  Name="${addr} Brochure">`,
+    '  <idPkg:Story src="Stories/Story_spr1.xml" />',
+    '  <idPkg:Story src="Stories/Story_spr2.xml" />',
+    '  <idPkg:Story src="Stories/Story_spr3.xml" />',
+    '  <idPkg:Spread src="Spreads/Spread_spr1.xml" />',
+    '  <idPkg:Spread src="Spreads/Spread_spr2.xml" />',
+    '  <idPkg:Spread src="Spreads/Spread_spr3.xml" />',
+    '  <idPkg:MasterSpread src="MasterSpreads/MasterSpread_uNone.xml" />',
+    '  <idPkg:Graphic src="Resources/Graphic.xml" />',
+    '  <idPkg:Fonts src="Resources/Fonts.xml" />',
+    '  <idPkg:Styles src="Resources/Styles.xml" />',
+    '  <idPkg:Preferences src="Resources/Preferences.xml" />',
+    '  <Layer Self="u1" Name="Layer 1" />',
+    '</Document>',
+  ].join('\n');
 }
 
 // ─── Master Spread ────────────────────────────────────────────────────────────
 
 function buildMasterSpread(): string {
-  return `<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?>
-<idPkg:MasterSpread xmlns:idPkg=\"http://ns.adobe.com/AdobeInDesign/idml/1.0/packaging\"
-  DOMVersion=\"18.0\">
-  <MasterSpread Self=\"MasterSpread/$ID/[None]\"
-    NamePrefix=\"\" BaseName=\"[None]\" ShowMasterItems=\"true\"
-    PageCount=\"1\" >
-    <Page Self=\"MasterPage/$ID/[None]\"
-      Name=\"[None]\"
-      GeometricBounds=\"0 0 ${pt(H)} ${pt(W)}\"
-      ItemTransform=\"1 0 0 1 0 0\"
-      AppliedMaster=\"n\"
-      MasterPageTransform=\"1 0 0 1 0 0\" TabOrder=\"\" />
-  </MasterSpread>
-</idPkg:MasterSpread>`;
+  return [
+    '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>',
+    '<idPkg:MasterSpread xmlns:idPkg="http://ns.adobe.com/AdobeInDesign/idml/1.0/packaging"',
+    '  DOMVersion="18.0">',
+    '  <MasterSpread Self="MasterSpread/$ID/[None]"',
+    '    NamePrefix="" BaseName="[None]" ShowMasterItems="true"',
+    '    PageCount="1">',
+    '    <Page Self="MasterPage/$ID/[None]"',
+    '      Name="[None]"',
+    `      GeometricBounds="0 0 ${pt(H)} ${pt(W)}"`,
+    '      ItemTransform="1 0 0 1 0 0"',
+    '      AppliedMaster="n"',
+    '      MasterPageTransform="1 0 0 1 0 0" TabOrder="" />',
+    '  </MasterSpread>',
+    '</idPkg:MasterSpread>',
+  ].join('\n');
 }
 
 // ─── BackingStory (required but minimal) ─────────────────────────────────────
 
 function buildBackingStory(): string {
-  return `<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?>
-<idPkg:BackingStory xmlns:idPkg=\"http://ns.adobe.com/AdobeInDesign/idml/1.0/packaging\"
-  DOMVersion=\"18.0\">
-  <XmlStory Self=\"XmlBackingStory\" TrackChanges=\"false\" StoryTitle=\"\"
-    AppliedTOCStyle=\"n\" AppliedNamedGrid=\"n\">
-  </XmlStory>
-</idPkg:BackingStory>`;
+  return [
+    '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>',
+    '<idPkg:BackingStory xmlns:idPkg="http://ns.adobe.com/AdobeInDesign/idml/1.0/packaging"',
+    '  DOMVersion="18.0">',
+    '  <XmlStory Self="XmlBackingStory" TrackChanges="false" StoryTitle=""',
+    '    AppliedTOCStyle="n" AppliedNamedGrid="n">',
+    '  </XmlStory>',
+    '</idPkg:BackingStory>',
+  ].join('\n');
 }
 
 // ─── Tags.xml ─────────────────────────────────────────────────────────────────
 
 function buildTags(): string {
   const tags = ['address','headline','tagline','description','highlight','spec','pricing','photo','footer'];
-  return `<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?>
-<idPkg:Tags xmlns:idPkg=\"http://ns.adobe.com/AdobeInDesign/idml/1.0/packaging\"
-  DOMVersion=\"18.0\">
-${tags.map(t => `  <XMLTag Self=\"XMLTag/${t}\" Name=\"${t}\" />`).join('\n')}
-</idPkg:Tags>`;
+  const lines = [
+    '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>',
+    '<idPkg:Tags xmlns:idPkg="http://ns.adobe.com/AdobeInDesign/idml/1.0/packaging"',
+    '  DOMVersion="18.0">',
+    ...tags.map(t => `  <XMLTag Self="XMLTag/${t}" Name="${t}" />`),
+    '</idPkg:Tags>',
+  ];
+  return lines.join('\n');
 }
 
 // ─── Mapping.xml ──────────────────────────────────────────────────────────────
 
 function buildMapping(): string {
-  return `<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?>
-<idPkg:Mapping xmlns:idPkg=\"http://ns.adobe.com/AdobeInDesign/idml/1.0/packaging\"
-  DOMVersion=\"18.0\">
-</idPkg:Mapping>`;
+  return [
+    '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>',
+    '<idPkg:Mapping xmlns:idPkg="http://ns.adobe.com/AdobeInDesign/idml/1.0/packaging"',
+    '  DOMVersion="18.0">',
+    '</idPkg:Mapping>',
+  ].join('\n');
 }
 
 // ─── Empty story stubs (referenced by DesignMap) ─────────────────────────────
 
 function buildStoryStub(id: string): string {
-  return `<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?>
-<idPkg:Story xmlns:idPkg=\"http://ns.adobe.com/AdobeInDesign/idml/1.0/packaging\"
-  DOMVersion=\"18.0\">
-  <Story Self=\"${id}_story\" AppliedTOCStyle=\"n\" TrackChanges=\"false\"
-    StoryTitle=\"\" AppliedNamedGrid=\"n\">
-  </Story>
-</idPkg:Story>`;
+  return [
+    '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>',
+    '<idPkg:Story xmlns:idPkg="http://ns.adobe.com/AdobeInDesign/idml/1.0/packaging"',
+    '  DOMVersion="18.0">',
+    `  <Story Self="${id}_story" AppliedTOCStyle="n" TrackChanges="false"`,
+    '    StoryTitle="" AppliedNamedGrid="n">',
+    '  </Story>',
+    '</idPkg:Story>',
+  ].join('\n');
+}
+
+// ─── META-INF/container.xml ───────────────────────────────────────────────────
+
+function buildContainer(): string {
+  return [
+    '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>',
+    '<container xmlns="urn:oasis:names:tc:opendocument:xmlns:container"',
+    '  version="1.0">',
+    '  <rootfiles>',
+    '    <rootfile full-path="designmap.xml"',
+    '      media-type="application/vnd.adobe.indesign-idml-package" />',
+    '  </rootfiles>',
+    '</container>',
+  ].join('\n');
 }
 
 // ─── Public API ───────────────────────────────────────────────────────────────
@@ -673,20 +701,10 @@ function buildStoryStub(id: string): string {
 export async function buildIdmlBlob(data: BrochureData): Promise<Blob> {
   const zip = new JSZip();
 
-  // mimetype must be first, uncompressed
+  // mimetype must be first and uncompressed (IDML spec requirement)
   zip.file('mimetype', 'application/vnd.adobe.indesign-idml-package', { compression: 'STORE' });
 
-  // META-INF
-  zip.file('META-INF/container.xml', `<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?>
-<container xmlns=\"urn:oasis:names:tc:opendocument:xmlns:container\"
-  version=\"1.0\">
-  <rootfiles>
-    <rootfile full-path=\"designmap.xml\"
-      media-type=\"application/vnd.adobe.indesign-idml-package\" />
-  </rootfiles>
-</container>`);
-
-  // Core document files
+  zip.file('META-INF/container.xml', buildContainer());
   zip.file('designmap.xml', buildDesignMap(data));
   zip.file('Resources/Styles.xml', buildStyles());
   zip.file('Resources/Graphic.xml', buildSwatches());
@@ -697,17 +715,18 @@ export async function buildIdmlBlob(data: BrochureData): Promise<Blob> {
   zip.file('XML/Mapping.xml', buildMapping());
   zip.file('MasterSpreads/MasterSpread_uNone.xml', buildMasterSpread());
 
-  // Spreads (one per page)
   zip.file('Spreads/Spread_spr1.xml', buildSpreadPage1(data));
   zip.file('Spreads/Spread_spr2.xml', buildSpreadPage2(data));
   zip.file('Spreads/Spread_spr3.xml', buildSpreadPage3(data));
 
-  // Story stubs (DesignMap references these)
   zip.file('Stories/Story_spr1.xml', buildStoryStub('spr1'));
   zip.file('Stories/Story_spr2.xml', buildStoryStub('spr2'));
   zip.file('Stories/Story_spr3.xml', buildStoryStub('spr3'));
 
-  return zip.generateAsync({ type: 'blob', mimeType: 'application/vnd.adobe.indesign-idml-package' });
+  return zip.generateAsync({
+    type: 'blob',
+    mimeType: 'application/vnd.adobe.indesign-idml-package',
+  });
 }
 
 /** Triggers a browser download of the IDML file. */
