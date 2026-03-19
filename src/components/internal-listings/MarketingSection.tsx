@@ -270,42 +270,64 @@ export function MarketingSection({ listing, onPhotoUpdate }: MarketingSectionPro
   };
 
   // ── IDML export ───────────────────────────────────────────────────────────────
-  const downloadIDML = () => {
+  const [isDownloadingIdml, setIsDownloadingIdml] = useState(false);
+  const handleDownloadIdml = async () => {
     if (!marketing) return;
-    const payload = {
-      metadata: { version: '2.0', generated: new Date().toISOString(), listing_id: listing.id, listing_number: listing.listing_number },
-      assets: { photo_url: photoUrl, latitude: coordinates.lat, longitude: coordinates.lng },
-      content: {
-        headline: overrides.headline ?? marketing.headline,
-        tagline:  overrides.tagline  ?? marketing.tagline,
-        address:  listing.display_address || listing.address,
-        city:     listing.city,
-        submarket: listing.submarket,
-        deal_type: listing.deal_type,
-        description: overrides.description ?? marketing.description,
-        highlights:  overrides.highlights  ?? marketing.highlights,
-        broker_pitch: includeConfidential ? marketing.broker_pitch : null,
-      },
-      specifications: {
-        size_sf: listing.size_sf, warehouse_sf: listing.warehouse_sf, office_sf: listing.office_sf,
-        land_acres: listing.land_acres, clear_height_ft: listing.clear_height_ft,
-        dock_doors: listing.dock_doors, drive_in_doors: listing.drive_in_doors,
-        loading_type: listing.loading_type, power: listing.power, yard: listing.yard,
-        zoning: listing.zoning, property_type: listing.property_type,
-      },
-      financials: {
-        asking_rent_psf: listing.asking_rent_psf, asking_sale_price: listing.asking_sale_price,
-        cam: listing.cam, op_costs: listing.op_costs, taxes: listing.taxes, gross_rate: listing.gross_rate,
-      },
-    };
-    const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = `${listing.address.replace(/[^a-zA-Z0-9]/g, '-')}-IDML-Data.json`;
-    link.click();
-    URL.revokeObjectURL(url);
-    toast.success('IDML data exported!');
+    setIsDownloadingIdml(true);
+    try {
+      const resolvedHeroUrl = persistence.state.heroPhotoUrl ?? photoUrl;
+      const heroBase64 = resolvedHeroUrl ? await toCompatibleBase64(resolvedHeroUrl) : null;
+      const galleryIds = persistence.state.galleryPhotoIds;
+      const orderedGallery = galleryIds.length
+        ? galleryIds.map(id => additionalPhotos.find(p => p.id === id)).filter(Boolean) as typeof additionalPhotos
+        : additionalPhotos;
+      const galleryBase64 = await convertPhotosToBase64(orderedGallery);
+
+      let staticMapBase64: string | null = null;
+      if (coordinates.lat && coordinates.lng) {
+        try {
+          const { data: sessionData } = await supabase.auth.getSession();
+          if (sessionData.session?.access_token) {
+            const adjLat = coordinates.lat + mapOffset.lat;
+            const adjLng = coordinates.lng + mapOffset.lng;
+            const proxyUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/proxy-static-map?lat=${adjLat}&lng=${adjLng}&markerLat=${coordinates.lat}&markerLng=${coordinates.lng}&zoom=${mapZoom}&size=800x450&scale=2&maptype=roadmap`;
+            const resp = await fetch(proxyUrl, { headers: { Authorization: `Bearer ${sessionData.session.access_token}` } });
+            if (resp.ok) {
+              const blob = await resp.blob();
+              staticMapBase64 = await new Promise<string>((res) => {
+                const reader = new FileReader();
+                reader.onloadend = () => res(reader.result as string);
+                reader.readAsDataURL(blob);
+              });
+            }
+          }
+        } catch { /* map optional */ }
+      }
+
+      const mergedOverrides = {
+        ...overrides,
+        heroPhotoId: persistence.state.heroPhotoId ?? overrides.heroPhotoId,
+        galleryPhotoIds: persistence.state.galleryPhotoIds.length
+          ? persistence.state.galleryPhotoIds
+          : (overrides.galleryPhotoIds ?? []),
+        templateKey: persistence.state.templateKey,
+      };
+      const brochureData = buildBrochureData({
+        listing: { ...listing, photo_url: heroBase64 ?? resolvedHeroUrl, latitude: coordinates.lat, longitude: coordinates.lng },
+        marketing,
+        staticMapBase64,
+        photos: galleryBase64.map(p => ({ id: p.id, photo_url: p.photo_url, caption: p.caption, sort_order: p.sort_order })),
+        overrides: mergedOverrides,
+        includeConfidential,
+      });
+      await downloadIdml(brochureData, `${listing.address.replace(/[^a-zA-Z0-9]/g, '-')}-Brochure.idml`);
+      toast.success('IDML file downloaded — open in InDesign to edit');
+    } catch (err) {
+      console.error('IDML export error:', err);
+      toast.error('Failed to export IDML');
+    } finally {
+      setIsDownloadingIdml(false);
+    }
   };
 
   const hasLocation = !!(coordinates.lat && coordinates.lng);
