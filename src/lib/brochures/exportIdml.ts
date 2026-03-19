@@ -546,24 +546,23 @@ function buildPreferences(): string {
 // ─── Swatches ────────────────────────────────────────────────────────────────
 
 function buildSwatches(): string {
-  const swatches = [
-    { name: 'Accent',   ...ACCENT_CMYK },
-    { name: 'Yellow',   ...YELLOW_CMYK },
-    { name: 'White',    ...WHITE_CMYK },
-    { name: 'Black',    ...BLACK_CMYK },
-    { name: 'Mid',      ...MID_CMYK },
-    { name: 'LightBg',  ...LIGHT_BG_CMYK },
-    { name: 'ConfBg',   { c: 0, m: 6, y: 22, k: 0 } },
+  const swatches: Array<{ name: string; c: number; m: number; y: number; k: number }> = [
+    { name: 'Accent',  ...ACCENT_CMYK },
+    { name: 'Yellow',  ...YELLOW_CMYK },
+    { name: 'White',   ...WHITE_CMYK },
+    { name: 'Black',   ...BLACK_CMYK },
+    { name: 'Mid',     ...MID_CMYK },
+    { name: 'LightBg', ...LIGHT_BG_CMYK },
+    { name: 'ConfBg',  c: 0, m: 6, y: 22, k: 0 },
   ];
 
-  return `<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?>
-<idPkg:Graphic xmlns:idPkg=\"http://ns.adobe.com/AdobeInDesign/idml/1.0/packaging\"
-  DOMVersion=\"18.0\">
+  return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<idPkg:Graphic xmlns:idPkg="http://ns.adobe.com/AdobeInDesign/idml/1.0/packaging"
+  DOMVersion="18.0">
 ${swatches.map(sw => {
-    const val = 'c' in sw ? sw : (sw as any);
-    const cmykVal = `${(val as any).c ?? sw} ${(val as any).m ?? 0} ${(val as any).y ?? 0} ${(val as any).k ?? 0}`;
-    return `  <Color Self=\"Color/${sw.name}\" Name=\"${sw.name}\"
-    ColorValue=\"${cmykVal}\" Model=\"Process\" Space=\"CMYK\" />`;
+    const cmykVal = `${sw.c} ${sw.m} ${sw.y} ${sw.k}`;
+    return `  <Color Self="Color/${sw.name}" Name="${sw.name}"
+    ColorValue="${cmykVal}" Model="Process" Space="CMYK" />`;
   }).join('\n')}
   <Swatch Self=\"Swatch/None\" Name=\"None\" />
   <Swatch Self=\"Swatch/Paper\" Name=\"Paper\" />
