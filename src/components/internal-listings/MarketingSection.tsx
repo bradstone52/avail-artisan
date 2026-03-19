@@ -24,6 +24,7 @@ import {
   ChevronUp, ChevronDown, ChevronLeft, ChevronRight, RotateCcw,
   Plus, Images, Save,
 } from 'lucide-react';
+import { downloadIdml } from '@/lib/brochures/exportIdml';
 
 import { useInternalListingPhotos } from '@/hooks/useInternalListingPhotos';
 import { useOrg } from '@/hooks/useOrg';
