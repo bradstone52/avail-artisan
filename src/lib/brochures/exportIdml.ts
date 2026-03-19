@@ -564,10 +564,10 @@ ${swatches.map(sw => {
     return `  <Color Self="Color/${sw.name}" Name="${sw.name}"
     ColorValue="${cmykVal}" Model="Process" Space="CMYK" />`;
   }).join('\n')}
-  <Swatch Self=\"Swatch/None\" Name=\"None\" />
-  <Swatch Self=\"Swatch/Paper\" Name=\"Paper\" />
-  <Swatch Self=\"Swatch/Black\" Name=\"Black\" />
-  <Swatch Self=\"Swatch/Registration\" Name=\"Registration\" />
+  <Swatch Self="Swatch/None" Name="None" />
+  <Swatch Self="Swatch/Paper" Name="Paper" />
+  <Swatch Self="Swatch/Black" Name="Black" />
+  <Swatch Self="Swatch/Registration" Name="Registration" />
 </idPkg:Graphic>`;
 }
 
