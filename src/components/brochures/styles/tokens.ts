@@ -30,7 +30,7 @@ export const C = {
   borderDark:   '#d1d5db',
   /** Warm border alias (kept for compat) */
   borderWarm:   '#e5e7eb',
-  /** Very light tint for header rows — subtle only */
+  /** Very light tint for header rows */
   rowEven:      '#f9fafb',
   /** Label column background — barely-there tint */
   rowLabel:     '#f3f4f6',
@@ -38,8 +38,10 @@ export const C = {
   // ── Accent ────────────────────────────────────────────────────────────────
   /** Navy tint accent — for deal-type badge, tagline bar */
   navyTint:     '#eef4fb',
-  /** Green accent — used in some CRE references for highlights */
+  /** Accent — navy used for bullets and accents */
   accent:       '#1a3a5c',
+  /** Gold — kept for legacy compat, maps to navy accent */
+  gold:         '#1a3a5c',
 } as const;
 
 export type ColorToken = keyof typeof C;
