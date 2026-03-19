@@ -1,12 +1,15 @@
 /**
  * SpecTable.tsx
  *
- * Two-column spec table.
- * - Full-width navy section heading with thin underline
- * - Label column: light slate bg, muted uppercase text
- * - Value column: white bg, normal-weight ink text
- * - Alternating even-row tint for easy scanning
- * - Optional feature bullet list below the table
+ * Institutional CRE spec table — inspired by CBRE/JLL/Colliers brochure style.
+ *
+ * Layout:
+ *  - Bold navy section title (large, left-aligned — NOT a colored bar)
+ *  - Full-width rows with thin hairline dividers
+ *  - Label: bold, dark navy, left (no background)
+ *  - Value: regular weight, dark gray, right
+ *  - Clean white background throughout
+ *  - Optional feature bullet list below
  */
 import { View, Text, StyleSheet } from '@react-pdf/renderer';
 import { C } from '../styles/tokens';
@@ -16,78 +19,68 @@ const LABEL_W = '42%';
 const VALUE_W = '58%';
 
 const s = StyleSheet.create({
-  wrapper:  { marginBottom: 16 },
+  wrapper:  { marginBottom: 20 },
 
-  // Section heading ─────────────────────────────────────────────────────────
-  heading: {
-    fontSize:          6.5,
-    fontWeight:        'bold',
-    color:             C.white,
-    backgroundColor:   C.navy,
-    textTransform:     'uppercase' as const,
-    letterSpacing:     1.2,
-    paddingVertical:   4,
-    paddingHorizontal: 7,
-    marginBottom:      0,
+  // Section title — navy bold text, NOT a colored bar
+  title: {
+    fontSize:     9,
+    fontWeight:   'bold',
+    color:        C.navy,
+    marginBottom: 6,
+    letterSpacing: 0.2,
   },
 
-  // Table container
-  table: {
-    borderWidth:  0.5,
-    borderColor:  C.borderWarm,
-    borderTopWidth: 0,
-  },
+  // Table
+  table: { borderTopWidth: 0.5, borderTopColor: C.border },
 
-  // Row variants ─────────────────────────────────────────────────────────────
   row: {
     flexDirection:     'row' as const,
     borderBottomWidth: 0.5,
-    borderBottomColor: C.borderWarm,
+    borderBottomColor: C.border,
+    minHeight:         20,
   },
-  rowLast:  { flexDirection: 'row' as const },
-  rowOdd:   { backgroundColor: C.white },
-  rowEven:  { backgroundColor: C.rowEven },
 
-  // Label cell
+  // Label cell — bold, no background
   label: {
     width:             LABEL_W,
-    backgroundColor:   C.rowLabel,
-    paddingVertical:   4.5,
-    paddingHorizontal: 8,
-    borderRightWidth:  0.5,
-    borderRightColor:  C.borderWarm,
+    paddingVertical:   5,
+    paddingHorizontal: 0,
+    justifyContent:    'center' as const,
   },
   labelText: {
-    fontSize:      7,
-    color:         C.inkMid,
-    fontWeight:    'bold',
-    letterSpacing: 0.1,
+    fontSize:   7.5,
+    fontWeight: 'bold',
+    color:      C.inkDark,
   },
 
-  // Value cell
+  // Value cell — normal weight
   value: {
     width:             VALUE_W,
-    paddingVertical:   4.5,
+    paddingVertical:   5,
     paddingHorizontal: 8,
+    justifyContent:    'center' as const,
   },
-  valueText: { fontSize: 7.5, color: C.ink },
+  valueText: {
+    fontSize:   7.5,
+    color:      C.inkMid,
+    lineHeight: 1.4,
+  },
 
-  // Feature bullets ─────────────────────────────────────────────────────────
-  featuresWrapper: { marginTop: 9 },
+  // Feature bullets below table
+  featuresWrapper: { marginTop: 10 },
   featureRow: {
     flexDirection: 'row' as const,
-    marginBottom:  3.5,
+    marginBottom:  4,
     alignItems:    'flex-start' as const,
   },
-  bullet: {
-    width:           3.5,
-    height:          3.5,
-    backgroundColor: C.gold,
-    marginRight:     6,
-    marginTop:       3,
-    flexShrink:      0,
+  bulletChar: {
+    fontSize:    8,
+    color:       C.navy,
+    marginRight: 6,
+    marginTop:   0,
+    fontWeight:  'bold',
   },
-  featureText: { fontSize: 7.5, color: C.inkDark, lineHeight: 1.45 },
+  featureText: { fontSize: 7.5, color: C.inkDark, lineHeight: 1.45, flex: 1 },
 });
 
 interface SpecTableProps {
@@ -100,32 +93,25 @@ export function SpecTable({ rows, features = [], title = 'Property Details' }: S
   if (!rows.length) return null;
   return (
     <View style={s.wrapper}>
-      <Text style={s.heading}>{title}</Text>
+      <Text style={s.title}>{title}</Text>
       <View style={s.table}>
-        {rows.map((row, idx) => {
-          const isLast = idx === rows.length - 1;
-          const isEven = idx % 2 === 0;
-          return (
-            <View
-              key={idx}
-              style={[isLast ? s.rowLast : s.row, isEven ? s.rowEven : s.rowOdd]}
-            >
-              <View style={s.label}>
-                <Text style={s.labelText}>{row.label}</Text>
-              </View>
-              <View style={s.value}>
-                <Text style={s.valueText}>{row.value}</Text>
-              </View>
+        {rows.map((row, idx) => (
+          <View key={idx} style={s.row}>
+            <View style={s.label}>
+              <Text style={s.labelText}>{row.label}</Text>
             </View>
-          );
-        })}
+            <View style={s.value}>
+              <Text style={s.valueText}>{row.value}</Text>
+            </View>
+          </View>
+        ))}
       </View>
 
       {features.length > 0 && (
         <View style={s.featuresWrapper}>
           {features.map((f, i) => (
             <View key={i} style={s.featureRow}>
-              <View style={s.bullet} />
+              <Text style={s.bulletChar}>+</Text>
               <Text style={s.featureText}>{f}</Text>
             </View>
           ))}

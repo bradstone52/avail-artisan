@@ -1,56 +1,46 @@
 /**
  * PricingCard.tsx
  *
- * Compact pricing block — navy heading bar + one card per price point.
- * Card: white bg, navy left accent, gold rule, clean value hierarchy.
+ * Large typographic pricing display — inspired by CBRE style.
+ * Giant display value with small label beneath — very impactful.
+ * White background, navy text, no card borders.
  */
 import { View, Text, StyleSheet } from '@react-pdf/renderer';
 import { C } from '../styles/tokens';
 import type { BrochureData } from '@/lib/brochures/brochureTypes';
 
 const s = StyleSheet.create({
-  wrapper: { marginBottom: 16 },
+  wrapper: { marginBottom: 20 },
 
-  heading: {
-    fontSize:          6.5,
-    fontWeight:        'bold',
-    color:             C.white,
-    backgroundColor:   C.navy,
-    textTransform:     'uppercase' as const,
-    letterSpacing:     1.2,
-    paddingVertical:   4,
-    paddingHorizontal: 7,
-    marginBottom:      6,
+  title: {
+    fontSize:      9,
+    fontWeight:    'bold',
+    color:         C.navy,
+    marginBottom:  12,
+    letterSpacing: 0.2,
   },
 
-  card: {
-    borderWidth:      0.5,
-    borderColor:      C.border,
-    borderLeftWidth:  3,
-    borderLeftColor:  C.gold,
-    paddingVertical:  10,
-    paddingHorizontal: 12,
-    marginBottom:     6,
-    backgroundColor:  C.white,
+  priceBlock: {
+    marginBottom: 14,
   },
-
-  cardLabel: {
-    fontSize:      6,
+  priceValue: {
+    fontSize:     28,
+    fontWeight:   'bold',
+    color:        C.navy,
+    lineHeight:   1.0,
+    marginBottom: 3,
+  },
+  priceLabel: {
+    fontSize:      6.5,
     color:         C.inkMid,
     textTransform: 'uppercase' as const,
-    letterSpacing: 1.0,
-    marginBottom:  4,
+    letterSpacing: 0.8,
   },
-  cardValue: {
-    fontSize:   20,
-    fontWeight: 'bold',
-    color:      C.navy,
-    lineHeight: 1.0,
-  },
-  cardSub: {
-    fontSize:  6.5,
-    color:     C.inkMid,
-    marginTop: 3,
+
+  divider: {
+    height:          0.5,
+    backgroundColor: C.border,
+    marginVertical:  10,
   },
 });
 
@@ -58,20 +48,26 @@ interface PricingBlockProps { pricing: BrochureData['pricing']; }
 
 export function PricingBlock({ pricing }: PricingBlockProps) {
   if (!pricing.show) return null;
+  const hasAny = pricing.rent || pricing.price;
+  if (!hasAny) return null;
+
   return (
     <View style={s.wrapper}>
-      <Text style={s.heading}>Pricing</Text>
+      <Text style={s.title}>Pricing</Text>
+
       {pricing.rent && (
-        <View style={s.card}>
-          <Text style={s.cardLabel}>Asking Rent</Text>
-          <Text style={s.cardValue}>{pricing.rent}</Text>
-          <Text style={s.cardSub}>Per Square Foot / Annum</Text>
+        <View style={s.priceBlock}>
+          <Text style={s.priceValue}>{pricing.rent}</Text>
+          <Text style={s.priceLabel}>Lease Rate (PSF)</Text>
         </View>
       )}
+
+      {pricing.rent && pricing.price && <View style={s.divider} />}
+
       {pricing.price && (
-        <View style={s.card}>
-          <Text style={s.cardLabel}>Asking Price</Text>
-          <Text style={s.cardValue}>{pricing.price}</Text>
+        <View style={s.priceBlock}>
+          <Text style={s.priceValue}>{pricing.price}</Text>
+          <Text style={s.priceLabel}>Asking Price</Text>
         </View>
       )}
     </View>
