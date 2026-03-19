@@ -1,8 +1,7 @@
 /**
  * ConfidentialBlock.tsx
  *
- * Broker-only internal notes panel.
- * Gold left accent + subtle border — visually distinct but not garish.
+ * Broker-only internal notes — subtle left accent, light background.
  */
 import { View, Text, StyleSheet } from '@react-pdf/renderer';
 import { C } from '../styles/tokens';
@@ -12,15 +11,15 @@ const s = StyleSheet.create({
     borderWidth:      0.5,
     borderColor:      C.border,
     borderLeftWidth:  3,
-    borderLeftColor:  C.gold,
-    backgroundColor:  '#fefdf6',
+    borderLeftColor:  C.navy,
+    backgroundColor:  '#f8fafc',
     padding:          10,
     marginTop:        10,
   },
   label: {
     fontSize:      6,
     fontWeight:    'bold',
-    color:         C.gold,
+    color:         C.navy,
     textTransform: 'uppercase' as const,
     letterSpacing: 0.9,
     marginBottom:  5,

@@ -2,7 +2,7 @@
  * BrochureFooter.tsx
  *
  * Thin absolute footer: address (left) · disclaimer (right).
- * Rendered on every page via `fixed`.
+ * Light hairline rule, small muted text. White background.
  */
 import { View, Text, StyleSheet } from '@react-pdf/renderer';
 import { C } from '../styles/tokens';
@@ -10,9 +10,9 @@ import { C } from '../styles/tokens';
 const s = StyleSheet.create({
   footer: {
     position:       'absolute' as const,
-    bottom:         16,
-    left:           38,
-    right:          38,
+    bottom:         14,
+    left:           40,
+    right:          40,
     borderTopWidth: 0.5,
     borderTopColor: C.border,
     paddingTop:     5,
@@ -20,7 +20,7 @@ const s = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems:     'flex-start',
   },
-  address:    { fontSize: 6.5, color: C.inkLight },
+  address:    { fontSize: 6, color: C.inkLight },
   disclaimer: {
     fontSize:   5.5,
     color:      C.inkLight,
@@ -39,7 +39,7 @@ interface BrochureFooterProps {
 export function BrochureFooter({ address, city, disclaimer }: BrochureFooterProps) {
   return (
     <View style={s.footer} fixed>
-      <Text style={s.address}>{address} · {city}</Text>
+      <Text style={s.address}>{address} · {city}, Alberta</Text>
       <Text style={s.disclaimer}>{disclaimer}</Text>
     </View>
   );
