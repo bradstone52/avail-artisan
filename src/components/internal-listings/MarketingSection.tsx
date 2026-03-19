@@ -598,7 +598,7 @@ export function MarketingSection({ listing, onPhotoUpdate }: MarketingSectionPro
                     }
                     Download PDF Brochure
                   </Button>
-                  <Button variant="outline" onClick={downloadIDML} size="lg">
+                  <Button variant="outline" onClick={handleDownloadIdml} disabled={isDownloadingIdml} size="lg">
                     <Download className="h-4 w-4 mr-2" />Export for InDesign
                   </Button>
                   <Button variant="ghost" size="lg" onClick={saveState} disabled={isSaving}>
