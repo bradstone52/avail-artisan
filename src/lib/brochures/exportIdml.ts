@@ -698,8 +698,10 @@ function buildZip(entries: Array<{ name: string; data: Uint8Array }>): Blob {
 // ─── Public API ───────────────────────────────────────────────────────────────
 
 export async function buildIdmlBlob(data: BrochureData): Promise<Blob> {
-  // Reset frame counter so IDs are deterministic per call
+  // Reset frame/image counters so IDs are deterministic per call
   _frameSeq = 0;
+  _imageSeq = 0;
+  _imageRegistry = new Map();
 
   const pages = [
     { id: 'spr1', pg: 'pg1', num: 1, items: page1(data) },
@@ -751,6 +753,20 @@ export async function buildIdmlBlob(data: BrochureData): Promise<Blob> {
     validateXml(xml, path);
   }
 
+  // ── Fetch all registered images and write them into Links/ ───────────────
+  await Promise.all(
+    Array.from(_imageRegistry.entries()).map(async ([url, entry]) => {
+      try {
+        const resp = await fetch(url);
+        if (!resp.ok) return;
+        const buf = await resp.arrayBuffer();
+        entry.bytes = new Uint8Array(buf);
+      } catch {
+        // image fetch failed — InDesign will show a missing-link warning but still open
+      }
+    })
+  );
+
   const enc = new TextEncoder();
 
   // Build ordered entries array — mimetype MUST be first
@@ -759,6 +775,12 @@ export async function buildIdmlBlob(data: BrochureData): Promise<Blob> {
   ];
   for (const [path, xml] of Object.entries(xmlFiles)) {
     entries.push({ name: path, data: enc.encode(xml) });
+  }
+  // Append each image file under Links/
+  for (const entry of _imageRegistry.values()) {
+    if (entry.bytes) {
+      entries.push({ name: entry.linkPath, data: entry.bytes });
+    }
   }
 
   return buildZip(entries);
