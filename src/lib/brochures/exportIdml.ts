@@ -130,9 +130,27 @@ function mkColorRect(
   };
 }
 
+/**
+ * imageRegistry maps original URL → { linkPath, bytes } so we fetch each
+ * unique image only once and write it as a real file inside Links/ in the ZIP.
+ */
+type ImageEntry = { linkPath: string; bytes: Uint8Array | null };
+let _imageRegistry: Map<string, ImageEntry>;
+let _imageSeq = 0;
+
+function registerImage(url: string): string {
+  if (_imageRegistry.has(url)) return _imageRegistry.get(url)!.linkPath;
+  const linkPath = `Links/image${++_imageSeq}.jpg`;
+  _imageRegistry.set(url, { linkPath, bytes: null });
+  return linkPath;
+}
+
 function mkImageFrame(
-  x: number, y: number, w: number, h: number, href: string,
+  x: number, y: number, w: number, h: number,
+  /** Original URL — will be replaced with Links/imageN.jpg in the ZIP */
+  url: string,
 ): FrameItem {
+  const linkPath = registerImage(url);
   const id     = uid('rf');
   const imgId  = uid('im');
   const lnkId  = uid('lk');
@@ -145,8 +163,8 @@ function mkImageFrame(
         rectPath(w, h) +
         `<Image Self="${imgId}" ItemTransform="1 0 0 1 0 0"` +
           ` AppliedObjectStyle="ObjectStyle/$ID/[None]">` +
-          `<Properties><Profile type="string">$ID/Embedded</Profile></Properties>` +
-          `<Link Self="${lnkId}" LinkResourceURI="${esc(href)}"` +
+          `<Properties><Profile type="string">$ID/Linked</Profile></Properties>` +
+          `<Link Self="${lnkId}" LinkResourceURI="${esc(linkPath)}"` +
             ` StoredState="Normal" LinkResourceFormat="$ID/JPEG"/>` +
         `</Image>` +
       `</Rectangle>`
