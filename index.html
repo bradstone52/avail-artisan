@@ -36,6 +36,25 @@
 
   <body>
     <div id="root"></div>
+    <!-- Force cache bust: clear all caches and reload if stale -->
+    <script>
+      (function() {
+        try {
+          // Unregister all service workers immediately (sync, before any app code)
+          if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.getRegistrations().then(function(regs) {
+              regs.forEach(function(r) { r.unregister(); });
+            });
+          }
+          // Clear all caches
+          if ('caches' in window) {
+            caches.keys().then(function(names) {
+              names.forEach(function(n) { caches.delete(n); });
+            });
+          }
+        } catch(e) {}
+      })();
+    </script>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>
