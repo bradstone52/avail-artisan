@@ -804,7 +804,7 @@ export async function buildIdmlBlob(data: BrochureData): Promise<Blob> {
   eocd.setUint16(20, 0,                    true); // comment len
   parts.push(new Uint8Array(eocdBuf));
 
-  return new Blob(parts, { type: 'application/vnd.adobe.indesign-idml-package' });
+  return new Blob(parts.map(p => p.buffer as ArrayBuffer), { type: 'application/vnd.adobe.indesign-idml-package' });
 }
 
 export async function downloadIdml(data: BrochureData, filename?: string): Promise<void> {
