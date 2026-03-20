@@ -576,64 +576,235 @@ function validateXml(xml: string, filename: string): void {
   }
 }
 
+// ─── ZIP assembly helpers ─────────────────────────────────────────────────────
+
+/** Write a local file entry into a raw ZIP byte array. */
+function zipEntry(
+  filename: string,
+  data: Uint8Array,
+  compress: boolean,
+): { local: Uint8Array; crc: number; compressedSize: number; uncompressedSize: number } {
+  const enc   = new TextEncoder();
+  const name  = enc.encode(filename);
+  const uncompressedSize = data.byteLength;
+
+  // CRC-32
+  let crc = 0xFFFFFFFF;
+  const crcTable = (() => {
+    const t = new Uint32Array(256);
+    for (let i = 0; i < 256; i++) {
+      let c = i;
+      for (let j = 0; j < 8; j++) c = (c & 1) ? (0xEDB88320 ^ (c >>> 1)) : (c >>> 1);
+      t[i] = c;
+    }
+    return t;
+  })();
+  for (let i = 0; i < data.length; i++) crc = crcTable[(crc ^ data[i]) & 0xFF] ^ (crc >>> 8);
+  crc = (crc ^ 0xFFFFFFFF) >>> 0;
+
+  // For STORE, compressedSize === uncompressedSize
+  const compressedData   = data; // no deflate — always STORE for our use-case
+  const compressedSize   = compressedData.byteLength;
+  const compressionMethod = 0; // STORE
+
+  // Local file header: signature + version + flags + method + mod time + mod date + crc + sizes + name len + extra len
+  const header = new DataView(new ArrayBuffer(30 + name.byteLength));
+  let o = 0;
+  header.setUint32(o, 0x04034B50, true); o += 4; // signature
+  header.setUint16(o, 20, true);          o += 2; // version needed
+  header.setUint16(o, 0, true);           o += 2; // flags
+  header.setUint16(o, compressionMethod, true); o += 2;
+  header.setUint16(o, 0, true);           o += 2; // mod time
+  header.setUint16(o, 0, true);           o += 2; // mod date
+  header.setUint32(o, crc, true);         o += 4;
+  header.setUint32(o, compressedSize, true); o += 4;
+  header.setUint32(o, uncompressedSize, true); o += 4;
+  header.setUint16(o, name.byteLength, true); o += 2;
+  header.setUint16(o, 0, true);           o += 2; // extra len
+  new Uint8Array(header.buffer).set(name, 30);
+
+  const local = new Uint8Array(header.buffer.byteLength + compressedData.byteLength);
+  local.set(new Uint8Array(header.buffer), 0);
+  local.set(compressedData, header.buffer.byteLength);
+
+  return { local, crc, compressedSize, uncompressedSize };
+}
+
 // ─── Public API ───────────────────────────────────────────────────────────────
 
 export async function buildIdmlBlob(data: BrochureData): Promise<Blob> {
-  const zip = new JSZip();
-
-  // 1. mimetype — MUST be first and uncompressed (IDML spec §3)
-  zip.file('mimetype', 'application/vnd.adobe.indesign-idml-package', { compression: 'STORE' });
-
-  // 2. Static resource files
-  const resources: Record<string, string> = {
-    'META-INF/container.xml':              buildContainer(),
-    'Resources/Graphic.xml':               buildGraphic(),
-    'Resources/Styles.xml':                buildStyles(),
-    'Resources/Fonts.xml':                 buildFonts(),
-    'Resources/Preferences.xml':           buildPreferences(),
-    'MasterSpreads/MasterSpread_uNone.xml': buildMasterSpread(),
-    'XML/BackingStory.xml':                buildBackingStory(),
-    'XML/Tags.xml':                        buildTags(),
-    'XML/Mapping.xml':                     buildMapping(),
-  };
-
-  for (const [path, xml] of Object.entries(resources)) {
-    validateXml(xml, path);
-    zip.file(path, xml);
-  }
-
-  // 3. Build page items
+  // Build all content first
   const pages = [
     { id: 'spr1', pg: 'pg1', num: 1, items: page1Items(data) },
     { id: 'spr2', pg: 'pg2', num: 2, items: page2Items(data) },
     { id: 'spr3', pg: 'pg3', num: 3, items: page3Items(data) },
   ];
 
-  // 4. Collect all story IDs before writing designmap
   const allStoryIds: string[] = [];
+  const storyFiles: Record<string, string> = {};
   for (const p of pages) {
     for (const item of p.items) {
       if (item.storyId && item.storyXml) {
         allStoryIds.push(item.storyId);
-        validateXml(item.storyXml, `Stories/Story_${item.storyId}.xml`);
-        zip.file(`Stories/Story_${item.storyId}.xml`, item.storyXml);
+        storyFiles[`Stories/Story_${item.storyId}.xml`] = item.storyXml;
       }
     }
   }
 
-  // 5. Write spread files
+  const spreadFiles: Record<string, string> = {};
   for (const p of pages) {
-    const xml = spreadXml(p.id, p.pg, p.num, p.items);
-    validateXml(xml, `Spreads/Spread_${p.id}.xml`);
-    zip.file(`Spreads/Spread_${p.id}.xml`, xml);
+    spreadFiles[`Spreads/Spread_${p.id}.xml`] = spreadXml(p.id, p.pg, p.num, p.items);
   }
 
-  // 6. Write designmap last (needs all storyIds)
   const dm = buildDesignMap(data.cover.displayAddress, pages.map(p => p.id), allStoryIds);
-  validateXml(dm, 'designmap.xml');
-  zip.file('designmap.xml', dm);
 
-  return zip.generateAsync({ type: 'blob' });
+  // Validate all XML
+  const allFiles: Record<string, string> = {
+    'META-INF/container.xml':               buildContainer(),
+    'Resources/Graphic.xml':                buildGraphic(),
+    'Resources/Styles.xml':                 buildStyles(),
+    'Resources/Fonts.xml':                  buildFonts(),
+    'Resources/Preferences.xml':            buildPreferences(),
+    'MasterSpreads/MasterSpread_uNone.xml': buildMasterSpread(),
+    'XML/BackingStory.xml':                 buildBackingStory(),
+    'XML/Tags.xml':                         buildTags(),
+    'XML/Mapping.xml':                      buildMapping(),
+    'designmap.xml':                        dm,
+    ...storyFiles,
+    ...spreadFiles,
+  };
+
+  for (const [path, xml] of Object.entries(allFiles)) {
+    validateXml(xml, path);
+  }
+
+  /**
+   * CRITICAL: IDML spec requires the `mimetype` entry to be:
+   *   1. The VERY FIRST entry in the ZIP central directory
+   *   2. Stored with STORE (no compression, method=0)
+   *   3. No extra fields, no data descriptor
+   *
+   * JSZip does NOT guarantee entry order reliably even with { compression: 'STORE' }.
+   * We therefore build the ZIP manually so `mimetype` is byte-0.
+   */
+  const enc     = new TextEncoder();
+  const MIME    = 'application/vnd.adobe.indesign-idml-package';
+  const mimeBytes = enc.encode(MIME);
+
+  // Use JSZip for everything except mimetype (it handles DEFLATE efficiently)
+  const zip = new JSZip();
+  for (const [path, xml] of Object.entries(allFiles)) {
+    zip.file(path, xml);
+  }
+  const zipBlob  = await zip.generateAsync({ type: 'uint8array', compression: 'DEFLATE' });
+
+  // --- Build a new ZIP with mimetype first, then append all JSZip entries ---
+  // Parse the JSZip output to extract entries and rebuild with mimetype prepended.
+  // Simpler approach: build the whole ZIP from scratch using JSZip with STORE for mimetype,
+  // but generate with streamFiles so order is preserved.
+
+  // The most reliable approach: build raw ZIP bytes manually.
+  const parts: Uint8Array[] = [];
+  const centralDir: Array<{
+    name: Uint8Array;
+    crc: number;
+    compressedSize: number;
+    uncompressedSize: number;
+    offset: number;
+  }> = [];
+  let offset = 0;
+
+  // Helper to write one STORE entry
+  function writeEntry(filename: string, content: string | Uint8Array): void {
+    const nameBytes    = enc.encode(filename);
+    const dataBytes    = typeof content === 'string' ? enc.encode(content) : content;
+    const uncompSize   = dataBytes.byteLength;
+
+    // CRC-32
+    const crcTable = new Uint32Array(256);
+    for (let i = 0; i < 256; i++) {
+      let c = i;
+      for (let j = 0; j < 8; j++) c = (c & 1) ? (0xEDB88320 ^ (c >>> 1)) : (c >>> 1);
+      crcTable[i] = c;
+    }
+    let crc = 0xFFFFFFFF;
+    for (let i = 0; i < dataBytes.length; i++) {
+      crc = crcTable[(crc ^ dataBytes[i]) & 0xFF] ^ (crc >>> 8);
+    }
+    crc = (crc ^ 0xFFFFFFFF) >>> 0;
+
+    // Local file header (30 bytes + name)
+    const lhBuf = new ArrayBuffer(30 + nameBytes.byteLength);
+    const lh    = new DataView(lhBuf);
+    lh.setUint32(0,  0x04034B50, true); // sig
+    lh.setUint16(4,  20,         true); // version needed
+    lh.setUint16(6,  0,          true); // flags
+    lh.setUint16(8,  0,          true); // STORE
+    lh.setUint16(10, 0,          true); // mod time
+    lh.setUint16(12, 0,          true); // mod date
+    lh.setUint32(14, crc,        true);
+    lh.setUint32(18, uncompSize, true); // compressed = uncompressed for STORE
+    lh.setUint32(22, uncompSize, true);
+    lh.setUint16(26, nameBytes.byteLength, true);
+    lh.setUint16(28, 0,          true); // extra len
+    new Uint8Array(lhBuf).set(nameBytes, 30);
+
+    centralDir.push({ name: nameBytes, crc, compressedSize: uncompSize, uncompressedSize: uncompSize, offset });
+    parts.push(new Uint8Array(lhBuf));
+    parts.push(dataBytes);
+    offset += lhBuf.byteLength + dataBytes.byteLength;
+  }
+
+  // 1. mimetype FIRST
+  writeEntry('mimetype', MIME);
+
+  // 2. All other files
+  for (const [path, xml] of Object.entries(allFiles)) {
+    writeEntry(path, xml);
+  }
+
+  // 3. Central directory
+  const cdOffset = offset;
+  for (const entry of centralDir) {
+    const cdBuf = new ArrayBuffer(46 + entry.name.byteLength);
+    const cd    = new DataView(cdBuf);
+    cd.setUint32(0,  0x02014B50,              true); // sig
+    cd.setUint16(4,  20,                      true); // version made
+    cd.setUint16(6,  20,                      true); // version needed
+    cd.setUint16(8,  0,                       true); // flags
+    cd.setUint16(10, 0,                       true); // STORE
+    cd.setUint16(12, 0,                       true); // mod time
+    cd.setUint16(14, 0,                       true); // mod date
+    cd.setUint32(16, entry.crc,               true);
+    cd.setUint32(20, entry.compressedSize,    true);
+    cd.setUint32(24, entry.uncompressedSize,  true);
+    cd.setUint16(28, entry.name.byteLength,   true);
+    cd.setUint16(30, 0,                       true); // extra
+    cd.setUint16(32, 0,                       true); // comment
+    cd.setUint16(34, 0,                       true); // disk start
+    cd.setUint16(36, 0,                       true); // int attr
+    cd.setUint32(38, 0,                       true); // ext attr
+    cd.setUint32(42, entry.offset,            true); // local header offset
+    new Uint8Array(cdBuf).set(entry.name, 46);
+    parts.push(new Uint8Array(cdBuf));
+    offset += cdBuf.byteLength;
+  }
+
+  // 4. End of central directory record
+  const cdSize   = offset - cdOffset;
+  const eocdBuf  = new ArrayBuffer(22);
+  const eocd     = new DataView(eocdBuf);
+  eocd.setUint32(0,  0x06054B50,           true); // sig
+  eocd.setUint16(4,  0,                    true); // disk number
+  eocd.setUint16(6,  0,                    true); // start disk
+  eocd.setUint16(8,  centralDir.length,    true); // entries on disk
+  eocd.setUint16(10, centralDir.length,    true); // total entries
+  eocd.setUint32(12, cdSize,               true);
+  eocd.setUint32(16, cdOffset,             true);
+  eocd.setUint16(20, 0,                    true); // comment len
+  parts.push(new Uint8Array(eocdBuf));
+
+  return new Blob(parts, { type: 'application/vnd.adobe.indesign-idml-package' });
 }
 
 export async function downloadIdml(data: BrochureData, filename?: string): Promise<void> {
