@@ -27,16 +27,25 @@ async function purgeAndMount() {
     }
   } catch { /* ignore */ }
 
-  // 3. If this is a new build, hard-reload once to flush any HTTP-cached chunks
+  // 3. Use localStorage (persists across sessions/tabs) to detect new builds
+  //    and hard-reload once to flush any HTTP-cached JS chunks.
   try {
-    const stored = sessionStorage.getItem(BUILD_KEY);
-    if (stored && stored !== BUILD_TIME) {
-      // New build detected — clear storage flag then reload from network
-      sessionStorage.setItem(BUILD_KEY, BUILD_TIME);
-      window.location.reload();
+    const stored = localStorage.getItem(BUILD_KEY);
+    if (stored !== BUILD_TIME) {
+      // New build detected — store the new timestamp, then force a full network reload
+      localStorage.setItem(BUILD_KEY, BUILD_TIME);
+      // Use cache-busting query param to guarantee the server returns a fresh response
+      const url = new URL(window.location.href);
+      url.searchParams.set('_cb', BUILD_TIME);
+      window.location.replace(url.toString());
       return; // stop here; the reload will remount the app fresh
     }
-    sessionStorage.setItem(BUILD_KEY, BUILD_TIME);
+    // Clean up the cache-bust param from the URL after reload
+    const url = new URL(window.location.href);
+    if (url.searchParams.has('_cb')) {
+      url.searchParams.delete('_cb');
+      window.history.replaceState({}, '', url.toString());
+    }
   } catch { /* ignore */ }
 
   // 4. Mount the app
