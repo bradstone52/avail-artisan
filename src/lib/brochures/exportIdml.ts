@@ -130,9 +130,27 @@ function mkColorRect(
   };
 }
 
+/**
+ * imageRegistry maps original URL → { linkPath, bytes } so we fetch each
+ * unique image only once and write it as a real file inside Links/ in the ZIP.
+ */
+type ImageEntry = { linkPath: string; bytes: Uint8Array | null };
+let _imageRegistry: Map<string, ImageEntry>;
+let _imageSeq = 0;
+
+function registerImage(url: string): string {
+  if (_imageRegistry.has(url)) return _imageRegistry.get(url)!.linkPath;
+  const linkPath = `Links/image${++_imageSeq}.jpg`;
+  _imageRegistry.set(url, { linkPath, bytes: null });
+  return linkPath;
+}
+
 function mkImageFrame(
-  x: number, y: number, w: number, h: number, href: string,
+  x: number, y: number, w: number, h: number,
+  /** Original URL — will be replaced with Links/imageN.jpg in the ZIP */
+  url: string,
 ): FrameItem {
+  const linkPath = registerImage(url);
   const id     = uid('rf');
   const imgId  = uid('im');
   const lnkId  = uid('lk');
@@ -145,8 +163,8 @@ function mkImageFrame(
         rectPath(w, h) +
         `<Image Self="${imgId}" ItemTransform="1 0 0 1 0 0"` +
           ` AppliedObjectStyle="ObjectStyle/$ID/[None]">` +
-          `<Properties><Profile type="string">$ID/Embedded</Profile></Properties>` +
-          `<Link Self="${lnkId}" LinkResourceURI="${esc(href)}"` +
+          `<Properties><Profile type="string">$ID/Linked</Profile></Properties>` +
+          `<Link Self="${lnkId}" LinkResourceURI="${esc(linkPath)}"` +
             ` StoredState="Normal" LinkResourceFormat="$ID/JPEG"/>` +
         `</Image>` +
       `</Rectangle>`
@@ -680,8 +698,10 @@ function buildZip(entries: Array<{ name: string; data: Uint8Array }>): Blob {
 // ─── Public API ───────────────────────────────────────────────────────────────
 
 export async function buildIdmlBlob(data: BrochureData): Promise<Blob> {
-  // Reset frame counter so IDs are deterministic per call
+  // Reset frame/image counters so IDs are deterministic per call
   _frameSeq = 0;
+  _imageSeq = 0;
+  _imageRegistry = new Map();
 
   const pages = [
     { id: 'spr1', pg: 'pg1', num: 1, items: page1(data) },
@@ -733,6 +753,20 @@ export async function buildIdmlBlob(data: BrochureData): Promise<Blob> {
     validateXml(xml, path);
   }
 
+  // ── Fetch all registered images and write them into Links/ ───────────────
+  await Promise.all(
+    Array.from(_imageRegistry.entries()).map(async ([url, entry]) => {
+      try {
+        const resp = await fetch(url);
+        if (!resp.ok) return;
+        const buf = await resp.arrayBuffer();
+        entry.bytes = new Uint8Array(buf);
+      } catch {
+        // image fetch failed — InDesign will show a missing-link warning but still open
+      }
+    })
+  );
+
   const enc = new TextEncoder();
 
   // Build ordered entries array — mimetype MUST be first
@@ -741,6 +775,12 @@ export async function buildIdmlBlob(data: BrochureData): Promise<Blob> {
   ];
   for (const [path, xml] of Object.entries(xmlFiles)) {
     entries.push({ name: path, data: enc.encode(xml) });
+  }
+  // Append each image file under Links/
+  for (const entry of _imageRegistry.values()) {
+    if (entry.bytes) {
+      entries.push({ name: entry.linkPath, data: entry.bytes });
+    }
   }
 
   return buildZip(entries);
