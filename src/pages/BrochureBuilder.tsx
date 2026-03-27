@@ -64,6 +64,11 @@ export default function BrochureBuilder() {
   const [brokerPhone, setBrokerPhone] = useState('');
   const [brokerEmail, setBrokerEmail] = useState('');
   const [brokerPhotoUrl, setBrokerPhotoUrl] = useState('');
+  const [broker2Name, setBroker2Name] = useState('');
+  const [broker2Title, setBroker2Title] = useState('');
+  const [broker2Phone, setBroker2Phone] = useState('');
+  const [broker2Email, setBroker2Email] = useState('');
+  const [broker2PhotoUrl, setBroker2PhotoUrl] = useState('');
   const [companyName, setCompanyName] = useState('');
 
   // Store listing data for AI generation
@@ -99,7 +104,7 @@ export default function BrochureBuilder() {
       try {
         const { data, error } = await supabase
           .from('internal_listings')
-          .select('*, internal_listing_photos(id, photo_url, sort_order)')
+          .select('*, internal_listing_photos(id, photo_url, sort_order), assigned_agent:agents!internal_listings_assigned_agent_id_fkey(name, email, phone), secondary_agent:agents!internal_listings_secondary_agent_id_fkey(name, email, phone)')
           .eq('id', listingId)
           .single();
         if (error) throw error;
@@ -109,6 +114,20 @@ export default function BrochureBuilder() {
 
         setAddress(data.address || '');
         setCity(data.city || '');
+
+        // Auto-populate agents
+        const agent1 = data.assigned_agent as any;
+        if (agent1) {
+          setBrokerName(agent1.name || '');
+          setBrokerEmail(agent1.email || '');
+          setBrokerPhone(agent1.phone || '');
+        }
+        const agent2 = data.secondary_agent as any;
+        if (agent2) {
+          setBroker2Name(agent2.name || '');
+          setBroker2Email(agent2.email || '');
+          setBroker2Phone(agent2.phone || '');
+        }
 
         // Map deal_type
         const dt = (data.deal_type || '').toLowerCase();
@@ -194,13 +213,19 @@ export default function BrochureBuilder() {
     brokerPhone: brokerPhone || '',
     brokerEmail: brokerEmail || '',
     brokerPhotoUrl: brokerPhotoUrl || undefined,
+    broker2Name: broker2Name || undefined,
+    broker2Title: broker2Title || undefined,
+    broker2Phone: broker2Phone || undefined,
+    broker2Email: broker2Email || undefined,
+    broker2PhotoUrl: broker2PhotoUrl || undefined,
     companyName: companyName || 'Brokerage',
   }), [
     type, address, city, province, buildingSF, landAcres, clearHeight,
     dockDoors, gradeDoors, power, zoning, occupancy, askingPrice, leaseRate,
     leaseType, headline, highlights, primaryPhotoUrl, secondaryPhotoUrl,
     aerialPhotoUrl, logoUrl, brokerName, brokerTitle, brokerPhone, brokerEmail,
-    brokerPhotoUrl, companyName,
+    brokerPhotoUrl, broker2Name, broker2Title, broker2Phone, broker2Email,
+    broker2PhotoUrl, companyName,
   ]);
 
   // Download PDF
@@ -476,9 +501,9 @@ export default function BrochureBuilder() {
                 </div>
               </div>
 
-              {/* Broker Info */}
+              {/* Broker 1 */}
               <div>
-                <h3 className="text-xs uppercase tracking-wide text-muted-foreground font-semibold mb-2">Broker</h3>
+                <h3 className="text-xs uppercase tracking-wide text-muted-foreground font-semibold mb-2">Agent 1</h3>
                 <div className="grid grid-cols-2 gap-2">
                   <div>
                     <Label htmlFor="brokerName">Name</Label>
@@ -496,10 +521,44 @@ export default function BrochureBuilder() {
                     <Label htmlFor="brokerEmail">Email</Label>
                     <Input id="brokerEmail" value={brokerEmail} onChange={e => setBrokerEmail(e.target.value)} />
                   </div>
-                  <div className="col-span-2">
-                    <Label htmlFor="companyName">Company</Label>
-                    <Input id="companyName" value={companyName} onChange={e => setCompanyName(e.target.value)} />
+                </div>
+                <div className="mt-2">
+                  <PhotoField label="Agent 1 Photo" value={brokerPhotoUrl} onChange={setBrokerPhotoUrl} onUpload={handlePhotoUpload} />
+                </div>
+              </div>
+
+              {/* Broker 2 */}
+              <div>
+                <h3 className="text-xs uppercase tracking-wide text-muted-foreground font-semibold mb-2">Agent 2</h3>
+                <div className="grid grid-cols-2 gap-2">
+                  <div>
+                    <Label htmlFor="broker2Name">Name</Label>
+                    <Input id="broker2Name" value={broker2Name} onChange={e => setBroker2Name(e.target.value)} />
                   </div>
+                  <div>
+                    <Label htmlFor="broker2Title">Title</Label>
+                    <Input id="broker2Title" value={broker2Title} onChange={e => setBroker2Title(e.target.value)} />
+                  </div>
+                  <div>
+                    <Label htmlFor="broker2Phone">Phone</Label>
+                    <Input id="broker2Phone" value={broker2Phone} onChange={e => setBroker2Phone(e.target.value)} />
+                  </div>
+                  <div>
+                    <Label htmlFor="broker2Email">Email</Label>
+                    <Input id="broker2Email" value={broker2Email} onChange={e => setBroker2Email(e.target.value)} />
+                  </div>
+                </div>
+                <div className="mt-2">
+                  <PhotoField label="Agent 2 Photo" value={broker2PhotoUrl} onChange={setBroker2PhotoUrl} onUpload={handlePhotoUpload} />
+                </div>
+              </div>
+
+              {/* Company */}
+              <div>
+                <h3 className="text-xs uppercase tracking-wide text-muted-foreground font-semibold mb-2">Company</h3>
+                <div>
+                  <Label htmlFor="companyName">Company Name</Label>
+                  <Input id="companyName" value={companyName} onChange={e => setCompanyName(e.target.value)} />
                 </div>
               </div>
             </div>

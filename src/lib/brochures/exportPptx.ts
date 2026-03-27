@@ -148,17 +148,37 @@ export async function exportBrochureAsPptx(props: BrochureProps): Promise<void> 
     x: 0, y: 6.7, w: 10, h: 0.8,
     fill: { color: NAVY },
   });
-  slide.addText(props.companyName, {
-    x: 0.5, y: 6.85, w: 4, h: 0.3,
+  slide.addText('ClearView', {
+    x: 0.5, y: 6.85, w: 2, h: 0.3,
     color: WHITE, fontSize: 11, bold: true, fontFace: 'Arial',
   });
-  slide.addText(
-    `${props.brokerName}  |  ${props.brokerTitle}\n${props.brokerPhone}  ·  ${props.brokerEmail}`,
-    {
+  if (props.companyName) {
+    slide.addText(props.companyName, {
+      x: 2.5, y: 6.85, w: 2, h: 0.3,
+      color: 'AAC4E0', fontSize: 9, fontFace: 'Arial',
+    });
+  }
+
+  // Agent 1
+  const agent1Text = `${props.brokerName}  |  ${props.brokerTitle}\n${props.brokerPhone}  ·  ${props.brokerEmail}`;
+  const hasAgent2 = !!props.broker2Name;
+
+  if (hasAgent2) {
+    slide.addText(agent1Text, {
+      x: 4.5, y: 6.8, w: 2.5, h: 0.5,
+      color: 'AAC4E0', fontSize: 8, fontFace: 'Arial', align: 'right',
+    });
+    const agent2Text = `${props.broker2Name}  |  ${props.broker2Title || ''}\n${[props.broker2Phone, props.broker2Email].filter(Boolean).join('  ·  ')}`;
+    slide.addText(agent2Text, {
+      x: 7.2, y: 6.8, w: 2.5, h: 0.5,
+      color: 'AAC4E0', fontSize: 8, fontFace: 'Arial', align: 'right',
+    });
+  } else {
+    slide.addText(agent1Text, {
       x: 5.5, y: 6.8, w: 4, h: 0.5,
       color: 'AAC4E0', fontSize: 9, fontFace: 'Arial', align: 'right',
-    }
-  );
+    });
+  }
 
   await pptx.writeFile({ fileName: 'brochure.pptx' });
 }
