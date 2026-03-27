@@ -41,6 +41,7 @@ import InternalListings from "./pages/InternalListings";
 import InternalListingDetail from "./pages/InternalListingDetail";
 import Underwriter from "./pages/Underwriter";
 import UnderwritingDetail from "./pages/UnderwritingDetail";
+import BrochureBuilder from "./pages/BrochureBuilder";
 import NotFound from "./pages/NotFound";
 import PublicMarket from "./pages/PublicMarket";
 import PublicMarketDetail from "./pages/PublicMarketDetail";
