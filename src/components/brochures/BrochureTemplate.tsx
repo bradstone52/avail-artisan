@@ -25,6 +25,11 @@ export interface BrochureProps {
   brokerPhone: string;
   brokerEmail: string;
   brokerPhotoUrl?: string;
+  broker2Name?: string;
+  broker2Title?: string;
+  broker2Phone?: string;
+  broker2Email?: string;
+  broker2PhotoUrl?: string;
   companyName: string;
 }
 
