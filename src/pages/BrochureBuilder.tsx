@@ -224,7 +224,8 @@ export default function BrochureBuilder() {
     dockDoors, gradeDoors, power, zoning, occupancy, askingPrice, leaseRate,
     leaseType, headline, highlights, primaryPhotoUrl, secondaryPhotoUrl,
     aerialPhotoUrl, logoUrl, brokerName, brokerTitle, brokerPhone, brokerEmail,
-    brokerPhotoUrl, companyName,
+    brokerPhotoUrl, broker2Name, broker2Title, broker2Phone, broker2Email,
+    broker2PhotoUrl, companyName,
   ]);
 
   // Download PDF
