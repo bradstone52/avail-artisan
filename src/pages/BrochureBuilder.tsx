@@ -104,7 +104,7 @@ export default function BrochureBuilder() {
       try {
         const { data, error } = await supabase
           .from('internal_listings')
-          .select('*, internal_listing_photos(id, photo_url, sort_order)')
+          .select('*, internal_listing_photos(id, photo_url, sort_order), assigned_agent:agents!internal_listings_assigned_agent_id_fkey(name, email, phone), secondary_agent:agents!internal_listings_secondary_agent_id_fkey(name, email, phone)')
           .eq('id', listingId)
           .single();
         if (error) throw error;
@@ -114,6 +114,20 @@ export default function BrochureBuilder() {
 
         setAddress(data.address || '');
         setCity(data.city || '');
+
+        // Auto-populate agents
+        const agent1 = data.assigned_agent as any;
+        if (agent1) {
+          setBrokerName(agent1.name || '');
+          setBrokerEmail(agent1.email || '');
+          setBrokerPhone(agent1.phone || '');
+        }
+        const agent2 = data.secondary_agent as any;
+        if (agent2) {
+          setBroker2Name(agent2.name || '');
+          setBroker2Email(agent2.email || '');
+          setBroker2Phone(agent2.phone || '');
+        }
 
         // Map deal_type
         const dt = (data.deal_type || '').toLowerCase();
