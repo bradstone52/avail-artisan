@@ -41,6 +41,7 @@ import InternalListings from "./pages/InternalListings";
 import InternalListingDetail from "./pages/InternalListingDetail";
 import Underwriter from "./pages/Underwriter";
 import UnderwritingDetail from "./pages/UnderwritingDetail";
+import BrochureBuilder from "./pages/BrochureBuilder";
 import NotFound from "./pages/NotFound";
 import PublicMarket from "./pages/PublicMarket";
 import PublicMarketDetail from "./pages/PublicMarketDetail";
@@ -106,6 +107,7 @@ const App = () => (
             <Route path="/underwriter/:id" element={<ProtectedRoute><UnderwritingDetail /></ProtectedRoute>} />
             <Route path="/distribution-map" element={<ProtectedRoute><DistributionMapViewer /></ProtectedRoute>} />
             <Route path="/market-listings-map" element={<ProtectedRoute><MarketListingsMap /></ProtectedRoute>} />
+            <Route path="/brochure-builder" element={<ProtectedRoute><BrochureBuilder /></ProtectedRoute>} />
             
             {/* Catch-all route */}
             <Route path="*" element={<NotFound />} />

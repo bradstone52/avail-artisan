@@ -28,7 +28,8 @@ import {
   ContactRound,
   Calculator,
   CheckSquare,
-  Globe
+  Globe,
+  Sparkles
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -82,6 +83,13 @@ const navigation: NavigationEntry[] = [
   { name: 'Tenants', href: '/tenants', icon: UserSearch },
   { name: 'Transactions', href: '/transactions', icon: Receipt },
   { name: 'Underwriter', href: '/underwriter', icon: Calculator },
+  {
+    name: 'Marketing',
+    icon: Sparkles,
+    items: [
+      { name: 'Brochure Builder', href: '/brochure-builder', icon: FileSpreadsheet },
+    ]
+  },
 ];
 
 const adminNavigation = [
@@ -101,6 +109,7 @@ export function AppLayout({ children }: AppLayoutProps) {
     return {
       'Distribution': ['/listings', '/recipients'].includes(location.pathname),
       'CRE Tracker': location.pathname.startsWith('/cre-tracker'),
+      'Marketing': location.pathname.startsWith('/brochure-builder'),
     };
   });
 
@@ -114,6 +123,7 @@ export function AppLayout({ children }: AppLayoutProps) {
       ...prev,
       'Distribution': prev['Distribution'] || ['/listings', '/recipients'].includes(location.pathname),
       'CRE Tracker': prev['CRE Tracker'] || location.pathname.startsWith('/cre-tracker'),
+      'Marketing': prev['Marketing'] || location.pathname.startsWith('/brochure-builder'),
     }));
   }, [location.pathname]);
 
