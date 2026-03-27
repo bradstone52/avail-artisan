@@ -109,6 +109,7 @@ export function AppLayout({ children }: AppLayoutProps) {
     return {
       'Distribution': ['/listings', '/recipients'].includes(location.pathname),
       'CRE Tracker': location.pathname.startsWith('/cre-tracker'),
+      'Marketing': location.pathname.startsWith('/brochure-builder'),
     };
   });
 
