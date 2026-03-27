@@ -213,6 +213,11 @@ export default function BrochureBuilder() {
     brokerPhone: brokerPhone || '',
     brokerEmail: brokerEmail || '',
     brokerPhotoUrl: brokerPhotoUrl || undefined,
+    broker2Name: broker2Name || undefined,
+    broker2Title: broker2Title || undefined,
+    broker2Phone: broker2Phone || undefined,
+    broker2Email: broker2Email || undefined,
+    broker2PhotoUrl: broker2PhotoUrl || undefined,
     companyName: companyName || 'Brokerage',
   }), [
     type, address, city, province, buildingSF, landAcres, clearHeight,
