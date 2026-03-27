@@ -107,6 +107,7 @@ const App = () => (
             <Route path="/underwriter/:id" element={<ProtectedRoute><UnderwritingDetail /></ProtectedRoute>} />
             <Route path="/distribution-map" element={<ProtectedRoute><DistributionMapViewer /></ProtectedRoute>} />
             <Route path="/market-listings-map" element={<ProtectedRoute><MarketListingsMap /></ProtectedRoute>} />
+            <Route path="/brochure-builder" element={<ProtectedRoute><BrochureBuilder /></ProtectedRoute>} />
             
             {/* Catch-all route */}
             <Route path="*" element={<NotFound />} />
