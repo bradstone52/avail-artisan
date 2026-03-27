@@ -28,7 +28,8 @@ import {
   ContactRound,
   Calculator,
   CheckSquare,
-  Globe
+  Globe,
+  Sparkles
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
