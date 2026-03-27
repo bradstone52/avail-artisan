@@ -63,8 +63,11 @@ export function BrochureTemplate(props: BrochureProps) {
     headline, highlights,
     primaryPhotoUrl, secondaryPhotoUrl, aerialPhotoUrl,
     logoUrl, brokerName, brokerTitle, brokerPhone, brokerEmail,
-    brokerPhotoUrl, companyName,
+    brokerPhotoUrl, broker2Name, broker2Title, broker2Phone, broker2Email,
+    broker2PhotoUrl, companyName,
   } = props;
+
+  const hasBroker2 = !!broker2Name;
 
   const hasSecondary = !!secondaryPhotoUrl;
   const hasAerial = !!aerialPhotoUrl;
