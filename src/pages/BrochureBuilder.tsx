@@ -501,9 +501,9 @@ export default function BrochureBuilder() {
                 </div>
               </div>
 
-              {/* Broker Info */}
+              {/* Broker 1 */}
               <div>
-                <h3 className="text-xs uppercase tracking-wide text-muted-foreground font-semibold mb-2">Broker</h3>
+                <h3 className="text-xs uppercase tracking-wide text-muted-foreground font-semibold mb-2">Agent 1</h3>
                 <div className="grid grid-cols-2 gap-2">
                   <div>
                     <Label htmlFor="brokerName">Name</Label>
@@ -521,10 +521,44 @@ export default function BrochureBuilder() {
                     <Label htmlFor="brokerEmail">Email</Label>
                     <Input id="brokerEmail" value={brokerEmail} onChange={e => setBrokerEmail(e.target.value)} />
                   </div>
-                  <div className="col-span-2">
-                    <Label htmlFor="companyName">Company</Label>
-                    <Input id="companyName" value={companyName} onChange={e => setCompanyName(e.target.value)} />
+                </div>
+                <div className="mt-2">
+                  <PhotoField label="Agent 1 Photo" value={brokerPhotoUrl} onChange={setBrokerPhotoUrl} onUpload={handlePhotoUpload} />
+                </div>
+              </div>
+
+              {/* Broker 2 */}
+              <div>
+                <h3 className="text-xs uppercase tracking-wide text-muted-foreground font-semibold mb-2">Agent 2</h3>
+                <div className="grid grid-cols-2 gap-2">
+                  <div>
+                    <Label htmlFor="broker2Name">Name</Label>
+                    <Input id="broker2Name" value={broker2Name} onChange={e => setBroker2Name(e.target.value)} />
                   </div>
+                  <div>
+                    <Label htmlFor="broker2Title">Title</Label>
+                    <Input id="broker2Title" value={broker2Title} onChange={e => setBroker2Title(e.target.value)} />
+                  </div>
+                  <div>
+                    <Label htmlFor="broker2Phone">Phone</Label>
+                    <Input id="broker2Phone" value={broker2Phone} onChange={e => setBroker2Phone(e.target.value)} />
+                  </div>
+                  <div>
+                    <Label htmlFor="broker2Email">Email</Label>
+                    <Input id="broker2Email" value={broker2Email} onChange={e => setBroker2Email(e.target.value)} />
+                  </div>
+                </div>
+                <div className="mt-2">
+                  <PhotoField label="Agent 2 Photo" value={broker2PhotoUrl} onChange={setBroker2PhotoUrl} onUpload={handlePhotoUpload} />
+                </div>
+              </div>
+
+              {/* Company */}
+              <div>
+                <h3 className="text-xs uppercase tracking-wide text-muted-foreground font-semibold mb-2">Company</h3>
+                <div>
+                  <Label htmlFor="companyName">Company Name</Label>
+                  <Input id="companyName" value={companyName} onChange={e => setCompanyName(e.target.value)} />
                 </div>
               </div>
             </div>

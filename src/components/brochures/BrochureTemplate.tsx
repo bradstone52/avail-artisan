@@ -197,24 +197,54 @@ export function BrochureTemplate(props: BrochureProps) {
         style={{ backgroundColor: NAVY }}
       >
         <div className="flex items-center gap-3">
+          {/* ClearView logo */}
+          <svg viewBox="0 0 180 36" className="h-8 flex-shrink-0" xmlns="http://www.w3.org/2000/svg">
+            <rect x="0" y="4" width="28" height="28" rx="4" fill="#3b82f6" />
+            <path d="M8 18 L13 23 L22 12" stroke="white" strokeWidth="2.5" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+            <text x="34" y="25" fontFamily="Arial, sans-serif" fontWeight="700" fontSize="18" fill="white">ClearView</text>
+          </svg>
           {logoUrl && (
-            <img src={logoUrl} alt={companyName} className="h-10 object-contain" />
+            <img src={logoUrl} alt={companyName} className="h-8 object-contain" />
           )}
-          <span className="text-white font-semibold text-sm">{companyName}</span>
+          {companyName && !logoUrl && (
+            <span className="text-white font-semibold text-sm">{companyName}</span>
+          )}
         </div>
-        <div className="flex items-center gap-4">
-          {brokerPhotoUrl && (
-            <img
-              src={brokerPhotoUrl}
-              alt={brokerName}
-              className="w-10 h-10 rounded-full object-cover border-2 border-white/30"
-            />
-          )}
-          <div className="text-right">
-            <p className="text-white font-semibold text-sm">{brokerName}</p>
-            <p className="text-blue-200 text-xs">{brokerTitle}</p>
-            <p className="text-blue-200 text-xs">{brokerPhone} · {brokerEmail}</p>
+        <div className="flex items-center gap-6">
+          {/* Broker 1 */}
+          <div className="flex items-center gap-3">
+            {brokerPhotoUrl && (
+              <img
+                src={brokerPhotoUrl}
+                alt={brokerName}
+                className="w-10 h-10 rounded-full object-cover border-2 border-white/30"
+              />
+            )}
+            <div className="text-right">
+              <p className="text-white font-semibold text-sm">{brokerName}</p>
+              <p className="text-blue-200 text-xs">{brokerTitle}</p>
+              <p className="text-blue-200 text-xs">{brokerPhone} · {brokerEmail}</p>
+            </div>
           </div>
+          {/* Broker 2 */}
+          {hasBroker2 && (
+            <div className="flex items-center gap-3 border-l border-white/20 pl-6">
+              {broker2PhotoUrl && (
+                <img
+                  src={broker2PhotoUrl}
+                  alt={broker2Name}
+                  className="w-10 h-10 rounded-full object-cover border-2 border-white/30"
+                />
+              )}
+              <div className="text-right">
+                <p className="text-white font-semibold text-sm">{broker2Name}</p>
+                {broker2Title && <p className="text-blue-200 text-xs">{broker2Title}</p>}
+                <p className="text-blue-200 text-xs">
+                  {[broker2Phone, broker2Email].filter(Boolean).join(' · ')}
+                </p>
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </div>
