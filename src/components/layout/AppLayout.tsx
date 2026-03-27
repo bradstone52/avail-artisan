@@ -83,6 +83,13 @@ const navigation: NavigationEntry[] = [
   { name: 'Tenants', href: '/tenants', icon: UserSearch },
   { name: 'Transactions', href: '/transactions', icon: Receipt },
   { name: 'Underwriter', href: '/underwriter', icon: Calculator },
+  {
+    name: 'Marketing',
+    icon: Sparkles,
+    items: [
+      { name: 'Brochure Builder', href: '/brochure-builder', icon: FileSpreadsheet },
+    ]
+  },
 ];
 
 const adminNavigation = [
