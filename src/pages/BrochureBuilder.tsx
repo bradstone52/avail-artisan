@@ -64,6 +64,11 @@ export default function BrochureBuilder() {
   const [brokerPhone, setBrokerPhone] = useState('');
   const [brokerEmail, setBrokerEmail] = useState('');
   const [brokerPhotoUrl, setBrokerPhotoUrl] = useState('');
+  const [broker2Name, setBroker2Name] = useState('');
+  const [broker2Title, setBroker2Title] = useState('');
+  const [broker2Phone, setBroker2Phone] = useState('');
+  const [broker2Email, setBroker2Email] = useState('');
+  const [broker2PhotoUrl, setBroker2PhotoUrl] = useState('');
   const [companyName, setCompanyName] = useState('');
 
   // Store listing data for AI generation
