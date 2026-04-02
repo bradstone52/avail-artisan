@@ -365,8 +365,7 @@ function LocationPage({ props, ac }: { props: BrochureProps; ac: string }) {
 }
 
 /* ─── PAGE 6 — Contact ─── */
-function ContactPage({ props }: { props: BrochureProps }) {
-  const ac = props.accentColor;
+function ContactPage({ props, ac }: { props: BrochureProps; ac: string }) {
   const bgPhoto = props.aerialPhotoUrl || props.primaryPhotoUrl;
   const disclaimer = props.disclaimer || DEFAULT_DISCLAIMER;
   const count = props.brokers.length;
