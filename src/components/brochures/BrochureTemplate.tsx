@@ -59,8 +59,7 @@ function PageFooter({ companyName, pageLabel, accentColor }: { companyName: stri
 }
 
 /* ─── PAGE 1 — Cover ─── */
-function CoverPage({ props }: { props: BrochureProps }) {
-  const ac = props.accentColor;
+function CoverPage({ props, ac }: { props: BrochureProps; ac: string }) {
   return (
     <div className="brochure-page" style={pageStyle}>
       {/* Full-bleed photo */}
