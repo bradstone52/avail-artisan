@@ -287,8 +287,7 @@ function FloorPlanPage({ props, ac }: { props: BrochureProps; ac: string }) {
 }
 
 /* ─── PAGE 5 — Location ─── */
-function LocationPage({ props }: { props: BrochureProps }) {
-  const ac = props.accentColor;
+function LocationPage({ props, ac }: { props: BrochureProps; ac: string }) {
   const [mapUrl, setMapUrl] = useState<string | null>(null);
 
   useEffect(() => {
