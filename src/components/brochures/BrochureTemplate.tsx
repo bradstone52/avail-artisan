@@ -431,14 +431,15 @@ function ContactPage({ props, ac }: { props: BrochureProps; ac: string }) {
 }
 
 export function BrochureTemplate(props: BrochureProps) {
+  const ac = ensureVisibleAccent(props.accentColor);
   return (
     <div id="brochure-preview">
-      <CoverPage props={props} />
-      <DetailsPage props={props} />
-      <PhotosPage props={props} />
-      <FloorPlanPage props={props} />
-      <LocationPage props={props} />
-      <ContactPage props={props} />
+      <CoverPage props={props} ac={ac} />
+      <DetailsPage props={props} ac={ac} />
+      <PhotosPage props={props} ac={ac} />
+      <FloorPlanPage props={props} ac={ac} />
+      <LocationPage props={props} ac={ac} />
+      <ContactPage props={props} ac={ac} />
     </div>
   );
 }
