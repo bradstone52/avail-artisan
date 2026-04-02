@@ -385,33 +385,35 @@ function ContactPage({ props, ac }: { props: BrochureProps; ac: string }) {
           <span style={{ color: 'white', fontSize: 36, fontWeight: 800 }}> INFORMATION</span>
         </div>
         <div style={{ width: 56, height: 3, background: ac, marginTop: 12, marginBottom: 36 }} />
-        <div style={{ flex: 1, display: count === 1 ? 'flex' : 'grid', ...(count === 1 ? { gap: 32 } : { gridTemplateColumns: `repeat(${cols}, 1fr)`, gap: 24 }) }}>
-          {props.brokers.map((b, i) => (
-            <div key={i} style={count === 1 ? { display: 'flex', gap: 32 } : {}}>
-              {count === 1 && b.photoUrl && (
-                <img src={b.photoUrl} alt="" style={{ width: 72, height: 72, borderRadius: '50%', objectFit: 'cover', flexShrink: 0 }} />
-              )}
-              <div>
-                <div style={{ color: 'white', fontSize: 15, fontWeight: 700, marginBottom: 4 }}>{b.name}</div>
-                <div style={{ color: 'white', fontSize: 11, opacity: 0.62, marginBottom: 14 }}>{b.title}</div>
-                {b.directPhone && (
-                  <div style={{ marginBottom: 4 }}>
-                    <span style={{ color: 'white', opacity: 0.45, fontSize: 10 }}>D: </span>
-                    <span style={{ color: 'white', fontSize: 11 }}>{b.directPhone}</span>
-                  </div>
+        <div style={{ background: 'rgba(255,255,255,0.07)', borderRadius: 6, padding: 32, margin: '0 0 24px' }}>
+          <div style={{ display: count === 1 ? 'flex' : 'grid', ...(count === 1 ? { gap: 32 } : { gridTemplateColumns: `repeat(${cols}, 1fr)`, gap: 24 }) }}>
+            {props.brokers.map((b, i) => (
+              <div key={i} style={count === 1 ? { display: 'flex', gap: 32 } : {}}>
+                {count === 1 && b.photoUrl && (
+                  <img src={b.photoUrl} alt="" style={{ width: 72, height: 72, borderRadius: '50%', objectFit: 'cover', flexShrink: 0 }} />
                 )}
-                {b.cellPhone && (
-                  <div style={{ marginBottom: 4 }}>
-                    <span style={{ color: 'white', opacity: 0.45, fontSize: 10 }}>C: </span>
-                    <span style={{ color: 'white', fontSize: 11 }}>{b.cellPhone}</span>
-                  </div>
-                )}
-                <div style={{ color: 'white', fontSize: 11 }}>{b.email}</div>
+                <div>
+                  <div style={{ color: 'white', fontSize: 15, fontWeight: 700, marginBottom: 4 }}>{b.name}</div>
+                  <div style={{ color: 'white', fontSize: 11, opacity: 0.62, marginBottom: 14 }}>{b.title}</div>
+                  {b.directPhone && (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
+                      <span style={{ color: 'rgba(255,255,255,0.45)', fontSize: 10, flexShrink: 0 }}>D:</span>
+                      <span style={{ color: 'white', fontSize: 11 }}>{b.directPhone}</span>
+                    </div>
+                  )}
+                  {b.cellPhone && (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
+                      <span style={{ color: 'rgba(255,255,255,0.45)', fontSize: 10, flexShrink: 0 }}>C:</span>
+                      <span style={{ color: 'white', fontSize: 11 }}>{b.cellPhone}</span>
+                    </div>
+                  )}
+                  <div style={{ color: 'white', fontSize: 11 }}>{b.email}</div>
+                </div>
               </div>
-            </div>
-          ))}
+            ))}
+          </div>
         </div>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginTop: 32, flexShrink: 0 }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', flexShrink: 0 }}>
           {props.logoUrl ? (
             <img src={props.logoUrl} alt="" style={{ width: 110, filter: 'brightness(0) invert(1)', opacity: 0.85 }} />
           ) : (
