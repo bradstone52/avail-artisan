@@ -81,10 +81,8 @@ function CoverPage({ props }: { props: BrochureProps }) {
             <div key={i} style={{ color: 'white', fontSize: 10, fontWeight: 500, lineHeight: '18px', opacity: 0.85 }}>{b.name}</div>
           ))}
         </div>
-        {props.logoUrl ? (
+        {props.logoUrl && (
           <img src={props.logoUrl} alt="" style={{ maxHeight: 38, maxWidth: 120, filter: 'brightness(0) invert(1)' }} />
-        ) : (
-          <span style={{ color: 'white', fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.14em', opacity: 0.7 }}>{props.companyName}</span>
         )}
       </div>
 
