@@ -379,12 +379,14 @@ function ContactPage({ props, ac }: { props: BrochureProps; ac: string }) {
         <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', background: NAVY }} />
       )}
       <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(15,32,68,0.74)' }} />
-      <div style={{ position: 'relative', zIndex: 1, padding: 48, height: '100%', display: 'flex', flexDirection: 'column', boxSizing: 'border-box' }}>
+      <div style={{ position: 'relative', zIndex: 1, padding: 48, height: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', boxSizing: 'border-box' }}>
         <div>
-          <span style={{ color: 'white', fontSize: 36, fontWeight: 300 }}>CONTACT</span>
-          <span style={{ color: 'white', fontSize: 36, fontWeight: 800 }}> INFORMATION</span>
+          <div>
+            <span style={{ color: 'white', fontSize: 36, fontWeight: 300 }}>CONTACT</span>
+            <span style={{ color: 'white', fontSize: 36, fontWeight: 800 }}> INFORMATION</span>
+          </div>
+          <div style={{ width: 56, height: 3, background: ac, marginTop: 12, marginBottom: 36 }} />
         </div>
-        <div style={{ width: 56, height: 3, background: ac, marginTop: 12, marginBottom: 36 }} />
         <div style={{ background: 'rgba(255,255,255,0.07)', borderRadius: 6, padding: 32, margin: '0 0 24px' }}>
           <div style={{ display: count === 1 ? 'flex' : 'grid', ...(count === 1 ? { gap: 32 } : { gridTemplateColumns: `repeat(${cols}, 1fr)`, gap: 24 }) }}>
             {props.brokers.map((b, i) => (
