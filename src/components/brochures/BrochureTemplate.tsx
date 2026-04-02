@@ -131,22 +131,23 @@ function DetailsPage({ props, ac }: { props: BrochureProps; ac: string }) {
   return (
     <div className="brochure-page" style={{ ...pageStyle, display: 'flex', flexDirection: 'column' }}>
       <PageHeader address={props.address} type={props.type} accentColor={ac} />
-      <div style={{ flex: 1, padding: '24px 48px 0', display: 'flex', flexDirection: 'column' }}>
+      <div style={{ flex: 1, padding: '24px 48px 0', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
         <div style={{ marginBottom: 4 }}>
           <span style={{ color: NAVY, fontSize: 28, fontWeight: 300 }}>PROPERTY</span>
           <span style={{ color: ac, fontSize: 28, fontWeight: 800 }}> HIGHLIGHTS</span>
         </div>
         <div style={{ height: 2, background: ac, marginTop: 10, marginBottom: 20 }} />
-        <div style={{ display: 'flex', gap: 24, flex: 1 }}>
+        <div style={{ display: 'flex', gap: 24, flex: 1, minHeight: 0 }}>
           {/* Left column */}
-          <div style={{ flex: '0 0 56%' }}>
+          <div style={{ flex: '0 0 56%', display: 'flex', flexDirection: 'column' }}>
             {validSpecs.map(([label, value], i) => (
               <div key={i} style={{ padding: '11px 0 11px 12px', borderBottom: '1px solid #EBEBEB', borderLeft: `3px solid ${ac}` }}>
                 <div style={{ color: ac, fontSize: 8, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.09em', marginBottom: 3 }}>{label}</div>
                 <div style={{ color: NAVY, fontSize: 13, fontWeight: 600 }}>{value}</div>
               </div>
             ))}
-            <div style={{ background: '#F7F6F4', borderRadius: 4, padding: 16, marginTop: 16 }}>
+            <div style={{ flex: 1 }} />
+            <div style={{ marginTop: 'auto', background: '#F0EEE9', padding: '16px 14px', borderLeft: `3px solid ${ac}` }}>
               <span style={{ color: ac, fontSize: 11, fontWeight: 700, textTransform: 'uppercase' }}>{typeBadge(props.type)}</span>
             </div>
           </div>
@@ -171,37 +172,41 @@ function DetailsPage({ props, ac }: { props: BrochureProps; ac: string }) {
               )}
             </div>
             {/* Pricing block */}
-            <div style={{ background: NAVY, borderRadius: 6, padding: 20, borderTop: `3px solid ${ac}` }}>
-              {hasPricing ? (
-                <>
-                  {(props.type === 'sale' || props.type === 'sale-lease') && props.askingPrice && (
-                    <div>
-                      <div style={{ color: 'white', fontSize: 8, textTransform: 'uppercase', opacity: 0.60, marginBottom: 6 }}>ASKING PRICE</div>
-                      <div style={{ color: 'white', fontSize: 28, fontWeight: 800 }}>{props.askingPrice}</div>
-                    </div>
-                  )}
-                  {props.type === 'sale-lease' && props.askingPrice && props.leaseRate && (
-                    <div style={{ height: 1, background: 'white', opacity: 0.18, margin: '14px 0' }} />
-                  )}
-                  {(props.type === 'lease' || props.type === 'sale-lease') && props.leaseRate && (
-                    <div>
-                      <div style={{ color: 'white', fontSize: 8, textTransform: 'uppercase', opacity: 0.60, marginBottom: 6 }}>LEASE RATE</div>
-                      <div style={{ display: 'flex', alignItems: 'baseline', gap: 8 }}>
-                        <span style={{ color: 'white', fontSize: 28, fontWeight: 800 }}>{props.leaseRate}</span>
-                        {props.leaseType && <span style={{ color: 'white', fontSize: 11, opacity: 0.55 }}>{props.leaseType}</span>}
-                      </div>
-                      {props.operatingCosts && (
-                        <div style={{ marginTop: 10 }}>
-                          <div style={{ color: 'white', fontSize: 8, textTransform: 'uppercase', opacity: 0.60 }}>OPERATING COSTS</div>
-                          <div style={{ color: 'white', fontSize: 16, fontWeight: 600, marginTop: 4 }}>{props.operatingCosts}</div>
+            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'flex-end' }}>
+              <div style={{ marginTop: 'auto' }}>
+                <div style={{ background: NAVY, borderRadius: 6, padding: 20, borderTop: `3px solid ${ac}` }}>
+                  {hasPricing ? (
+                    <>
+                      {(props.type === 'sale' || props.type === 'sale-lease') && props.askingPrice && (
+                        <div>
+                          <div style={{ color: 'white', fontSize: 8, textTransform: 'uppercase', opacity: 0.60, marginBottom: 6 }}>ASKING PRICE</div>
+                          <div style={{ color: 'white', fontSize: 28, fontWeight: 800 }}>{props.askingPrice}</div>
                         </div>
                       )}
-                    </div>
+                      {props.type === 'sale-lease' && props.askingPrice && props.leaseRate && (
+                        <div style={{ height: 1, background: 'white', opacity: 0.18, margin: '14px 0' }} />
+                      )}
+                      {(props.type === 'lease' || props.type === 'sale-lease') && props.leaseRate && (
+                        <div>
+                          <div style={{ color: 'white', fontSize: 8, textTransform: 'uppercase', opacity: 0.60, marginBottom: 6 }}>LEASE RATE</div>
+                          <div style={{ display: 'flex', alignItems: 'baseline', gap: 8 }}>
+                            <span style={{ color: 'white', fontSize: 28, fontWeight: 800 }}>{props.leaseRate}</span>
+                            {props.leaseType && <span style={{ color: 'white', fontSize: 11, opacity: 0.55 }}>{props.leaseType}</span>}
+                          </div>
+                          {props.operatingCosts && (
+                            <div style={{ marginTop: 10 }}>
+                              <div style={{ color: 'white', fontSize: 8, textTransform: 'uppercase', opacity: 0.60 }}>OPERATING COSTS</div>
+                              <div style={{ color: 'white', fontSize: 16, fontWeight: 600, marginTop: 4 }}>{props.operatingCosts}</div>
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </>
+                  ) : (
+                    <div style={{ color: 'white', fontSize: 13, opacity: 0.50, fontStyle: 'italic' }}>Pricing available upon request</div>
                   )}
-                </>
-              ) : (
-                <div style={{ color: 'white', fontSize: 13, opacity: 0.50, fontStyle: 'italic' }}>Pricing available upon request</div>
-              )}
+                </div>
+              </div>
             </div>
           </div>
         </div>
