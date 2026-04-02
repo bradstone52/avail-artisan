@@ -212,8 +212,7 @@ function DetailsPage({ props, ac }: { props: BrochureProps; ac: string }) {
 }
 
 /* ─── PAGE 3 — Photos ─── */
-function PhotosPage({ props }: { props: BrochureProps }) {
-  const ac = props.accentColor;
+function PhotosPage({ props, ac }: { props: BrochureProps; ac: string }) {
   const hasSecondary = !!props.secondaryPhotoUrl;
   const hasAerial = !!props.aerialPhotoUrl;
   const photoCount = (props.primaryPhotoUrl ? 1 : 0) + (hasSecondary ? 1 : 0) + (hasAerial ? 1 : 0);
