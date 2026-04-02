@@ -7,7 +7,17 @@ const PAGE_W = 816;
 const PAGE_H = 1056;
 const MARGIN = 48;
 
+function ensureVisibleAccent(hex: string): string {
+  const clean = hex.replace('#', '');
+  const r = parseInt(clean.substring(0, 2), 16);
+  const g = parseInt(clean.substring(2, 4), 16);
+  const b = parseInt(clean.substring(4, 6), 16);
+  const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+  return luminance < 0.18 ? '#4A7FA5' : hex;
+}
+
 const DEFAULT_DISCLAIMER =
+  'The information contained herein has been obtained from sources believed to be reliable. No warranty or representation is made as to its accuracy. All information is subject to change without notice.';
   'The information contained herein has been obtained from sources believed to be reliable. No warranty or representation is made as to its accuracy. All information is subject to change without notice.';
 
 const pageStyle: React.CSSProperties = {
