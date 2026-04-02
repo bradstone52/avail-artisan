@@ -112,8 +112,7 @@ function CoverPage({ props, ac }: { props: BrochureProps; ac: string }) {
 }
 
 /* ─── PAGE 2 — Property Details ─── */
-function DetailsPage({ props }: { props: BrochureProps }) {
-  const ac = props.accentColor;
+function DetailsPage({ props, ac }: { props: BrochureProps; ac: string }) {
   const specs: [string, string | undefined][] = [
     ['District', props.district],
     ['Building SF', props.buildingSF],
