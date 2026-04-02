@@ -262,8 +262,7 @@ function PhotosPage({ props, ac }: { props: BrochureProps; ac: string }) {
 }
 
 /* ─── PAGE 4 — Floor Plan ─── */
-function FloorPlanPage({ props }: { props: BrochureProps }) {
-  const ac = props.accentColor;
+function FloorPlanPage({ props, ac }: { props: BrochureProps; ac: string }) {
   if (!props.floorPlanImageUrl) return null;
 
   return (
