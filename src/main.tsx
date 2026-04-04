@@ -48,8 +48,10 @@ async function purgeAndMount() {
     }
   } catch { /* ignore */ }
 
-  // 4. Mount the app
-  createRoot(document.getElementById("root")!).render(<App />);
+  // 4. Show and mount the app (root is hidden until cache check passes)
+  const root = document.getElementById("root")!;
+  root.style.display = '';
+  createRoot(root).render(<App />);
 }
 
 purgeAndMount();
