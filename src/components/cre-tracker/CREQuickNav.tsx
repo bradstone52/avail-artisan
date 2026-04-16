@@ -1,4 +1,4 @@
-import { Briefcase, UserSearch, Users, Calendar, Building2, ContactRound, CheckSquare } from 'lucide-react';
+import { Briefcase, UserSearch, Users, Calendar, Building2, CheckSquare } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 
 interface QuickNavItem {
@@ -26,7 +26,7 @@ export function CREQuickNav({ activeTab, setActiveTab, activeDealsCount, prospec
     { title: 'Internal Listings', icon: Building2, tab: 'listings', stat: listingsCount !== undefined ? `${listingsCount} total` : '—', color: 'bg-accent' },
     { title: 'My Tasks', icon: CheckSquare, tab: 'tasks', stat: tasksCount !== undefined ? `${tasksCount} open` : '—', color: 'bg-muted' },
     { title: 'BrokerageDB', icon: Users, tab: 'contacts', color: 'bg-muted' },
-    { title: 'Contact Finder', icon: ContactRound, tab: 'contact-finder', color: 'bg-primary' },
+    
   ];
 
   return (

@@ -22,7 +22,6 @@ import {
   Users,
   FilePlus,
   Shield,
-  Calculator,
 } from 'lucide-react';
 import { useState } from 'react';
 
@@ -42,7 +41,7 @@ const moreNav = [
   { name: 'Distribution Listings', href: '/listings', icon: FileSpreadsheet },
   { name: 'Recipients', href: '/recipients', icon: Mail },
   { name: 'CRE Tracker', href: '/cre-tracker', icon: Briefcase },
-  { name: 'Underwriter', href: '/underwriter', icon: Calculator },
+  
   { name: 'Tenants', href: '/tenants', icon: Users },
   { name: 'Settings', href: '/account', icon: Settings },
 ];

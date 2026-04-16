@@ -10,7 +10,6 @@ import {
   Building2, 
   LayoutDashboard, 
   FileSpreadsheet, 
-  FilePlus, 
   LogOut,
   Menu,
   X,
@@ -26,10 +25,8 @@ import {
   Briefcase,
   UserSearch,
   ContactRound,
-  Calculator,
   CheckSquare,
   Globe,
-  Sparkles
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -76,20 +73,12 @@ const navigation: NavigationEntry[] = [
       { name: 'Internal Listings', href: '/cre-tracker?tab=listings', icon: FileSpreadsheet },
       { name: 'My Tasks', href: '/cre-tracker?tab=tasks', icon: CheckSquare },
       { name: 'BrokerageDB', href: '/cre-tracker?tab=contacts', icon: Users },
-      { name: 'Contact Finder', href: '/cre-tracker?tab=contact-finder', icon: ContactRound },
+      
     ]
   },
   { name: 'Properties', href: '/properties', icon: Building2 },
   { name: 'Tenants', href: '/tenants', icon: UserSearch },
   { name: 'Transactions', href: '/transactions', icon: Receipt },
-  { name: 'Underwriter', href: '/underwriter', icon: Calculator },
-  {
-    name: 'Marketing',
-    icon: Sparkles,
-    items: [
-      { name: 'Brochure Builder', href: '/brochure-builder', icon: FileSpreadsheet },
-    ]
-  },
 ];
 
 const adminNavigation = [
@@ -109,7 +98,7 @@ export function AppLayout({ children }: AppLayoutProps) {
     return {
       'Distribution': ['/listings', '/recipients'].includes(location.pathname),
       'CRE Tracker': location.pathname.startsWith('/cre-tracker'),
-      'Marketing': location.pathname.startsWith('/brochure-builder'),
+      
     };
   });
 
@@ -123,7 +112,7 @@ export function AppLayout({ children }: AppLayoutProps) {
       ...prev,
       'Distribution': prev['Distribution'] || ['/listings', '/recipients'].includes(location.pathname),
       'CRE Tracker': prev['CRE Tracker'] || location.pathname.startsWith('/cre-tracker'),
-      'Marketing': prev['Marketing'] || location.pathname.startsWith('/brochure-builder'),
+      
     }));
   }, [location.pathname]);
 
