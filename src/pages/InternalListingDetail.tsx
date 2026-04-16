@@ -132,14 +132,6 @@ export default function InternalListingDetail() {
             </p>
           </div>
            <div className="flex items-center gap-2">
-             <Button
-               variant="outline"
-               className="gap-2"
-               onClick={() => setActiveTab('marketing')}
-             >
-               <Sparkles className="h-4 w-4" />
-               <span className="hidden sm:inline">Generate Brochure</span>
-             </Button>
              <Button className="gap-2" onClick={() => setEditDialogOpen(true)}>
                <Pencil className="h-4 w-4" />
                Edit
@@ -164,10 +156,6 @@ export default function InternalListingDetail() {
             <TabsTrigger value="inquiries" className="gap-2">
               <Mail className="h-4 w-4" />
               Inquiries/Tours
-            </TabsTrigger>
-            <TabsTrigger value="marketing" className="gap-2">
-              <BarChart3 className="h-4 w-4" />
-              Marketing
             </TabsTrigger>
             <TabsTrigger value="activity" className="gap-2">
               <History className="h-4 w-4" />
@@ -467,12 +455,6 @@ export default function InternalListingDetail() {
             <InquiriesSection listingId={listing.id} />
           </TabsContent>
 
-          <TabsContent value="marketing">
-           <MarketingSection 
-             listing={listing} 
-             onPhotoUpdate={(url) => refetch()}
-           />
-          </TabsContent>
 
           <TabsContent value="activity" className="space-y-4">
             <Card>

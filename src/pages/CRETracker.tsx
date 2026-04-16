@@ -21,7 +21,7 @@ import { CRETasksTab } from '@/components/cre-tracker/CRETasksTab';
 import { useUserTasks } from '@/hooks/useUserTasks';
 import type { CalendarEvent } from '@/components/cre-tracker/CRECalendarSection';
 
-const VALID_TABS = ['overview', 'deals', 'prospects', 'listings', 'contacts', 'contact-finder', 'tasks'] as const;
+const VALID_TABS = ['overview', 'deals', 'prospects', 'listings', 'contacts', 'tasks'] as const;
 type CRETab = typeof VALID_TABS[number];
 const DEFAULT_TAB: CRETab = 'overview';
 function parseTab(value: string | null): CRETab {
@@ -125,9 +125,6 @@ export default function CRETracker() {
           </TabsContent>
           <TabsContent value="contacts" className="mt-4">
             <BrokeragesAndAgentsTab />
-          </TabsContent>
-          <TabsContent value="contact-finder" className="mt-4">
-            <ContactFinderTab />
           </TabsContent>
           <TabsContent value="tasks" className="mt-4">
             <CRETasksTab />
