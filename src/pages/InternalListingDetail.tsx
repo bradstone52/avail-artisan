@@ -17,7 +17,7 @@ import { InternalListingEditDialog } from '@/components/internal-listings/Intern
 import { InternalListingDocumentsSection } from '@/components/internal-listings/InternalListingDocumentsSection';
 import { InquiriesSection } from '@/components/internal-listings/InquiriesSection';
 import { ToursSection } from '@/components/internal-listings/ToursSection';
-import { MarketingSection } from '@/components/internal-listings/MarketingSection';
+
 import { MarketIntelligenceSection } from '@/components/internal-listings/MarketIntelligenceSection';
 import { LinkedDealPanel } from '@/components/internal-listings/LinkedDealPanel';
 import { formatNumber, formatCurrency } from '@/lib/format';
