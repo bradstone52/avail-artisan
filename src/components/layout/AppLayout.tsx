@@ -10,7 +10,6 @@ import {
   Building2, 
   LayoutDashboard, 
   FileSpreadsheet, 
-  FilePlus, 
   LogOut,
   Menu,
   X,
@@ -26,10 +25,8 @@ import {
   Briefcase,
   UserSearch,
   ContactRound,
-  Calculator,
   CheckSquare,
   Globe,
-  Sparkles
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 

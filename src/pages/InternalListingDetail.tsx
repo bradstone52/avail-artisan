@@ -32,8 +32,6 @@ import {
   FileText,
   History,
   Mail,
-  BarChart3,
-  Sparkles,
   LineChart,
 } from 'lucide-react';
 import { useNavigate as useNav } from 'react-router-dom';

@@ -21,8 +21,6 @@ import {
   LogOut,
   Users,
   FilePlus,
-  Shield,
-  Calculator,
 } from 'lucide-react';
 import { useState } from 'react';
 
