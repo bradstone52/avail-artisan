@@ -73,7 +73,7 @@ const navigation: NavigationEntry[] = [
       { name: 'Internal Listings', href: '/cre-tracker?tab=listings', icon: FileSpreadsheet },
       { name: 'My Tasks', href: '/cre-tracker?tab=tasks', icon: CheckSquare },
       { name: 'BrokerageDB', href: '/cre-tracker?tab=contacts', icon: Users },
-      { name: 'Contact Finder', href: '/cre-tracker?tab=contacts', icon: ContactRound },
+      
     ]
   },
   { name: 'Properties', href: '/properties', icon: Building2 },
