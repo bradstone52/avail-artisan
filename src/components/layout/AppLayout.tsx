@@ -98,7 +98,7 @@ export function AppLayout({ children }: AppLayoutProps) {
     return {
       'Distribution': ['/listings', '/recipients'].includes(location.pathname),
       'CRE Tracker': location.pathname.startsWith('/cre-tracker'),
-      'Marketing': location.pathname.startsWith('/brochure-builder'),
+      
     };
   });
 
@@ -112,7 +112,7 @@ export function AppLayout({ children }: AppLayoutProps) {
       ...prev,
       'Distribution': prev['Distribution'] || ['/listings', '/recipients'].includes(location.pathname),
       'CRE Tracker': prev['CRE Tracker'] || location.pathname.startsWith('/cre-tracker'),
-      'Marketing': prev['Marketing'] || location.pathname.startsWith('/brochure-builder'),
+      
     }));
   }, [location.pathname]);
 
