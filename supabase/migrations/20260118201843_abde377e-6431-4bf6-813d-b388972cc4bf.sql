@@ -1,7 +1,7 @@
 -- Create share_links table for tokenized map access
 CREATE TABLE public.share_links (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  token text UNIQUE NOT NULL DEFAULT encode(gen_random_bytes(16), 'hex'),
+  token text UNIQUE NOT NULL DEFAULT encode(extensions.gen_random_bytes(16), 'hex'),
   created_at timestamptz NOT NULL DEFAULT now(),
   expires_at timestamptz DEFAULT (now() + interval '30 days'),
   created_by uuid REFERENCES auth.users(id) ON DELETE SET NULL,

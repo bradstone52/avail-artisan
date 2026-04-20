@@ -14,7 +14,7 @@ CREATE TABLE public.distribution_sends (
   id UUID NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
   recipient_id UUID NOT NULL REFERENCES public.distribution_recipients(id) ON DELETE CASCADE,
   report_id UUID NOT NULL,
-  tracking_token TEXT UNIQUE NOT NULL DEFAULT encode(gen_random_bytes(16), 'hex'),
+  tracking_token TEXT UNIQUE NOT NULL DEFAULT encode(extensions.gen_random_bytes(16), 'hex'),
   sent_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now()
 );
 
