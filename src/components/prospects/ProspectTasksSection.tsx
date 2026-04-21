@@ -145,8 +145,9 @@ function useOrgMemberProfiles() {
 function AssigneeChip({ userId, members }: { userId: string | null | undefined; members: { id: string; full_name: string | null }[] }) {
   if (!userId) return null;
   const member = members.find(m => m.id === userId);
-  const name = member?.full_name ?? '?';
-  const initials = name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
+  if (!member) return null;
+  const name = member.full_name || 'Unknown';
+  const initials = name.split(' ').map(n => n[0] ?? '').join('').toUpperCase().slice(0, 2) || '?';
   return (
     <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
       <Avatar className="h-4 w-4">

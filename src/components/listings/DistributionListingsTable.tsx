@@ -546,10 +546,10 @@ export function DistributionListingsTable({ listings, onListingUpdated }: Distri
                     )}>
                       <div className="min-w-[180px] max-w-[220px] whitespace-normal break-words leading-tight py-1">
                         <p className="font-medium text-sm">
-                          {listing.property_name || listing.address}
+                          {listing.property_name || listing.display_address || listing.address}
                         </p>
-                        {listing.property_name && (
-                          <p className="text-xs text-muted-foreground">{listing.address}</p>
+                        {listing.property_name && listing.display_address && (
+                          <p className="text-xs text-muted-foreground">{listing.display_address}</p>
                         )}
                         <p className="text-xs text-muted-foreground">{listing.city}</p>
                       </div>
