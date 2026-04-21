@@ -27,3 +27,6 @@ bun.lockb
 .env
 .env.*
 !.env.example
+
+# Supabase build artifacts
+supabase/.temp/

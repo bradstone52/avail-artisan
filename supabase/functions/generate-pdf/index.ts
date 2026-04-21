@@ -400,6 +400,9 @@ function buildPdfHtml(issue: any, listings: any[], opts?: { includeDetails?: boo
   // Use the title as provided (which contains the correct month)
   const title = issue.title || `Large-Format Distribution Availability`;
   const market = issue.market || "Calgary Region";
+  const titleParts = title.split(/\s*—\s*/);
+  const titleLine1 = titleParts[0].trim();
+  const titleLine2 = titleParts.length > 1 ? `${titleParts.slice(1).join(' — ').trim()}, ${market}` : market;
   const sizeThreshold = issue.size_threshold ? Number(issue.size_threshold).toLocaleString() : "100,000";
   const sizeThresholdMaxStr = sizeThresholdMax.toLocaleString();
 
@@ -598,6 +601,14 @@ body {
   line-height: 1.15;
   color: var(--ink);
   margin-bottom: 12px;
+}
+
+.cover-title-sub {
+  display: block;
+  font-size: 18pt;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  margin-top: 4px;
 }
 
 .cover-subtitle {
@@ -918,8 +929,8 @@ tbody tr:last-child td {
   <div class="cover-content${coverImageUrl ? `` : ` no-image`}">
     <div class="cover-brand">${esc(issue.brokerage_name || "ClearView Commercial Realty Inc.")}</div>
     
-    <h1 class="cover-title">${esc(title)}, ${esc(market)} &amp; Area</h1>
-    <p class="cover-subtitle">Curated snapshot of logistics-capable space in ${esc(market)} and surrounding areas</p>
+    <h1 class="cover-title">${esc(titleLine1)}<span class="cover-title-sub">${esc(titleLine2)}</span></h1>
+    <p class="cover-subtitle">Curated snapshot of logistics-capable space in the Calgary region and surrounding areas</p>
     
     <div class="cover-count">
       <strong>${total}</strong>

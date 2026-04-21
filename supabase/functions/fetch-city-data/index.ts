@@ -224,6 +224,10 @@ Deno.serve(async (req) => {
     console.log(`Fetching city data for lookup address: "${lookupAddress}" (original: "${address}")`);
     console.log(`Search patterns: ${JSON.stringify(searchPatterns)}, quadrant: "${addressQuadrant}"`);
 
+    const calgaryAppToken = Deno.env.get('CALGARY_APP_TOKEN');
+    const calgaryFetchHeaders: Record<string, string> = {};
+    if (calgaryAppToken) calgaryFetchHeaders['X-App-Token'] = calgaryAppToken;
+
     // Build proper SoQL query - properly encode the search value to prevent injection
     const buildSoqlUrl = (baseUrl: string, field: string, searchValue: string, extraParams: string = '') => {
       // Escape special characters in the search value
@@ -245,7 +249,7 @@ Deno.serve(async (req) => {
       for (const pattern of searchPatterns.slice(0, 3)) {
         const assessmentUrl = buildSoqlUrl(ASSESSMENT_API, 'address', pattern, '$limit=10');
         console.log('Assessment URL:', assessmentUrl);
-        const assessmentResp = await fetch(assessmentUrl);
+        const assessmentResp = await fetch(assessmentUrl, { headers: calgaryFetchHeaders });
         if (!assessmentResp.ok) {
           console.log('Assessment API error:', assessmentResp.status, await assessmentResp.text());
           continue;
@@ -292,7 +296,7 @@ Deno.serve(async (req) => {
       try {
         const permitsUrl = buildSoqlUrl(PERMITS_API, 'originaladdress', searchAddress, '$order=issueddate DESC');
         console.log('Permits URL:', permitsUrl);
-        const permitsResp = await fetch(permitsUrl);
+        const permitsResp = await fetch(permitsUrl, { headers: calgaryFetchHeaders });
         if (permitsResp.ok) {
           const data = await permitsResp.json();
           // Filter to only permits that match our street number AND quadrant
@@ -324,7 +328,7 @@ Deno.serve(async (req) => {
         // Query by roll number for exact match - use parameterized query
         const parcelUrl = `${PARCEL_API}?roll_number=${encodeURIComponent(rollNumber)}&$limit=1&$order=roll_year DESC`;
         console.log('Parcel URL:', parcelUrl);
-        const parcelResp = await fetch(parcelUrl);
+        const parcelResp = await fetch(parcelUrl, { headers: calgaryFetchHeaders });
         if (parcelResp.ok) {
           const data = await parcelResp.json();
           if (data && data.length > 0) {

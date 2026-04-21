@@ -39,11 +39,11 @@ serve(async (req) => {
 
     console.log(`[search-calgary-parcels] Fetching: ${url}`);
 
-    const response = await fetch(url, {
-      headers: {
-        "Accept": "application/json",
-      },
-    });
+    const calgaryAppToken = Deno.env.get('CALGARY_APP_TOKEN');
+    const calgaryFetchHeaders: Record<string, string> = { "Accept": "application/json" };
+    if (calgaryAppToken) calgaryFetchHeaders['X-App-Token'] = calgaryAppToken;
+
+    const response = await fetch(url, { headers: calgaryFetchHeaders });
 
     if (!response.ok) {
       const errorText = await response.text();
