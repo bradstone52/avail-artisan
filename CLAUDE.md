@@ -1,5 +1,8 @@
 # avail-artisan — Claude Code Guide
 
+## UI/UX Refactor In Progress
+Active refactor work follows the plan in `CLAUDE_PLAN.md` — decisions, target state, and 8 sequenced sessions. Read that file before working on any UI/UX task.
+
 ## Business Context
 ClearView Commercial Realty Inc. — Calgary-based industrial commercial real estate brokerage. Brokers: Brad Stone and Doug Johannson. This is an internal operations platform for tracking market listings, properties, transactions, deals, prospects, tenants, and distributing market intelligence to clients.
 
