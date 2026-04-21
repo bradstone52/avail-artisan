@@ -10,7 +10,13 @@ import { ProspectFormDialog } from '@/components/prospects/ProspectFormDialog';
 import { ProspectTasksSection } from '@/components/prospects/ProspectTasksSection';
 import { ConfirmDialog } from '@/components/common/ConfirmDialog';
 import { Skeleton } from '@/components/ui/skeleton';
-import { ArrowLeft, Trash2, UserSearch } from 'lucide-react';
+import { ArrowLeft, Trash2, UserSearch, MoreHorizontal } from 'lucide-react';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 
 export default function ProspectDetail() {
   const { id } = useParams<{ id: string }>();
@@ -76,12 +82,22 @@ export default function ProspectDetail() {
             <h1 className="text-xl font-bold">{prospect.name}</h1>
           </div>
           
-          <div className="flex flex-wrap gap-2">
-            <Button variant="destructive" onClick={() => setDeleteOpen(true)}>
-              <Trash2 className="w-4 h-4 mr-2" />
-              DELETE
-            </Button>
-          </div>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" size="icon">
+                <MoreHorizontal className="w-4 h-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem
+                className="text-destructive focus:text-destructive"
+                onClick={() => setDeleteOpen(true)}
+              >
+                <Trash2 className="w-4 h-4 mr-2" />
+                Delete
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
 
         {/* Two-column content grid */}

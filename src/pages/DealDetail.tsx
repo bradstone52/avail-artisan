@@ -17,7 +17,13 @@ import { GenerateDealSheetDialog } from '@/components/deals/GenerateDealSheetDia
 import { GenerateDealSummaryDialog } from '@/components/deals/GenerateDealSummaryDialog';
 import { ConfirmDialog } from '@/components/common/ConfirmDialog';
 import { Skeleton } from '@/components/ui/skeleton';
-import { ArrowLeft, FileText, Trash2, Briefcase, FileBarChart } from 'lucide-react';
+import { ArrowLeft, FileText, Trash2, Briefcase, FileBarChart, MoreHorizontal } from 'lucide-react';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 
 export default function DealDetail() {
   const { id } = useParams<{ id: string }>();
@@ -106,10 +112,22 @@ export default function DealDetail() {
               <FileBarChart className="w-4 h-4 mr-2" />
               GENERATE DEAL SUMMARY
             </Button>
-            <Button variant="destructive" onClick={() => setDeleteOpen(true)}>
-              <Trash2 className="w-4 h-4 mr-2" />
-              DELETE
-            </Button>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" size="icon">
+                  <MoreHorizontal className="w-4 h-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem
+                  className="text-destructive focus:text-destructive"
+                  onClick={() => setDeleteOpen(true)}
+                >
+                  <Trash2 className="w-4 h-4 mr-2" />
+                  Delete
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
         </div>
 
