@@ -54,35 +54,27 @@ const isNavGroup = (entry: NavigationEntry): entry is NavGroup => {
 
 const navigation: NavigationEntry[] = [
   { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
-  { 
-    name: 'Distribution', 
+  { name: 'Deals', href: '/deals', icon: Briefcase },
+  { name: 'Prospects', href: '/prospects', icon: UserSearch },
+  { name: 'Market Listings', href: '/market-listings', icon: Database },
+  { name: 'Internal Listings', href: '/internal-listings', icon: FileSpreadsheet },
+  {
+    name: 'Distribution',
     icon: Package,
     items: [
       { name: 'Listings', href: '/listings', icon: FileSpreadsheet },
       { name: 'Recipients', href: '/recipients', icon: Mail },
     ]
   },
-  { name: 'Market Listings', href: '/market-listings', icon: Database },
-  { 
-    name: 'CRE Tracker', 
-    icon: Briefcase,
-    items: [
-      { name: 'Overview', href: '/cre-tracker?tab=overview', icon: Briefcase },
-      { name: 'Deals', href: '/cre-tracker?tab=deals', icon: Briefcase },
-      { name: 'Prospects', href: '/cre-tracker?tab=prospects', icon: UserSearch },
-      { name: 'Internal Listings', href: '/cre-tracker?tab=listings', icon: FileSpreadsheet },
-      { name: 'My Tasks', href: '/cre-tracker?tab=tasks', icon: CheckSquare },
-      { name: 'BrokerageDB', href: '/cre-tracker?tab=contacts', icon: Users },
-      
-    ]
-  },
   { name: 'Properties', href: '/properties', icon: Building2 },
   { name: 'Tenants', href: '/tenants', icon: UserSearch },
-  { name: 'Transactions', href: '/transactions', icon: Receipt },
+  { name: 'Lease Comps', href: '/transactions', icon: Receipt },
+  { name: 'My Tasks', href: '/my-tasks', icon: CheckSquare },
 ];
 
 const adminNavigation = [
   { name: 'Management', href: '/admin/users', icon: Users },
+  { name: 'Brokerages', href: '/admin/brokerages', icon: ContactRound },
   { name: 'Public Market', href: '/admin/public-market', icon: Globe },
 ];
 
@@ -94,11 +86,8 @@ export function AppLayout({ children }: AppLayoutProps) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [openGroups, setOpenGroups] = useState<Record<string, boolean>>(() => {
-    // Default open groups based on current route
     return {
       'Distribution': ['/listings', '/recipients'].includes(location.pathname),
-      'CRE Tracker': location.pathname.startsWith('/cre-tracker'),
-      
     };
   });
 
@@ -111,8 +100,6 @@ export function AppLayout({ children }: AppLayoutProps) {
     setOpenGroups(prev => ({
       ...prev,
       'Distribution': prev['Distribution'] || ['/listings', '/recipients'].includes(location.pathname),
-      'CRE Tracker': prev['CRE Tracker'] || location.pathname.startsWith('/cre-tracker'),
-      
     }));
   }, [location.pathname]);
 

@@ -2,7 +2,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate, useSearchParams } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
 import Index from "./pages/Index";
@@ -35,6 +35,8 @@ import Prospects from "./pages/Prospects";
 import ProspectDetail from "./pages/ProspectDetail";
 import Settings from "./pages/Settings";
 import CRETracker from "./pages/CRETracker";
+import MyTasks from "./pages/MyTasks";
+import AdminBrokerages from "./pages/AdminBrokerages";
 import Tenants from "./pages/Tenants";
 import Install from "./pages/Install";
 import InternalListings from "./pages/InternalListings";
@@ -42,6 +44,19 @@ import InternalListingDetail from "./pages/InternalListingDetail";
 import NotFound from "./pages/NotFound";
 import PublicMarket from "./pages/PublicMarket";
 import PublicMarketDetail from "./pages/PublicMarketDetail";
+
+function CRETrackerRedirect() {
+  const [searchParams] = useSearchParams();
+  const tab = searchParams.get('tab');
+  const dest: Record<string, string> = {
+    deals: '/deals',
+    prospects: '/prospects',
+    listings: '/internal-listings',
+    tasks: '/my-tasks',
+    contacts: '/admin/brokerages',
+  };
+  return <Navigate to={dest[tab ?? ''] ?? '/dashboard'} replace />;
+}
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -91,7 +106,9 @@ const App = () => (
             <Route path="/recipients" element={<ProtectedRoute><Recipients /></ProtectedRoute>} />
             <Route path="/pdf-import" element={<ProtectedRoute><PdfImport /></ProtectedRoute>} />
             <Route path="/account" element={<ProtectedRoute><AccountSettings /></ProtectedRoute>} />
-            <Route path="/cre-tracker" element={<ProtectedRoute><CRETracker /></ProtectedRoute>} />
+            <Route path="/cre-tracker" element={<ProtectedRoute><CRETrackerRedirect /></ProtectedRoute>} />
+            <Route path="/my-tasks" element={<ProtectedRoute><MyTasks /></ProtectedRoute>} />
+            <Route path="/admin/brokerages" element={<ProtectedRoute><AdminBrokerages /></ProtectedRoute>} />
             <Route path="/tenants" element={<ProtectedRoute><Tenants /></ProtectedRoute>} />
             <Route path="/internal-listings" element={<ProtectedRoute><InternalListings /></ProtectedRoute>} />
             <Route path="/internal-listings/:id" element={<ProtectedRoute><InternalListingDetail /></ProtectedRoute>} />
