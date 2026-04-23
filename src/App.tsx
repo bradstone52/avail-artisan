@@ -45,6 +45,10 @@ import NotFound from "./pages/NotFound";
 import PublicMarket from "./pages/PublicMarket";
 import PublicMarketDetail from "./pages/PublicMarketDetail";
 
+function IssueBuilderRedirect() {
+  return <Navigate to="/market-report-builder" replace />;
+}
+
 function CRETrackerRedirect() {
   const [searchParams] = useSearchParams();
   const tab = searchParams.get('tab');
@@ -99,7 +103,8 @@ const App = () => (
             <Route path="/transactions/new" element={<ProtectedRoute><TransactionForm /></ProtectedRoute>} />
             <Route path="/transactions/:id" element={<ProtectedRoute><TransactionDetail /></ProtectedRoute>} />
             <Route path="/transactions/:id/edit" element={<ProtectedRoute><TransactionForm /></ProtectedRoute>} />
-            <Route path="/issue-builder" element={<ProtectedRoute><IssueBuilder /></ProtectedRoute>} />
+            <Route path="/market-report-builder" element={<ProtectedRoute><IssueBuilder /></ProtectedRoute>} />
+            <Route path="/issue-builder" element={<ProtectedRoute><IssueBuilderRedirect /></ProtectedRoute>} />
             <Route path="/pdf/open-map" element={<PdfOpenMap />} />
              <Route path="/admin/users" element={<ProtectedRoute><AdminUsers /></ProtectedRoute>} />
              <Route path="/admin/public-market" element={<ProtectedRoute><AdminPublicMarket /></ProtectedRoute>} />

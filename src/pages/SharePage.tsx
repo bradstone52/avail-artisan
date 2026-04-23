@@ -27,7 +27,7 @@ export default function SharePage() {
         .single();
 
       if (fetchError || !data) {
-        setError('Issue not found');
+        setError('Market Report not found');
         setLoading(false);
         return;
       }
@@ -66,7 +66,7 @@ export default function SharePage() {
       const link = document.createElement('a');
       link.href = issue.pdf_url;
       link.target = '_blank';
-      link.download = issue.pdf_filename || 'distribution_snapshot.pdf';
+      link.download = issue.pdf_filename || 'market_report.pdf';
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);

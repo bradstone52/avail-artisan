@@ -31,16 +31,16 @@ export function IssueSettingsStep({ settings, onChange }: IssueSettingsStepProps
   return (
     <div className="space-y-8 animate-fade-in">
       <div>
-        <h2 className="text-xl font-display font-semibold mb-1">Issue Settings</h2>
+        <h2 className="text-xl font-display font-semibold mb-1">Report Settings</h2>
         <p className="text-muted-foreground text-sm">
-          Configure the basic details for this distribution snapshot
+          Configure the basic details for this market report
         </p>
       </div>
 
       {/* Issue Details */}
       <div className="grid gap-6">
         <div className="space-y-2">
-          <Label htmlFor="title">Issue Title</Label>
+          <Label htmlFor="title">Report Title</Label>
           <Input
             id="title"
             placeholder={defaultTitle}

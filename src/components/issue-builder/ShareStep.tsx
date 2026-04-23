@@ -61,7 +61,7 @@ export function ShareStep({
 
 Hi,
 
-I wanted to share our latest distribution availability snapshot for the ${settings.market} market.
+I wanted to share our latest market report for the ${settings.market} market.
 
 This month's report includes ${listingsCount} properties, highlighting the key logistics-capable spaces currently available.
 
@@ -137,7 +137,7 @@ Information believed reliable but not guaranteed.`;
       const link = document.createElement('a');
       link.href = currentIssue.pdf_url;
       link.target = '_blank';
-      link.download = currentIssue.pdf_filename || 'distribution_snapshot.pdf';
+      link.download = currentIssue.pdf_filename || 'market_report.pdf';
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
@@ -159,7 +159,7 @@ Information believed reliable but not guaranteed.`;
   return (
     <div className="space-y-6 animate-fade-in">
       <div>
-        <h2 className="text-xl font-display font-semibold mb-1">Share Your Issue</h2>
+        <h2 className="text-xl font-display font-semibold mb-1">Share Your Market Report</h2>
         <p className="text-muted-foreground text-sm">
           Generate the PDF and share it with your network
         </p>
@@ -173,7 +173,7 @@ Information believed reliable but not guaranteed.`;
               <Check className="w-5 h-5 text-success" />
             </div>
             <div>
-              <h3 className="font-semibold">Issue Created Successfully!</h3>
+              <h3 className="font-semibold">Market Report Created Successfully!</h3>
               <p className="text-sm text-muted-foreground">
                 {hasPdf ? 'Your PDF is ready' : 'Generate the PDF to share'}
               </p>

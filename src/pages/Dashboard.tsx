@@ -64,9 +64,9 @@ export default function Dashboard() {
               <Database className="w-4 h-4 mr-2" />
               Market Listings
             </Button>
-            <Button size="sm" className="flex-1 sm:flex-none" onClick={() => navigate('/issue-builder')}>
+            <Button size="sm" className="flex-1 sm:flex-none" onClick={() => navigate('/market-report-builder')}>
               <FilePlus className="w-4 h-4 mr-2" />
-              Create Issue
+              Create Market Report
             </Button>
           </div>
         </div>
@@ -91,9 +91,9 @@ export default function Dashboard() {
                 variant="primary"
               />
               <StatCard
-                title="Issues Published"
+                title="Market Reports Published"
                 value={issues.length}
-                description="Market snapshots"
+                description="Market reports"
                 icon={<Sparkles className="w-5 h-5" />}
                 variant="success"
                 action={
@@ -121,8 +121,8 @@ export default function Dashboard() {
                     <FileSpreadsheet className="w-5 h-5" />
                   </div>
                   <div className="text-left">
-                    <h2 className="text-sm font-bold uppercase tracking-wider">Recent Issues</h2>
-                    <p className="text-xs text-muted-foreground">{issues.length} market snapshots</p>
+                    <h2 className="text-sm font-bold uppercase tracking-wider">Recent Market Reports</h2>
+                    <p className="text-xs text-muted-foreground">{issues.length} market reports</p>
                   </div>
                 </div>
                 <ChevronDown className={`w-5 h-5 text-muted-foreground transition-transform ${issuesOpen ? 'rotate-180' : ''}`} />
@@ -133,13 +133,13 @@ export default function Dashboard() {
                 ) : issues.length === 0 ? (
                   <div className="text-center py-12 bg-muted/30 rounded-xl border border-dashed border-border">
                     <FilePlus className="w-10 h-10 text-muted-foreground mx-auto mb-3" />
-                    <p className="text-muted-foreground">No issues created yet</p>
-                    <Button 
-                      variant="link" 
-                      onClick={() => navigate('/issue-builder')}
+                    <p className="text-muted-foreground">No market reports created yet</p>
+                    <Button
+                      variant="link"
+                      onClick={() => navigate('/market-report-builder')}
                       className="mt-2"
                     >
-                      Create your first issue
+                      Create your first market report
                     </Button>
                   </div>
                 ) : (

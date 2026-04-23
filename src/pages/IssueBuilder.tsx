@@ -16,7 +16,7 @@ import { toast } from "sonner";
 import { format } from "date-fns";
 
 const WIZARD_STEPS = [
-  { id: "settings", title: "Settings", description: "Issue configuration" },
+  { id: "settings", title: "Settings", description: "Report configuration" },
   { id: "listings", title: "Listings", description: "Select properties" },
   { id: "content", title: "Content", description: "Generate notes" },
   { id: "preview", title: "Preview", description: "Review PDF" },
@@ -166,9 +166,9 @@ export default function IssueBuilder() {
 
       setCreatedIssue(issue);
       setCurrentStep(4);
-      toast.success("Issue created successfully!");
+      toast.success("Market Report created successfully!");
     } catch (error) {
-      toast.error("Failed to create issue");
+      toast.error("Failed to create market report");
       console.error(error);
     } finally {
       setIsCreating(false);
@@ -207,8 +207,8 @@ export default function IssueBuilder() {
       <div className="p-6 lg:p-8 max-w-4xl mx-auto">
         {/* Header */}
         <div className="mb-8">
-          <h1 className="text-2xl font-display font-bold">Create Issue</h1>
-          <p className="text-muted-foreground mt-1">Build your distribution market snapshot</p>
+          <h1 className="text-2xl font-display font-bold">Create Market Report</h1>
+          <p className="text-muted-foreground mt-1">Build your distribution market report</p>
         </div>
 
         {/* Wizard Steps */}

@@ -930,7 +930,7 @@ tbody tr:last-child td {
     <div class="cover-brand">${esc(issue.brokerage_name || "ClearView Commercial Realty Inc.")}</div>
     
     <h1 class="cover-title">${esc(titleLine1)}<span class="cover-title-sub">${esc(titleLine2)}</span></h1>
-    <p class="cover-subtitle">Curated snapshot of logistics-capable space in the Calgary region and surrounding areas</p>
+    <p class="cover-subtitle">Curated selection of logistics-capable space in the Calgary region and surrounding areas</p>
     
     <div class="cover-count">
       <strong>${total}</strong>

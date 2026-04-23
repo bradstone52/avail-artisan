@@ -69,7 +69,7 @@ export function PreviewStep({
       <div>
         <h2 className="text-headline mb-1">Preview</h2>
         <p className="text-caption">
-          Review your market snapshot before generating the PDF
+          Review your market report before generating the PDF
         </p>
       </div>
 
@@ -120,7 +120,7 @@ export function PreviewStep({
                 Large-Format Distribution Availabilities —<br/>January 2026, Calgary & Area
               </h1>
               <p className="text-subhead text-muted-foreground">
-                Curated snapshot of logistics-capable space in Calgary and surrounding areas
+                Curated selection of logistics-capable space in the Calgary region and surrounding areas
               </p>
             </div>
 

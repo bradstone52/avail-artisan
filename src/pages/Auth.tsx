@@ -158,7 +158,7 @@ export default function Auth() {
               <Building2 className="w-8 h-8 text-primary-foreground" />
             </div>
             <h1 className="text-2xl font-bold tracking-tight text-foreground">
-              Distribution Snapshot
+              ClearView CRE
             </h1>
             <p className="text-muted-foreground mt-2 font-medium">
               Two-factor authentication is required
@@ -186,7 +186,7 @@ export default function Auth() {
               <Building2 className="w-8 h-8 text-primary-foreground" />
             </div>
             <h1 className="text-2xl font-bold tracking-tight text-foreground">
-              Distribution Snapshot
+              ClearView CRE
             </h1>
           </div>
           <MfaVerification 
@@ -207,7 +207,7 @@ export default function Auth() {
             <Building2 className="w-8 h-8 text-primary-foreground" />
           </div>
           <h1 className="text-2xl font-bold tracking-tight text-foreground">
-            Distribution Snapshot
+            ClearView CRE
           </h1>
           <p className="text-muted-foreground mt-2 font-medium">
             Industrial CRE market intelligence
