@@ -106,7 +106,7 @@ export default function Properties() {
   const totalProperties = properties.length;
   const uniqueCities = new Set(properties.map(p => p.city).filter(Boolean)).size;
   const withActiveListings = properties.filter(p => (p.active_listing_count || 0) > 0).length;
-  const uniqueTypes = new Set(properties.map(p => p.property_type).filter(Boolean)).size;
+  const withoutActiveListings = totalProperties - withActiveListings;
 
   const handleEdit = (property: PropertyWithLinks) => {
     setSelectedProperty(property);
@@ -230,8 +230,8 @@ export default function Properties() {
                   <FileText className="h-5 w-5 text-accent-foreground" />
                 </div>
                 <div>
-                  <p className="text-2xl font-bold">{uniqueTypes}</p>
-                  <p className="text-xs text-muted-foreground">Property Types</p>
+                  <p className="text-2xl font-bold">{withoutActiveListings}</p>
+                  <p className="text-xs text-muted-foreground">Without Active Listings</p>
                 </div>
               </div>
             </CardContent>

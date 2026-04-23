@@ -22,12 +22,13 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { StatusDropdown } from '@/components/market/StatusDropdown';
 import { EditMarketPinDialog } from '@/components/market/EditMarketPinDialog';
 import { LogTransactionDialog } from '@/components/market/LogTransactionDialog';
-import { ExternalLink, MapPin, MapPinOff, Hand, Pencil, Copy, Receipt, RotateCcw, ArrowUp, ArrowDown, ArrowUpDown, CheckCircle, Building2 } from 'lucide-react';
+import { ExternalLink, MapPin, MapPinOff, Hand, Pencil, Copy, Receipt, RotateCcw, ArrowUp, ArrowDown, ArrowUpDown, CheckCircle, Building2, MoreHorizontal } from 'lucide-react';
 import { format, differenceInDays, parseISO } from 'date-fns';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -452,14 +453,8 @@ export function MarketListingsTable({ listings, onEdit, onDuplicate, onRefresh, 
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
       role="region"
-      aria-label="Market listings table - use left and right arrow keys to scroll"
+      aria-label="Market listings table"
     >
-      {/* Keyboard scroll indicator */}
-      {isHovered && (
-        <div className="absolute -top-10 left-1/2 -translate-x-1/2 z-30 px-4 py-2 bg-primary/90 text-primary-foreground text-xs font-medium rounded-lg shadow-md">
-          ← → Scroll with arrow keys
-        </div>
-      )}
       <Table className="min-w-[3000px]" stickyHeader>
         <TableHeader className="sticky top-0 z-40">
           <TableRow className="bg-muted">
@@ -477,8 +472,18 @@ export function MarketListingsTable({ listings, onEdit, onDuplicate, onRefresh, 
             <TableHead className="text-muted-foreground min-w-[130px] bg-muted">Submarket</TableHead>
             <TableHead className="text-muted-foreground min-w-[100px] bg-muted">City</TableHead>
             <TableHead className="text-muted-foreground min-w-[80px] bg-muted">Type</TableHead>
-            <TableHead className="text-muted-foreground min-w-[70px] bg-muted">Calg. Quad.</TableHead>
-            <TableHead className="text-muted-foreground min-w-[60px] bg-muted">DW</TableHead>
+            <TableHead className="text-muted-foreground min-w-[70px] bg-muted">
+              <Tooltip>
+                <TooltipTrigger className="cursor-default">Calg. Quad.</TooltipTrigger>
+                <TooltipContent>Calgary Quadrant (NE/NW/SE/SW)</TooltipContent>
+              </Tooltip>
+            </TableHead>
+            <TableHead className="text-muted-foreground min-w-[60px] bg-muted">
+              <Tooltip>
+                <TooltipTrigger className="cursor-default">DW</TooltipTrigger>
+                <TooltipContent>Distribution Warehouse</TooltipContent>
+              </Tooltip>
+            </TableHead>
             <SortableHeader column="size_sf" className="text-right min-w-[100px] bg-muted">Size (SF)</SortableHeader>
             <TableHead className="text-muted-foreground min-w-[80px] bg-muted">Acres</TableHead>
             <SortableHeader column="warehouse_sf" className="text-right min-w-[110px] bg-muted">Warehouse SF</SortableHeader>
@@ -794,9 +799,9 @@ export function MarketListingsTable({ listings, onEdit, onDuplicate, onRefresh, 
                     <Tooltip>
                       <TooltipTrigger asChild>
                         <DropdownMenuTrigger asChild>
-                          <Button 
-                            variant="ghost" 
-                            size="icon" 
+                          <Button
+                            variant="ghost"
+                            size="icon"
                             className={cn(
                               "h-7 w-7 relative",
                               listing.geocode_source === 'manual' && "ring-2 ring-warning ring-offset-1"
@@ -828,10 +833,7 @@ export function MarketListingsTable({ listings, onEdit, onDuplicate, onRefresh, 
                       </DropdownMenuItem>
                       {listing.geocode_source !== 'manual' && (
                         <DropdownMenuItem
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleAutoGeocode(listing);
-                          }}
+                          onClick={(e) => { e.stopPropagation(); handleAutoGeocode(listing); }}
                           disabled={geocodingId === listing.id}
                         >
                           <MapPin className="w-4 h-4 mr-2" />
@@ -839,38 +841,14 @@ export function MarketListingsTable({ listings, onEdit, onDuplicate, onRefresh, 
                         </DropdownMenuItem>
                       )}
                       {listing.geocode_source === 'manual' && (
-                        <DropdownMenuItem 
-                          onClick={(e) => { e.stopPropagation(); handleResetPin(listing); }}
-                        >
+                        <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleResetPin(listing); }}>
                           <RotateCcw className="w-4 h-4 mr-2" />
                           Reset to auto-geocode
                         </DropdownMenuItem>
                       )}
                     </DropdownMenuContent>
                   </DropdownMenu>
-                  
-                  {/* Link */}
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      {(listing.brochure_link || listing.link) ? (
-                        <a 
-                          href={(listing.brochure_link || listing.link)!} 
-                          target="_blank" 
-                          rel="noopener noreferrer"
-                          className="inline-flex items-center justify-center h-7 w-7 text-primary hover:text-primary/80 hover:bg-muted rounded-sm"
-                          onClick={(e) => e.stopPropagation()}
-                        >
-                          <ExternalLink className="h-3.5 w-3.5" />
-                        </a>
-                      ) : (
-                        <span className="inline-flex items-center justify-center h-7 w-7 text-muted-foreground">
-                          <ExternalLink className="h-3.5 w-3.5 opacity-30" />
-                        </span>
-                      )}
-                    </TooltipTrigger>
-                    <TooltipContent>{(listing.brochure_link || listing.link) ? 'Open Link' : 'No Link'}</TooltipContent>
-                  </Tooltip>
-                  
+
                   {/* Verify */}
                   <Tooltip>
                     <TooltipTrigger asChild>
@@ -886,7 +864,7 @@ export function MarketListingsTable({ listings, onEdit, onDuplicate, onRefresh, 
                     </TooltipTrigger>
                     <TooltipContent>Verify Listing</TooltipContent>
                   </Tooltip>
-                  
+
                   {/* Edit */}
                   <Tooltip>
                     <TooltipTrigger asChild>
@@ -902,63 +880,69 @@ export function MarketListingsTable({ listings, onEdit, onDuplicate, onRefresh, 
                     <TooltipContent>Edit Listing</TooltipContent>
                   </Tooltip>
 
-                  {/* Duplicate */}
-                  {onDuplicate && (
+                  {/* Kebab — Link, Duplicate, Log Transaction, Property Link */}
+                  <DropdownMenu>
                     <Tooltip>
                       <TooltipTrigger asChild>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-7 w-7"
-                          onClick={(e) => { e.stopPropagation(); onDuplicate(listing); }}
-                        >
-                          <Copy className="h-3.5 w-3.5" />
-                        </Button>
+                        <DropdownMenuTrigger asChild>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-7 w-7"
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            <MoreHorizontal className="h-3.5 w-3.5" />
+                          </Button>
+                        </DropdownMenuTrigger>
                       </TooltipTrigger>
-                      <TooltipContent>Duplicate Listing</TooltipContent>
+                      <TooltipContent>More</TooltipContent>
                     </Tooltip>
-                  )}
-                  
-                  {/* Log Transaction */}
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-7 w-7"
-                        onClick={(e) => { e.stopPropagation(); setTransactionListing(listing); }}
-                      >
-                        <Receipt className="h-3.5 w-3.5" />
-                      </Button>
-                    </TooltipTrigger>
-                    <TooltipContent>Log Transaction</TooltipContent>
-                  </Tooltip>
-                  
-                  {/* Property Link */}
-                  {(() => {
-                    const propertyId = propertyMap[listing.address.trim().toLowerCase()];
-                    return (
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          {propertyId ? (
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-7 w-7"
-                              onClick={(e) => { e.stopPropagation(); navigate(`/properties/${propertyId}`); }}
-                            >
-                              <Building2 className="h-3.5 w-3.5" />
-                            </Button>
-                          ) : (
-                            <span className="inline-flex items-center justify-center h-7 w-7 text-muted-foreground">
-                              <Building2 className="h-3.5 w-3.5 opacity-30" />
-                            </span>
-                          )}
-                        </TooltipTrigger>
-                        <TooltipContent>{propertyId ? 'View Property' : 'No Property'}</TooltipContent>
-                      </Tooltip>
-                    );
-                  })()}
+                    <DropdownMenuContent align="end">
+                      {(listing.brochure_link || listing.link) ? (
+                        <DropdownMenuItem asChild>
+                          <a
+                            href={(listing.brochure_link || listing.link)!}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            <ExternalLink className="w-4 h-4 mr-2" />
+                            Open Link
+                          </a>
+                        </DropdownMenuItem>
+                      ) : (
+                        <DropdownMenuItem disabled>
+                          <ExternalLink className="w-4 h-4 mr-2" />
+                          No Link
+                        </DropdownMenuItem>
+                      )}
+                      {onDuplicate && (
+                        <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onDuplicate(listing); }}>
+                          <Copy className="w-4 h-4 mr-2" />
+                          Duplicate
+                        </DropdownMenuItem>
+                      )}
+                      <DropdownMenuItem onClick={(e) => { e.stopPropagation(); setTransactionListing(listing); }}>
+                        <Receipt className="w-4 h-4 mr-2" />
+                        Log Transaction
+                      </DropdownMenuItem>
+                      <DropdownMenuSeparator />
+                      {(() => {
+                        const propertyId = propertyMap[listing.address.trim().toLowerCase()];
+                        return propertyId ? (
+                          <DropdownMenuItem onClick={(e) => { e.stopPropagation(); navigate(`/properties/${propertyId}`); }}>
+                            <Building2 className="w-4 h-4 mr-2" />
+                            View Property
+                          </DropdownMenuItem>
+                        ) : (
+                          <DropdownMenuItem disabled>
+                            <Building2 className="w-4 h-4 mr-2" />
+                            No Property
+                          </DropdownMenuItem>
+                        );
+                      })()}
+                    </DropdownMenuContent>
+                  </DropdownMenu>
                 </div>
               </TableCell>
             </TableRow>

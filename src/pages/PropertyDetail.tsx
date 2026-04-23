@@ -527,11 +527,11 @@ export default function PropertyDetail() {
               className={property.geocode_source === 'manual' ? 'border-orange-500' : ''}
             >
               <MapPin className="h-4 w-4 mr-2" />
-              Edit Pin
+              Edit Map Pin
             </Button>
             <Button variant="outline" onClick={() => setEditDialogOpen(true)}>
               <Pencil className="h-4 w-4 mr-2" />
-              Edit
+              Edit Details
             </Button>
             <Button variant="outline" onClick={() => refetch()}>
               <RefreshCw className="h-4 w-4 mr-2" />

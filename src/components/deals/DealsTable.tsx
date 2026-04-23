@@ -53,7 +53,6 @@ const SORT_OPTIONS = [
 ];
 
 const DEALS_COLUMNS = [
-  { id: 'deal_number', label: 'Deal #', defaultVisible: true },
   { id: 'address', label: 'Address', defaultVisible: true },
   { id: 'type', label: 'Type', defaultVisible: true },
   { id: 'status', label: 'Status', defaultVisible: true },
@@ -158,7 +157,6 @@ export function DealsTable({ deals, isLoading, onEdit, importantDates }: DealsTa
         const query = searchQuery.toLowerCase();
         const matchesSearch = 
           deal.address?.toLowerCase().includes(query) ||
-          deal.deal_number?.toLowerCase().includes(query) ||
           deal.city?.toLowerCase().includes(query) ||
           deal.submarket?.toLowerCase().includes(query);
         if (!matchesSearch) return false;
@@ -274,7 +272,6 @@ export function DealsTable({ deals, isLoading, onEdit, importantDates }: DealsTa
         <Table>
           <TableHeader>
             <TableRow>
-              {isVisible('deal_number') && <TableHead className={headPadding}>Deal #</TableHead>}
               {isVisible('address') && <TableHead className={headPadding}>Address</TableHead>}
               {isVisible('type') && <TableHead className={headPadding}>Type</TableHead>}
               {isVisible('status') && <TableHead className={headPadding}>Status</TableHead>}
@@ -316,11 +313,6 @@ export function DealsTable({ deals, isLoading, onEdit, importantDates }: DealsTa
                   onClick={() => setSelectedRowId(isSelected ? null : deal.id)}
                   onDoubleClick={() => navigate(`/deals/${deal.id}`)}
                 >
-                  {isVisible('deal_number') && (
-                    <TableCell className={cn('font-medium', cellPadding)}>
-                      {deal.deal_number || '-'}
-                    </TableCell>
-                  )}
                   {isVisible('address') && (
                     <TableCell className={cellPadding}>
                       <div className="flex flex-col">

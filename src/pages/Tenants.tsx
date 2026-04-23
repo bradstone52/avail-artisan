@@ -170,11 +170,11 @@ export default function Tenants() {
               <Card className="border border-border shadow-sm">
                 <CardContent className="p-4">
                   <div className="flex items-center gap-3">
-                    <div className="p-2 bg-destructive/10 rounded-lg">
-                      <AlertTriangle className="h-5 w-5 text-destructive" />
+                    <div className={`p-2 rounded-lg ${expiriesStats.within6Months > 0 ? 'bg-destructive/10' : 'bg-muted'}`}>
+                      <AlertTriangle className={`h-5 w-5 ${expiriesStats.within6Months > 0 ? 'text-destructive' : 'text-muted-foreground'}`} />
                     </div>
                     <div>
-                      <p className="text-2xl font-bold text-destructive">
+                      <p className={`text-2xl font-bold ${expiriesStats.within6Months > 0 ? 'text-destructive' : ''}`}>
                         {expiriesLoading ? (
                           <Skeleton className="h-8 w-12" />
                         ) : (
@@ -189,11 +189,11 @@ export default function Tenants() {
               <Card className="border border-border shadow-sm">
                 <CardContent className="p-4">
                   <div className="flex items-center gap-3">
-                    <div className="p-2 bg-destructive/20 rounded-lg">
-                      <AlertTriangle className="h-5 w-5 text-destructive" />
+                    <div className={`p-2 rounded-lg ${expiriesStats.expired > 0 ? 'bg-destructive/20' : 'bg-muted'}`}>
+                      <AlertTriangle className={`h-5 w-5 ${expiriesStats.expired > 0 ? 'text-destructive' : 'text-muted-foreground'}`} />
                     </div>
                     <div>
-                      <p className="text-2xl font-bold text-destructive">
+                      <p className={`text-2xl font-bold ${expiriesStats.expired > 0 ? 'text-destructive' : ''}`}>
                         {expiriesLoading ? (
                           <Skeleton className="h-8 w-12" />
                         ) : (

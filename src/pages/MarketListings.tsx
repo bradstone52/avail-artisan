@@ -22,7 +22,6 @@ import { format } from 'date-fns';
 import { MarketListingEditDialog } from '@/components/market/MarketListingEditDialog';
 import { MarketListingsTable, SortableColumn, SortDirection } from '@/components/market/MarketListingsTable';
 import { LogTransactionDialog } from '@/components/market/LogTransactionDialog';
-import { normalizeAddressForDupeCheck } from '@/components/market/DuplicateListingsDialog';
 import { BulkEditListingsDialog } from '@/components/market/BulkEditListingsDialog';
 
 const SIZE_RANGES = [
@@ -396,19 +395,6 @@ export default function MarketListings() {
   const geocodedCount = listings.filter(l => l.latitude && l.longitude).length;
   const ungeocodeCount = listings.length - geocodedCount;
 
-  const duplicateCount = useMemo(() => {
-    const counts = new Map<string, number>();
-    for (const l of listings) {
-      const addr = normalizeAddressForDupeCheck(l);
-      if (!addr) continue;
-      const key = `${addr}||${l.size_sf ?? ''}||${l.land_acres ?? ''}||${l.listing_type ?? ''}`;
-      counts.set(key, (counts.get(key) || 0) + 1);
-    }
-    let extras = 0;
-    for (const c of counts.values()) if (c > 1) extras += c - 1;
-    return extras;
-  }, [listings]);
-
   if (loading) {
     return (
       <AppLayout>
@@ -448,7 +434,7 @@ export default function MarketListings() {
         </div>
 
         {/* Stats Cards - Compact */}
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 mb-6">
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3 mb-6">
           <Card className="py-2">
             <CardHeader className="py-1.5 px-4">
               <CardDescription className="text-xs">Total Listings</CardDescription>
@@ -468,18 +454,6 @@ export default function MarketListings() {
                 <span className="text-green-600">{geocodedCount}</span>
                 {ungeocodeCount > 0 && (
                   <span className="text-destructive text-base"> / {ungeocodeCount} <span className="text-xs font-bold">MISSING</span></span>
-                )}
-              </CardTitle>
-            </CardHeader>
-          </Card>
-          <Card className="py-2">
-            <CardHeader className="py-1.5 px-4">
-              <CardDescription className="text-xs">Duplicates</CardDescription>
-              <CardTitle className="text-2xl">
-                {duplicateCount === 0 ? (
-                  <span className="text-green-600">0</span>
-                ) : (
-                  <span className="text-destructive">{duplicateCount}</span>
                 )}
               </CardTitle>
             </CardHeader>

@@ -653,24 +653,12 @@ export function ProspectsTable({ prospects, isLoading, onEdit }: ProspectsTableP
 
               const priorityBgColor = isSelected
                 ? undefined
-                : prospect.priority === 'A'
-                  ? isEven ? 'rgb(254 226 226)' : 'rgb(252 165 165 / 0.5)'
-                  : prospect.priority === 'B'
-                  ? isEven ? 'rgb(254 249 195)' : 'rgb(253 224 71 / 0.4)'
-                  : prospect.priority === 'C'
-                  ? isEven ? 'rgb(207 250 254)' : 'rgb(103 232 249 / 0.4)'
-                  : isEven ? 'transparent' : 'rgb(0 0 0 / 0.04)';
+                : isEven ? 'transparent' : 'rgb(0 0 0 / 0.04)';
 
               const rowBg = isSelected ? '!bg-secondary' : '';
               const hoverClass = isSelected
                 ? 'hover:!bg-secondary/90'
-                : prospect.priority === 'A'
-                  ? 'hover:!bg-red-200/80 dark:hover:!bg-red-900/40'
-                  : prospect.priority === 'B'
-                    ? 'hover:!bg-yellow-200/80 dark:hover:!bg-yellow-900/40'
-                    : prospect.priority === 'C'
-                      ? 'hover:!bg-slate-100 dark:hover:!bg-slate-800/40'
-                      : 'hover:!bg-slate-50 dark:hover:!bg-slate-800/30';
+                : 'hover:!bg-slate-50 dark:hover:!bg-slate-800/30';
               const outlineClass = isSelected
                 ? 'outline outline-2 outline-blue-400 dark:outline-blue-500 -outline-offset-1'
                 : 'outline-0 hover:outline hover:outline-1 hover:outline-slate-300 dark:hover:outline-slate-600 hover:-outline-offset-1';
