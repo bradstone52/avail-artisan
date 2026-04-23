@@ -98,7 +98,7 @@ export default function Install() {
             </div>
             <CardTitle className="text-2xl font-bold">App Installed!</CardTitle>
             <CardDescription className="text-base">
-              Snapshot Builder is now on your home screen
+              ClearView CRE is now on your home screen
             </CardDescription>
           </CardHeader>
           <CardContent className="text-center">
@@ -125,7 +125,7 @@ export default function Install() {
           <div className="mx-auto w-16 h-16 bg-primary rounded-xl flex items-center justify-center mb-4 shadow-lg">
             <Building2 className="h-8 w-8 text-primary-foreground" />
           </div>
-          <CardTitle className="text-2xl font-bold">Install Snapshot Builder</CardTitle>
+          <CardTitle className="text-2xl font-bold">Install ClearView CRE</CardTitle>
           <CardDescription className="text-base">
             Add to your home screen for the best experience
           </CardDescription>

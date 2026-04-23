@@ -143,10 +143,10 @@ export function AppLayout({ children }: AppLayoutProps) {
             {!sidebarCollapsed && (
               <div className="flex-1 min-w-0">
                 <h1 className="text-sm font-semibold text-foreground truncate">
-                  Snapshot Builder
+                  ClearView CRE
                 </h1>
                 <p className="text-xs text-muted-foreground">
-                  Distribution Intel
+                  Industrial Brokerage
                 </p>
               </div>
             )}
@@ -385,7 +385,7 @@ export function AppLayout({ children }: AppLayoutProps) {
           </button>
           <div className="flex items-center gap-2">
             <Building2 className="w-5 h-5 text-primary" />
-            <span className="font-semibold text-foreground">Snapshot Builder</span>
+            <span className="font-semibold text-foreground">ClearView CRE</span>
           </div>
         </header>
 
