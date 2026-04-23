@@ -17,6 +17,8 @@ import Transactions from "./pages/Transactions";
 import TransactionDetail from "./pages/TransactionDetail";
 import TransactionForm from "./pages/TransactionForm";
 import IssueBuilder from "./pages/IssueBuilder";
+import MarketListingsAdmin from "./pages/MarketListingsAdmin";
+import PropertiesAdmin from "./pages/PropertiesAdmin";
 import SharePage from "./pages/SharePage";
 import AdminUsers from "./pages/AdminUsers";
 import AdminPublicMarket from "./pages/AdminPublicMarket";
@@ -105,6 +107,8 @@ const App = () => (
             <Route path="/transactions/:id/edit" element={<ProtectedRoute><TransactionForm /></ProtectedRoute>} />
             <Route path="/market-report-builder" element={<ProtectedRoute><IssueBuilder /></ProtectedRoute>} />
             <Route path="/issue-builder" element={<ProtectedRoute><IssueBuilderRedirect /></ProtectedRoute>} />
+            <Route path="/market-listings/admin" element={<ProtectedRoute><MarketListingsAdmin /></ProtectedRoute>} />
+            <Route path="/properties/admin" element={<ProtectedRoute><PropertiesAdmin /></ProtectedRoute>} />
             <Route path="/pdf/open-map" element={<PdfOpenMap />} />
              <Route path="/admin/users" element={<ProtectedRoute><AdminUsers /></ProtectedRoute>} />
              <Route path="/admin/public-market" element={<ProtectedRoute><AdminPublicMarket /></ProtectedRoute>} />
