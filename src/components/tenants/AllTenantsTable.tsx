@@ -37,8 +37,8 @@ export function AllTenantsTable({ tenants, searchQuery }: AllTenantsTableProps) 
   };
 
   const handleRowClick = (tenant: TenantWithProperty) => {
-    if (tenant.source === 'transaction' && tenant.transactionId) {
-      navigate(`/transactions/${tenant.transactionId}`);
+    if (tenant.source === 'transaction' && tenant.leaseCompId) {
+      navigate(`/lease-comps/${tenant.leaseCompId}`);
     } else if (tenant.propertyId) {
       navigate(`/properties/${tenant.propertyId}`);
     }
@@ -110,7 +110,7 @@ export function AllTenantsTable({ tenants, searchQuery }: AllTenantsTableProps) 
                   {tenant.source === 'transaction' ? (
                     <Badge variant="secondary" className="gap-1">
                       <FileText className="h-3 w-3" />
-                      Transaction
+                      Lease Comp
                     </Badge>
                   ) : (
                     <Badge variant="outline" className="gap-1">

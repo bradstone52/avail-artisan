@@ -21,7 +21,6 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { format } from 'date-fns';
 import { MarketListingEditDialog } from '@/components/market/MarketListingEditDialog';
 import { MarketListingsTable, SortableColumn, SortDirection } from '@/components/market/MarketListingsTable';
-import { LogTransactionDialog } from '@/components/market/LogTransactionDialog';
 import { BulkEditListingsDialog } from '@/components/market/BulkEditListingsDialog';
 
 const SIZE_RANGES = [
@@ -74,7 +73,6 @@ export default function MarketListings() {
   const [editingListing, setEditingListing] = useState<MarketListing | null>(null);
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [duplicatingListing, setDuplicatingListing] = useState<MarketListing | null>(null);
-  const [transactionListing, setTransactionListing] = useState<MarketListing | null>(null);
   const [flaggedListingIds, setFlaggedListingIds] = useState<string[]>([]);
 
   // Read flagged/search params from URL on mount (set by admin audit tools)
@@ -917,7 +915,6 @@ export default function MarketListings() {
           }}
           onSaved={refreshListings}
           mode="edit"
-          onLogTransaction={(listing) => setTransactionListing(listing)}
         />
 
         {/* Create Dialog */}
@@ -928,19 +925,6 @@ export default function MarketListings() {
           onSaved={refreshListings}
           mode="create"
           duplicateFrom={duplicatingListing}
-        />
-
-        {/* Log Transaction Dialog */}
-        <LogTransactionDialog
-          listing={transactionListing}
-          open={transactionListing !== null}
-          onOpenChange={(open) => {
-            if (!open) setTransactionListing(null);
-          }}
-          onSaved={() => {
-            setTransactionListing(null);
-            refreshListings();
-          }}
         />
 
       </div>

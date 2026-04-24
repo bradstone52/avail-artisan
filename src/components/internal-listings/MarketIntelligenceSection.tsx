@@ -157,7 +157,7 @@ function TransactionCard({ transaction }: { transaction: RecentTransaction }) {
 
   return (
     <Link 
-      to={`/transactions/${transaction.id}`}
+      to={`/lease-comps/${transaction.id}`}
       className="block p-3 border rounded-lg hover:bg-muted/50 transition-colors"
     >
       <div className="flex items-start justify-between gap-2">

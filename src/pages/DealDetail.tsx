@@ -17,7 +17,7 @@ import { GenerateDealSheetDialog } from '@/components/deals/GenerateDealSheetDia
 import { GenerateDealSummaryDialog } from '@/components/deals/GenerateDealSummaryDialog';
 import { ConfirmDialog } from '@/components/common/ConfirmDialog';
 import { Skeleton } from '@/components/ui/skeleton';
-import { ArrowLeft, FileText, Trash2, Briefcase, FileBarChart, MoreHorizontal } from 'lucide-react';
+import { ArrowLeft, FileText, Trash2, Briefcase, FileBarChart, MoreHorizontal, Receipt } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -105,12 +105,26 @@ export default function DealDetail() {
               <FileText className="w-4 h-4 mr-2" />
               GENERATE DEAL SHEET
             </Button>
-            <Button 
-              variant="outline" 
+            <Button
+              variant="outline"
               onClick={() => setGenerateSummaryOpen(true)}
             >
               <FileBarChart className="w-4 h-4 mr-2" />
               GENERATE DEAL SUMMARY
+            </Button>
+            <Button
+              variant="outline"
+              onClick={() => {
+                localStorage.setItem('lease-comp-prefill', JSON.stringify({
+                  address: deal.address,
+                  size_sf: deal.size_sf,
+                  submarket: deal.submarket,
+                }));
+                navigate('/lease-comps/new');
+              }}
+            >
+              <Receipt className="w-4 h-4 mr-2" />
+              LOG LEASE COMP
             </Button>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>

@@ -1,5 +1,5 @@
 import { useState, useCallback } from 'react';
-import { addMonths } from 'date-fns';
+import { addMonths, parseISO } from 'date-fns';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
@@ -16,7 +16,7 @@ export interface PropertyTenant {
   tracked_by: string | null;
   created_at: string;
   source?: 'manual' | 'transaction';
-  transactionId?: string;
+  leaseCompId?: string;
 }
 
 export interface CreateTenantData {
@@ -57,15 +57,15 @@ export function usePropertyTenants(propertyId?: string) {
 
       if (manualError) throw manualError;
 
-      // Fetch transaction-derived tenants (leases linked to this property)
-      const { data: transactions, error: txError } = await supabase
-        .from('transactions')
+      // Fetch tracked lease comps linked to this property
+      const { data: leaseComps, error: lcError } = await supabase
+        .from('lease_comps')
         .select('*')
         .eq('property_id', targetId)
-        .eq('transaction_type', 'Lease')
-        .not('buyer_tenant_company', 'is', null);
+        .eq('is_tracked', true)
+        .not('tenant_name', 'is', null);
 
-      if (txError) throw txError;
+      if (lcError) throw lcError;
 
       // Transform manual tenants
       const manual: PropertyTenant[] = (manualTenants || []).map((t) => ({
@@ -73,32 +73,33 @@ export function usePropertyTenants(propertyId?: string) {
         source: 'manual' as const,
       }));
 
-      // Transform transaction tenants
-      const fromTransactions: PropertyTenant[] = (transactions || []).map((tx) => {
+      // Transform lease-comp-derived tenants
+      const fromLeaseComps: PropertyTenant[] = (leaseComps || []).map((lc) => {
         let leaseExpiry: string | null = null;
-        if (tx.closing_date && tx.lease_term_months) {
-          const expiry = addMonths(new Date(tx.closing_date), tx.lease_term_months);
-          leaseExpiry = expiry.toISOString().split('T')[0];
+        if (lc.commencement_date && lc.term_months) {
+          leaseExpiry = addMonths(parseISO(lc.commencement_date), lc.term_months)
+            .toISOString()
+            .split('T')[0];
         }
 
         return {
-          id: `tx-${tx.id}`,
+          id: `lc-${lc.id}`,
           property_id: targetId,
-          tenant_name: tx.buyer_tenant_company || tx.buyer_tenant_name || 'Unknown',
+          tenant_name: lc.tenant_name!,
           unit_number: null,
-          size_sf: tx.size_sf,
+          size_sf: lc.size_sf,
           lease_expiry: leaseExpiry,
-          notes: tx.notes,
-          tracked_at: tx.created_at,
-          tracked_by: tx.created_by,
-          created_at: tx.created_at,
+          notes: lc.notes,
+          tracked_at: lc.created_at,
+          tracked_by: lc.created_by,
+          created_at: lc.created_at,
           source: 'transaction' as const,
-          transactionId: tx.id,
+          leaseCompId: lc.id,
         };
       });
 
       // Combine and sort by tracked_at
-      const combined = [...manual, ...fromTransactions];
+      const combined = [...manual, ...fromLeaseComps];
       combined.sort((a, b) => new Date(b.tracked_at).getTime() - new Date(a.tracked_at).getTime());
 
       setTenants(combined);

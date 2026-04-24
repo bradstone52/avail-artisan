@@ -128,7 +128,7 @@ export function TenantExpiriesTable({ expiries, searchQuery = '' }: TenantExpiri
                         : 'bg-purple-50 text-purple-700 border-purple-200'
                     )}
                   >
-                    {expiry.source === 'manual' ? 'Manual' : 'Transaction'}
+                    {expiry.source === 'manual' ? 'Manual' : 'Lease Comp'}
                   </Badge>
                 </TableCell>
               </TableRow>

@@ -46,6 +46,21 @@ export default function LeaseCompForm() {
   const [notes, setNotes] = useState('');
 
   useEffect(() => {
+    if (!isEdit) {
+      const raw = localStorage.getItem('lease-comp-prefill');
+      if (raw) {
+        try {
+          const prefill = JSON.parse(raw);
+          if (prefill.address) setAddress(prefill.address);
+          if (prefill.size_sf) setSizeSf(String(prefill.size_sf));
+          if (prefill.submarket) setSubmarket(prefill.submarket);
+        } catch { /* ignore malformed */ }
+        localStorage.removeItem('lease-comp-prefill');
+      }
+    }
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  useEffect(() => {
     if (!isEdit || !id) return;
     getLeaseComp(id).then((comp) => {
       if (!comp) { navigate('/lease-comps'); return; }

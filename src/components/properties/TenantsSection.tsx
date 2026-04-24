@@ -176,7 +176,7 @@ export function TenantsSection({ propertyId, propertyName }: TenantsSectionProps
                         <Button
                           variant="ghost"
                           size="sm"
-                          onClick={() => navigate(`/transactions/${tenant.transactionId}`)}
+                          onClick={() => navigate(`/lease-comps/${tenant.leaseCompId}`)}
                         >
                           <ExternalLink className="h-4 w-4 mr-1" />
                           View

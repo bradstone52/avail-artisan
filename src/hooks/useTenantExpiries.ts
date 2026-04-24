@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { addMonths, differenceInMonths } from 'date-fns';
+import { addMonths, parseISO, differenceInMonths } from 'date-fns';
 
 export interface TenantExpiry {
   id: string;
@@ -14,7 +14,7 @@ export interface TenantExpiry {
   commencementDate: string | null;
   expiryDate: string;
   source: 'manual' | 'transaction';
-  transactionId?: string;
+  leaseCompId?: string;
 }
 
 export type ExpiryStatus = 'expired' | 'urgent' | 'warning' | 'upcoming' | 'future';
@@ -23,7 +23,7 @@ export const getExpiryStatus = (expiryDate: string): ExpiryStatus => {
   const today = new Date();
   const expiry = new Date(expiryDate);
   const monthsUntil = differenceInMonths(expiry, today);
-  
+
   if (monthsUntil < 0) return 'expired';
   if (monthsUntil <= 6) return 'urgent';
   if (monthsUntil <= 9) return 'warning';
@@ -35,7 +35,7 @@ export function useTenantExpiries() {
   return useQuery({
     queryKey: ['tenant-expiries'],
     queryFn: async (): Promise<TenantExpiry[]> => {
-      // Fetch manual tenants with property join
+      // Fetch manual tenants with a set expiry date
       const { data: manualTenants, error: manualError } = await supabase
         .from('property_tenants')
         .select('*, properties(name, address, city)')
@@ -43,17 +43,16 @@ export function useTenantExpiries() {
 
       if (manualError) throw manualError;
 
-      // Fetch lease transactions with term data
-      const { data: leaseTransactions, error: transactionError } = await supabase
-        .from('transactions')
+      // Fetch tracked lease comps with enough data to compute expiry
+      const { data: leaseComps, error: lcError } = await supabase
+        .from('lease_comps')
         .select('*, properties(name, address, city)')
-        .eq('transaction_type', 'Lease')
-        // In our workflow, the tenant name is stored in buyer_tenant_company
-        .not('buyer_tenant_company', 'is', null)
-        .not('closing_date', 'is', null)
-        .not('lease_term_months', 'is', null);
+        .eq('is_tracked', true)
+        .not('tenant_name', 'is', null)
+        .not('commencement_date', 'is', null)
+        .not('term_months', 'is', null);
 
-      if (transactionError) throw transactionError;
+      if (lcError) throw lcError;
 
       // Transform manual tenants
       const manualExpiries: TenantExpiry[] = (manualTenants || []).map((tenant) => ({
@@ -70,33 +69,28 @@ export function useTenantExpiries() {
         source: 'manual' as const,
       }));
 
-      // Transform transaction-derived tenants
-      const transactionExpiries: TenantExpiry[] = (leaseTransactions || [])
-        .filter((tx) => (tx.buyer_tenant_company || tx.buyer_tenant_name) && tx.closing_date && tx.lease_term_months)
-        .map((tx) => {
-          const commencementDate = new Date(tx.closing_date!);
-          const expiryDate = addMonths(commencementDate, tx.lease_term_months!);
-          // Prefer company, since that's where we store the tenant name
-          const tenantName = tx.buyer_tenant_company || tx.buyer_tenant_name;
-          
+      // Transform lease-comp-derived expiries
+      const leaseCompExpiries: TenantExpiry[] = (leaseComps || [])
+        .filter((lc) => lc.tenant_name && lc.commencement_date && lc.term_months)
+        .map((lc) => {
+          const expiryDate = addMonths(parseISO(lc.commencement_date!), lc.term_months!);
           return {
-            id: `tx-${tx.id}`,
-            tenantName: tenantName!,
-            propertyId: tx.property_id,
-            propertyName: tx.properties?.name || null,
-            propertyAddress: tx.properties?.address || tx.address || null,
-            propertyCity: tx.properties?.city || tx.city || null,
+            id: `lc-${lc.id}`,
+            tenantName: lc.tenant_name!,
+            propertyId: lc.property_id,
+            propertyName: lc.properties?.name || null,
+            propertyAddress: lc.properties?.address || lc.address || null,
+            propertyCity: lc.properties?.city || null,
             unitNumber: null,
-            sizeSf: tx.size_sf,
-            commencementDate: tx.closing_date,
+            sizeSf: lc.size_sf,
+            commencementDate: lc.commencement_date,
             expiryDate: expiryDate.toISOString().split('T')[0],
             source: 'transaction' as const,
-            transactionId: tx.id,
+            leaseCompId: lc.id,
           };
         });
 
-      // Combine and sort by expiry date (ascending)
-      const combined = [...manualExpiries, ...transactionExpiries];
+      const combined = [...manualExpiries, ...leaseCompExpiries];
       combined.sort((a, b) => new Date(a.expiryDate).getTime() - new Date(b.expiryDate).getTime());
 
       return combined;

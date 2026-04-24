@@ -90,7 +90,6 @@ interface MarketListingEditDialogProps {
   onOpenChange: (open: boolean) => void;
   onSaved: () => void;
   mode?: 'edit' | 'create';
-  onLogTransaction?: (listing: MarketListing) => void;
   duplicateFrom?: MarketListing | null;
 }
 
@@ -100,7 +99,6 @@ export function MarketListingEditDialog({
   onOpenChange,
   onSaved,
   mode = 'edit',
-  onLogTransaction,
   duplicateFrom,
 }: MarketListingEditDialogProps) {
   const { user } = useAuth();
@@ -1037,11 +1035,6 @@ export function MarketListingEditDialog({
       clearDraft();
       onSaved();
       onOpenChange(false);
-
-      // If status was changed to Sold/Leased, open log transaction dialog
-      if (status === 'Sold/Leased' && pendingStatus === 'Sold/Leased' && listing) {
-        onLogTransaction?.(listing);
-      }
     } catch (err) {
       console.error('Error updating listing:', err);
       toast.error('Failed to update listing');

@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { addMonths } from 'date-fns';
+import { addMonths, parseISO } from 'date-fns';
 
 export interface TenantWithProperty {
   id: string;
@@ -14,7 +14,7 @@ export interface TenantWithProperty {
   leaseExpiry: string | null;
   trackedAt: string;
   source: 'manual' | 'transaction';
-  transactionId?: string;
+  leaseCompId?: string;
 }
 
 export function useAllTenants() {
@@ -29,16 +29,15 @@ export function useAllTenants() {
 
       if (manualError) throw manualError;
 
-      // Fetch lease transactions with tenant identifiers (name OR company)
-      const { data: leaseTransactions, error: transactionError } = await supabase
-        .from('transactions')
+      // Fetch tracked lease comps
+      const { data: leaseComps, error: leaseCompsError } = await supabase
+        .from('lease_comps')
         .select('*, properties(name, address, city)')
-        .eq('transaction_type', 'Lease')
-        // In our workflow, the tenant name is stored in buyer_tenant_company
-        .not('buyer_tenant_company', 'is', null)
+        .eq('is_tracked', true)
+        .not('tenant_name', 'is', null)
         .order('created_at', { ascending: false });
 
-      if (transactionError) throw transactionError;
+      if (leaseCompsError) throw leaseCompsError;
 
       // Transform manual tenants
       const manualEntries: TenantWithProperty[] = (manualTenants || []).map((tenant) => ({
@@ -55,39 +54,32 @@ export function useAllTenants() {
         source: 'manual' as const,
       }));
 
-      // Transform transaction-derived tenants
-      const transactionEntries: TenantWithProperty[] = (leaseTransactions || [])
-        .filter((tx) => tx.buyer_tenant_company || tx.buyer_tenant_name)
-        .map((tx) => {
-          // Calculate lease expiry if we have closing_date and lease_term_months
-          let leaseExpiry: string | null = null;
-          if (tx.closing_date && tx.lease_term_months) {
-            const commencementDate = new Date(tx.closing_date);
-            const expiryDate = addMonths(commencementDate, tx.lease_term_months);
-            leaseExpiry = expiryDate.toISOString().split('T')[0];
-          }
+      // Transform lease-comp-derived tenants
+      const leaseCompEntries: TenantWithProperty[] = (leaseComps || []).map((lc) => {
+        let leaseExpiry: string | null = null;
+        if (lc.commencement_date && lc.term_months) {
+          leaseExpiry = addMonths(parseISO(lc.commencement_date), lc.term_months)
+            .toISOString()
+            .split('T')[0];
+        }
 
-          // Prefer company, since that's where we store the tenant name
-          const tenantName = tx.buyer_tenant_company || tx.buyer_tenant_name;
+        return {
+          id: `lc-${lc.id}`,
+          tenantName: lc.tenant_name!,
+          propertyId: lc.property_id,
+          propertyName: lc.properties?.name || null,
+          propertyAddress: lc.properties?.address || lc.address || null,
+          propertyCity: lc.properties?.city || null,
+          unitNumber: null,
+          sizeSf: lc.size_sf,
+          leaseExpiry,
+          trackedAt: lc.created_at,
+          source: 'transaction' as const,
+          leaseCompId: lc.id,
+        };
+      });
 
-          return {
-            id: `tx-${tx.id}`,
-            tenantName: tenantName!,
-            propertyId: tx.property_id,
-            propertyName: tx.properties?.name || null,
-            propertyAddress: tx.properties?.address || tx.address || null,
-            propertyCity: tx.properties?.city || tx.city || null,
-            unitNumber: null,
-            sizeSf: tx.size_sf,
-            leaseExpiry,
-            trackedAt: tx.created_at,
-            source: 'transaction' as const,
-            transactionId: tx.id,
-          };
-        });
-
-      // Combine and sort by trackedAt (most recent first)
-      const combined = [...manualEntries, ...transactionEntries];
+      const combined = [...manualEntries, ...leaseCompEntries];
       combined.sort((a, b) => new Date(b.trackedAt).getTime() - new Date(a.trackedAt).getTime());
 
       return combined;

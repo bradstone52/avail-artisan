@@ -21,21 +21,13 @@ const STATUS_OPTIONS = [
 interface StatusDropdownProps {
   listing: MarketListing;
   onStatusChanged: () => void;
-  onLogTransaction?: (listing: MarketListing) => void;
 }
 
-export function StatusDropdown({ listing, onStatusChanged, onLogTransaction }: StatusDropdownProps) {
+export function StatusDropdown({ listing, onStatusChanged }: StatusDropdownProps) {
   const [isUpdating, setIsUpdating] = useState(false);
 
   const handleStatusChange = async (newStatus: string) => {
     if (newStatus === listing.status) return;
-
-    // If changing to "Sold/Leased" or "Unknown/Removed" status, open log transaction dialog
-    if (newStatus === 'Sold/Leased' || newStatus === 'Unknown/Removed') {
-      onLogTransaction?.(listing);
-      return;
-    }
-
     await updateStatus(newStatus);
   };
 

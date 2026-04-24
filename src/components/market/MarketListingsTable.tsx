@@ -27,7 +27,6 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { StatusDropdown } from '@/components/market/StatusDropdown';
 import { EditMarketPinDialog } from '@/components/market/EditMarketPinDialog';
-import { LogTransactionDialog } from '@/components/market/LogTransactionDialog';
 import { ExternalLink, MapPin, MapPinOff, Hand, Pencil, Copy, Receipt, RotateCcw, ArrowUp, ArrowDown, ArrowUpDown, CheckCircle, Building2, MoreHorizontal } from 'lucide-react';
 import { format, differenceInDays, parseISO } from 'date-fns';
 import { supabase } from '@/integrations/supabase/client';
@@ -108,7 +107,6 @@ export function MarketListingsTable({ listings, onEdit, onDuplicate, onRefresh, 
   const [verifyingId, setVerifyingId] = useState<string | null>(null);
   const [geocodingId, setGeocodingId] = useState<string | null>(null);
   const [editPinListing, setEditPinListing] = useState<MarketListing | null>(null);
-  const [transactionListing, setTransactionListing] = useState<MarketListing | null>(null);
   const [propertyMap, setPropertyMap] = useState<Record<string, string>>({});
 
   // Fetch properties to build address → id map
@@ -756,10 +754,9 @@ export function MarketListingsTable({ listings, onEdit, onDuplicate, onRefresh, 
               
               {/* Status - Near end since most are Active until transaction */}
               <TableCell>
-                <StatusDropdown 
-                  listing={listing} 
-                  onStatusChanged={onRefresh} 
-                  onLogTransaction={(l) => setTransactionListing(l)}
+                <StatusDropdown
+                  listing={listing}
+                  onStatusChanged={onRefresh}
                 />
               </TableCell>
               
@@ -922,9 +919,17 @@ export function MarketListingsTable({ listings, onEdit, onDuplicate, onRefresh, 
                           Duplicate
                         </DropdownMenuItem>
                       )}
-                      <DropdownMenuItem onClick={(e) => { e.stopPropagation(); setTransactionListing(listing); }}>
+                      <DropdownMenuItem onClick={(e) => {
+                        e.stopPropagation();
+                        localStorage.setItem('lease-comp-prefill', JSON.stringify({
+                          address: listing.address,
+                          size_sf: listing.size_sf,
+                          submarket: listing.submarket,
+                        }));
+                        navigate('/lease-comps/new');
+                      }}>
                         <Receipt className="w-4 h-4 mr-2" />
-                        Log Transaction
+                        Log Lease Comp
                       </DropdownMenuItem>
                       <DropdownMenuSeparator />
                       {(() => {
@@ -963,18 +968,6 @@ export function MarketListingsTable({ listings, onEdit, onDuplicate, onRefresh, 
         }}
       />
 
-      {/* Log Transaction Dialog */}
-      <LogTransactionDialog
-        listing={transactionListing}
-        open={transactionListing !== null}
-        onOpenChange={(open) => {
-          if (!open) setTransactionListing(null);
-        }}
-        onSaved={() => {
-          setTransactionListing(null);
-          onRefresh();
-        }}
-      />
     </div>
   );
 }

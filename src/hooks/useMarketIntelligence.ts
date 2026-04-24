@@ -36,6 +36,31 @@ export interface RecentTransaction {
   buyer_tenant_company: string | null;
 }
 
+function toRecentTransaction(lc: {
+  id: string;
+  address: string;
+  submarket: string | null;
+  size_sf: number | null;
+  net_rate_psf: number | null;
+  commencement_date: string | null;
+  tenant_name: string | null;
+}): RecentTransaction {
+  return {
+    id: lc.id,
+    address: lc.address,
+    display_address: null,
+    city: '',
+    submarket: lc.submarket ?? '',
+    size_sf: lc.size_sf ?? 0,
+    transaction_type: 'Lease',
+    transaction_date: lc.commencement_date,
+    sale_price: null,
+    lease_rate_psf: lc.net_rate_psf,
+    buyer_tenant_name: null,
+    buyer_tenant_company: lc.tenant_name,
+  };
+}
+
 export interface MarketStats {
   avgAskingRent: number | null;
   minAskingRent: number | null;
@@ -127,51 +152,36 @@ export function useMarketIntelligence(listing: InternalListing | null | undefine
     enabled: !!listing && !!orgId,
   });
 
-  // Fetch recent transactions in the same submarket
+  // Fetch recent lease comps as market intelligence
   const transactionsQuery = useQuery({
     queryKey: ['market-intelligence-transactions', listing?.city],
     queryFn: async () => {
       if (!listing || !orgId) return [];
 
-      // Get transactions from the last 24 months
       const twoYearsAgo = new Date();
       twoYearsAgo.setFullYear(twoYearsAgo.getFullYear() - 2);
 
       let query = supabase
-        .from('transactions')
-        .select(`
-          id,
-          address,
-          display_address,
-          city,
-          submarket,
-          size_sf,
-          transaction_type,
-          transaction_date,
-          sale_price,
-          lease_rate_psf,
-          buyer_tenant_name,
-          buyer_tenant_company
-        `)
+        .from('lease_comps')
+        .select('id, address, submarket, size_sf, net_rate_psf, commencement_date, tenant_name')
         .eq('org_id', orgId)
-        .in('transaction_type', ['Sale', 'Lease', 'Sublease', 'Renewal'])
-        .gte('transaction_date', twoYearsAgo.toISOString().split('T')[0])
-        .order('transaction_date', { ascending: false })
+        .gte('commencement_date', twoYearsAgo.toISOString().split('T')[0])
+        .order('commencement_date', { ascending: false })
         .limit(15);
 
-      // Filter by city
       if (listing.city) {
-        query = query.eq('city', listing.city);
+        // lease_comps has no city column — filter by submarket presence only
+        // (city filtering not available; all comps are Calgary area)
       }
 
       const { data, error } = await query;
 
       if (error) {
-        console.error('Error fetching transactions:', error);
+        console.error('Error fetching lease comps for market intelligence:', error);
         return [];
       }
 
-      return (data || []) as RecentTransaction[];
+      return (data || []).map(toRecentTransaction);
     },
     enabled: !!listing && !!orgId,
   });
