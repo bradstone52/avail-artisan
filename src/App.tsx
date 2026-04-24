@@ -16,6 +16,10 @@ import PropertiesMap from "./pages/PropertiesMap";
 import Transactions from "./pages/Transactions";
 import TransactionDetail from "./pages/TransactionDetail";
 import TransactionForm from "./pages/TransactionForm";
+import TransactionRedirect from "./pages/TransactionRedirect";
+import LeaseComps from "./pages/LeaseComps";
+import LeaseCompForm from "./pages/LeaseCompForm";
+import LeaseCompDetail from "./pages/LeaseCompDetail";
 import IssueBuilder from "./pages/IssueBuilder";
 import MarketListingsAdmin from "./pages/MarketListingsAdmin";
 import PropertiesAdmin from "./pages/PropertiesAdmin";
@@ -101,10 +105,16 @@ const App = () => (
             <Route path="/properties" element={<ProtectedRoute><Properties /></ProtectedRoute>} />
             <Route path="/properties/map" element={<ProtectedRoute><PropertiesMap /></ProtectedRoute>} />
             <Route path="/properties/:id" element={<ProtectedRoute><PropertyDetail /></ProtectedRoute>} />
-            <Route path="/transactions" element={<ProtectedRoute><Transactions /></ProtectedRoute>} />
-            <Route path="/transactions/new" element={<ProtectedRoute><TransactionForm /></ProtectedRoute>} />
-            <Route path="/transactions/:id" element={<ProtectedRoute><TransactionDetail /></ProtectedRoute>} />
-            <Route path="/transactions/:id/edit" element={<ProtectedRoute><TransactionForm /></ProtectedRoute>} />
+            <Route path="/transactions" element={<ProtectedRoute><Navigate to="/lease-comps" replace /></ProtectedRoute>} />
+            <Route path="/transactions/new" element={<ProtectedRoute><Navigate to="/lease-comps/new" replace /></ProtectedRoute>} />
+            <Route path="/transactions/:id" element={<ProtectedRoute><TransactionRedirect /></ProtectedRoute>} />
+            <Route path="/transactions/:id/edit" element={<ProtectedRoute><Navigate to="/lease-comps" replace /></ProtectedRoute>} />
+            <Route path="/lease-comps" element={<ProtectedRoute><LeaseComps /></ProtectedRoute>} />
+            <Route path="/lease-comps/new" element={<ProtectedRoute><LeaseCompForm /></ProtectedRoute>} />
+            <Route path="/lease-comps/:id" element={<ProtectedRoute><LeaseCompDetail /></ProtectedRoute>} />
+            <Route path="/lease-comps/:id/edit" element={<ProtectedRoute><LeaseCompForm /></ProtectedRoute>} />
+            {/* Legacy Transactions pages kept until Phase 4 */}
+            <Route path="/transactions/list" element={<ProtectedRoute><Transactions /></ProtectedRoute>} />
             <Route path="/market-report-builder" element={<ProtectedRoute><IssueBuilder /></ProtectedRoute>} />
             <Route path="/issue-builder" element={<ProtectedRoute><IssueBuilderRedirect /></ProtectedRoute>} />
             <Route path="/market-listings/admin" element={<ProtectedRoute><MarketListingsAdmin /></ProtectedRoute>} />

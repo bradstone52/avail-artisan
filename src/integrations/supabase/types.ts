@@ -1,3 +1,4 @@
+Initialising login role...
 export type Json =
   | string
   | number
@@ -10,7 +11,32 @@ export type Database = {
   // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
-    PostgrestVersion: "14.1"
+    PostgrestVersion: "14.5"
+  }
+  graphql_public: {
+    Tables: {
+      [_ in never]: never
+    }
+    Views: {
+      [_ in never]: never
+    }
+    Functions: {
+      graphql: {
+        Args: {
+          extensions?: Json
+          operationName?: string
+          query?: string
+          variables?: Json
+        }
+        Returns: Json
+      }
+    }
+    Enums: {
+      [_ in never]: never
+    }
+    CompositeTypes: {
+      [_ in never]: never
+    }
   }
   public: {
     Tables: {
@@ -1773,6 +1799,87 @@ export type Database = {
           },
         ]
       }
+      lease_comps: {
+        Row: {
+          address: string
+          commencement_date: string | null
+          created_at: string
+          created_by: string | null
+          fixturing_months: number | null
+          id: string
+          is_tracked: boolean
+          landlord_name: string | null
+          net_rate_psf: number | null
+          notes: string | null
+          op_costs_psf: number | null
+          org_id: string | null
+          property_id: string | null
+          size_sf: number | null
+          source: string | null
+          submarket: string | null
+          tenant_name: string | null
+          term_months: number | null
+          updated_at: string
+        }
+        Insert: {
+          address: string
+          commencement_date?: string | null
+          created_at?: string
+          created_by?: string | null
+          fixturing_months?: number | null
+          id?: string
+          is_tracked?: boolean
+          landlord_name?: string | null
+          net_rate_psf?: number | null
+          notes?: string | null
+          op_costs_psf?: number | null
+          org_id?: string | null
+          property_id?: string | null
+          size_sf?: number | null
+          source?: string | null
+          submarket?: string | null
+          tenant_name?: string | null
+          term_months?: number | null
+          updated_at?: string
+        }
+        Update: {
+          address?: string
+          commencement_date?: string | null
+          created_at?: string
+          created_by?: string | null
+          fixturing_months?: number | null
+          id?: string
+          is_tracked?: boolean
+          landlord_name?: string | null
+          net_rate_psf?: number | null
+          notes?: string | null
+          op_costs_psf?: number | null
+          org_id?: string | null
+          property_id?: string | null
+          size_sf?: number | null
+          source?: string | null
+          submarket?: string | null
+          tenant_name?: string | null
+          term_months?: number | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lease_comps_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "orgs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lease_comps_property_id_fkey"
+            columns: ["property_id"]
+            isOneToOne: false
+            referencedRelation: "properties"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       listings: {
         Row: {
           address: string
@@ -3508,6 +3615,126 @@ export type Database = {
           },
         ]
       }
+      transactions_archive: {
+        Row: {
+          address: string
+          buyer_tenant_company: string | null
+          buyer_tenant_name: string | null
+          city: string
+          closing_date: string | null
+          commission_amount: number | null
+          commission_percent: number | null
+          created_at: string
+          created_by: string | null
+          display_address: string | null
+          est_op_costs_psf: number | null
+          id: string
+          lease_rate_psf: number | null
+          lease_term_months: number | null
+          listing_broker_company: string | null
+          listing_broker_name: string | null
+          listing_id: string | null
+          listing_removal_date: string | null
+          market_listing_id: string | null
+          market_listing_snapshot: Json | null
+          months_gross_fixturing: number | null
+          months_net_free_rent: number | null
+          notes: string | null
+          org_id: string | null
+          property_id: string | null
+          sale_price: number | null
+          seller_landlord_company: string | null
+          seller_landlord_name: string | null
+          selling_broker_company: string | null
+          selling_broker_name: string | null
+          size_sf: number
+          submarket: string
+          ti_allowance_psf: number | null
+          transaction_date: string | null
+          transaction_type: string
+          updated_at: string
+          year1_lease_rate_psf: number | null
+        }
+        Insert: {
+          address: string
+          buyer_tenant_company?: string | null
+          buyer_tenant_name?: string | null
+          city?: string
+          closing_date?: string | null
+          commission_amount?: number | null
+          commission_percent?: number | null
+          created_at?: string
+          created_by?: string | null
+          display_address?: string | null
+          est_op_costs_psf?: number | null
+          id?: string
+          lease_rate_psf?: number | null
+          lease_term_months?: number | null
+          listing_broker_company?: string | null
+          listing_broker_name?: string | null
+          listing_id?: string | null
+          listing_removal_date?: string | null
+          market_listing_id?: string | null
+          market_listing_snapshot?: Json | null
+          months_gross_fixturing?: number | null
+          months_net_free_rent?: number | null
+          notes?: string | null
+          org_id?: string | null
+          property_id?: string | null
+          sale_price?: number | null
+          seller_landlord_company?: string | null
+          seller_landlord_name?: string | null
+          selling_broker_company?: string | null
+          selling_broker_name?: string | null
+          size_sf?: number
+          submarket?: string
+          ti_allowance_psf?: number | null
+          transaction_date?: string | null
+          transaction_type: string
+          updated_at?: string
+          year1_lease_rate_psf?: number | null
+        }
+        Update: {
+          address?: string
+          buyer_tenant_company?: string | null
+          buyer_tenant_name?: string | null
+          city?: string
+          closing_date?: string | null
+          commission_amount?: number | null
+          commission_percent?: number | null
+          created_at?: string
+          created_by?: string | null
+          display_address?: string | null
+          est_op_costs_psf?: number | null
+          id?: string
+          lease_rate_psf?: number | null
+          lease_term_months?: number | null
+          listing_broker_company?: string | null
+          listing_broker_name?: string | null
+          listing_id?: string | null
+          listing_removal_date?: string | null
+          market_listing_id?: string | null
+          market_listing_snapshot?: Json | null
+          months_gross_fixturing?: number | null
+          months_net_free_rent?: number | null
+          notes?: string | null
+          org_id?: string | null
+          property_id?: string | null
+          sale_price?: number | null
+          seller_landlord_company?: string | null
+          seller_landlord_name?: string | null
+          selling_broker_company?: string | null
+          selling_broker_name?: string | null
+          size_sf?: number
+          submarket?: string
+          ti_allowance_psf?: number | null
+          transaction_date?: string | null
+          transaction_type?: string
+          updated_at?: string
+          year1_lease_rate_psf?: number | null
+        }
+        Relationships: []
+      }
       underwriting_documents: {
         Row: {
           created_at: string
@@ -3915,6 +4142,9 @@ export type CompositeTypes<
     : never
 
 export const Constants = {
+  graphql_public: {
+    Enums: {},
+  },
   public: {
     Enums: {
       app_role: ["admin", "member", "sync_operator"],

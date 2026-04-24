@@ -68,7 +68,7 @@ const navigation: NavigationEntry[] = [
   },
   { name: 'Properties', href: '/properties', icon: Building2 },
   { name: 'Tenants', href: '/tenants', icon: UserSearch },
-  { name: 'Lease Comps', href: '/transactions', icon: Receipt },
+  { name: 'Lease Comps', href: '/lease-comps', icon: Receipt },
   { name: 'My Tasks', href: '/my-tasks', icon: CheckSquare },
 ];
 
