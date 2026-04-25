@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { AppLayout } from '@/components/layout/AppLayout';
-import { usePropertyDetail, PropertyBrochure, PropertyPermit, PropertyTransaction } from '@/hooks/useProperties';
+import { usePropertyDetail, PropertyBrochure, PropertyPermit, PropertyLeaseComp } from '@/hooks/useProperties';
 import { usePropertyTenants } from '@/hooks/usePropertyTenants';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
@@ -46,7 +46,7 @@ export default function PropertyDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { toast } = useToast();
-  const { property, brochures, permits, transactions, loading, refetch } = usePropertyDetail(id);
+  const { property, brochures, permits, leaseComps, loading, refetch } = usePropertyDetail(id);
   const { tenants, fetchTenants } = usePropertyTenants(id);
   const { rate: millRate, year: millRateYear } = useMillRate();
   
@@ -128,7 +128,7 @@ export default function PropertyDetail() {
         photos: _photos,
         linked_listings: _linked,
         active_listing_count: _count,
-        transactions: _txns,
+        leaseComps: _leaseComps,
         city_data_raw,
         ...updateFields
       } = updates;
@@ -619,9 +619,9 @@ export default function PropertyDetail() {
               <ClipboardList className="h-3.5 w-3.5" />
               City Data
             </TabsTrigger>
-            <TabsTrigger value="transactions" className="flex items-center gap-1.5 text-xs px-2 py-1.5">
+            <TabsTrigger value="lease-comps" className="flex items-center gap-1.5 text-xs px-2 py-1.5">
               <Receipt className="h-3.5 w-3.5" />
-              Transactions ({transactions.length})
+              Lease Comps ({leaseComps.length})
             </TabsTrigger>
             <TabsTrigger value="photos" className="flex items-center gap-1.5 text-xs px-2 py-1.5">
               <Image className="h-3.5 w-3.5" />
@@ -1049,52 +1049,44 @@ export default function PropertyDetail() {
             </div>
           </TabsContent>
 
-          {/* Transactions Tab */}
-          <TabsContent value="transactions" className="space-y-4">
+          {/* Lease Comps Tab */}
+          <TabsContent value="lease-comps" className="space-y-4">
             <Card>
               <CardHeader>
-                <CardTitle>Transaction History</CardTitle>
+                <CardTitle>Lease History</CardTitle>
                 <CardDescription>
-                  All transactions recorded for this property
+                  All lease comps recorded for this property
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                {transactions.length > 0 ? (
+                {leaseComps.length > 0 ? (
                   <div className="space-y-3">
-                    {transactions.map(tx => (
+                    {leaseComps.map(lc => (
                       <div
-                        key={tx.id}
+                        key={lc.id}
                         className="flex items-center justify-between p-4 border rounded-lg hover:bg-muted/50 cursor-pointer transition-colors"
-                        onClick={() => navigate(`/transactions/${tx.id}`)}
+                        onClick={() => navigate(`/lease-comps/${lc.id}`)}
                       >
                         <div className="flex items-center gap-4">
-                          <Badge variant={tx.transaction_type === 'Sale' ? 'default' : 'secondary'}>
-                            {tx.transaction_type}
-                          </Badge>
+                          <Badge variant="secondary">Lease</Badge>
                           <div>
                             <p className="font-medium">
-                              {tx.transaction_type === 'Unknown/Removed'
-                                ? (tx.listing_removal_date
-                                    ? format(new Date(tx.listing_removal_date), 'MMM d, yyyy')
-                                    : 'Date pending')
-                                : (tx.transaction_date
-                                    ? format(new Date(tx.transaction_date), 'MMM d, yyyy')
-                                    : 'Date pending')
-                              }
+                              {lc.commencement_date
+                                ? format(new Date(lc.commencement_date), 'MMM d, yyyy')
+                                : 'Date pending'}
                             </p>
                             <p className="text-sm text-muted-foreground">
-                              {tx.size_sf?.toLocaleString()} SF
+                              {lc.size_sf?.toLocaleString()} SF
+                              {lc.term_months ? ` · ${lc.term_months} mo` : ''}
                             </p>
                           </div>
                         </div>
                         <div className="text-right">
-                          {tx.transaction_type === 'Sale' && tx.sale_price ? (
-                            <p className="font-medium">{formatCurrency(tx.sale_price)}</p>
-                          ) : tx.lease_rate_psf ? (
-                            <p className="font-medium">${Number(tx.lease_rate_psf).toFixed(2)}/SF</p>
+                          {lc.net_rate_psf ? (
+                            <p className="font-medium">${Number(lc.net_rate_psf).toFixed(2)}/SF</p>
                           ) : null}
-                          {tx.buyer_tenant_company && (
-                            <p className="text-sm text-muted-foreground">{tx.buyer_tenant_company}</p>
+                          {lc.tenant_name && (
+                            <p className="text-sm text-muted-foreground">{lc.tenant_name}</p>
                           )}
                         </div>
                       </div>
@@ -1103,7 +1095,7 @@ export default function PropertyDetail() {
                 ) : (
                   <div className="text-center py-8 text-muted-foreground">
                     <Receipt className="h-12 w-12 mx-auto mb-2 opacity-50" />
-                    <p>No transactions recorded for this property yet.</p>
+                    <p>No lease comps recorded for this property yet.</p>
                   </div>
                 )}
               </CardContent>

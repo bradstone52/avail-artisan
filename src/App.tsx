@@ -13,9 +13,6 @@ import MarketListings from "./pages/MarketListings";
 import Properties from "./pages/Properties";
 import PropertyDetail from "./pages/PropertyDetail";
 import PropertiesMap from "./pages/PropertiesMap";
-import Transactions from "./pages/Transactions";
-import TransactionDetail from "./pages/TransactionDetail";
-import TransactionForm from "./pages/TransactionForm";
 import TransactionRedirect from "./pages/TransactionRedirect";
 import LeaseComps from "./pages/LeaseComps";
 import LeaseCompForm from "./pages/LeaseCompForm";
@@ -113,8 +110,6 @@ const App = () => (
             <Route path="/lease-comps/new" element={<ProtectedRoute><LeaseCompForm /></ProtectedRoute>} />
             <Route path="/lease-comps/:id" element={<ProtectedRoute><LeaseCompDetail /></ProtectedRoute>} />
             <Route path="/lease-comps/:id/edit" element={<ProtectedRoute><LeaseCompForm /></ProtectedRoute>} />
-            {/* Legacy Transactions pages kept until Phase 4 */}
-            <Route path="/transactions/list" element={<ProtectedRoute><Transactions /></ProtectedRoute>} />
             <Route path="/market-report-builder" element={<ProtectedRoute><IssueBuilder /></ProtectedRoute>} />
             <Route path="/issue-builder" element={<ProtectedRoute><IssueBuilderRedirect /></ProtectedRoute>} />
             <Route path="/market-listings/admin" element={<ProtectedRoute><MarketListingsAdmin /></ProtectedRoute>} />

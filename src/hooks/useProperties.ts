@@ -108,18 +108,15 @@ export interface LinkedListing {
   brochure_link?: string | null;
 }
 
-export interface PropertyTransaction {
+export interface PropertyLeaseComp {
   id: string;
-  transaction_type: string;
-  transaction_date: string | null;
-  closing_date: string | null;
-  listing_removal_date: string | null;
-  size_sf: number;
-  sale_price: number | null;
-  lease_rate_psf: number | null;
-  lease_term_months: number | null;
-  buyer_tenant_company: string | null;
-  seller_landlord_company: string | null;
+  commencement_date: string | null;
+  size_sf: number | null;
+  net_rate_psf: number | null;
+  term_months: number | null;
+  tenant_name: string | null;
+  landlord_name: string | null;
+  is_tracked: boolean;
   created_at: string;
 }
 
@@ -129,7 +126,7 @@ export interface PropertyWithLinks extends Property {
   photos?: PropertyPhoto[];
   brochures?: PropertyBrochure[];
   permits?: PropertyPermit[];
-  transactions?: PropertyTransaction[];
+  leaseComps?: PropertyLeaseComp[];
 }
 
 export function useProperties() {
@@ -547,7 +544,7 @@ export function usePropertyDetail(propertyId: string | undefined) {
   const [property, setProperty] = useState<PropertyWithLinks | null>(null);
   const [brochures, setBrochures] = useState<PropertyBrochure[]>([]);
   const [permits, setPermits] = useState<PropertyPermit[]>([]);
-  const [transactions, setTransactions] = useState<PropertyTransaction[]>([]);
+  const [leaseComps, setLeaseComps] = useState<PropertyLeaseComp[]>([]);
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
 
@@ -590,12 +587,12 @@ export function usePropertyDetail(propertyId: string | undefined) {
         .eq('property_id', propertyId)
         .order('issued_date', { ascending: false });
 
-      // Fetch transactions linked to this property
-      const { data: transactionsData } = await supabase
-        .from('transactions')
-        .select('id, transaction_type, transaction_date, closing_date, listing_removal_date, size_sf, sale_price, lease_rate_psf, lease_term_months, buyer_tenant_company, seller_landlord_company, created_at')
+      // Fetch lease comps linked to this property
+      const { data: leaseCompsData } = await supabase
+        .from('lease_comps')
+        .select('id, commencement_date, size_sf, net_rate_psf, term_months, tenant_name, landlord_name, is_tracked, created_at')
         .eq('property_id', propertyId)
-        .order('transaction_date', { ascending: false });
+        .order('commencement_date', { ascending: false });
 
       // Fetch linked listings
       const { data: linksData } = await supabase
@@ -665,12 +662,12 @@ export function usePropertyDetail(propertyId: string | undefined) {
         photos: photosData || [],
         linked_listings: allLinked,
         active_listing_count: activeCount,
-        transactions: transactionsData || []
+        leaseComps: leaseCompsData || []
       } as PropertyWithLinks);
 
       setBrochures(brochuresData || []);
       setPermits(permitsData || []);
-      setTransactions(transactionsData || []);
+      setLeaseComps(leaseCompsData || []);
     } catch (error: any) {
       console.error('Error fetching property detail:', error);
       toast({
@@ -691,7 +688,7 @@ export function usePropertyDetail(propertyId: string | undefined) {
     property,
     brochures,
     permits,
-    transactions,
+    leaseComps,
     loading,
     refetch: fetchPropertyDetail
   };
