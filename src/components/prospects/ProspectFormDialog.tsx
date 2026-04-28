@@ -27,7 +27,15 @@ interface ProspectFormDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   prospect?: Prospect | null;
-  prefill?: { name?: string; email?: string; phone?: string; company?: string };
+  prefill?: {
+    name?: string;
+    email?: string;
+    phone?: string;
+    company?: string;
+    notes?: string;
+    max_size?: number;
+    prospect_type?: ProspectType;
+  };
 }
 
 const prospectTypes: ProspectType[] = ['Tenant', 'Buyer', 'Listing'];
@@ -59,8 +67,14 @@ export function ProspectFormDialog({ open, onOpenChange, prospect, prefill }: Pr
     priority: '',
     email: '',
     phone: '',
-    // prefill from Contact Finder
-    ...(prefill ? { name: prefill.name ?? '', email: prefill.email ?? '', phone: prefill.phone ?? '' } : {}),
+    ...(prefill ? {
+      name: prefill.name ?? '',
+      email: prefill.email ?? '',
+      phone: prefill.phone ?? '',
+      notes: prefill.notes ?? '',
+      max_size: prefill.max_size,
+      prospect_type: prefill.prospect_type ?? 'Tenant',
+    } : {}),
   });
 
   useEffect(() => {
@@ -85,25 +99,25 @@ export function ProspectFormDialog({ open, onOpenChange, prospect, prefill }: Pr
       });
     } else {
       setFormData({
-        name: '',
-        prospect_type: 'Tenant',
+        name: prefill?.name ?? '',
+        prospect_type: prefill?.prospect_type ?? 'Tenant',
         source: 'Network',
         follow_up_date: '',
         referral: '',
-        max_size: undefined,
+        max_size: prefill?.max_size,
         loading: '',
         use_type: '',
         occupancy_date: '',
         yard_required: false,
         estimated_value: undefined,
         commission: undefined,
-        notes: '',
+        notes: prefill?.notes ?? '',
         priority: '',
-        email: '',
-        phone: '',
+        email: prefill?.email ?? '',
+        phone: prefill?.phone ?? '',
       });
     }
-  }, [prospect, open]);
+  }, [prospect, open]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

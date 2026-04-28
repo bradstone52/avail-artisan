@@ -1,6 +1,13 @@
-import { Link } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { format } from 'date-fns';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import {
   Table,
   TableBody,
@@ -11,6 +18,7 @@ import {
 } from '@/components/ui/table';
 import { TenantExpiry, getExpiryStatus, ExpiryStatus } from '@/hooks/useTenantExpiries';
 import { cn } from '@/lib/utils';
+import { MoreHorizontal, UserPlus } from 'lucide-react';
 
 interface TenantExpiriesTableProps {
   expiries: TenantExpiry[];
@@ -34,6 +42,8 @@ const statusLabels: Record<ExpiryStatus, string> = {
 };
 
 export function TenantExpiriesTable({ expiries, searchQuery = '' }: TenantExpiriesTableProps) {
+  const navigate = useNavigate();
+
   const filteredExpiries = expiries.filter((expiry) => {
     if (!searchQuery) return true;
     const query = searchQuery.toLowerCase();
@@ -50,6 +60,27 @@ export function TenantExpiriesTable({ expiries, searchQuery = '' }: TenantExpiri
     return num.toLocaleString();
   };
 
+  const handleCreateProspect = (expiry: TenantExpiry) => {
+    const address = expiry.propertyAddress || expiry.propertyName || '';
+    const expiryFormatted = format(new Date(expiry.expiryDate), 'MMM d, yyyy');
+    const noteparts = [
+      'Created from tracked tenant.',
+      address && expiry.sizeSf
+        ? `Lease at ${address}, ${expiry.sizeSf.toLocaleString()} SF, expires ${expiryFormatted}.`
+        : address
+        ? `Lease at ${address}, expires ${expiryFormatted}.`
+        : `Expires ${expiryFormatted}.`,
+    ];
+
+    localStorage.setItem('prospect-prefill', JSON.stringify({
+      name: expiry.tenantName,
+      max_size: expiry.sizeSf ?? undefined,
+      prospect_type: 'Tenant',
+      notes: noteparts.join(' '),
+    }));
+    navigate('/prospects');
+  };
+
   return (
     <Table>
       <TableHeader>
@@ -62,12 +93,13 @@ export function TenantExpiriesTable({ expiries, searchQuery = '' }: TenantExpiri
           <TableHead>Expiry</TableHead>
           <TableHead>Status</TableHead>
           <TableHead>Source</TableHead>
+          <TableHead className="w-10"></TableHead>
         </TableRow>
       </TableHeader>
       <TableBody>
         {filteredExpiries.length === 0 ? (
           <TableRow>
-            <TableCell colSpan={8} className="text-center text-muted-foreground py-8">
+            <TableCell colSpan={9} className="text-center text-muted-foreground py-8">
               {searchQuery ? 'No tenants match your search' : 'No tenant expiries found'}
             </TableCell>
           </TableRow>
@@ -75,7 +107,7 @@ export function TenantExpiriesTable({ expiries, searchQuery = '' }: TenantExpiri
           filteredExpiries.map((expiry) => {
             const status = getExpiryStatus(expiry.expiryDate);
             const showStatusBadge = status !== 'future';
-            
+
             return (
               <TableRow key={expiry.id}>
                 <TableCell className="font-semibold">{expiry.tenantName}</TableCell>
@@ -130,6 +162,21 @@ export function TenantExpiriesTable({ expiries, searchQuery = '' }: TenantExpiri
                   >
                     {expiry.source === 'manual' ? 'Manual' : 'Lease Comp'}
                   </Badge>
+                </TableCell>
+                <TableCell onClick={(e) => e.stopPropagation()}>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="ghost" size="icon" className="h-7 w-7">
+                        <MoreHorizontal className="h-4 w-4" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      <DropdownMenuItem onClick={() => handleCreateProspect(expiry)}>
+                        <UserPlus className="h-4 w-4 mr-2" />
+                        Create Prospect
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
                 </TableCell>
               </TableRow>
             );

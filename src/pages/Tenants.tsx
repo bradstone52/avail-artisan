@@ -10,6 +10,7 @@ import { TenantExpiriesTable } from '@/components/tenants/TenantExpiriesTable';
 import { useAllTenants } from '@/hooks/useAllTenants';
 import { useTenantExpiries, getExpiryStatus } from '@/hooks/useTenantExpiries';
 import { Users, AlertTriangle, Clock, TrendingUp } from 'lucide-react';
+import { addMonths } from 'date-fns';
 import {
   Select,
   SelectContent,
@@ -66,6 +67,8 @@ export default function Tenants() {
           return status === 'expired' || status === 'urgent' || status === 'warning';
         case '1year':
           return status !== 'future';
+        case '18months':
+          return new Date(expiry.expiryDate) <= addMonths(new Date(), 18);
         default:
           return true;
       }
@@ -226,6 +229,7 @@ export default function Tenants() {
                     <SelectItem value="6months">Within 6 Months</SelectItem>
                     <SelectItem value="9months">Within 9 Months</SelectItem>
                     <SelectItem value="1year">Within 1 Year</SelectItem>
+                    <SelectItem value="18months">Within 18 Months</SelectItem>
                   </SelectContent>
                 </Select>
                 <Select value={sourceFilter} onValueChange={setSourceFilter}>

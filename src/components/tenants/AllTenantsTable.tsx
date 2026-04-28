@@ -10,7 +10,14 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { Building2, Calendar, FileText, User } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import { Building2, Calendar, FileText, MoreHorizontal, User, UserPlus } from 'lucide-react';
 
 interface AllTenantsTableProps {
   tenants: TenantWithProperty[];
@@ -44,6 +51,31 @@ export function AllTenantsTable({ tenants, searchQuery }: AllTenantsTableProps) 
     }
   };
 
+  const handleCreateProspect = (tenant: TenantWithProperty) => {
+    const address = tenant.propertyAddress || tenant.propertyName || '';
+    const expiry = tenant.leaseExpiry
+      ? format(new Date(tenant.leaseExpiry), 'MMM d, yyyy')
+      : null;
+    const noteparts = [
+      'Created from tracked tenant.',
+      address && tenant.sizeSf
+        ? `Lease at ${address}, ${tenant.sizeSf.toLocaleString()} SF${expiry ? `, expires ${expiry}` : ''}.`
+        : address
+        ? `Lease at ${address}${expiry ? `, expires ${expiry}` : ''}.`
+        : expiry
+        ? `Expires ${expiry}.`
+        : null,
+    ].filter(Boolean);
+
+    localStorage.setItem('prospect-prefill', JSON.stringify({
+      name: tenant.tenantName,
+      max_size: tenant.sizeSf ?? undefined,
+      prospect_type: 'Tenant',
+      notes: noteparts.join(' '),
+    }));
+    navigate('/prospects');
+  };
+
   return (
     <Table>
         <TableHeader>
@@ -54,12 +86,13 @@ export function AllTenantsTable({ tenants, searchQuery }: AllTenantsTableProps) 
             <TableHead className="font-semibold text-muted-foreground uppercase text-xs tracking-wide text-right">Size (SF)</TableHead>
             <TableHead className="font-semibold text-muted-foreground uppercase text-xs tracking-wide">Lease Expiry</TableHead>
             <TableHead className="font-semibold text-muted-foreground uppercase text-xs tracking-wide hidden md:table-cell">Source</TableHead>
+            <TableHead className="font-semibold text-muted-foreground uppercase text-xs tracking-wide w-10"></TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
           {filteredTenants.length === 0 ? (
             <TableRow>
-              <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
+              <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
                 {searchQuery ? 'No tenants match your search' : 'No tenants tracked yet'}
               </TableCell>
             </TableRow>
@@ -118,6 +151,21 @@ export function AllTenantsTable({ tenants, searchQuery }: AllTenantsTableProps) 
                       Manual
                     </Badge>
                   )}
+                </TableCell>
+                <TableCell onClick={(e) => e.stopPropagation()}>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="ghost" size="icon" className="h-7 w-7">
+                        <MoreHorizontal className="h-4 w-4" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      <DropdownMenuItem onClick={() => handleCreateProspect(tenant)}>
+                        <UserPlus className="h-4 w-4 mr-2" />
+                        Create Prospect
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
                 </TableCell>
               </TableRow>
             ))

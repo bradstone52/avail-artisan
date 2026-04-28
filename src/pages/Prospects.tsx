@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { PageHeader } from '@/components/common/PageHeader';
 import { ProspectsTable } from '@/components/prospects/ProspectsTable';
@@ -8,13 +8,26 @@ import { Button } from '@/components/ui/button';
 import { UserSearch, Plus, Mail, Loader2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import type { Prospect } from '@/types/prospect';
+import type { Prospect, ProspectType } from '@/types/prospect';
 
 export default function Prospects() {
   const { data: prospects, isLoading } = useProspects();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingProspect, setEditingProspect] = useState<Prospect | null>(null);
+  const [prefill, setPrefill] = useState<{ name?: string; notes?: string; max_size?: number; prospect_type?: ProspectType } | undefined>();
   const [sendingDigest, setSendingDigest] = useState(false);
+
+  useEffect(() => {
+    const raw = localStorage.getItem('prospect-prefill');
+    if (raw) {
+      try {
+        const data = JSON.parse(raw);
+        setPrefill(data);
+        setDialogOpen(true);
+      } catch { /* ignore malformed */ }
+      localStorage.removeItem('prospect-prefill');
+    }
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleEdit = (prospect: Prospect) => {
     setEditingProspect(prospect);
@@ -24,6 +37,7 @@ export default function Prospects() {
   const handleClose = () => {
     setDialogOpen(false);
     setEditingProspect(null);
+    setPrefill(undefined);
   };
 
   const handleSendDigest = async () => {
@@ -86,7 +100,7 @@ export default function Prospects() {
           }
         />
         <ProspectsTable prospects={prospects || []} isLoading={isLoading} onEdit={handleEdit} />
-        <ProspectFormDialog open={dialogOpen} onOpenChange={handleClose} prospect={editingProspect} />
+        <ProspectFormDialog open={dialogOpen} onOpenChange={handleClose} prospect={editingProspect} prefill={prefill} />
       </div>
     </AppLayout>
   );
