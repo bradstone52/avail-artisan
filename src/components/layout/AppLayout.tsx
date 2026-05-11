@@ -27,6 +27,7 @@ import {
   ContactRound,
   CheckSquare,
   Globe,
+  SplitSquareHorizontal,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -69,6 +70,7 @@ const navigation: NavigationEntry[] = [
   { name: 'Properties', href: '/properties', icon: Building2 },
   { name: 'Tenants', href: '/tenants', icon: UserSearch },
   { name: 'Lease Comps', href: '/lease-comps', icon: Receipt },
+  { name: 'Shared Expenses', href: '/shared-expenses', icon: SplitSquareHorizontal },
   { name: 'My Tasks', href: '/my-tasks', icon: CheckSquare },
 ];
 

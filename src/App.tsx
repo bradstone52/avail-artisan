@@ -41,6 +41,7 @@ import CRETracker from "./pages/CRETracker";
 import MyTasks from "./pages/MyTasks";
 import AdminBrokerages from "./pages/AdminBrokerages";
 import Tenants from "./pages/Tenants";
+import SharedExpenses from "./pages/SharedExpenses";
 import Install from "./pages/Install";
 import InternalListings from "./pages/InternalListings";
 import InternalListingDetail from "./pages/InternalListingDetail";
@@ -124,6 +125,7 @@ const App = () => (
             <Route path="/my-tasks" element={<ProtectedRoute><MyTasks /></ProtectedRoute>} />
             <Route path="/admin/brokerages" element={<ProtectedRoute><AdminBrokerages /></ProtectedRoute>} />
             <Route path="/tenants" element={<ProtectedRoute><Tenants /></ProtectedRoute>} />
+            <Route path="/shared-expenses" element={<ProtectedRoute><SharedExpenses /></ProtectedRoute>} />
             <Route path="/internal-listings" element={<ProtectedRoute><InternalListings /></ProtectedRoute>} />
             <Route path="/internal-listings/:id" element={<ProtectedRoute><InternalListingDetail /></ProtectedRoute>} />
             <Route path="/deals" element={<ProtectedRoute><Deals /></ProtectedRoute>} />
