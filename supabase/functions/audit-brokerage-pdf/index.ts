@@ -82,7 +82,7 @@ LISTING TYPE RULES:
 
 EXTRACTION RULES for additional fields:
 - Extract the total building size in SF if shown
-- Extract the asking rate/price if shown (lease rate PSF or sale price)
+- Extract the asking rate/price if shown. For lease listings this is the NET RENT only (not Additional Rent, Op Costs, or Operating Costs — ignore those columns entirely). For sale listings this is the sale price or asking price.
 - Extract the city/submarket if identifiable
 - Extract the landlord/owner name if shown. The brokerage that produced this PDF is NOT the landlord.
 - Extract any brochure or listing URL/link if shown
