@@ -413,10 +413,32 @@ export function AuditReviewStepper({
                 </>
               )}
               {currentItem.type === 'new_in_pdf' && (
-                <Button onClick={handleAddNew} size="sm">
-                  <Plus className="h-4 w-4 mr-1" />
-                  Add as New Listing
-                </Button>
+                <>
+                  <Button onClick={handleAddNew} size="sm">
+                    <Plus className="h-4 w-4 mr-1" />
+                    Add as New Listing
+                  </Button>
+                  {currentItem.pdfListing?.status === 'conditional' &&
+                   currentItem.pdfListing?.existingDbMatches &&
+                   currentItem.pdfListing.existingDbMatches.length > 0 && (
+                    <Button
+                      onClick={() => {
+                        const match = currentItem.pdfListing?.existingDbMatches?.[0];
+                        if (match) {
+                          onMarkUnderContract({ id: match.id } as MarketListing);
+                          setAction(currentIndex, 'mark_under_contract');
+                          goToNext();
+                        }
+                      }}
+                      size="sm"
+                      variant="outline"
+                      className="border-amber-500 text-amber-600 hover:bg-amber-50 dark:hover:bg-amber-950"
+                    >
+                      <ArrowRightLeft className="h-4 w-4 mr-1" />
+                      Mark Existing as Under Contract
+                    </Button>
+                  )}
+                </>
               )}
               {currentItem.type === 'missing_from_pdf' && (
                 <Button onClick={handleFlagMissing} size="sm" variant="destructive">
@@ -756,6 +778,12 @@ function MatchedReviewCard({ pair, onEdit, scopeListings }: { pair: MatchedPair;
 function NewInPdfCard({ pdfListing, sourceLabel = 'PDF' }: { pdfListing: PdfExtractedListing; sourceLabel?: string }) {
   return (
     <div className="space-y-3">
+      {pdfListing.status === 'conditional' && (
+        <div className="flex items-center gap-2 px-3 py-2 bg-amber-50 dark:bg-amber-950/30 border border-amber-300 dark:border-amber-700 rounded-md text-amber-700 dark:text-amber-400 text-xs font-semibold">
+          <AlertTriangle className="h-4 w-4 flex-shrink-0" />
+          PDF shows this listing as Conditionally Sold/Leased
+        </div>
+      )}
       <div className={cn("border-2 rounded-md p-4 space-y-3", 
         pdfListing.existsInDbUnderDifferentScope ? 'border-amber-500' : 
         pdfListing.existsInDbSameScope ? 'border-blue-500' : 'border-green-600'
