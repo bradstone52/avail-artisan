@@ -60,7 +60,7 @@ export interface MatchedPair {
   developmentSiblingIds?: string[];
 }
 
-export type ReviewAction = 'confirmed' | 'confirmed_updated' | 'skipped' | 'added' | 'flagged' | null;
+export type ReviewAction = 'confirmed' | 'confirmed_updated' | 'skipped' | 'added' | 'flagged' | 'mark_under_contract' | null;
 
 interface ReviewItem {
   type: 'matched' | 'new_in_pdf' | 'missing_from_pdf';
@@ -79,6 +79,7 @@ interface AuditReviewStepperProps {
   sourceType?: 'pdf' | 'website';
   onConfirm: (dbListing: MarketListing) => void;
   onConfirmAndUpdate: (dbListing: MarketListing, pdfData: PdfExtractedListing) => void;
+  onMarkUnderContract: (dbListing: MarketListing) => void;
   onAddNewListing: (pdfListing: PdfExtractedListing) => void;
   onFlagMissing: (ids: string[]) => void;
   onEditListing?: (listing: MarketListing) => void;
@@ -95,6 +96,7 @@ export function AuditReviewStepper({
   sourceType = 'pdf',
   onConfirm,
   onConfirmAndUpdate,
+  onMarkUnderContract,
   onAddNewListing,
   onFlagMissing,
   onEditListing,
@@ -194,6 +196,14 @@ export function AuditReviewStepper({
     if (currentItem?.matchedPair) {
       onConfirmAndUpdate(currentItem.matchedPair.dbListing, currentItem.matchedPair.pdfListing);
       setAction(currentIndex, 'confirmed_updated');
+      goToNext();
+    }
+  };
+
+  const handleMarkUnderContract = () => {
+    if (currentItem?.matchedPair) {
+      onMarkUnderContract(currentItem.matchedPair.dbListing);
+      setAction(currentIndex, 'mark_under_contract');
       goToNext();
     }
   };
@@ -339,7 +349,8 @@ export function AuditReviewStepper({
                     actions[currentIndex] === 'confirmed' && 'bg-green-600 text-white',
                     actions[currentIndex] === 'confirmed_updated' && 'bg-blue-600 text-white',
                     actions[currentIndex] === 'added' && 'bg-green-600 text-white',
-                    actions[currentIndex] === 'flagged' && 'bg-destructive text-destructive-foreground'
+                    actions[currentIndex] === 'flagged' && 'bg-destructive text-destructive-foreground',
+                    actions[currentIndex] === 'mark_under_contract' && 'bg-amber-500 text-white',
                   )}
                 >
                   {actions[currentIndex] === 'confirmed' && '✓ Confirmed'}
@@ -347,6 +358,7 @@ export function AuditReviewStepper({
                   {actions[currentIndex] === 'skipped' && 'Skipped'}
                   {actions[currentIndex] === 'added' && '✓ Added'}
                   {actions[currentIndex] === 'flagged' && '⚑ Flagged'}
+                  {actions[currentIndex] === 'mark_under_contract' && '⚑ Under Contract'}
                 </Badge>
               )}
             </div>
@@ -377,6 +389,17 @@ export function AuditReviewStepper({
                     <RefreshCw className="h-4 w-4 mr-1" />
                     Confirm & Update from {sourceLabel}
                   </Button>
+                  {currentItem.matchedPair?.pdfListing.status === 'conditional' && (
+                    <Button
+                      onClick={handleMarkUnderContract}
+                      size="sm"
+                      variant="outline"
+                      className="border-amber-500 text-amber-600 hover:bg-amber-50 dark:hover:bg-amber-950"
+                    >
+                      <ArrowRightLeft className="h-4 w-4 mr-1" />
+                      Mark as Under Contract
+                    </Button>
+                  )}
                   <Button onClick={() => {
                     if (currentItem.matchedPair) {
                       onAddNewListing(currentItem.matchedPair.pdfListing);
@@ -556,6 +579,12 @@ function MatchedReviewCard({ pair, onEdit, scopeListings }: { pair: MatchedPair;
 
   return (
     <div className="space-y-3">
+      {pdfListing.status === 'conditional' && (
+        <div className="flex items-center gap-2 px-3 py-2 bg-amber-50 dark:bg-amber-950/30 border border-amber-300 dark:border-amber-700 rounded-md text-amber-700 dark:text-amber-400 text-xs font-semibold">
+          <AlertTriangle className="h-4 w-4 flex-shrink-0" />
+          PDF shows this listing as Conditionally Sold/Leased — recommend marking as Under Contract
+        </div>
+      )}
       <div className="grid grid-cols-2 gap-4">
         {/* PDF Side */}
         <div className="border border-border rounded-lg p-4 space-y-2">
@@ -956,7 +985,9 @@ function PaginationDots({
                 !isActive && action === 'confirmed_updated' && 'bg-blue-500/60',
                 !isActive && action === 'skipped' && 'bg-muted-foreground/30',
                 !isActive && action === 'added' && 'bg-green-500/60',
-                !isActive && action === 'flagged' && 'bg-destructive/60'
+                !isActive && action === 'flagged' && 'bg-destructive/60',
+                isActive && action === 'mark_under_contract' && 'bg-amber-500',
+                !isActive && action === 'mark_under_contract' && 'bg-amber-500/60',
               )}
               />
             </div>

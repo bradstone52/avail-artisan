@@ -156,7 +156,7 @@ export function AuditPdfDialog({
       if (data?.error) throw new Error(data.error);
 
       const rawListings: PdfExtractedListing[] = data.listings || [];
-      const activeListings = rawListings.filter(l => !l.status || l.status === 'active');
+      const activeListings = rawListings.filter(l => !l.status || l.status !== 'inactive');
       const extractedListings = activeListings.filter(l => !l.size_sf || l.size_sf >= 8000);
 
       // Compare against scope listings: build matched pairs, missing, and new
@@ -404,6 +404,21 @@ export function AuditPdfDialog({
       });
   };
 
+  const handleMarkUnderContract = async (dbListing: MarketListing) => {
+    const { error } = await supabase
+      .from('market_listings')
+      .update({
+        status: 'Under Contract',
+        last_verified_date: new Date().toISOString().split('T')[0],
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', dbListing.id);
+    if (error) {
+      console.error('Failed to mark as Under Contract:', error);
+      toast.error('Failed to update listing status');
+    }
+  };
+
   const handleConfirmAndUpdate = async (dbListing: MarketListing, pdfData: PdfExtractedListing) => {
     const updates: Record<string, unknown> = {
       last_verified_date: `${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, '0')}-${String(new Date().getDate()).padStart(2, '0')}`,
@@ -469,6 +484,7 @@ export function AuditPdfDialog({
             brokerSource={selectedValue}
             onConfirm={handleConfirm}
             onConfirmAndUpdate={handleConfirmAndUpdate}
+            onMarkUnderContract={handleMarkUnderContract}
             onAddNewListing={handleAddNewListing}
             onFlagMissing={handleStepperFlagMissing}
             onEditListing={onEditListing}

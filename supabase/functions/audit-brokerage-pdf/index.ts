@@ -59,7 +59,10 @@ IMPORTANT RULES:
    - Bold text labels in the address/title area of the row such as: LEASED, SOLD, CONDITIONALLY LEASED, CONDITIONALLY SOLD, SUBLEASED, UNCONDITIONALLY SOLD, or similar variants
    - Diagonal banner overlays or watermarks printed across the property photo (e.g. a red diagonal banner reading "UNCONDITIONALLY SOLD" or a greyed-out overlay with "Leased!" text)
    - Greyed-out or visually dimmed rows indicating the listing is no longer available
-   Set status to "inactive" if ANY of the above signals are present. Set status to "active" if the listing appears to be currently available with no such indicators.
+   Use the following three-way status:
+   - "active": no status indicator present — listing is currently available
+   - "conditional": CONDITIONALLY SOLD, CONDITIONALLY LEASED, or similar conditional indicators — under contract but not yet closed
+   - "inactive": SOLD, LEASED, UNCONDITIONALLY SOLD, SUBLEASED, or any fully closed/off-market status
    Strip only neutral prefixes like "New Listing" or "End Cap Unit Available" from the address field — do NOT strip status labels, capture them in the status field instead.
 6. Include unit numbers if they identify a distinct listing row (e.g. "Unit 206 2340 Pegasus Way NE" is separate from "Unit 123 2340 Pegasus Way NE").
 7. For land listings, include the name/description as written (e.g. "Eastridge Logistics Park Airdrie").
@@ -102,7 +105,7 @@ EXTRACTION RULES for additional fields:
               properties: {
                 address: { type: "string", description: "The street address or property name" },
                 listing_type: { type: "string", enum: ["Lease", "Sublease", "Sale", "Land Lease", "Land Sale"], description: "The type of listing" },
-                status: { type: "string", enum: ["active", "inactive"], description: "Set to inactive if the row shows any sold, leased, conditionally sold, conditionally leased, subleased, or unconditionally sold indicator — either as bold text in the row or as a visual overlay/watermark on the photo. Default to active if no such indicator is present." },
+                status: { type: "string", enum: ["active", "conditional", "inactive"], description: "\"active\" = listing is currently available with no status overlay or label. \"conditional\" = listing shows CONDITIONALLY SOLD, CONDITIONALLY LEASED, or similar conditional indicators — it is under contract but not yet fully closed. \"inactive\" = listing shows SOLD, LEASED, UNCONDITIONALLY SOLD, SUBLEASED, or any non-conditional closed status — it is fully off the market. Default to \"active\" if no indicator is present." },
                 size_sf: { type: ["number", "null"], description: "Total building size in square feet, or null if not shown" },
                 asking_rate: { type: ["string", "null"], description: "Asking lease rate PSF or sale price as shown in the PDF, or null" },
                 city: { type: ["string", "null"], description: "City name if identifiable, or null" },
