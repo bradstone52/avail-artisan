@@ -25,6 +25,7 @@ import { toast } from 'sonner';
 export interface PdfExtractedListing {
   address: string;
   listing_type: string;
+  status?: string | null;
   size_sf?: number | null;
   asking_rate?: string | null;
   city?: string | null;
