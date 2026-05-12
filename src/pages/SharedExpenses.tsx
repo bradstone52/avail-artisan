@@ -186,6 +186,72 @@ function InlineEditCell({
   );
 }
 
+function ExpenseRow({
+  expense,
+  onUpdate,
+  onDelete,
+}: {
+  expense: SharedExpense;
+  onUpdate: (patch: Partial<SharedExpense>) => void;
+  onDelete: () => void;
+}) {
+  return (
+    <TableRow
+      key={expense.id}
+      className={cn(
+        'transition-opacity duration-200',
+        expense.settled && 'opacity-50',
+      )}
+    >
+      <TableCell className="font-medium max-w-[200px]">
+        <InlineEditCell
+          value={expense.description}
+          onSave={(v) => onUpdate({ description: v })}
+          placeholder="Description"
+        />
+      </TableCell>
+      <TableCell>
+        <InlineEditCell
+          value={expense.amount != null ? String(expense.amount) : ''}
+          displayValue={expense.amount != null ? formatCurrency(expense.amount) : undefined}
+          onSave={(v) => onUpdate({ amount: v ? parseFloat(v) : null })}
+          type="number"
+          placeholder="0.00"
+        />
+      </TableCell>
+      <TableCell>
+        <PaidByBadge paidBy={expense.paid_by} />
+      </TableCell>
+      <TableCell className="text-sm text-muted-foreground whitespace-nowrap">
+        {formatDate(expense.expense_date)}
+      </TableCell>
+      <TableCell className="max-w-[200px]">
+        <InlineEditCell
+          value={expense.notes ?? ''}
+          onSave={(v) => onUpdate({ notes: v || null })}
+          placeholder="Add notes…"
+        />
+      </TableCell>
+      <TableCell className="text-center">
+        <Checkbox
+          checked={expense.settled}
+          onCheckedChange={(checked) => onUpdate({ settled: !!checked })}
+        />
+      </TableCell>
+      <TableCell>
+        <Button
+          variant="ghost"
+          size="icon"
+          className="h-7 w-7 text-muted-foreground hover:text-destructive"
+          onClick={onDelete}
+        >
+          <Trash2 className="w-4 h-4" />
+        </Button>
+      </TableCell>
+    </TableRow>
+  );
+}
+
 // ─── Default form state factory ───────────────────────────────────────────────
 
 const defaultForm = () => ({
@@ -344,8 +410,9 @@ export default function SharedExpenses() {
   const filtered = useMemo(() => {
     if (activeTab === 'open') return openExpenses;
     if (activeTab === 'settled') return settledExpenses;
-    return expenses;
-  }, [activeTab, expenses, openExpenses, settledExpenses]);
+    // All tab: unsettled first (date desc from Supabase), settled last (date desc)
+    return [...openExpenses, ...settledExpenses];
+  }, [activeTab, openExpenses, settledExpenses]);
 
   // 50/50 balance: each expense is shared equally; the non-payer owes half.
   const { bradPaid, dougPaid, net } = useMemo(() => {
@@ -655,86 +722,36 @@ export default function SharedExpenses() {
                   ))
                 ) : filtered.length === 0 ? (
                   <TableRow>
-                    <TableCell
-                      colSpan={7}
-                      className="text-center text-muted-foreground py-10"
-                    >
+                    <TableCell colSpan={7} className="text-center text-muted-foreground py-10">
                       No expenses found
                     </TableCell>
                   </TableRow>
                 ) : (
-                  filtered.map((expense) => (
-                    <TableRow
-                      key={expense.id}
-                      className={cn(expense.settled && 'opacity-50')}
-                    >
-                      <TableCell className="font-medium max-w-[200px]">
-                        <InlineEditCell
-                          value={expense.description}
-                          onSave={(v) =>
-                            updateMutation.mutate({
-                              id: expense.id,
-                              patch: { description: v },
-                            })
-                          }
-                          placeholder="Description"
-                        />
-                      </TableCell>
-                      <TableCell>
-                        <InlineEditCell
-                          value={expense.amount != null ? String(expense.amount) : ''}
-                          displayValue={expense.amount != null ? formatCurrency(expense.amount) : undefined}
-                          onSave={(v) =>
-                            updateMutation.mutate({
-                              id: expense.id,
-                              patch: { amount: v ? parseFloat(v) : null },
-                            })
-                          }
-                          type="number"
-                          placeholder="0.00"
-                        />
-                      </TableCell>
-                      <TableCell>
-                        <PaidByBadge paidBy={expense.paid_by} />
-                      </TableCell>
-                      <TableCell className="text-sm text-muted-foreground whitespace-nowrap">
-                        {formatDate(expense.expense_date)}
-                      </TableCell>
-                      <TableCell className="max-w-[200px]">
-                        <InlineEditCell
-                          value={expense.notes ?? ''}
-                          onSave={(v) =>
-                            updateMutation.mutate({
-                              id: expense.id,
-                              patch: { notes: v || null },
-                            })
-                          }
-                          placeholder="Add notes…"
-                        />
-                      </TableCell>
-                      <TableCell className="text-center">
-                        <Checkbox
-                          checked={expense.settled}
-                          onCheckedChange={(checked) =>
-                            updateMutation.mutate({
-                              id: expense.id,
-                              patch: { settled: !!checked },
-                            })
-                          }
-                        />
-                      </TableCell>
-                      <TableCell>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-7 w-7 text-muted-foreground hover:text-destructive"
-                          onClick={() => setDeleteId(expense.id)}
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </Button>
-                      </TableCell>
-                    </TableRow>
-                  ))
+                  <>
+                    {(activeTab === 'all' ? openExpenses : filtered).map((expense) => (
+                      <ExpenseRow
+                        key={expense.id}
+                        expense={expense}
+                        onUpdate={(patch) => updateMutation.mutate({ id: expense.id, patch })}
+                        onDelete={() => setDeleteId(expense.id)}
+                      />
+                    ))}
+                    {activeTab === 'all' && openExpenses.length > 0 && settledExpenses.length > 0 && (
+                      <TableRow className="hover:bg-transparent">
+                        <TableCell colSpan={7} className="py-1.5 text-center border-y border-border/60 bg-muted/30">
+                          <span className="text-xs font-medium text-muted-foreground tracking-wide uppercase">Settled</span>
+                        </TableCell>
+                      </TableRow>
+                    )}
+                    {activeTab === 'all' && settledExpenses.map((expense) => (
+                      <ExpenseRow
+                        key={expense.id}
+                        expense={expense}
+                        onUpdate={(patch) => updateMutation.mutate({ id: expense.id, patch })}
+                        onDelete={() => setDeleteId(expense.id)}
+                      />
+                    ))}
+                  </>
                 )}
               </TableBody>
             </Table>
