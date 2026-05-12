@@ -103,17 +103,19 @@ serve(async (req) => {
   <p style="color:#6b7280;font-size:14px;margin-top:0">ClearView Commercial Realty — Open (unsettled) expenses as of ${new Date().toLocaleDateString('en-CA', { year: 'numeric', month: 'long', day: 'numeric' })}</p>
 
   <div style="background:#f9fafb;border:1px solid #e5e7eb;border-radius:8px;padding:16px 20px;margin-bottom:28px">
-    <div style="display:flex;gap:32px;margin-bottom:12px;flex-wrap:wrap">
-      <div>
-        <div style="font-size:11px;text-transform:uppercase;letter-spacing:0.05em;color:#6b7280;margin-bottom:2px">Brad paid (open)</div>
-        <div style="font-size:20px;font-weight:700;color:#1d4ed8">${formatCurrency(bradPaid)}</div>
-      </div>
-      <div>
-        <div style="font-size:11px;text-transform:uppercase;letter-spacing:0.05em;color:#6b7280;margin-bottom:2px">Doug paid (open)</div>
-        <div style="font-size:20px;font-weight:700;color:#7c3aed">${formatCurrency(dougPaid)}</div>
-      </div>
-    </div>
-    <div style="font-size:16px;font-weight:600;color:${Math.abs(net) < 0.01 ? '#15803d' : '#92400e'};border-top:1px solid #e5e7eb;padding-top:12px">
+    <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:16px">
+      <tr>
+        <td style="padding:0 24px 0 0;vertical-align:top">
+          <div style="font-size:11px;text-transform:uppercase;letter-spacing:0.05em;color:#6b7280;margin-bottom:4px">Brad paid (open)</div>
+          <div style="font-size:20px;font-weight:700;color:#1d4ed8">${formatCurrency(bradPaid)}</div>
+        </td>
+        <td style="padding:0;vertical-align:top">
+          <div style="font-size:11px;text-transform:uppercase;letter-spacing:0.05em;color:#6b7280;margin-bottom:4px">Doug paid (open)</div>
+          <div style="font-size:20px;font-weight:700;color:#7c3aed">${formatCurrency(dougPaid)}</div>
+        </td>
+      </tr>
+    </table>
+    <div style="font-size:16px;font-weight:600;color:${Math.abs(net) < 0.01 ? '#15803d' : '#92400e'};border-top:1px solid #e5e7eb;padding-top:14px;margin-top:4px">
       ${verdict}
     </div>
   </div>
