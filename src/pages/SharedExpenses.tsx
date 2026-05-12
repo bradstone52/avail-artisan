@@ -103,6 +103,15 @@ function formatCurrency(amount: number | null) {
   }).format(amount);
 }
 
+function formatDate(dateStr: string) {
+  const [year, month, day] = dateStr.split('-').map(Number);
+  return new Date(year, month - 1, day).toLocaleDateString('en-US', {
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+  });
+}
+
 function PaidByBadge({ paidBy }: { paidBy: string }) {
   return (
     <Badge
@@ -121,11 +130,13 @@ function PaidByBadge({ paidBy }: { paidBy: string }) {
 
 function InlineEditCell({
   value,
+  displayValue,
   onSave,
   type = 'text',
   placeholder,
 }: {
   value: string;
+  displayValue?: string;
   onSave: (v: string) => void;
   type?: 'text' | 'number';
   placeholder?: string;
@@ -168,7 +179,7 @@ function InlineEditCell({
       className="cursor-pointer hover:bg-accent rounded px-1 py-0.5 min-w-[40px] inline-block"
       title="Click to edit"
     >
-      {value || (
+      {(displayValue ?? value) || (
         <span className="text-muted-foreground italic">{placeholder ?? 'Click to edit'}</span>
       )}
     </span>
@@ -672,6 +683,7 @@ export default function SharedExpenses() {
                       <TableCell>
                         <InlineEditCell
                           value={expense.amount != null ? String(expense.amount) : ''}
+                          displayValue={expense.amount != null ? formatCurrency(expense.amount) : undefined}
                           onSave={(v) =>
                             updateMutation.mutate({
                               id: expense.id,
@@ -686,7 +698,7 @@ export default function SharedExpenses() {
                         <PaidByBadge paidBy={expense.paid_by} />
                       </TableCell>
                       <TableCell className="text-sm text-muted-foreground whitespace-nowrap">
-                        {expense.expense_date}
+                        {formatDate(expense.expense_date)}
                       </TableCell>
                       <TableCell className="max-w-[200px]">
                         <InlineEditCell
