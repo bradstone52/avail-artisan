@@ -276,3 +276,29 @@ export interface AgentFormData {
   brokerage_id?: string;
   notes?: string;
 }
+
+export interface OfferDocument {
+  id: string;
+  user_id: string;
+  org_id?: string | null;
+  document_type: string;
+  tenant_name?: string | null;
+  premises_address?: string | null;
+  premises_city?: string | null;
+  docx_path?: string | null;
+  pdf_path?: string | null;
+  form_data?: Record<string, unknown> | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ClauseLibraryItem {
+  id: string;
+  user_id: string;
+  org_id?: string | null;
+  document_type: string;
+  title: string;
+  content: string;
+  created_at: string;
+  updated_at: string;
+}

@@ -47,3 +47,6 @@ verify_jwt = false
 
 [functions.send-expense-summary]
 verify_jwt = false
+
+[functions.generate-offer-to-lease]
+verify_jwt = false

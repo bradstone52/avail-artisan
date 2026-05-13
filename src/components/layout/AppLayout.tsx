@@ -28,6 +28,8 @@ import {
   CheckSquare,
   Globe,
   SplitSquareHorizontal,
+  FileText,
+  FilePlus,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -71,6 +73,14 @@ const navigation: NavigationEntry[] = [
   { name: 'Tenants', href: '/tenants', icon: UserSearch },
   { name: 'Lease Comps', href: '/lease-comps', icon: Receipt },
   { name: 'Shared Expenses', href: '/shared-expenses', icon: SplitSquareHorizontal },
+  {
+    name: 'Documents',
+    icon: FileText,
+    items: [
+      { name: 'All Documents', href: '/documents', icon: FileText },
+      { name: 'Offer to Lease', href: '/documents/offer-to-lease/new', icon: FilePlus },
+    ]
+  },
   { name: 'My Tasks', href: '/my-tasks', icon: CheckSquare },
 ];
 
@@ -90,6 +100,7 @@ export function AppLayout({ children }: AppLayoutProps) {
   const [openGroups, setOpenGroups] = useState<Record<string, boolean>>(() => {
     return {
       'Distribution': ['/listings', '/recipients'].includes(location.pathname),
+      'Documents': location.pathname.startsWith('/documents'),
     };
   });
 
@@ -102,6 +113,7 @@ export function AppLayout({ children }: AppLayoutProps) {
     setOpenGroups(prev => ({
       ...prev,
       'Distribution': prev['Distribution'] || ['/listings', '/recipients'].includes(location.pathname),
+      'Documents': prev['Documents'] || location.pathname.startsWith('/documents'),
     }));
   }, [location.pathname]);
 
