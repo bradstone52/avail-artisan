@@ -1,5 +1,5 @@
-import { useState, useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useState, useMemo, useEffect } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -26,7 +26,7 @@ import {
   CommandList,
 } from '@/components/ui/command';
 import { toast } from 'sonner';
-import { ChevronRight, FileText, Plus, Minus, BookOpen, ChevronsUpDown, Check } from 'lucide-react';
+import { ChevronRight, FileText, Plus, Minus, BookOpen, ChevronsUpDown, Check, Info } from 'lucide-react';
 import { useAgents } from '@/hooks/useAgents';
 import { useBrokerages } from '@/hooks/useBrokerages';
 import { useAuth } from '@/contexts/AuthContext';
@@ -236,12 +236,16 @@ function DepositSummary({
 
 export default function OfferToLeaseNew() {
   const navigate = useNavigate();
+  const location = useLocation();
+  const prefillData = location.state?.formData as Record<string, unknown> | undefined;
+
   const { user } = useAuth();
   const { org } = useOrg();
   const { data: agents = [] } = useAgents();
   const { data: brokerages = [] } = useBrokerages();
 
   const [submitting, setSubmitting] = useState(false);
+  const [isPrefilled, setIsPrefilled] = useState(false);
 
   // Clause library sheet state
   const [clauseSheetOpen, setClauseSheetOpen] = useState(false);
@@ -325,6 +329,67 @@ export default function OfferToLeaseNew() {
   const [offerYear, setOfferYear] = useState('');
   const [acceptanceDeadline, setAcceptanceDeadline] = useState('');
   const [acceptanceForWho, setAcceptanceForWho] = useState('Landlord');
+
+  // ── Prefill from saved form_data when editing a previous offer
+  useEffect(() => {
+    if (!prefillData) return;
+    const s = (key: string) => (prefillData[key] as string) ?? '';
+    setLlCorporateName(s('llCorporateName'));
+    setLlBrokerageName(s('llBrokerageName'));
+    setLlBrokerageAddress(s('llBrokerageAddress'));
+    setLlAgentName(s('llAgentName'));
+    setLlAgentPhone(s('llAgentPhone'));
+    setLlAgentEmail(s('llAgentEmail'));
+    setTenantCorporateName(s('tenantCorporateName'));
+    setTenantBrokerageName(s('tenantBrokerageName'));
+    setTenantBrokerageAddress(s('tenantBrokerageAddress'));
+    setTenantAgentName(s('tenantAgentName'));
+    setTenantAgentPhone(s('tenantAgentPhone'));
+    setTenantAgentEmail(s('tenantAgentEmail'));
+    setCvAgentName(s('cvAgentName'));
+    setCvAgentPhone(s('cvAgentPhone'));
+    setCvAgentEmail(s('cvAgentEmail'));
+    setAgencyLLorTenant(s('agencyLLorTenant') || 'Tenant');
+    setPremisesAddress(s('premisesAddress'));
+    setPremisesCity(s('premisesCity') || 'Calgary');
+    setPremisesSF(s('premisesSF'));
+    const tl = s('termLength');
+    setTermLength(tl);
+    const termOpt = TERM_OPTIONS.find((o) => o.value === tl);
+    if (termOpt) setTermYears(termOpt.years);
+    setCommencementDate(s('commencementDate'));
+    setExpiryDate(s('expiryDate'));
+    setEarlyOccupancyDate(s('earlyOccupancyDate'));
+    setEarlyOccType(s('earlyOccType') || 'non-exclusive');
+    const yearNames = ['year1BasicRent','year2BasicRent','year3BasicRent','year4BasicRent',
+      'year5BasicRent','year6BasicRent','year7BasicRent','year8BasicRent','year9BasicRent','year10BasicRent'];
+    const rows = yearNames.map((k) => s(k));
+    const lastFilled = rows.reduce((last, v, i) => (v.trim() ? i : last), 0);
+    setRentRows(rows.slice(0, Math.max(lastFilled + 1, termOpt?.years ?? 1)));
+    setBasicRentStartMonth(s('basicRentStartMonth'));
+    setBasicRentStartYear(s('basicRentStartYear'));
+    setAdditionalRentBudgetYear(s('additionalRentBudgetYear'));
+    setAdditionalRentCostPerFoot(s('additionalRentCostPerFoot'));
+    setFreeBasicRent(s('freeBasicRent') || 'No');
+    setNumMonthsFree(s('numMonthsFree'));
+    setUseOfPremises(s('useOfPremises'));
+    setMunicipalityForPermitting(s('municipalityForPermitting') || 'City of Calgary');
+    setDepositBrokerage(s('depositBrokerage'));
+    const otr = s('optionToRenewLength');
+    if (otr) {
+      setOptionToRenew('Yes');
+      setOptionToRenewLength(otr);
+    }
+    setParkingComment(s('parkingComment'));
+    setTenantConditionTimeline(s('tenantConditionTimeline'));
+    setLandlordConditionTimeline(s('landlordConditionTimeline'));
+    setOfferMonth(s('offerMonth'));
+    setOfferYear(s('offerYear'));
+    setAcceptanceDeadline(s('acceptanceDeadline'));
+    setAcceptanceForWho(s('acceptanceForWho') || 'Landlord');
+    setIsPrefilled(true);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // ── Derived: ClearView agents only (Fix 2)
   const cvAgents = useMemo(
@@ -575,6 +640,13 @@ export default function OfferToLeaseNew() {
         </div>
 
         <form id="otl-form" onSubmit={handleSubmit} className="space-y-5">
+
+          {isPrefilled && (
+            <div className="flex items-center gap-2.5 px-4 py-3 rounded-lg border border-blue-200 bg-blue-50 dark:border-blue-800 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300 text-sm">
+              <Info className="h-4 w-4 flex-shrink-0" />
+              Editing a previous offer — changes will generate a new document.
+            </div>
+          )}
 
           {/* ── Section 1: LANDLORD ── */}
           <Section title="Landlord">

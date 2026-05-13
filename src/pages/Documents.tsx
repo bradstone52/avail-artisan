@@ -21,7 +21,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { FileText, FilePlus, Download, Trash2 } from 'lucide-react';
+import { FileText, FilePlus, Download, Trash2, Pencil } from 'lucide-react';
 import { useOfferDocuments, useDeleteOfferDocument } from '@/hooks/useOfferDocuments';
 import { supabase } from '@/integrations/supabase/client';
 import type { OfferDocument } from '@/types/database';
@@ -154,6 +154,14 @@ export default function Documents() {
                     <TableCell className="text-right">
                       <div className="flex items-center justify-end gap-1">
                         <DownloadButton doc={doc} />
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          title="Edit & Regenerate"
+                          onClick={() => navigate('/documents/offer-to-lease/new', { state: { formData: doc.form_data } })}
+                        >
+                          <Pencil className="h-4 w-4" />
+                        </Button>
                         <Button
                           size="sm"
                           variant="ghost"
