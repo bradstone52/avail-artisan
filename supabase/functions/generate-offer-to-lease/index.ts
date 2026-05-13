@@ -22,8 +22,26 @@ const BUSINESS_OPERATION_EXCLUSIVE = `The Tenant shall be permitted to operate b
 
 const FREE_RENT_HEADER = `FREE BASIC RENT`;
 
-const FREE_RENT_CLAUSE = (numMonths: string, startMonth: string, startYear: string) =>
-  `The Landlord will grant the Tenant the first ${numMonths} month(s) of the lease term, wherein the Tenant shall not pay to the Landlord the monthly Basic Rent amount for this period.\nThe Tenant will be responsible for paying to the Landlord during this period the monthly amount of Additional Rent plus GST. Payment of monthly Basic Rent to the Landlord will begin on the first day of ${startMonth} ${startYear}.`;
+const FREE_RENT_CLAUSE = (numMonths: string, commencementDate: string, startMonth: string, startYear: string) => {
+  let displayMonth = startMonth;
+  let displayYear = startYear;
+
+  try {
+    const numFree = parseInt(numMonths, 10);
+    if (!isNaN(numFree) && numFree > 0 && commencementDate) {
+      const parsed = new Date(commencementDate);
+      if (!isNaN(parsed.getTime())) {
+        parsed.setMonth(parsed.getMonth() + numFree);
+        displayMonth = parsed.toLocaleString("en-CA", { month: "long" });
+        displayYear = parsed.getFullYear().toString();
+      }
+    }
+  } catch (_) {
+    // fall back to provided startMonth/startYear if parsing fails
+  }
+
+  return `The Landlord will grant the Tenant the first ${numMonths} month(s) of the lease term, wherein the Tenant shall not pay to the Landlord the monthly Basic Rent amount for this period.\nThe Tenant will be responsible for paying to the Landlord during this period the monthly amount of Additional Rent plus GST. Payment of monthly Basic Rent to the Landlord will begin on the first day of ${displayMonth} ${displayYear}.`;
+};
 
 // ─── HELPERS ──────────────────────────────────────────────────────────────────
 
@@ -119,7 +137,7 @@ serve(async (req) => {
     let freeBasicRentParagraph = "";
     if (freeBasicRent === "Yes") {
       freeBasicRentHeader = FREE_RENT_HEADER;
-      freeBasicRentParagraph = FREE_RENT_CLAUSE(numMonthsFree, basicRentStartMonth, basicRentStartYear);
+      freeBasicRentParagraph = FREE_RENT_CLAUSE(numMonthsFree, commencementDate, basicRentStartMonth, basicRentStartYear);
     }
 
     // ── Deposit Calculations
