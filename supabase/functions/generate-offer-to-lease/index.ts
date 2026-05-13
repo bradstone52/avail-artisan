@@ -164,7 +164,7 @@ serve(async (req) => {
       AgencyDisclosure: agencyDisclosure,
       "Premises Address": premisesAddress,
       "Premises City": premisesCity,
-      "Premises SF": premisesSF,
+      "Premises SF": size.toLocaleString("en-CA"),
       "Term Length": termLength,
       "Commencement Date": commencementDate,
       "Expiry Date": expiryDate,
@@ -177,12 +177,14 @@ serve(async (req) => {
       "Additional Rent Budget Year": additionalRentBudgetYear,
       "Additional Rent Cost Per Foot": `$${additionalRentRate.toFixed(2)}`,
       "Additional Rent Total Per Month": formatCurrency(additionalRentTotalPerMonth),
-      "FREE BASIC RENT HEADER": freeBasicRentHeader,
-      "Free Basic Rent Paragraph": freeBasicRentParagraph,
+      ...(freeBasicRent === "Yes" ? {
+        "FREE BASIC RENT HEADER": freeBasicRentHeader,
+        "Free Basic Rent Paragraph": freeBasicRentParagraph,
+      } : {}),
       "Use of Premises": useOfPremises,
       "Municipality for Permitting": municipalityForPermitting,
       "Deposit Brokerage": depositBrokerage,
-      depositSection: depositSection,
+      depositSection: freeBasicRent === "Yes" ? "Section 13" : "Section 12",
       FirstMonthBasicRent: formatCurrency(firstMonthBasic),
       GSTonBasicRent: formatCurrency(firstMonthBasicGST),
       FirstMonthOpRent: formatCurrency(opRent),
@@ -206,9 +208,13 @@ serve(async (req) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     );
 
+    const templateFile = freeBasicRent === "Yes"
+      ? "offer-to-lease-with-free-rent.docx"
+      : "offer-to-lease-no-free-rent.docx";
+
     const { data: templateBlob, error: templateError } = await supabaseAdmin.storage
       .from("offer-templates")
-      .download("offer-to-lease.docx");
+      .download(templateFile);
 
     if (templateError || !templateBlob) {
       throw new Error(`Failed to fetch template: ${templateError?.message}`);
