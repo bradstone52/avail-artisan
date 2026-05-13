@@ -12,14 +12,59 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/ui/popover';
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from '@/components/ui/command';
 import { toast } from 'sonner';
-import { ChevronRight, FileText, Plus, Minus, BookOpen } from 'lucide-react';
+import { ChevronRight, FileText, Plus, Minus, BookOpen, ChevronsUpDown, Check } from 'lucide-react';
 import { useAgents } from '@/hooks/useAgents';
 import { useBrokerages } from '@/hooks/useBrokerages';
 import { useAuth } from '@/contexts/AuthContext';
 import { useOrg } from '@/hooks/useOrg';
 import { supabase } from '@/integrations/supabase/client';
 import { ClauseLibrarySheet } from '@/components/documents/ClauseLibrarySheet';
+import { cn } from '@/lib/utils';
+
+// ── term options (Fix 3) ──────────────────────────────────────────────────────
+
+const TERM_OPTIONS = [
+  { label: 'One (1) Year',    value: 'One (1) Year',    years: 1  },
+  { label: 'Two (2) Years',   value: 'Two (2) Years',   years: 2  },
+  { label: 'Three (3) Years', value: 'Three (3) Years', years: 3  },
+  { label: 'Four (4) Years',  value: 'Four (4) Years',  years: 4  },
+  { label: 'Five (5) Years',  value: 'Five (5) Years',  years: 5  },
+  { label: 'Six (6) Years',   value: 'Six (6) Years',   years: 6  },
+  { label: 'Seven (7) Years', value: 'Seven (7) Years', years: 7  },
+  { label: 'Eight (8) Years', value: 'Eight (8) Years', years: 8  },
+  { label: 'Nine (9) Years',  value: 'Nine (9) Years',  years: 9  },
+  { label: 'Ten (10) Years',  value: 'Ten (10) Years',  years: 10 },
+];
+
+// ── municipality presets (Fix 4) ──────────────────────────────────────────────
+
+const MUNICIPALITY_OPTIONS = [
+  'City of Calgary',
+  'City of Airdrie',
+  'Rocky View County',
+  'City of Chestermere',
+  'Wheatland County',
+  'MD of Foothills No. 31',
+  'Town of Okotoks',
+  'Town of High River',
+  'City of Red Deer',
+  'City of Lethbridge',
+  'City of Edmonton',
+];
 
 // ── helpers ──────────────────────────────────────────────────────────────────
 
@@ -49,6 +94,88 @@ function Field({ label, children, hint }: { label: string; children: React.React
       {children}
       {hint && <p className="text-xs text-muted-foreground">{hint}</p>}
     </div>
+  );
+}
+
+// ── municipality combobox (Fix 4) ─────────────────────────────────────────────
+
+function MunicipalityCombobox({
+  value,
+  onChange,
+}: {
+  value: string;
+  onChange: (v: string) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const [inputValue, setInputValue] = useState('');
+
+  function handleSelect(option: string) {
+    onChange(option);
+    setOpen(false);
+    setInputValue('');
+  }
+
+  function handleInputKeyDown(e: React.KeyboardEvent<HTMLInputElement>) {
+    if (e.key === 'Enter' && inputValue.trim()) {
+      onChange(inputValue.trim());
+      setOpen(false);
+      setInputValue('');
+    }
+  }
+
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <Button
+          type="button"
+          variant="outline"
+          role="combobox"
+          aria-expanded={open}
+          className="w-full justify-between font-normal"
+        >
+          <span className={value ? 'text-foreground' : 'text-muted-foreground'}>
+            {value || 'Select municipality…'}
+          </span>
+          <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
+        <Command>
+          <CommandInput
+            placeholder="Search or type custom…"
+            value={inputValue}
+            onValueChange={setInputValue}
+            onKeyDown={handleInputKeyDown}
+          />
+          <CommandList>
+            <CommandEmpty>
+              <button
+                type="button"
+                className="w-full px-3 py-2 text-sm text-left hover:bg-accent"
+                onMouseDown={(e) => {
+                  e.preventDefault();
+                  if (inputValue.trim()) {
+                    onChange(inputValue.trim());
+                    setOpen(false);
+                    setInputValue('');
+                  }
+                }}
+              >
+                Use "{inputValue}"
+              </button>
+            </CommandEmpty>
+            <CommandGroup>
+              {MUNICIPALITY_OPTIONS.map((opt) => (
+                <CommandItem key={opt} value={opt} onSelect={() => handleSelect(opt)}>
+                  <Check className={cn('mr-2 h-4 w-4', value === opt ? 'opacity-100' : 'opacity-0')} />
+                  {opt}
+                </CommandItem>
+              ))}
+            </CommandGroup>
+          </CommandList>
+        </Command>
+      </PopoverContent>
+    </Popover>
   );
 }
 
@@ -152,10 +279,11 @@ export default function OfferToLeaseNew() {
   // ── Premises
   const [premisesAddress, setPremisesAddress] = useState('');
   const [premisesCity, setPremisesCity] = useState('Calgary');
-  const [premisesSF, setPremisesSF] = useState('');
+  const [premisesSF, setPremisesSF] = useState(''); // Fix 1: plain text, no parsing
 
-  // ── Term
+  // ── Term (Fix 3)
   const [termLength, setTermLength] = useState('');
+  const [termYears, setTermYears] = useState(1); // drives rent row count, not sent to edge function
   const [commencementDate, setCommencementDate] = useState('');
   const [expiryDate, setExpiryDate] = useState('');
   const [earlyOccupancyDate, setEarlyOccupancyDate] = useState('');
@@ -176,11 +304,10 @@ export default function OfferToLeaseNew() {
 
   // ── Use & Permitting
   const [useOfPremises, setUseOfPremises] = useState('');
-  const [municipalityForPermitting, setMunicipalityForPermitting] = useState('City of Calgary');
+  const [municipalityForPermitting, setMunicipalityForPermitting] = useState('City of Calgary'); // Fix 4
 
-  // ── Deposit
+  // ── Deposit (Fix 5: depositSection removed from form, hardcoded in submit)
   const [depositBrokerage, setDepositBrokerage] = useState('');
-  const [depositSection, setDepositSection] = useState('Section 12');
 
   // ── Option to Renew
   const [optionToRenew, setOptionToRenew] = useState('No');
@@ -199,7 +326,13 @@ export default function OfferToLeaseNew() {
   const [acceptanceDeadline, setAcceptanceDeadline] = useState('');
   const [acceptanceForWho, setAcceptanceForWho] = useState('Landlord');
 
-  // ── Derived: agents filtered by brokerage
+  // ── Derived: ClearView agents only (Fix 2)
+  const cvAgents = useMemo(
+    () => agents.filter((a) => a.brokerage?.name?.toLowerCase().includes('clearview')),
+    [agents]
+  );
+
+  // ── Derived: agents filtered by brokerage for LL and Tenant
   const llAgents = useMemo(
     () => (llBrokerageId ? agents.filter((a) => a.brokerage_id === llBrokerageId) : agents),
     [agents, llBrokerageId]
@@ -219,7 +352,7 @@ export default function OfferToLeaseNew() {
 
   // ── Computed: estimated monthly additional rent
   const estimatedMonthlyAdditional = useMemo(() => {
-    const sf = parseAmount(premisesSF);
+    const sf = parseAmount(premisesSF); // Fix 1: parseAmount still used for computation only, not stored value
     const rate = parseAmount(additionalRentCostPerFoot);
     if (!sf || !rate) return null;
     return (rate * sf) / 12;
@@ -236,6 +369,23 @@ export default function OfferToLeaseNew() {
   }
   function updateRentRow(index: number, value: string) {
     setRentRows((prev) => prev.map((r, i) => (i === index ? value : r)));
+  }
+
+  // ── Term length handler (Fix 3)
+  function handleTermLengthSelect(value: string) {
+    setTermLength(value);
+    const option = TERM_OPTIONS.find((o) => o.value === value);
+    if (option) {
+      setTermYears(option.years);
+      setRentRows((prev) => {
+        const next = Array(option.years).fill('');
+        // preserve any values already entered
+        for (let i = 0; i < option.years && i < prev.length; i++) {
+          next[i] = prev[i];
+        }
+        return next;
+      });
+    }
   }
 
   // ── Auto-fill handlers
@@ -295,6 +445,14 @@ export default function OfferToLeaseNew() {
     }
   }
 
+  // ── Option to Renew handler (Fix 6)
+  function handleOptionToRenewChange(value: string) {
+    setOptionToRenew(value);
+    if (value === 'Yes' && termLength) {
+      setOptionToRenewLength(termLength);
+    }
+  }
+
   // ── Clause library insert
   function openClauseSheet(field: typeof clauseTargetField) {
     setClauseTargetField(field);
@@ -316,7 +474,6 @@ export default function OfferToLeaseNew() {
     const yearNames = ['year1BasicRent','year2BasicRent','year3BasicRent','year4BasicRent',
       'year5BasicRent','year6BasicRent','year7BasicRent','year8BasicRent','year9BasicRent','year10BasicRent'];
     rentRows.forEach((val, i) => { rentFields[yearNames[i]] = val; });
-    // fill remaining with empty
     for (let i = rentRows.length; i < 10; i++) { rentFields[yearNames[i]] = ''; }
 
     const payload = {
@@ -338,7 +495,7 @@ export default function OfferToLeaseNew() {
       agencyLLorTenant,
       premisesAddress,
       premisesCity,
-      premisesSF,
+      premisesSF, // Fix 1: submitted exactly as typed
       termLength,
       commencementDate,
       expiryDate,
@@ -354,7 +511,7 @@ export default function OfferToLeaseNew() {
       useOfPremises,
       municipalityForPermitting,
       depositBrokerage,
-      depositSection,
+      depositSection: 'Section 13', // Fix 5: always hardcoded
       optionToRenewLength: optionToRenew === 'Yes' ? optionToRenewLength : '',
       parkingComment,
       tenantConditionTimeline,
@@ -377,7 +534,6 @@ export default function OfferToLeaseNew() {
 
       toast.success('Offer to Lease generated successfully');
 
-      // Trigger download
       if (data?.docxUrl) {
         const a = document.createElement('a');
         a.href = data.docxUrl;
@@ -514,13 +670,14 @@ export default function OfferToLeaseNew() {
 
           {/* ── Section 3: CLEARVIEW AGENT ── */}
           <Section title="ClearView Agent">
+            {/* Fix 2: filtered to ClearView agents only */}
             <Field label="CV Agent">
               <Select value={cvAgentId} onValueChange={handleCvAgentSelect}>
                 <SelectTrigger>
                   <SelectValue placeholder="Select agent…" />
                 </SelectTrigger>
                 <SelectContent>
-                  {agents.map((a) => (
+                  {cvAgents.map((a) => (
                     <SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>
                   ))}
                 </SelectContent>
@@ -560,6 +717,7 @@ export default function OfferToLeaseNew() {
             <Field label="Premises City">
               <Input value={premisesCity} onChange={(e) => setPremisesCity(e.target.value)} />
             </Field>
+            {/* Fix 1: plain text input, value preserved exactly as typed */}
             <Field label="Premises SF">
               <Input value={premisesSF} onChange={(e) => setPremisesSF(e.target.value)} placeholder="e.g. 9,108" />
             </Field>
@@ -567,8 +725,18 @@ export default function OfferToLeaseNew() {
 
           {/* ── Section 6: TERM ── */}
           <Section title="Term">
+            {/* Fix 3: dropdown with auto-populated rent rows */}
             <Field label="Term Length">
-              <Input value={termLength} onChange={(e) => setTermLength(e.target.value)} placeholder="e.g. Five (5) Year" />
+              <Select value={termLength} onValueChange={handleTermLengthSelect}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select term length…" />
+                </SelectTrigger>
+                <SelectContent>
+                  {TERM_OPTIONS.map((opt) => (
+                    <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </Field>
             <Field label="Commencement Date">
               <Input value={commencementDate} onChange={(e) => setCommencementDate(e.target.value)} placeholder="e.g. September 1, 2026" />
@@ -684,8 +852,9 @@ export default function OfferToLeaseNew() {
                 </Button>
               </div>
             </Field>
+            {/* Fix 4: combobox with preset options and free-text fallback */}
             <Field label="Municipality for Permitting">
-              <Input value={municipalityForPermitting} onChange={(e) => setMunicipalityForPermitting(e.target.value)} />
+              <MunicipalityCombobox value={municipalityForPermitting} onChange={setMunicipalityForPermitting} />
             </Field>
           </Section>
 
@@ -694,9 +863,7 @@ export default function OfferToLeaseNew() {
             <Field label="Deposit Payable To">
               <Input value={depositBrokerage} onChange={(e) => setDepositBrokerage(e.target.value)} placeholder="e.g. ClearView Commercial Realty Inc." />
             </Field>
-            <Field label="Deposit Section Reference">
-              <Input value={depositSection} onChange={(e) => setDepositSection(e.target.value)} />
-            </Field>
+            {/* Fix 5: Deposit Section Reference input removed; always 'Section 13' in submit */}
             <DepositSummary
               year1Rate={rentRows[0] ?? ''}
               lastYearRate={lastYearRate}
@@ -708,7 +875,8 @@ export default function OfferToLeaseNew() {
           {/* ── Section 12: OPTION TO RENEW ── */}
           <Section title="Option to Renew">
             <Field label="Option to Renew">
-              <Select value={optionToRenew} onValueChange={setOptionToRenew}>
+              {/* Fix 6: auto-populates length from termLength when switched to Yes */}
+              <Select value={optionToRenew} onValueChange={handleOptionToRenewChange}>
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
@@ -720,7 +888,7 @@ export default function OfferToLeaseNew() {
             </Field>
             {optionToRenew === 'Yes' && (
               <Field label="Option Length">
-                <Input value={optionToRenewLength} onChange={(e) => setOptionToRenewLength(e.target.value)} placeholder="e.g. Five (5) Year" />
+                <Input value={optionToRenewLength} onChange={(e) => setOptionToRenewLength(e.target.value)} placeholder="e.g. Five (5) Years" />
               </Field>
             )}
           </Section>
